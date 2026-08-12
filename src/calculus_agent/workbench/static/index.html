@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>题目校验工作台</title>
+  <meta name="description" content="教辅 PDF OCR、逐题校验与草稿题库导入工作台">
+  <link rel="stylesheet" href="./static/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark">校</div>
+      <div>
+        <h1>题目校验工作台</h1>
+        <p>PDF → OCR切题 → 人工校验 → 草稿题库</p>
+      </div>
+    </div>
+    <div class="source-actions">
+      <label class="source-select-wrap">
+        <span>当前资料</span>
+        <select id="source-select" aria-label="选择已上传PDF">
+          <option value="">尚未选择</option>
+        </select>
+      </label>
+      <input id="pdf-input" type="file" accept="application/pdf" hidden>
+      <div class="import-layout" aria-label="导入布局">
+        <label><span>文档类型</span>
+          <select id="solution-mode">
+            <option value="inline">普通习题</option>
+            <option value="separate">套卷（题解分离）</option>
+          </select>
+        </label>
+        <label><span>OCR方式</span>
+          <select id="ocr-mode">
+            <option value="ppstructure">标准版面 OCR</option>
+            <option value="page_recall">试卷页级召回 OCR</option>
+          </select>
+        </label>
+        <div id="separate-ranges" class="page-ranges" hidden>
+          <label>题目页 <input id="question-page-start" type="number" min="1" placeholder="起">–<input id="question-page-end" type="number" min="1" placeholder="止"></label>
+          <label>答案页 <input id="solution-page-start" type="number" min="1" placeholder="起">–<input id="solution-page-end" type="number" min="1" placeholder="止"></label>
+        </div>
+      </div>
+      <button id="upload-button" class="button secondary">上传 PDF</button>
+      <button id="submit-button" class="button primary" disabled>批量提交</button>
+    </div>
+  </header>
+
+  <section class="progress-strip">
+    <div class="progress-copy">
+      <span id="progress-label">等待上传教辅 PDF</span>
+      <strong id="progress-value">0 / 0</strong>
+    </div>
+    <div class="progress-track" aria-label="校验进度">
+      <div id="progress-bar" class="progress-bar"></div>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <section class="pdf-panel panel">
+      <div class="panel-header">
+        <div>
+          <span class="eyebrow">原始材料</span>
+          <h2 id="pdf-title">PDF 对照</h2>
+        </div>
+        <div class="pdf-toolbar">
+          <button id="page-prev" class="icon-button" aria-label="上一页">←</button>
+          <label class="page-field">第 <input id="page-number" type="number" min="1" value="1"> / <span id="page-total">0</span> 页</label>
+          <button id="page-next" class="icon-button" aria-label="下一页">→</button>
+          <button id="edit-page-markdown" class="button ghost" disabled>重新识别当前页</button>
+          <span class="divider"></span>
+          <button id="zoom-out" class="icon-button" aria-label="缩小">−</button>
+          <span id="zoom-label" class="zoom-label">100%</span>
+          <button id="zoom-in" class="icon-button" aria-label="放大">＋</button>
+        </div>
+      </div>
+      <div id="pdf-stage" class="pdf-stage empty-state">
+        <div id="pdf-placeholder" class="placeholder">
+          <div class="placeholder-icon">PDF</div>
+          <h3>上传一份教辅 PDF</h3>
+          <p>系统将先进行 OCR 与题目切分，再逐题进入人工校验。</p>
+          <button id="placeholder-upload" class="button primary">选择 PDF</button>
+        </div>
+        <div id="page-canvas" class="page-canvas" hidden>
+          <img id="page-image" alt="当前PDF页面">
+          <div id="question-highlight" class="question-highlight" hidden>
+            <span>当前题目</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="editor-panel panel">
+      <div class="question-header">
+        <div class="question-heading">
+          <span id="status-badge" class="status-badge pending">待校验</span>
+          <div>
+            <span class="eyebrow">当前题目</span>
+            <h2 id="question-title">尚未载入题目</h2>
+          </div>
+        </div>
+        <div class="question-nav">
+          <button id="question-prev" class="button ghost" disabled>上一题</button>
+          <span id="question-index">0 / 0</span>
+          <button id="question-next" class="button ghost" disabled>下一题</button>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="edit" role="tab">Markdown 源码</button>
+        <button class="tab" data-tab="preview" role="tab">实时预览</button>
+        <button class="tab" data-tab="diff" role="tab">修改差异</button>
+      </div>
+
+      <div class="editor-body">
+        <section id="tab-edit" class="tab-content active">
+          <textarea id="markdown-editor" spellcheck="false" aria-label="题目Markdown编辑器" placeholder="选择题目后在此校验 Markdown"></textarea>
+        </section>
+        <section id="tab-preview" class="tab-content preview-pane markdown-body"></section>
+        <section id="tab-diff" class="tab-content diff-pane"></section>
+      </div>
+
+      <aside id="validation-panel" class="validation-panel clean">
+        <div class="validation-title">
+          <span id="validation-icon">✓</span>
+          <strong id="validation-summary">等待校验</strong>
+        </div>
+        <div id="validation-issues" class="validation-issues"></div>
+      </aside>
+
+      <footer class="editor-footer">
+        <div class="source-meta">
+          <span id="source-page-chip">来源页码 —</span>
+          <span id="question-id-chip">question_id —</span>
+        </div>
+        <div class="footer-actions">
+          <button id="validate-button" class="button secondary" disabled>检查格式</button>
+          <button id="save-button" class="button primary" disabled>保存当前草稿</button>
+          <button id="publish-button" class="button success" disabled>确认发布</button>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <div id="busy-overlay" class="busy-overlay" hidden>
+    <div class="busy-card">
+      <div class="spinner"></div>
+      <h3 id="busy-title">正在处理 PDF</h3>
+      <p id="busy-copy">首次加载模型可能需要一些时间，请保持页面开启。</p>
+    </div>
+  </div>
+
+  <div id="result-dialog" class="dialog-backdrop" hidden>
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">处理结果</span>
+          <h2 id="dialog-title">批量提交完成</h2>
+        </div>
+        <button id="dialog-close" class="icon-button" aria-label="关闭">×</button>
+      </div>
+      <div id="dialog-content" class="dialog-content"></div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="./static/app.js" defer></script>
+</body>
+</html>

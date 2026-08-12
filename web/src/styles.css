@@ -1,0 +1,34 @@
+:root { font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; color: #0f172a; background: #f4f7fb; }
+* { box-sizing: border-box; } body { margin: 0; }
+.app-shell header { height: 66px; padding: 0 max(24px, calc((100vw - 1180px)/2)); background: rgba(255,255,255,.92); border-bottom: 1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10; backdrop-filter:blur(12px); }
+.brand { font-weight: 750; font-size: 19px; display:flex; gap:10px; align-items:center; color:#1d4ed8; }
+main { max-width:1180px; margin:auto; padding:38px 20px 70px; }
+.hero { padding:12px 0 28px; } .hero h1 { margin-bottom:8px!important; font-size:36px!important; letter-spacing:-1px; } .hero p { color:#64748b; font-size:16px; }
+.panel { height:100%; box-shadow:0 10px 32px rgba(15,23,42,.06); border:1px solid #e2e8f0; } .panel textarea { margin-bottom:18px; resize:none; line-height:1.8; } .panel .ant-input-number, .panel .ant-select { width:100%; } .panel form>.ant-btn { margin-top:18px; }
+.action-stack { width:100%; } .action-stack .ant-space-item, .action-stack button { width:100%; }
+.prep-card { margin-bottom:20px; box-shadow:0 10px 32px rgba(15,23,42,.05); border-color:#ddd6fe; } .prep-card .ant-input-number, .prep-card .ant-select { width:100%; }
+.vision-upload { margin:16px 0 20px; padding:14px 16px; background:#faf5ff; border:1px dashed #c4b5fd; border-radius:10px; } .vision-warnings { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+.prep-results { margin-top:24px; padding-top:20px; border-top:1px solid #e2e8f0; } .prep-match { padding:16px; margin-top:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; } .prep-match p { margin:8px 0 0!important; } .prep-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.result { margin-top:20px; box-shadow:0 10px 32px rgba(15,23,42,.05); } .checks { display:flex; flex-wrap:wrap; gap:8px; margin:22px 0; }
+.trace-time { margin-left:12px; color:#94a3b8; font-size:12px; } .agent-summary { margin:4px 0 0!important; padding:14px 16px; background:#f8fafc; border-radius:10px; color:#334155; }
+.question { display:flex; justify-content:space-between; gap:22px; padding:16px 4px; border-top:1px solid #edf2f7; line-height:1.7; } .question>span { flex:1; } .downloads { margin-top:22px; }
+.question-locked { margin:0 -10px; padding-left:14px; padding-right:14px; background:#eff6ff; border-left:3px solid #2563eb; }
+.draft-select { width:100%; } .draft-hint { margin:12px 0 0!important; }
+.manual-add { display:grid; grid-template-columns:minmax(220px,1fr) minmax(260px,1.4fr) auto; gap:10px; margin:16px 0 20px; } .manual-add .ant-select { width:100%; }
+.version-diff { margin-top:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; display:flex; gap:14px; align-items:flex-start; } .diff-item { display:inline-block; max-width:360px; margin:0 10px 4px 0; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+@media(max-width:991px){.panel{margin-bottom:20px}.hero h1{font-size:29px!important}.question{flex-direction:column;gap:8px}.manual-add{grid-template-columns:1fr}}
+/* OCR 审核界面 */
+.ocr-card { margin-bottom:20px; box-shadow:0 10px 32px rgba(15,23,42,.05); border-color:#dbeafe; }
+.ocr-card .ant-upload-drag { border-radius:10px; background:#fafcff; border:2px dashed #93c5fd; }
+.ocr-empty { margin:30px 0 10px; }
+.ocr-review { padding:8px 0; }
+.ocr-image-wrap { margin:10px 0 16px; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0; background:#f8fafc; max-height:460px; overflow-y:auto; }
+.ocr-image { width:100%; display:block; }
+.ocr-blocks { max-height:420px; overflow-y:auto; padding-right:4px; }
+.ocr-block { margin-bottom:10px; padding:10px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; transition:border-color .2s; }
+.ocr-block:hover { border-color:#93c5fd; }
+.ocr-block.formula { background:#f0f5ff; border-color:#bfdbfe; }
+.ocr-block-header { display:flex; align-items:center; gap:6px; margin-bottom:6px; flex-wrap:wrap; }
+.ocr-block textarea { font-size:14px; line-height:1.6; resize:vertical; }
+.ocr-save-result { margin-top:16px; padding:12px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:center; gap:12px; }
+@media(max-width:767px){.ocr-image-wrap{max-height:280px}.ocr-blocks{max-height:320px}}

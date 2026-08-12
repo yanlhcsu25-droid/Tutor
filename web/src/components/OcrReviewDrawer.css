@@ -1,0 +1,298 @@
+.ocr-review-drawer .ant-drawer-content,
+.ocr-review-drawer .ant-drawer-body {
+  min-height: 0;
+}
+
+.ocr-review-drawer .ant-drawer-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ocr-review-drawer .ant-drawer-body {
+  flex: 1 1 auto;
+  height: auto;
+}
+
+.ocr-review-spinner,
+.ocr-review-spinner > .ant-spin-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.ocr-review-layout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.ocr-review-progress {
+  padding: 12px 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ocr-review-workspace {
+  display: grid;
+  grid-template-columns: minmax(360px, 5fr) minmax(480px, 7fr);
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ocr-review-pane {
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  padding-bottom: 32px;
+  overflow: auto;
+}
+
+.ocr-review-pdf-pane {
+  border-right: 1px solid #f0f0f0;
+}
+
+.ocr-review-editor-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ocr-review-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.ocr-review-tabs > .ant-tabs-nav {
+  flex: 0 0 auto;
+}
+
+.ocr-review-tabs > .ant-tabs-body-holder {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ocr-review-tabs > .ant-tabs-body-holder > .ant-tabs-body,
+.ocr-review-tabs > .ant-tabs-body-holder > .ant-tabs-body > .ant-tabs-content,
+.ocr-review-tabs > .ant-tabs-body-holder > .ant-tabs-body > .ant-tabs-content > .ant-tabs-tabpane {
+  height: 100%;
+  min-height: 0;
+}
+
+.ocr-review-tabs > .ant-tabs-body-holder > .ant-tabs-body,
+.ocr-review-tabs > .ant-tabs-body-holder > .ant-tabs-body > .ant-tabs-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ocr-review-tabs > .ant-tabs-body-holder > .ant-tabs-body > .ant-tabs-content > .ant-tabs-tabpane {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+/* Ant Design marks inactive panes with this class.  The flex rule above must
+   never make an inactive question pane participate in layout. */
+.ocr-review-tabs .ant-tabs-tabpane-hidden {
+  display: none !important;
+}
+
+/* In the current Ant Design version the outer panes are represented by
+   .ant-tabs-content-hidden rather than tabpane-hidden. */
+.ocr-review-tabs > .ant-tabs-body-holder > .ant-tabs-body > .ant-tabs-content-hidden {
+  display: none !important;
+}
+
+.ocr-review-tabs .ant-tabs-tabpane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.ocr-review-markdown-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  overflow-x: hidden;
+  padding: 0 16px 32px;
+}
+
+.ocr-review-footer {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
+}
+
+.ocr-page-markdown-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 24px;
+}
+
+.ocr-markdown-editor-column,
+.ocr-markdown-preview-column {
+  min-width: 0;
+  min-height: 0;
+}
+
+.ocr-markdown-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ocr-markdown-editor-column {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.ocr-markdown-preview-column {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.ocr-markdown-columns > .ocr-markdown-editor-column,
+.ocr-markdown-columns > .ocr-markdown-preview-column {
+  height: 100%;
+  min-height: 0;
+}
+
+.ocr-page-markdown-toolbar {
+  flex: 0 0 auto;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ocr-page-markdown-editor {
+  display: block;
+  width: 100%;
+  min-height: 420px !important;
+  height: auto;
+  resize: vertical !important;
+  overflow-y: hidden !important;
+  padding-bottom: 48px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.question-editor-layout {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.question-review-stack {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  align-items: stretch;
+}
+
+.question-review-stack > .question-editor-layout {
+  flex: 0 0 400px;
+  min-height: 400px;
+}
+
+/* QuestionEditor is wrapped by Ant Design Space in the real drawer DOM. */
+.question-review-stack > .ant-space-item:first-child {
+  flex: 0 0 460px;
+  min-height: 460px;
+}
+
+.question-review-stack > .ant-space-item:first-child .question-editor-layout,
+.question-review-stack > .ant-space-item:first-child .question-editor-tabs,
+.question-review-stack > .ant-space-item:first-child .ant-tabs-content-holder,
+.question-review-stack > .ant-space-item:first-child .ant-tabs-content,
+.question-review-stack > .ant-space-item:first-child .ant-tabs-tabpane {
+  height: 100%;
+  min-height: 0;
+}
+
+.question-editor-tabs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.question-editor-tabs > .ant-tabs-nav {
+  flex: 0 0 auto;
+}
+
+.question-editor-tabs > .ant-tabs-content-holder {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.question-editor-tabs > .ant-tabs-content-holder > .ant-tabs-content,
+.question-editor-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
+  height: 100%;
+  min-height: 0;
+}
+
+.question-editor-tab-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.question-editor-source-tab {
+  display: flex;
+}
+
+.question-editor-source {
+  flex: 1 1 auto;
+  min-height: 420px !important;
+  height: 100% !important;
+  max-height: none !important;
+  resize: vertical !important;
+  overflow-y: auto !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.question-editor-validation {
+  flex: 0 0 auto;
+  padding-top: 8px;
+}
+
+@media (max-width: 960px) {
+  .ocr-review-workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(260px, 42%) minmax(360px, 58%);
+  }
+
+  .ocr-review-pdf-pane {
+    border-right: 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+}

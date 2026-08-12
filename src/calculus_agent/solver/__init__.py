@@ -1,0 +1,1 @@
+"""Structured calculus solution generation."""

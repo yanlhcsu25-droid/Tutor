@@ -1,0 +1,14 @@
+.pdf-import-panel { display: flex; flex-direction: column; gap: 16px; padding: 20px; height: min(720px, 82vh); }
+.pdf-import-heading h4, .pdf-source-header h5 { margin: 0 !important; }
+.pdf-upload-compact { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px 16px; background: #f7f9fc; border: 1px solid #e6ebf1; border-radius: 10px; }
+.pdf-source-header { display: flex; justify-content: space-between; align-items: center; padding-top: 2px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+.pdf-source-list { flex: 1; min-height: 220px; overflow-y: auto; padding-right: 4px; }
+.pdf-source-item { padding: 14px 8px !important; align-items: center !important; }
+.pdf-source-icon { font-size: 28px; color: #d4380d; margin-top: 4px; }
+.pdf-source-detail { display: grid; gap: 5px; max-width: 430px; }
+.pdf-source-detail .ant-progress { margin: 0; }
+@media (max-width: 680px) {
+  .pdf-import-panel { padding: 12px; height: 86vh; }
+  .pdf-source-item { align-items: flex-start !important; }
+  .pdf-source-item .ant-list-item-action { margin-inline-start: 8px; }
+}
