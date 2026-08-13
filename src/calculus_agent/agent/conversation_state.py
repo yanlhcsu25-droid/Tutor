@@ -1,0 +1,144 @@
+"""Minimal persisted state and short conversational context for Teacher Agent."""
+
+from typing import Literal, Protocol
+
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from calculus_agent.models import (
+    AgentPendingAdjustment,
+    AgentPendingGeneration,
+    AgentPendingReplacement,
+    AgentWorkingMemoryRecord,
+    TeacherAgentConversationMessage,
+)
+
+from .schemas import AgentWorkingMemory, GeneratePaperInput
+
+
+class PendingGeneration(BaseModel):
+    request: GeneratePaperInput
+    total_score_source: Literal["teacher_explicit", "default_template", "system_rebalanced"] = "default_template"
+    locked_score_question_types: list[str] = Field(default_factory=list)
+
+
+class PendingReplacement(BaseModel):
+    action: Literal["replace_question"] = "replace_question"
+    paper_id: str
+    source_version_id: str
+    target_position: int = Field(gt=0)
+    old_question_id: str
+    replacement_question_id: str
+    difficulty_direction: Literal["easier", "harder", "same"] | None = None
+    target_difficulty: int | None = Field(default=None, ge=1, le=5)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class PendingReplacementStore(Protocol):
+    def get(self, conversation_id: str) -> PendingReplacement | None: ...
+    def set(self, conversation_id: str, action: PendingReplacement) -> None: ...
+    def clear(self, conversation_id: str) -> None: ...
+
+
+class DatabasePendingReplacementStore:
+    """Session-backed store; isolation is enforced by conversation_id primary key."""
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get(self, conversation_id: str) -> PendingReplacement | None:
+        record = self.session.get(AgentPendingReplacement, conversation_id)
+        return PendingReplacement.model_validate(record.payload_json) if record else None
+
+    def set(self, conversation_id: str, action: PendingReplacement) -> None:
+        record = self.session.get(AgentPendingReplacement, conversation_id)
+        if record is None:
+            self.session.add(AgentPendingReplacement(
+                conversation_id=conversation_id, payload_json=action.model_dump(mode="json")
+            ))
+        else:
+            record.payload_json = action.model_dump(mode="json")
+        self.session.flush()
+
+    def clear(self, conversation_id: str) -> None:
+        record = self.session.get(AgentPendingReplacement, conversation_id)
+        if record is not None:
+            self.session.delete(record)
+            self.session.flush()
+
+    def get_adjustment(self, conversation_id: str) -> str | None:
+        record = self.session.get(AgentPendingAdjustment, conversation_id)
+        return record.plan_id if record else None
+
+    def set_adjustment(self, conversation_id: str, plan_id: str) -> None:
+        record = self.session.get(AgentPendingAdjustment, conversation_id)
+        if record is None:
+            self.session.add(AgentPendingAdjustment(conversation_id=conversation_id, plan_id=plan_id))
+        else:
+            record.plan_id = plan_id
+        self.session.flush()
+
+    def clear_adjustment(self, conversation_id: str) -> None:
+        record = self.session.get(AgentPendingAdjustment, conversation_id)
+        if record is not None:
+            self.session.delete(record)
+            self.session.flush()
+
+    def get_generation(self, conversation_id: str) -> PendingGeneration | None:
+        record = self.session.get(AgentPendingGeneration, conversation_id)
+        return PendingGeneration.model_validate(record.payload_json) if record else None
+
+    def set_generation(self, conversation_id: str, pending: PendingGeneration) -> None:
+        record = self.session.get(AgentPendingGeneration, conversation_id)
+        if record is None:
+            self.session.add(AgentPendingGeneration(
+                conversation_id=conversation_id,
+                payload_json=pending.model_dump(mode="json"),
+            ))
+        else:
+            record.payload_json = pending.model_dump(mode="json")
+        self.session.flush()
+
+    def clear_generation(self, conversation_id: str) -> None:
+        record = self.session.get(AgentPendingGeneration, conversation_id)
+        if record is not None:
+            self.session.delete(record)
+            self.session.flush()
+
+    def get_memory(self, conversation_id: str) -> AgentWorkingMemory:
+        record = self.session.get(AgentWorkingMemoryRecord, conversation_id)
+        return AgentWorkingMemory.model_validate(record.payload_json) if record else AgentWorkingMemory()
+
+    def set_memory(self, conversation_id: str, memory: AgentWorkingMemory) -> None:
+        record = self.session.get(AgentWorkingMemoryRecord, conversation_id)
+        if record is None:
+            self.session.add(AgentWorkingMemoryRecord(conversation_id=conversation_id, payload_json=memory.model_dump(mode="json")))
+        else:
+            record.payload_json = memory.model_dump(mode="json")
+        self.session.flush()
+
+
+class DatabaseConversationHistoryStore:
+    """Stores only a small recent user/assistant transcript per conversation."""
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def recent_messages(self, conversation_id: str, *, limit: int = 6) -> list[dict[str, str]]:
+        rows = list(self.session.scalars(
+            select(TeacherAgentConversationMessage)
+            .where(TeacherAgentConversationMessage.conversation_id == conversation_id)
+            .order_by(TeacherAgentConversationMessage.created_at.desc(), TeacherAgentConversationMessage.id.desc())
+            .limit(limit)
+        ))
+        return [
+            {"role": row.role, "content": row.content}
+            for row in reversed(rows)
+        ]
+
+    def append(self, conversation_id: str, *, role: Literal["user", "assistant"], content: str) -> None:
+        self.session.add(TeacherAgentConversationMessage(
+            conversation_id=conversation_id, role=role, content=content
+        ))
+        self.session.flush()

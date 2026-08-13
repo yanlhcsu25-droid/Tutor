@@ -27,6 +27,21 @@ type Violation = { code: string; field: string; required: unknown; actual: unkno
 type ValidationReport = { passed: boolean; violations: Violation[] };
 type SavedPaper = { paper_id: string; version: number; preview: Preview; validation_report: ValidationReport };
 type SupplyCheck = { feasible: boolean; violations: Violation[]; suggestions?: string[] };
+type TeacherAgentResponse = {
+  status: "completed" | "needs_clarification" | "waiting_confirmation" | "failed";
+  message: string;
+  clarification_questions?: string[];
+  paper?: { ok: boolean; paper_id?: string | null; version_id?: string | null } | null;
+  replacement?: { new_version_id?: string | null } | null;
+  adjustment?: { new_version_id?: string | null } | null;
+  version_operation?: { current_version_id?: string | null } | null;
+  warnings?: string[];
+  blocking_errors?: string[];
+  generation_preview?: {
+    ok: boolean; title?: string | null; total_questions?: number | null; total_score?: number | null;
+    sections: { question_type: string; count: number; score_each?: number | null; total_score?: number | null }[];
+  } | null;
+};
 
 const formatApiDetail = (detail: unknown): string => {
   if (typeof detail === "string") return detail;
@@ -119,6 +134,7 @@ const TEMPLATES = [
 type ChatMessage =
   | { role: "user"; text: string }
   | { role: "agent"; type: "requirement_card"; title: string; sections: Blueprint["sections"]; total_questions: number; total_score: number; suggestions?: string[]; blueprintId: string }
+  | { role: "agent"; type: "generation_plan"; title: string; sections: { question_type: string; count: number; score_each?: number | null; total_score?: number | null }[]; total_questions: number; total_score: number; disabled?: boolean }
   | { role: "agent"; type: "status"; text: string }
   | { role: "agent"; type: "reply"; text: string }
   | { role: "agent"; type: "paper_ready"; paperId: string; version: number; preview: Preview; validationReport: ValidationReport }
@@ -129,11 +145,56 @@ interface Props {
   activePaperId?: string | null;
 }
 
+type GenerationSection = { question_type: string; count: number; score_each?: number | null; total_score?: number | null };
+
+function GenerationPlanCard({
+  title, initialSections, loading, disabled, onRevise, onConfirm,
+}: {
+  title: string; initialSections: GenerationSection[]; loading: boolean; disabled?: boolean;
+  onRevise: (text: string) => void; onConfirm: () => void;
+}) {
+  const [sections, setSections] = useState(initialSections);
+  const changed = JSON.stringify(sections) !== JSON.stringify(initialSections);
+  const totalQuestions = sections.reduce((sum, item) => sum + item.count, 0);
+  const totalScore = sections.every((item) => item.score_each != null)
+    ? sections.reduce((sum, item) => sum + item.count * Number(item.score_each), 0)
+    : null;
+  const revise = () => {
+    const details = sections.flatMap((item, index) => {
+      const original = initialSections[index];
+      const changes: string[] = [];
+      if (item.count !== original.count) changes.push(`${item.question_type}改成${item.count}道`);
+      if (item.score_each !== original.score_each) changes.push(`${item.question_type}改成每题${item.score_each}分`);
+      return changes;
+    });
+    onRevise(`请修改当前组卷方案：${details.join("；")}。未提到的条件保持不变，目标总分保持${initialSections.reduce((sum, item) => sum + (item.total_score ?? item.count * Number(item.score_each ?? 0)), 0)}分。`);
+  };
+  return (
+    <Card size="small" title={<span>📋 待确认组卷方案 — {title}</span>} style={{ maxWidth: 560, background: "#fafafa" }}>
+      <Typography.Paragraph>共 {totalQuestions} 题{totalScore != null ? `，${totalScore} 分` : ""}</Typography.Paragraph>
+      {sections.map((section, index) => (
+        <Row key={section.question_type} gutter={8} align="middle" style={{ marginBottom: 8 }}>
+          <Col flex="100px"><Tag>{section.question_type}</Tag></Col>
+          <Col><InputNumber min={1} max={100} value={section.count} addonAfter="题" onChange={(value) => setSections((items) => items.map((item, i) => i === index ? { ...item, count: value ?? 1 } : item))} /></Col>
+          <Col><InputNumber min={0.5} max={300} step={0.5} value={section.score_each ?? undefined} placeholder="每题分值" addonAfter="分/题" onChange={(value) => setSections((items) => items.map((item, i) => i === index ? { ...item, score_each: value } : item))} /></Col>
+        </Row>
+      ))}
+      <Divider style={{ margin: "12px 0" }} />
+      <Space>
+        <Button size="small" disabled={disabled || !changed} loading={loading} onClick={revise}>更新方案</Button>
+        <Button type="primary" size="small" loading={loading} disabled={disabled || changed} onClick={onConfirm}>确认并组卷</Button>
+      </Space>
+      {changed && <Typography.Text type="warning" style={{ display: "block", marginTop: 8 }}>方案已修改，请先更新方案并重新校验。</Typography.Text>}
+    </Card>
+  );
+}
+
 export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Props) {
   // ── chat state ──
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversationId] = useState(() => globalThis.crypto?.randomUUID?.() ?? `agent-${Date.now()}`);
 
   // ── blueprint/paper state (kept for compatibility) ──
   const [blueprintId, setBlueprintId] = useState<string | null>(null);
@@ -155,37 +216,67 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
   };
 
   // ── send requirement → parse blueprint → show card ──
-  const handleSend = async () => {
-    const text = input.trim();
+  const handleSend = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
     if (!text) return;
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text }]);
     setLoading(true);
 
     try {
-      // 调用现有 Blueprint 解析 API
-      const r = await call("/blueprints/parse", {
-        requirement: text,
-        base_blueprint_id: blueprintId,
-        current_paper_id: currentPaperId,
-        conversation_history: messages.slice(-10).flatMap((msg) => {
-          if (msg.role === "user") return [{ role: "user", content: msg.text }];
-          if (msg.type === "reply" || msg.type === "error") {
-            return [{ role: "assistant", content: msg.text }];
-          }
-          if (msg.type === "requirement_card") {
-            return [{
-              role: "assistant",
-              content: `当前方案：${msg.sections.map((s) => `${s.question_type}${s.count}题，每题${s.score_per_question}分`).join("；")}`,
-            }];
-          }
-          return [];
-        }),
+      // Natural-language chat uses the Phase 2B Agent. The manual Blueprint
+      // workspace continues to use /blueprints/parse independently.
+      const r = await call("/teacher-agent/run", {
+        message: text,
+        conversation_id: conversationId,
+        paper_id: currentPaperId,
+        version_id: currentPaperId,
       });
+      const agent: TeacherAgentResponse = await r.json();
+      if (agent.generation_preview) {
+        setMessages((prev) => prev.map((item) =>
+          item.role === "agent" && item.type === "generation_plan"
+            ? { ...item, disabled: true }
+            : item
+        ));
+      }
+      if (agent.status === "waiting_confirmation" && agent.generation_preview?.ok) {
+        const plan = agent.generation_preview;
+        setMessages((prev) => [...prev,
+          { role: "agent", type: "reply", text: agent.message },
+          {
+            role: "agent", type: "generation_plan",
+            title: plan.title ?? "组卷方案",
+            sections: plan.sections,
+            total_questions: plan.total_questions ?? plan.sections.reduce((sum, item) => sum + item.count, 0),
+            total_score: plan.total_score ?? plan.sections.reduce((sum, item) => sum + (item.total_score ?? 0), 0),
+          },
+        ]);
+        return;
+      }
+      if (agent.status === "completed" && (agent.paper?.paper_id || agent.replacement?.new_version_id || agent.adjustment?.new_version_id || agent.version_operation?.current_version_id)) {
+        const paperId = agent.replacement?.new_version_id ?? agent.adjustment?.new_version_id ?? agent.version_operation?.current_version_id ?? agent.paper?.paper_id;
+        const savedR = await fetch(`${API}/papers/${paperId}`);
+        if (!savedR.ok) throw new Error("试卷已生成，但读取草稿失败");
+        const saved: SavedPaper = await savedR.json();
+        setCurrentPaperId(saved.paper_id);
+        setMessages((prev) => [...prev,
+          { role: "agent", type: "reply", text: agent.message },
+          { role: "agent", type: "paper_ready", paperId: saved.paper_id, version: saved.version, preview: saved.preview, validationReport: saved.validation_report },
+        ]);
+        return;
+      }
+      setMessages((prev) => [...prev, {
+        role: "agent",
+        type: agent.status === "failed" ? "error" : "reply",
+        text: agent.message + (agent.clarification_questions?.length ? ` ${agent.clarification_questions.join(" ")}` : ""),
+      }]);
+      return;
+
       const parsed: BlueprintRecord = await r.json();
       const bp = parsed.blueprint;
       if (parsed.paper_result) {
-        const saved = parsed.paper_result;
+        const saved = parsed.paper_result as SavedPaper;
         setCurrentPaperId(saved.paper_id);
         setMessages((prev) => [...prev,
           { role: "agent", type: "reply", text: parsed.agent_message || "已恢复试卷历史状态。" },
@@ -235,7 +326,7 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
         }] : []),
       ]);
     } catch (e: unknown) {
-      setMessages((prev) => [...prev, { role: "agent", type: "error", text: `需求解析失败：${e}` }]);
+      setMessages((prev) => [...prev, { role: "agent", type: "error", text: `操作失败：${e}` }]);
     } finally {
       setLoading(false);
     }
@@ -344,6 +435,26 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
       );
     }
 
+    if (msg.type === "generation_plan") {
+      const latestPlanIndex = messages.map((item) => item.role === "agent" && item.type === "generation_plan").lastIndexOf(true);
+      return (
+        <div key={idx} style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <RobotOutlined style={{ color: "#1677ff" }} />
+            <Typography.Text strong>MathPaper Agent</Typography.Text>
+          </div>
+          <GenerationPlanCard
+            title={msg.title}
+            initialSections={msg.sections}
+            loading={loading}
+            disabled={msg.disabled || idx !== latestPlanIndex}
+            onRevise={(text) => void handleSend(text)}
+            onConfirm={() => void handleSend("确认按这个方案组卷")}
+          />
+        </div>
+      );
+    }
+
     if (msg.type === "status") {
       return (
         <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, color: "#888" }}>
@@ -365,27 +476,45 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
     }
 
     if (msg.type === "paper_ready") {
+      const validationPassed = msg.validationReport.passed;
       return (
         <div key={idx} style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <RobotOutlined style={{ color: "#1677ff" }} />
             <Typography.Text strong>MathPaper Agent</Typography.Text>
           </div>
-          <Card size="small" style={{ maxWidth: 520, background: "#f6ffed", border: "1px solid #b7eb8f" }}>
-            <Tag icon={<SafetyCertificateOutlined />} color="success">
-              {msg.validationReport.passed ? "全部硬约束通过" : "存在违规"}
+          <Card size="small" style={{
+            maxWidth: 520,
+            background: validationPassed ? "#f6ffed" : "#fff2f0",
+            border: `1px solid ${validationPassed ? "#b7eb8f" : "#ffccc7"}`,
+          }}>
+            <Tag icon={<SafetyCertificateOutlined />} color={validationPassed ? "success" : "error"}>
+              {validationPassed ? "全部硬约束通过" : "审核未通过"}
             </Tag>
             <Typography.Paragraph style={{ marginTop: 8 }}>
-              组卷完毕，共 {msg.preview.items.length} 题。请分别点击右侧按钮下载文件。
+              {validationPassed
+                ? `组卷并审核通过，共 ${msg.preview.items.length} 题。可以下载使用。`
+                : `草稿已生成，共 ${msg.preview.items.length} 题，但审核未通过，暂不可下载。`}
             </Typography.Paragraph>
+            {!validationPassed && (
+              <div style={{ marginBottom: 12 }}>
+                {msg.validationReport.violations.length ? msg.validationReport.violations.map((violation) => (
+                  <Typography.Paragraph type="danger" style={{ marginBottom: 4 }} key={`${violation.code}-${violation.field}`}>
+                    {violation.message}：实际 {String(violation.actual)} / 要求 {String(violation.required)}
+                  </Typography.Paragraph>
+                )) : (
+                  <Typography.Text type="danger">审核未通过，但系统未返回具体违规项。</Typography.Text>
+                )}
+              </div>
+            )}
             <Space>
               <Button type="primary" size="small" onClick={() => onOpenPaperDrawer(msg.paperId, msg.preview, msg.validationReport, msg.version)}>
                 查看试卷
               </Button>
-              <Button size="small" icon={<FilePdfOutlined />} onClick={() => downloadPdf(msg.paperId, "student")}>
+              <Button disabled={!validationPassed} size="small" icon={<FilePdfOutlined />} onClick={() => downloadPdf(msg.paperId, "student")}>
                 下载试卷 PDF
               </Button>
-              <Button size="small" icon={<FilePdfOutlined />} onClick={() => downloadPdf(msg.paperId, "teacher")}>
+              <Button disabled={!validationPassed} size="small" icon={<FilePdfOutlined />} onClick={() => downloadPdf(msg.paperId, "teacher")}>
                 下载题目与答案解析 PDF
               </Button>
             </Space>
@@ -495,7 +624,7 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
           disabled={loading}
         />
         <div style={{ textAlign: "right", marginTop: 4 }}>
-          <Button type="primary" icon={<SendOutlined />} loading={loading} disabled={!input.trim()} onClick={handleSend}>
+          <Button type="primary" icon={<SendOutlined />} loading={loading} disabled={!input.trim()} onClick={() => void handleSend()}>
             发送
           </Button>
         </div>

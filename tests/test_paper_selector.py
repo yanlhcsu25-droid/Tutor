@@ -10,9 +10,10 @@ def _question(
     knowledge: KnowledgeNode,
     *,
     image_path: str | None = None,
+    source_name: str = "test",
 ) -> Question:
     draft = QuestionDraft(
-        source_name="test",
+        source_name=source_name,
         source_item_id=str(number),
         variant=1,
         subject="初中数学",
@@ -73,6 +74,29 @@ def test_compose_paper_satisfies_explicit_constraints(session):
     assert result.total_score == 100
     assert len(result.items) == 3
     assert not result.warnings
+
+
+def test_compose_paper_excludes_dataset_demo_and_test_sources(session):
+    knowledge = KnowledgeNode(
+        node_type="concept", name="函数极限", normalized_name="函数极限", review_status="approved"
+    )
+    session.add(knowledge)
+    session.flush()
+    excluded = _question(session, 1, "选择题", knowledge, source_name="CMM-Math")
+    _question(session, 2, "选择题", knowledge, source_name="built-in-demo")
+    _question(session, 3, "选择题", knowledge, source_name="test_source")
+    retained = _question(session, 4, "选择题", knowledge, source_name="ocr_import")
+    session.flush()
+
+    result = compose_paper(session, PaperBlueprint(
+        total_questions=1,
+        total_score=5,
+        question_type_counts={"选择题": 1},
+    ))
+
+    assert result.feasible is True
+    assert [item.question_id for item in result.items] == [retained.id]
+    assert excluded.id not in [item.question_id for item in result.items]
 
 
 def test_ocr_question_type_aliases_are_available_to_chinese_blueprint(session):

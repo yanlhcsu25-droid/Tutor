@@ -425,9 +425,7 @@ def validate_paper(session: Session, paper_id: str) -> ValidationReportRead:
     ids = [item.question_id for item in items]
     duplicates = [question_id for question_id, count in Counter(ids).items() if count > 1]
     add("DUPLICATE_QUESTION", "question_id", 0, len(duplicates), "试卷包含重复题目", duplicates)
-    missing_answers = [item.question_id for item in items if not item.final_answer]
     missing_solutions = [item.question_id for item in items if not item.solution_steps]
-    add("ANSWER_MISSING", "final_answer", 0, len(missing_answers), "题目缺少答案", missing_answers)
     add("SOLUTION_MISSING", "solution", 0, len(missing_solutions), "题目缺少解析", missing_solutions)
     excluded = [item.question_id for item in items if item.question_id in blueprint.excluded_question_ids]
     add("EXCLUDED_QUESTION_INCLUDED", "excluded_question_ids", 0, len(excluded), "包含已排除题目", excluded)

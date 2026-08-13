@@ -2,16 +2,32 @@ import hashlib
 from collections import Counter, defaultdict
 
 from ortools.sat.python import cp_model
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from calculus_agent.models import KnowledgeNode, Question, QuestionDraft, QuestionKnowledgeLink
+from calculus_agent.models import KnowledgeNode, Question, QuestionDraft, QuestionKnowledgeLink, QuestionProfile
 from calculus_agent.question_types import canonical_question_type
 from calculus_agent.schemas import ConstraintCheck, PaperBlueprint, PaperItemRead, PaperPreviewRead
+from calculus_agent.agent.schemas import GenerationConstraints, PaperGenerationRequest
 
 
-def compose_paper(session: Session, blueprint: PaperBlueprint) -> PaperPreviewRead:
-    rows = _candidates(session, blueprint)
+# Dataset/demo/test rows remain visible to their respective maintenance flows,
+# but are never eligible for a teacher-facing paper.
+EXCLUDED_PAPER_SOURCE_NAMES = frozenset({
+    "CMM-Math",
+    "built-in-demo",
+    "test_source",
+})
+
+
+def compose_paper(
+    session: Session, blueprint: PaperBlueprint | PaperGenerationRequest
+) -> PaperPreviewRead:
+    constraints = None
+    if isinstance(blueprint, PaperGenerationRequest):
+        constraints = blueprint.constraints
+        blueprint = blueprint.blueprint
+    rows = _candidates(session, blueprint, constraints)
     preferred = set(blueprint.soft_knowledge_preferences)
     rows.sort(key=lambda row: (
         0 if preferred.intersection(row[1]) else 1,
@@ -57,14 +73,44 @@ def compose_paper(session: Session, blueprint: PaperBlueprint) -> PaperPreviewRe
     )
 
 
-def _candidates(session: Session, blueprint: PaperBlueprint):
-    statement = select(Question).where(
+def _candidates(
+    session: Session,
+    blueprint: PaperBlueprint,
+    constraints: GenerationConstraints | None = None,
+):
+    statement = select(Question).join(
+        QuestionDraft,
+        QuestionDraft.id == Question.draft_id,
+    ).where(
         Question.review_status == "approved",
         Question.is_active.is_(True),
         Question.knowledge_match_status == "current",
+        QuestionDraft.source_name.not_in(EXCLUDED_PAPER_SOURCE_NAMES),
     )
     if blueprint.excluded_question_ids:
         statement = statement.where(Question.id.not_in(blueprint.excluded_question_ids))
+    if constraints and constraints.scope_node_ids:
+        statement = statement.join(
+            QuestionKnowledgeLink,
+            QuestionKnowledgeLink.question_id == Question.id,
+        ).where(
+            QuestionKnowledgeLink.knowledge_node_id.in_(constraints.scope_node_ids)
+        ).distinct()
+    if constraints and constraints.allowed_difficulty_levels:
+        latest = (
+            select(
+                QuestionProfile.question_id,
+                func.max(QuestionProfile.profile_version).label("profile_version"),
+            )
+            .where(QuestionProfile.profile_status == "approved")
+            .group_by(QuestionProfile.question_id)
+            .subquery()
+        )
+        statement = statement.join(latest, latest.c.question_id == Question.id).join(
+            QuestionProfile,
+            (QuestionProfile.question_id == latest.c.question_id)
+            & (QuestionProfile.profile_version == latest.c.profile_version),
+        ).where(QuestionProfile.difficulty.in_(constraints.allowed_difficulty_levels))
     questions = list(session.scalars(statement).all())
     if not questions:
         return []

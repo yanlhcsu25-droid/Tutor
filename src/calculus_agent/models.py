@@ -259,6 +259,95 @@ class PaperOperationHistory(Base):
     )
 
 
+class AgentPendingReplacement(Base):
+    """One confirmation-gated replacement per explicitly identified conversation."""
+
+    __tablename__ = "agent_pending_replacement"
+
+    conversation_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    payload_json: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
+    )
+
+
+class AgentPendingGeneration(Base):
+    """Validated generation requirements awaiting explicit teacher confirmation."""
+
+    __tablename__ = "agent_pending_generation"
+
+    conversation_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    payload_json: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
+    )
+
+
+class AgentWorkingMemoryRecord(Base):
+    __tablename__ = "agent_working_memory"
+    conversation_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+
+class TeacherAgentConversationMessage(Base):
+    """Short, persisted conversational context for a teacher-agent session."""
+
+    __tablename__ = "teacher_agent_conversation_message"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    conversation_id: Mapped[str] = mapped_column(String(120), index=True)
+    role: Mapped[str] = mapped_column(String(20))
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
+    )
+
+
+class TeacherAgentRunTrace(Base):
+    """One autonomous Agent turn, including tool observations and final response."""
+
+    __tablename__ = "teacher_agent_run_trace"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    conversation_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    paper_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    user_message: Mapped[str] = mapped_column(Text)
+    tool_calls_json: Mapped[list] = mapped_column(JSON, default=list)
+    final_response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result_status: Mapped[str] = mapped_column(String(40), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
+    )
+
+
+class AdjustmentPlanRecord(Base):
+    """Read-only preview plan.  Phase 2C-2 deliberately never applies it."""
+
+    __tablename__ = "adjustment_plan"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    paper_id: Mapped[str] = mapped_column(ForeignKey("paper.id"), index=True)
+    base_paper_version_id: Mapped[str] = mapped_column(ForeignKey("paper.id"), index=True)
+    operations_json: Mapped[list] = mapped_column(JSON, default=list)
+    before_summary_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    after_summary_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    satisfied_constraints_json: Mapped[list] = mapped_column(JSON, default=list)
+    warnings_json: Mapped[list] = mapped_column(JSON, default=list)
+    blocking_errors_json: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(30), default="pending", index=True)
+    applied_version_id: Mapped[str | None] = mapped_column(ForeignKey("paper.id"), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+
+class AgentPendingAdjustment(Base):
+    __tablename__ = "agent_pending_adjustment"
+
+    conversation_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    plan_id: Mapped[str] = mapped_column(ForeignKey("adjustment_plan.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
+
+
 class ValidationReport(Base):
     __tablename__ = "validation_report"
 

@@ -40,6 +40,16 @@ def create_schema(database_url: str) -> None:
                 "ALTER TABLE paper ADD COLUMN parent_version_id VARCHAR(36) REFERENCES paper(id)"
             )
 
+    # Phase 2C adjustment plan: the table itself is created by metadata;
+    # existing local databases need the additive applied-version column.
+    if "adjustment_plan" in inspect(engine).get_table_names():
+        adjustment_columns = {item["name"] for item in inspect(engine).get_columns("adjustment_plan")}
+        with engine.begin() as connection:
+            if "applied_version_id" not in adjustment_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE adjustment_plan ADD COLUMN applied_version_id VARCHAR(36) REFERENCES paper(id)"
+                )
+
     # ocr_task 表迁移
     ocr_task_columns = {item["name"] for item in inspect(engine).get_columns("ocr_task")}
     with engine.begin() as connection:

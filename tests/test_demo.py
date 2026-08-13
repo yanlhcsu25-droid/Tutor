@@ -6,7 +6,7 @@ from calculus_agent.papers.selector import compose_paper
 from calculus_agent.schemas import KnowledgeQuota, PaperBlueprint
 
 
-def test_demo_seed_is_idempotent_and_can_compose_default_paper(session):
+def test_demo_seed_is_idempotent_but_never_enters_formal_paper_candidates(session):
     assert seed_demo_questions(session) == (len(QUESTIONS), 0)
     assert seed_demo_questions(session) == (0, len(QUESTIONS))
     assert session.scalar(select(func.count()).select_from(Question)) == len(QUESTIONS)
@@ -21,5 +21,5 @@ def test_demo_seed_is_idempotent_and_can_compose_default_paper(session):
         ),
     )
 
-    assert paper.feasible is True
-    assert len(paper.items) == 10
+    assert paper.feasible is False
+    assert paper.items == []

@@ -42,6 +42,11 @@ from calculus_agent.models import (
     ToolCallTrace,
 )
 from calculus_agent.orchestration.service import run_paper_agent
+from calculus_agent.agent.agent import (
+    TeacherAgentResult,
+    build_teacher_agent_backend,
+    run_teacher_agent,
+)
 from calculus_agent.papers.pdf_export import export_paper_pdf as build_paper_pdf
 from calculus_agent.prep.mistakes import create_mistake_prep, get_mistake_prep
 from calculus_agent.prep.vision import BailianVisionExtractor as SiliconFlowVisionExtractor
@@ -134,10 +139,34 @@ from calculus_agent.solver.service import OpenAICompatibleSolver, ReferenceAnswe
 router = APIRouter(prefix="/api/v1")
 
 
+class TeacherAgentRunRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    conversation_id: str = Field(min_length=1, max_length=120)
+    paper_id: str | None = None
+    version_id: str | None = None
+
+
 def get_session(settings: Settings = Depends(get_settings)) -> Iterator[Session]:
     factory = build_session_factory(settings.database_url)
     with factory.begin() as session:
         yield session
+
+
+@router.post("/teacher-agent/run", response_model=TeacherAgentResult)
+def run_teacher_agent_endpoint(
+    request: TeacherAgentRunRequest,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+) -> TeacherAgentResult:
+    """Thin HTTP adapter for the Phase 2B Teacher Agent workflow."""
+    return run_teacher_agent(
+        session,
+        request.message,
+        conversation_id=request.conversation_id,
+        paper_id=request.paper_id,
+        version_id=request.version_id,
+        backend=build_teacher_agent_backend(settings),
+    )
 
 
 @router.get("/health")
