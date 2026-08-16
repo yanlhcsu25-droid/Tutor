@@ -176,7 +176,7 @@ def _question_type(record: dict, question: str) -> str:
         return "选择题"
     if "____" in question or "填空" in question or "\\underline" in question:
         return "填空题"
-    return "解答题"
+    return "计算题"
 
 
 def _extract_final_answer(solution: str) -> str | None:

@@ -35,7 +35,7 @@ def _same_scope_code(code: str | None, number: str) -> bool:
 CHAPTER_TEST_TEMPLATE = (
     ("选择题", 4, 5),
     ("填空题", 2, 10),
-    ("解答题", 4, 15),
+    ("计算题", 4, 15),
 )
 
 
@@ -98,7 +98,7 @@ def build_paper_blueprint(requirement: RequirementBlueprint) -> BlueprintBuildRe
     if requirement.paper_type == "homework":
         # Existing PaperBlueprint requires a positive integer total_score.
         # Homework has no requested score, so use 10 points per default item.
-        sections = _sections((("计算题", 3, 10), ("解答题", 2, 10)))
+        sections = _sections((("计算题", 3, 10), ("证明题", 2, 10)))
         total_score = requirement.total_score or 50
     else:
         sections = _sections(CHAPTER_TEST_TEMPLATE)

@@ -203,7 +203,7 @@ def _question_type(question: str, options: list[str], answer: str) -> str:
         return "选择题"
     if re.search(r"\\qquad|_{3,}|填空|横线|空格|填入", question):
         return "填空题"
-    return "解答题"
+    return "计算题"
 
 
 def _image_paths(images: list[str], image_root: Path | None) -> str | None:

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Literal, Sequence
+from typing import Callable, Literal, Sequence, TypeVar
 
 from .ocr import (
     PlacedCandidate,
@@ -110,6 +110,121 @@ def _key(section: str | None, number: str) -> tuple[str | None, str]:
     return section, normalize_match_number(number)
 
 
+_SectionItem = TypeVar("_SectionItem")
+_IMPLICIT_SECTION = "__implicit__"
+
+
+def _top_level_number(number: str) -> int | None:
+    """Return only a top-level integer; child keys such as ``8(1)`` are excluded."""
+    normalized = normalize_match_number(number)
+    return int(normalized) if normalized.isdigit() else None
+
+
+def _has_confirmed_restart(
+    numbers: Sequence[int | None],
+    explicit_sections: Sequence[str | None],
+    index: int,
+) -> bool:
+    """Require two following top-level numbers to confirm an implicit new group."""
+    current = numbers[index]
+    if current is None or explicit_sections[index] is not None:
+        return False
+    expected = current + 1
+    confirmed = 0
+    for following in range(index + 1, len(numbers)):
+        if explicit_sections[following] is not None:
+            break
+        number = numbers[following]
+        if number is None:
+            continue
+        if number != expected:
+            return False
+        confirmed += 1
+        if confirmed == 2:
+            return True
+        expected += 1
+    return False
+
+
+def _recover_section_occurrences(
+    items: Sequence[_SectionItem],
+    *,
+    get_section: Callable[[_SectionItem], str | None],
+    get_number: Callable[[_SectionItem], str],
+    set_section: Callable[[_SectionItem, str | None], None],
+) -> None:
+    """Apply one occurrence-recovery rule to question and solution top-level blocks."""
+    if not items:
+        return
+    explicit_sections = [get_section(item) for item in items]
+    numbers = [_top_level_number(get_number(item)) for item in items]
+    restart_indexes: set[int] = set()
+    previous_number: int | None = None
+    for index, number in enumerate(numbers):
+        if number is None:
+            continue
+        if (
+            previous_number is not None
+            and number < previous_number
+            and _has_confirmed_restart(numbers, explicit_sections, index)
+        ):
+            restart_indexes.add(index)
+        previous_number = number
+
+    first_explicit = next(
+        (index for index, section in enumerate(explicit_sections) if section is not None),
+        len(items),
+    )
+    initial_implicit = any(index < first_explicit for index in restart_indexes)
+    counts: dict[str, int] = {}
+    active_base: str | None = None
+    active_key: str | None = None
+    for index, item in enumerate(items):
+        base = explicit_sections[index]
+        if active_key is None and base is None and initial_implicit:
+            active_base = _IMPLICIT_SECTION
+            counts[active_base] = 1
+            active_key = f"{active_base}#1"
+        if index in restart_indexes:
+            active_base = active_base or _IMPLICIT_SECTION
+            counts[active_base] = counts.get(active_base, 0) + 1
+            active_key = f"{active_base}#{counts[active_base]}"
+        if base is not None and base != active_base:
+            counts[base] = counts.get(base, 0) + 1
+            active_base = base
+            active_key = f"{base}#{counts[base]}"
+        elif base is None and active_key is None:
+            set_section(item, None)
+            continue
+        set_section(item, active_key)
+
+
+def _qualify_repeated_sections(items: Sequence[QuestionStub]) -> None:
+    """Recover explicit and implicit occurrences for parsed question blocks."""
+    def set_question_section(item: QuestionStub, section: str | None) -> None:
+        item.candidate.section_key = section
+        item.key = _key(section, item.candidate.original_number)
+
+    _recover_section_occurrences(
+        items,
+        get_section=lambda item: item.candidate.section_key,
+        get_number=lambda item: item.candidate.original_number,
+        set_section=set_question_section,
+    )
+
+
+def _qualify_repeated_solution_sections(items: Sequence[SolutionCandidate]) -> None:
+    """Use the same occurrence recovery used by question blocks."""
+    _recover_section_occurrences(
+        items,
+        get_section=lambda item: item.key[0],
+        get_number=lambda item: item.key[1],
+        set_section=lambda item, section: setattr(
+            item, "key", _key(section, item.key[1])
+        ),
+    )
+
+
 def extract_questions(pages: Sequence[tuple[int, str]]) -> list[QuestionStub]:
     stubs: list[QuestionStub] = []
     for placed in split_pages_into_candidates(pages):
@@ -120,6 +235,7 @@ def extract_questions(pages: Sequence[tuple[int, str]]) -> list[QuestionStub]:
                 page_number=placed.page_number,
                 bbox=placed.bbox if candidate.original_number == placed.candidate.original_number else None,
             ))
+    _qualify_repeated_sections(stubs)
     return stubs
 
 
@@ -154,9 +270,41 @@ def extract_solutions(pages: Sequence[tuple[int, str]]) -> list[SolutionCandidat
                 output.append(SolutionCandidate(
                     _key(None, match.group(1)), answer, analysis, page_number
                 ))
+        _qualify_repeated_solution_sections(output)
         return output
 
     pending: tuple[int, RawQuestion] | None = None
+
+    def promote_expected_cross_page_boundary(
+        preamble: str,
+        chunks: list[RawQuestion],
+    ) -> tuple[str, list[RawQuestion]]:
+        """识别续页中单独出现的下一个 ``(N)`` 答案边界。
+
+        通用切题器为避免把公式编号当大题，要求无标题页面至少出现两个连续
+        括号题号；但答案跨页时常只有一个 ``(15)B.``。此处已知上一题号，
+        只提升严格等于 ``上一题+1`` 的行首编号，因此不会把任意公式编号
+        当作答案边界。
+        """
+        if pending is None:
+            return preamble, chunks
+        previous = normalize_match_number(pending[1].original_number)
+        if not previous.isdigit():
+            return preamble, chunks
+        expected = int(previous) + 1
+        marker = re.search(
+            rf"(?m)^[ \t]*[（(][ \t]*{expected}[ \t]*[)）][ \t]*(?=\S)",
+            preamble,
+        )
+        if marker is None:
+            return preamble, chunks
+        promoted = RawQuestion(
+            original_number=str(expected),
+            raw=preamble[marker.end():].strip(),
+            question_type=pending[1].question_type,
+            section_key=pending[1].section_key,
+        )
+        return preamble[:marker.start()].strip(), [promoted, *chunks]
 
     def append_chunk(page_number: int, chunk: RawQuestion) -> None:
         matches = list(_SUB_SOLUTION_RE.finditer(chunk.raw))
@@ -174,6 +322,7 @@ def extract_solutions(pages: Sequence[tuple[int, str]]) -> list[SolutionCandidat
 
     for page_number, markdown in pages:
         preamble, chunks = split_major_questions(markdown)
+        preamble, chunks = promote_expected_cross_page_boundary(preamble, chunks)
         # Some answer pages omit the number for the first answer and begin
         # directly with its explanation, while later answers use ``2.D`` /
         # ``3.B``.  If the first explicit answer number is greater than one,
@@ -206,6 +355,7 @@ def extract_solutions(pages: Sequence[tuple[int, str]]) -> list[SolutionCandidat
         pending = (page_number, chunks[-1])
     if pending is not None:
         append_chunk(*pending)
+    _qualify_repeated_solution_sections(output)
     return output
 
 

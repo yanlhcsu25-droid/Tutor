@@ -70,6 +70,7 @@ class GenerationPlanPreview(BaseModel):
     title: str | None = None
     total_questions: int | None = None
     total_score: float | None = None
+    pending_version: int | None = None
     sections: list[QuestionTypeRequirement] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     blocking_errors: list[str] = Field(default_factory=list)

@@ -64,6 +64,7 @@ class AgentExecutionContext:
     paper_id: str | None
     version_id: str | None
     state_store: DatabasePendingReplacementStore | None
+    expected_pending_generation_version: int | None = None
 
 
 @dataclass
@@ -119,6 +120,16 @@ def _normalized_generation_request(request: GeneratePaperInput, generation_reque
     })
 
 
+def _derive_question_count(request: GeneratePaperInput) -> GeneratePaperInput:
+    """Make complete per-type counts the only source for pending question_count."""
+    requirements = request.question_type_requirements or []
+    if not requirements:
+        return request
+    return request.model_copy(update={
+        "question_count": sum(item.count for item in requirements),
+    })
+
+
 def _merge_question_type_patch(base: GeneratePaperInput, patch_values: dict) -> tuple[GeneratePaperInput, set[str], set[str]]:
     """Return merged request, count-changed types, and explicitly score-changed types."""
     current = {item.question_type: item.model_copy() for item in (base.question_type_requirements or [])}
@@ -151,7 +162,10 @@ def _merge_question_type_patch(base: GeneratePaperInput, patch_values: dict) -> 
         if updates:
             updates["total_score"] = updates.get("count", previous.count) * updates.get("score_each", previous.score_each)
             current[name] = previous.model_copy(update=updates)
-    merged = base.model_copy(update={**patch_values, "question_type_requirements": list(current.values())})
+    merged = _derive_question_count(base.model_copy(update={
+        **patch_values,
+        "question_type_requirements": list(current.values()),
+    }))
     return merged, changed_counts, changed_scores
 
 
@@ -167,7 +181,7 @@ def _rebalance_scores(request: GeneratePaperInput, *, locked_types: set[str], ch
             "question_type_requirements": normalized,
             "question_count": sum(item.count for item in normalized),
         }), None
-    preferred = ["解答题", "计算题", "证明题", "填空题", "选择题"]
+    preferred = ["计算题", "证明题", "填空题", "选择题", "多选题"]
     candidates = sorted(
         (item for item in requirements if item.question_type not in locked_types and item.question_type not in changed_count_types),
         key=lambda item: preferred.index(item.question_type) if item.question_type in preferred else len(preferred),
@@ -196,11 +210,21 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         unsupported = patch_values.pop("avoid_previous_paper_questions", None)
         pending = store.get_generation(context.conversation_id) if store and context.conversation_id else None
         memory = store.get_memory(context.conversation_id) if store and context.conversation_id and hasattr(store, "get_memory") else AgentWorkingMemory()
-        base = pending.request.model_dump(mode="json") if pending else (
-            memory.generation_summary if memory.generation_summary else
-            {key: value for key, value in (memory.last_completed_paper or {}).items() if key in GeneratePaperInput.model_fields}
-            if patch_values.get("paper_type") is None and memory.last_completed_paper else {}
-        )
+        # Source-of-truth base precedence:
+        #   1) current pending generation request
+        #   2) Working Memory generation summary
+        #   3) code-defined new base from last completed paper
+        #   4) empty new base
+        if pending:
+            base_request = pending.request
+        elif memory.generation_summary:
+            base_request = GeneratePaperInput.model_validate(memory.generation_summary)
+        elif patch_values.get("paper_type") is None and memory.last_completed_paper:
+            base_request = GeneratePaperInput.model_validate({
+                k: v for k, v in memory.last_completed_paper.items() if k in GeneratePaperInput.model_fields
+            })
+        else:
+            base_request = GeneratePaperInput()
         if pending:
             if "question_type_requirements" in patch.model_fields_set and "question_type_patches" not in patch.model_fields_set:
                 preview = GenerationPlanPreview(
@@ -223,9 +247,15 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                         "clarification_questions": preview.clarification_questions,
                     },
                 )
-            request, changed_count_types, changed_score_types = _merge_question_type_patch(
-                pending.request, patch_values
-            )
+        # Unified deterministic merge — identical logic whether the base came
+        # from a pending plan, memory summary, or a fresh default. The LLM never
+        # performs the merge; Python always applies question_type_patches here.
+        request, changed_count_types, changed_score_types = _merge_question_type_patch(
+            base_request, patch_values
+        )
+
+        # Rebalance only when a plan was already pending (preserve existing behavior).
+        if pending:
             locked_types = set(pending.locked_score_question_types) | changed_score_types
             balanced, balance_question = _rebalance_scores(
                 request,
@@ -257,13 +287,6 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                     },
                 )
             request = balanced
-        else:
-            patch_values.pop("question_type_patches", None)
-            request = GeneratePaperInput.model_validate({**base, **patch_values})
-            changed_score_types = {
-                item.question_type for item in (patch.question_type_requirements or [])
-                if item.score_each is not None
-            }
         generation_request, warnings, errors, questions = build_structured_generation_request(
             session, request
         )
@@ -295,7 +318,7 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             clarification_questions=questions,
         )
         if preview.ok and store and context.conversation_id:
-            store.set_generation(context.conversation_id, PendingGeneration(
+            saved_pending = store.set_generation(context.conversation_id, PendingGeneration(
                 request=request,
                 total_score_source=(
                     "teacher_explicit" if "total_score" in patch.model_fields_set
@@ -304,7 +327,11 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                 locked_score_question_types=sorted(
                     (set(pending.locked_score_question_types) if pending else set()) | changed_score_types
                 ),
-            ))
+            ), expected_version=context.expected_pending_generation_version)
+            preview = preview.model_copy(update={
+                "request": saved_pending.request,
+                "pending_version": saved_pending.pending_version,
+            })
         if store and context.conversation_id and hasattr(store, "get_memory"):
             memory = store.get_memory(context.conversation_id)
             memory.active_task = {"type": "generation", "status": "awaiting_confirmation" if preview.ok else "drafting"}

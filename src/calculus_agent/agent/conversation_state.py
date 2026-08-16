@@ -2,7 +2,7 @@
 
 from typing import Literal, Protocol
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -21,6 +21,20 @@ class PendingGeneration(BaseModel):
     request: GeneratePaperInput
     total_score_source: Literal["teacher_explicit", "default_template", "system_rebalanced"] = "default_template"
     locked_score_question_types: list[str] = Field(default_factory=list)
+    pending_version: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def derive_question_count(self) -> "PendingGeneration":
+        requirements = self.request.question_type_requirements or []
+        if requirements:
+            self.request = self.request.model_copy(update={
+                "question_count": sum(item.count for item in requirements),
+            })
+        return self
+
+
+class PendingGenerationStaleError(RuntimeError):
+    """Raised when an older confirmation-card revision tries to overwrite a plan."""
 
 
 class PendingReplacement(BaseModel):
@@ -87,18 +101,34 @@ class DatabasePendingReplacementStore:
 
     def get_generation(self, conversation_id: str) -> PendingGeneration | None:
         record = self.session.get(AgentPendingGeneration, conversation_id)
-        return PendingGeneration.model_validate(record.payload_json) if record else None
+        if record is None:
+            return None
+        return PendingGeneration.model_validate(record.payload_json)
 
-    def set_generation(self, conversation_id: str, pending: PendingGeneration) -> None:
+    def set_generation(
+        self,
+        conversation_id: str,
+        pending: PendingGeneration,
+        *,
+        expected_version: int | None = None,
+    ) -> PendingGeneration:
         record = self.session.get(AgentPendingGeneration, conversation_id)
         if record is None:
+            if expected_version not in (None, 0):
+                raise PendingGenerationStaleError("stale_pending_plan")
+            stored = pending.model_copy(update={"pending_version": 1})
             self.session.add(AgentPendingGeneration(
                 conversation_id=conversation_id,
-                payload_json=pending.model_dump(mode="json"),
+                payload_json=stored.model_dump(mode="json"),
             ))
         else:
-            record.payload_json = pending.model_dump(mode="json")
+            current = PendingGeneration.model_validate(record.payload_json)
+            if expected_version is not None and current.pending_version != expected_version:
+                raise PendingGenerationStaleError("stale_pending_plan")
+            stored = pending.model_copy(update={"pending_version": current.pending_version + 1})
+            record.payload_json = stored.model_dump(mode="json")
         self.session.flush()
+        return stored
 
     def clear_generation(self, conversation_id: str) -> None:
         record = self.session.get(AgentPendingGeneration, conversation_id)
@@ -136,6 +166,16 @@ class DatabaseConversationHistoryStore:
             {"role": row.role, "content": row.content}
             for row in reversed(rows)
         ]
+
+    def list_messages(self, conversation_id: str, *, limit: int = 500) -> list[dict[str, str]]:
+        """Return persisted UI history without changing the Agent's short context window."""
+        rows = list(self.session.scalars(
+            select(TeacherAgentConversationMessage)
+            .where(TeacherAgentConversationMessage.conversation_id == conversation_id)
+            .order_by(TeacherAgentConversationMessage.created_at, TeacherAgentConversationMessage.id)
+            .limit(limit)
+        ))
+        return [{"role": row.role, "content": row.content} for row in rows]
 
     def append(self, conversation_id: str, *, role: Literal["user", "assistant"], content: str) -> None:
         self.session.add(TeacherAgentConversationMessage(

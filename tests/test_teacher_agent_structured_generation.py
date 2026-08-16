@@ -272,13 +272,13 @@ def test_structured_generation_rejects_score_total_mismatch(session):
     assert "100" in questions[0] and "95" in questions[0]
 
 
-def test_structured_generation_rejects_question_count_mismatch(session):
+def test_structured_generation_derives_question_count_from_complete_type_counts(session):
     _scope(session)
     request, _, errors, _ = build_structured_generation_request(
         session, _complex_input(question_count=9)
     )
-    assert request is None
-    assert errors == ["question_count_mismatch"]
+    assert errors == []
+    assert request.blueprint.total_questions == 10
 
 
 def test_scope_and_knowledge_names_resolve_to_database_facts(session):
@@ -299,8 +299,9 @@ def test_missing_knowledge_name_returns_structured_error(session):
         session, _complex_input(knowledge_preferences=["不存在的知识点"])
     )
     assert request is None
-    assert errors == ["knowledge_not_found"]
+    assert errors == ["knowledge_unknown"]
     assert questions
+    assert "不存在的知识点" in questions[0]
 
 
 def test_llm_generation_request_creates_preview_without_composing(session):
@@ -381,7 +382,7 @@ def test_default_generation_is_normalized_into_authoritative_pending(session):
     assert pending.request.total_score == 100
     assert pending.request.question_count == 10
     assert [(item.question_type, item.count, item.score_each) for item in pending.request.question_type_requirements] == [
-        ("选择题", 4, 5), ("填空题", 2, 10), ("解答题", 4, 15),
+        ("选择题", 4, 5), ("填空题", 2, 10), ("计算题", 4, 15),
     ]
 
 
@@ -401,7 +402,7 @@ def test_count_only_patch_rebalances_to_preserved_target_score(session):
     assert result.status == "waiting_confirmation"
     assert pending.request.total_score == 100
     assert pending.request.question_count == 8
-    assert scores["解答题"] == 17.5
+    assert scores["计算题"] == 17.5
 
 
 def test_pending_rejects_full_question_type_restatement(session):
@@ -413,12 +414,12 @@ def test_pending_rejects_full_question_type_restatement(session):
     )
     result = run_teacher_agent(
         session, "选择题改成1道，其他不变", conversation_id=conversation_id,
-        backend=_Backend(_tool('{"question_type_requirements":[{"question_type":"选择题","count":1},{"question_type":"填空题","count":2},{"question_type":"解答题","count":5}]}'), _final("请使用局部修改")),
+        backend=_Backend(_tool('{"question_type_requirements":[{"question_type":"选择题","count":1},{"question_type":"填空题","count":2},{"question_type":"计算题","count":5}]}'), _final("请使用局部修改")),
     )
     pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
     assert "generation_partial_patch_required" in result.blocking_errors
     assert [(item.question_type, item.count) for item in pending.request.question_type_requirements] == [
-        ("选择题", 4), ("填空题", 2), ("解答题", 4),
+        ("选择题", 4), ("填空题", 2), ("计算题", 4),
     ]
 
 
@@ -447,7 +448,7 @@ def test_rebalance_clarification_keeps_previous_pending(session):
     conversation_id = "score-rebalance-clarification"
     run_teacher_agent(
         session, "第一章测试卷，所有分值都按我说的", conversation_id=conversation_id,
-        backend=_Backend(_tool('{"paper_type":"chapter_test","scope_names":["第一章"],"total_score":100,"question_type_requirements":[{"question_type":"选择题","count":4,"score_each":5},{"question_type":"填空题","count":2,"score_each":10},{"question_type":"解答题","count":4,"score_each":15}]}'), _final("请确认")),
+        backend=_Backend(_tool('{"paper_type":"chapter_test","scope_names":["第一章"],"total_score":100,"question_type_requirements":[{"question_type":"选择题","count":4,"score_each":5},{"question_type":"填空题","count":2,"score_each":10},{"question_type":"计算题","count":4,"score_each":15}]}'), _final("请确认")),
     )
     result = run_teacher_agent(
         session, "选择题改成1道", conversation_id=conversation_id,

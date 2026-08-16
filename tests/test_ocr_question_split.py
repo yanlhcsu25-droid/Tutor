@@ -13,7 +13,9 @@ from calculus_agent.workbench.ocr import (
     QUESTION_START_RE,
     _normalize_question_line,
     split_page_markdown,
+    split_major_questions,
 )
+from calculus_agent.workbench.import_pipeline import extract_questions
 
 
 # OCR 噪声把第 3 题题号包进 $…$ 且题号后无分隔符的真实 bad case 页面。
@@ -79,6 +81,62 @@ def test_history_normal_question_numbers():
     assert [c.original_number for c in cands] == ["2", "3", "4"]
 
 
+def test_explicit_arabic_section_heading_creates_new_section():
+    markdown = """## 1. 选择题
+1. 第一部分第一题
+## 2. 填空题
+1. 第二部分第一题
+"""
+
+    _, chunks = split_major_questions(markdown)
+    assert [(item.original_number, item.section_key) for item in chunks] == [
+        ("1", "1"),
+        ("1", "2"),
+    ]
+    assert [item.candidate.section_key for item in extract_questions([(1, markdown)])] == [
+        "1#1",
+        "2#1",
+    ]
+
+
+def test_parenthesized_top_level_sequence_is_split_within_new_section():
+    markdown = """## 1. 前一部分
+1. 前一部分的题目
+## 2. 后一部分
+(3) 题目A
+(4) 题目B
+(5) 题目C
+"""
+
+    _, chunks = split_major_questions(markdown)
+    assert [(item.original_number, item.section_key) for item in chunks] == [
+        ("1", "1"),
+        ("3", "2"),
+        ("4", "2"),
+        ("5", "2"),
+    ]
+    assert [item.candidate.original_number for item in extract_questions([(1, markdown)])] == [
+        "1",
+        "3",
+        "4",
+        "5",
+    ]
+
+
+def test_actual_subquestions_remain_children_after_top_level_split():
+    markdown = """3. 计算下列各题：
+(1) 题目A
+(2) 题目B
+(3) 题目C
+"""
+
+    assert [item.candidate.original_number for item in extract_questions([(1, markdown)])] == [
+        "3(1)",
+        "3(2)",
+        "3(3)",
+    ]
+
+
 # ---- 一级大题题号前缀识别 ----
 
 POSITIVE_PREFIXES = [
@@ -107,6 +165,8 @@ NEGATIVE_PREFIXES = [
     "x^2",                 # 公式
     "① 求极限",            # 带圈数字
     "3 计算下列极限",       # 无噪声、无分隔符的普通文本
+    "故 $C_1 = C_2$ .令 C_1=C_2=C",  # 公式下标不能被改写为题号 2
+    "$F(0)=0$ .由 $F'(x)>0$ 可知",    # 公式值不能被改写为题号 0
 ]
 
 

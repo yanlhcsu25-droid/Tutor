@@ -2,12 +2,14 @@ from collections.abc import Iterator
 import hashlib
 import re
 from datetime import UTC, datetime
+
+from calculus_agent.question_types import ALLOWED_QUESTION_TYPES, canonical_question_type
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
-from sqlalchemy import delete, func, or_, select
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import delete, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from calculus_agent.config import Settings, get_settings
@@ -15,10 +17,15 @@ from calculus_agent.datasets.cmm_math import import_cmm_math
 from calculus_agent.datasets.mm_math import import_mm_math
 from calculus_agent.datasets.ugmathbench import import_ugmathbench
 from calculus_agent.db import build_session_factory
-from calculus_agent.knowledge.curriculum import import_curriculum
+from calculus_agent.knowledge.curriculum import (
+    import_curriculum,
+    retire_directory_knowledge_nodes,
+    sync_directory_knowledge_nodes,
+)
 from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.knowledge.retrieval import retrieve_knowledge
 from calculus_agent.ocr.import_service import derive_chapter_from_knowledge
+from calculus_agent.workbench.chapter_filter import chapter_descendant_knowledge_ids
 from calculus_agent.knowledge.steward import DraftNotFoundError, process_draft
 from calculus_agent.knowledge.classification import (
     confirm_question_knowledge,
@@ -38,6 +45,8 @@ from calculus_agent.models import (
     QuestionKnowledgeLink,
     QuestionDraft,
     RequirementParseCache,
+    TeacherAgentRunTrace,
+    TeacherAgentSpan,
     Textbook,
     ToolCallTrace,
 )
@@ -46,6 +55,23 @@ from calculus_agent.agent.agent import (
     TeacherAgentResult,
     build_teacher_agent_backend,
     run_teacher_agent,
+)
+from calculus_agent.agent.conversation_state import (
+    DatabaseConversationHistoryStore,
+    DatabasePendingReplacementStore,
+    PendingGenerationStaleError,
+)
+from calculus_agent.agent.schemas import (
+    GeneratePaperInput,
+    GenerationPlanPatch,
+    GenerationPlanPreview,
+    QuestionTypePatch,
+)
+from calculus_agent.agent.tool_registry import AgentExecutionContext, build_agent_tools
+from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult
+from calculus_agent.agent.trace_log import (
+    list_agent_trace_sessions,
+    list_agent_trace_turns,
 )
 from calculus_agent.papers.pdf_export import export_paper_pdf as build_paper_pdf
 from calculus_agent.prep.mistakes import create_mistake_prep, get_mistake_prep
@@ -146,6 +172,45 @@ class TeacherAgentRunRequest(BaseModel):
     version_id: str | None = None
 
 
+class PendingGenerationCardPatchRequest(BaseModel):
+    """Structured confirmation-card change; it never contains a full plan."""
+
+    conversation_id: str = Field(min_length=1, max_length=120)
+    expected_version: int = Field(ge=1)
+    question_type_patches: list[QuestionTypePatch] = Field(min_length=1)
+
+
+class PendingGenerationCardPatchResponse(BaseModel):
+    status: str
+    generation_preview: GenerationPlanPreview
+
+
+class PendingGenerationConfirmRequest(BaseModel):
+    conversation_id: str = Field(min_length=1, max_length=120)
+    expected_version: int = Field(ge=1)
+
+
+class PendingGenerationConfirmResponse(BaseModel):
+    status: str
+    paper: GeneratePaperToolResult
+
+
+class TeacherAgentSessionMessage(BaseModel):
+    role: str
+    content: str
+
+
+class PendingGenerationSessionRead(BaseModel):
+    request: GeneratePaperInput
+    pending_version: int
+
+
+class TeacherAgentSessionRead(BaseModel):
+    conversation_id: str
+    messages: list[TeacherAgentSessionMessage]
+    pending_generation: PendingGenerationSessionRead | None = None
+
+
 def get_session(settings: Settings = Depends(get_settings)) -> Iterator[Session]:
     factory = build_session_factory(settings.database_url)
     with factory.begin() as session:
@@ -167,6 +232,213 @@ def run_teacher_agent_endpoint(
         version_id=request.version_id,
         backend=build_teacher_agent_backend(settings),
     )
+
+
+class TeacherAgentSpanRead(BaseModel):
+    """One observable step inside a Teacher Agent run (read model)."""
+
+    span_id: str
+    run_id: str | None = None
+    parent_span_id: str | None = None
+    span_type: str
+    name: str
+    status: str
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    latency_ms: int | None = None
+    input_json: dict | None = None
+    output_json: dict | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TeacherAgentRunRead(BaseModel):
+    """Full run-level trace for one Teacher Agent turn (read model)."""
+
+    run_id: str | None = None
+    conversation_id: str | None = None
+    paper_id: str | None = None
+    user_message: str
+    status: str
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    latency_ms: int | None = None
+    agent_name: str
+    final_response: str | None = None
+    result_status: str
+    state_before_json: dict | None = None
+    state_after_json: dict | None = None
+    error_code: str | None = None
+    error_type: str | None = None
+    error_message: str | None = None
+    error_stage: str | None = None
+    tool_calls_json: list = []
+    spans: list[TeacherAgentSpanRead] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+def _build_teacher_agent_run_read(run: TeacherAgentRunTrace, session: Session) -> TeacherAgentRunRead:
+    """Materialize a run row plus its spans into the read model."""
+    spans = list(
+        session.scalars(
+            select(TeacherAgentSpan)
+            .where(TeacherAgentSpan.run_id == run.run_id)
+            .order_by(TeacherAgentSpan.started_at)
+        ).all()
+    )
+    data = TeacherAgentRunRead.model_validate(run)
+    data.spans = [TeacherAgentSpanRead.model_validate(s) for s in spans]
+    return data
+
+
+@router.get("/teacher-agent/runs/{run_id}", response_model=TeacherAgentRunRead)
+def get_teacher_agent_run(
+    run_id: str,
+    session: Session = Depends(get_session),
+) -> TeacherAgentRunRead:
+    """Recover one turn's full local trace (run + spans) by its run_id."""
+    run = (
+        session.query(TeacherAgentRunTrace)
+        .filter(TeacherAgentRunTrace.run_id == run_id)
+        .first()
+    )
+    if run is None:
+        raise HTTPException(status_code=404, detail={"code": "run_not_found"})
+    return _build_teacher_agent_run_read(run, session)
+
+
+@router.get("/teacher-agent/runs", response_model=list[TeacherAgentRunRead])
+def list_teacher_agent_runs(
+    conversation_id: str = Query(min_length=1, max_length=120),
+    session: Session = Depends(get_session),
+) -> list[TeacherAgentRunRead]:
+    """List every turn's local trace for a conversation, oldest first."""
+    runs = (
+        session.query(TeacherAgentRunTrace)
+        .filter(TeacherAgentRunTrace.conversation_id == conversation_id)
+        .order_by(TeacherAgentRunTrace.started_at)
+        .all()
+    )
+    return [_build_teacher_agent_run_read(run, session) for run in runs]
+
+
+@router.get("/teacher-agent/session", response_model=TeacherAgentSessionRead)
+def get_teacher_agent_session(
+    conversation_id: str = Query(min_length=1, max_length=120),
+    session: Session = Depends(get_session),
+) -> TeacherAgentSessionRead:
+    """Recover the database-backed UI state; traces are deliberately excluded."""
+    history = DatabaseConversationHistoryStore(session).list_messages(conversation_id)
+    pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    return TeacherAgentSessionRead(
+        conversation_id=conversation_id,
+        messages=[TeacherAgentSessionMessage.model_validate(item) for item in history],
+        pending_generation=(
+            PendingGenerationSessionRead(
+                request=pending.request,
+                pending_version=pending.pending_version,
+            )
+            if pending is not None else None
+        ),
+    )
+
+
+def _pending_generation_context(session: Session, conversation_id: str) -> AgentExecutionContext:
+    return AgentExecutionContext(
+        session=session,
+        conversation_id=conversation_id,
+        paper_id=None,
+        version_id=None,
+        state_store=DatabasePendingReplacementStore(session),
+    )
+
+
+def _assert_current_pending_version(
+    context: AgentExecutionContext, expected_version: int
+) -> None:
+    pending = context.state_store.get_generation(context.conversation_id)
+    if pending is None:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "no_pending_generation"},
+        )
+    if pending.pending_version != expected_version:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "stale_pending_plan",
+                "current_version": pending.pending_version,
+            },
+        )
+
+
+@router.post(
+    "/teacher-agent/pending-generation/update",
+    response_model=PendingGenerationCardPatchResponse,
+)
+def update_pending_generation_from_card(
+    request: PendingGenerationCardPatchRequest,
+    session: Session = Depends(get_session),
+) -> PendingGenerationCardPatchResponse:
+    """Apply a card patch through the same deterministic preview pipeline as chat."""
+    context = _pending_generation_context(session, request.conversation_id)
+    _assert_current_pending_version(context, request.expected_version)
+    context.expected_pending_generation_version = request.expected_version
+    try:
+        execution = build_agent_tools(context)["preview_generation_plan"].execute(
+            GenerationPlanPatch(question_type_patches=request.question_type_patches)
+        )
+    except PendingGenerationStaleError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "stale_pending_plan"},
+        ) from exc
+    preview = execution.result_fields.get("generation_preview")
+    if not isinstance(preview, GenerationPlanPreview):
+        raise HTTPException(status_code=422, detail=execution.payload)
+    return PendingGenerationCardPatchResponse(
+        status=execution.status,
+        generation_preview=preview,
+    )
+
+
+@router.post(
+    "/teacher-agent/pending-generation/confirm",
+    response_model=PendingGenerationConfirmResponse,
+)
+def confirm_pending_generation_from_card(
+    request: PendingGenerationConfirmRequest,
+    session: Session = Depends(get_session),
+) -> PendingGenerationConfirmResponse:
+    """Execute the persisted pending plan without an LLM or client-supplied plan."""
+    context = _pending_generation_context(session, request.conversation_id)
+    _assert_current_pending_version(context, request.expected_version)
+    execution = build_agent_tools(context)["confirm_generation_plan"].execute({})
+    paper = execution.result_fields.get("paper")
+    if not isinstance(paper, GeneratePaperToolResult):
+        raise HTTPException(status_code=422, detail=execution.payload)
+    return PendingGenerationConfirmResponse(status=execution.status, paper=paper)
+
+
+@router.get("/admin/agent-traces/sessions")
+def get_agent_trace_sessions(
+    limit: int = Query(default=100, ge=1, le=500),
+) -> dict[str, list[dict]]:
+    """Admin-only boundary for the file-backed Teacher Agent trace index.
+
+    Authentication is intentionally not introduced in this first version because the
+    project has no existing administrator identity model to reuse.
+    """
+    return {"items": list_agent_trace_sessions()[:limit]}
+
+
+@router.get("/admin/agent-traces/turns")
+def get_agent_trace_turns(
+    conversation_id: str = Query(min_length=1, max_length=120),
+    limit: int = Query(default=200, ge=1, le=500),
+) -> dict[str, list[dict]]:
+    return {"items": list_agent_trace_turns(conversation_id)[:limit]}
 
 
 @router.get("/health")
@@ -492,6 +764,8 @@ def search_questions(
     query: str = Query(default="", max_length=200),
     question_type: str | None = None,
     source_name: str | None = None,
+    publish_source: str | None = None,
+    chapter_id: str | None = None,
     limit: int = Query(default=20, ge=1, le=50),
     difficulty_min: int | None = Query(default=None, ge=1, le=5),
     difficulty_max: int | None = Query(default=None, ge=1, le=5),
@@ -552,6 +826,8 @@ def search_questions(
         statement = statement.join(
             QuestionDraft, QuestionDraft.id == Question.draft_id
         ).where(QuestionDraft.source_name.in_(source_names))
+    if publish_source in {"manual", "ai_auto"}:
+        statement = statement.where(Question.publish_source == publish_source)
     search_text = query.strip()
     if search_text:
         text_match = Question.question_text.contains(search_text)
@@ -578,6 +854,18 @@ def search_questions(
             statement = statement.where(text_match)
     if question_type:
         statement = statement.where(Question.question_type == question_type)
+    if chapter_id:
+        descendant_ids = chapter_descendant_knowledge_ids(session, chapter_id)
+        if descendant_ids:
+            statement = statement.where(
+                exists().where(
+                    QuestionKnowledgeLink.question_id == Question.id,
+                    QuestionKnowledgeLink.knowledge_node_id.in_(descendant_ids),
+                )
+            )
+        else:
+            # 无效章节 id：保持「不限制」语义，避免返回空结果造成困惑。
+            pass
     questions = session.scalars(statement.order_by(Question.created_at.desc()).limit(limit)).all()
     question_ids = [question.id for question in questions]
     knowledge_map = _load_knowledge_names(session, question_ids)
@@ -608,6 +896,8 @@ def search_questions(
                 reasoning_depth=profile.reasoning_depth if profile else None,
                 calculation_load=profile.calculation_load if profile else None,
                 comprehensive_level=profile.comprehensive_level if profile else None,
+                publish_source=question.publish_source,
+                quality_sample_required=question.quality_sample_required,
             )
         )
     return results
@@ -645,6 +935,10 @@ class FormalQuestionUpdateRequest(BaseModel):
     difficulty: int = Field(ge=1, le=5)
     original_number: str | None = Field(default=None, max_length=40)
     source_page: int | None = Field(default=None, ge=1)
+
+
+class QuestionTypePatchRequest(BaseModel):
+    question_type: str = Field(min_length=1, max_length=40)
 
 
 @router.patch("/questions/{question_id}", response_model=QuestionDetailRead)
@@ -769,6 +1063,45 @@ def update_formal_question(
     return get_question_detail(question.id, session)
 
 
+def patch_question_type_value(
+    session: Session, question_id: str, raw_type: str
+) -> Question:
+    """仅修改题型：确定性 CRUD，不调用 LLM。
+
+    - 严格校验题型合法性（canonical 后必须在允许集合内），非法抛 ValueError。
+    - 题型归一化为 canonical 中文值后存储（question + 来源 draft 同步）。
+    - 保持既有审核状态（review_status / verification_status）不变。
+    - 不触碰知识点关联，不会触发「只能选择当前激活教材知识点」校验。
+    - 记录修改时间到 updated_at。
+    """
+    question = session.get(Question, question_id)
+    if question is None or not question.is_active:
+        raise ValueError("正式题目不存在")
+    canonical = canonical_question_type(raw_type)
+    if canonical not in ALLOWED_QUESTION_TYPES:
+        raise ValueError("非法的题型")
+    draft = session.get(QuestionDraft, question.draft_id)
+    question.question_type = canonical
+    if draft is not None:
+        draft.question_type = canonical
+    question.updated_at = datetime.now(UTC)
+    session.flush()
+    return question
+
+
+@router.patch("/questions/{question_id}/question-type", response_model=QuestionDetailRead)
+def patch_question_type(
+    question_id: str,
+    request: QuestionTypePatchRequest,
+    session: Session = Depends(get_session),
+) -> QuestionDetailRead:
+    try:
+        question = patch_question_type_value(session, question_id, request.question_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return get_question_detail(question.id, session)
+
+
 @router.delete("/questions/{question_id}")
 def retire_formal_question(
     question_id: str, session: Session = Depends(get_session)
@@ -862,6 +1195,9 @@ def get_question_detail(
         ),
         knowledge_match_status=question.knowledge_match_status,
         is_active=question.is_active,
+        publish_source=question.publish_source,
+        quality_sample_required=question.quality_sample_required,
+        ai_review=question.ai_review_json,
     )
 
 
@@ -1416,7 +1752,7 @@ async def save_ocr_review(
         session,
         task_id,
         merged_text=body.get("merged_text"),
-        question_type=body.get("question_type", "解答题"),
+        question_type=body.get("question_type", "计算题"),
         subject=body.get("subject", "高等数学"),
     )
     if result is None:
@@ -1493,7 +1829,7 @@ def activate_textbook(textbook_id: str, session: Session = Depends(get_session))
     if not book:
         raise HTTPException(status_code=404, detail="教材不存在")
     # 取消所有激活
-    for b in session.scalars(select(Textbook).where(Textbook.is_active == True)).all():
+    for b in session.scalars(select(Textbook).where(Textbook.is_active.is_(True))).all():
         b.is_active = False
     book.is_active = True
     return {"id": book.id, "name": book.name, "is_active": True}
@@ -1531,20 +1867,43 @@ def import_textbook_directory(textbook_id: str, body: dict, session: Session = D
     if not text:
         raise HTTPException(status_code=400, detail="目录文本不能为空")
 
+    old_nodes: list[CurriculumNode] = []
+    old_knowledge: list[KnowledgeNode] = []
     if body.get("replace"):
-        # 删除旧节点
-        old_nodes = session.scalars(
+        old_nodes = list(session.scalars(
             select(CurriculumNode).where(CurriculumNode.textbook_id == textbook_id)
-        ).all()
-        for n in old_nodes:
-            session.delete(n)
-        session.flush()
+        ).all())
+        old_ids = [node.id for node in old_nodes]
+        if old_ids:
+            old_knowledge = list(session.scalars(
+                select(KnowledgeNode).where(
+                    KnowledgeNode.curriculum_node_id.in_(old_ids),
+                    KnowledgeNode.source_type == "directory",
+                )
+            ).all())
 
     nodes = _parse_directory_text(text, textbook_id)
     for n in nodes:
         session.add(n)
     session.flush()
-    return {"imported_count": len(nodes)}
+    knowledge = sync_directory_knowledge_nodes(
+        session,
+        nodes,
+        reusable_nodes=old_knowledge,
+    )
+    if old_nodes:
+        keep_ids = {item.id for item in knowledge}
+        retire_directory_knowledge_nodes(session, old_knowledge, keep_ids=keep_ids)
+        # Child rows must be removed before their former parents.
+        old_node_ids = {item.id for item in old_nodes}
+        for node in sorted(
+            old_nodes,
+            key=lambda item: item.parent_id in old_node_ids,
+            reverse=True,
+        ):
+            session.delete(node)
+        session.flush()
+    return {"imported_count": len(nodes), "knowledge_count": len(knowledge)}
 
 
 def _parse_directory_text(text: str, textbook_id: str) -> list[CurriculumNode]:
@@ -1558,8 +1917,6 @@ def _parse_directory_text(text: str, textbook_id: str) -> list[CurriculumNode]:
         node_type = "knowledge_point"
         code: str | None = None
         title = line
-        parent_id = None
-
         # 检查是否是章标题
         chap_match = DIR_CHAPTER_RE.match(line)
         if chap_match:
@@ -1617,6 +1974,7 @@ def update_textbook_node(node_id: str, body: dict, session: Session = Depends(ge
         node.title = body["title"]
     if "code" in body:
         node.code = body["code"]
+    sync_directory_knowledge_nodes(session, [node])
     return {"id": node.id, "title": node.title, "code": node.code}
 
 
@@ -1625,13 +1983,24 @@ def delete_textbook_node(node_id: str, session: Session = Depends(get_session)) 
     node = session.get(CurriculumNode, node_id)
     if not node:
         raise HTTPException(status_code=404, detail="节点不存在")
-    # 递归删除子节点
-    children = session.scalars(
-        select(CurriculumNode).where(CurriculumNode.parent_id == node_id)
-    ).all()
-    for c in children:
-        session.delete(c)
-    session.delete(node)
+    descendants = [node]
+    pending = [node.id]
+    while pending:
+        children = list(session.scalars(
+            select(CurriculumNode).where(CurriculumNode.parent_id.in_(pending))
+        ).all())
+        descendants.extend(children)
+        pending = [item.id for item in children]
+    descendant_ids = [item.id for item in descendants]
+    knowledge = list(session.scalars(
+        select(KnowledgeNode).where(
+            KnowledgeNode.curriculum_node_id.in_(descendant_ids),
+            KnowledgeNode.source_type == "directory",
+        )
+    ).all())
+    retire_directory_knowledge_nodes(session, knowledge)
+    for item in reversed(descendants):
+        session.delete(item)
     return {"deleted": True}
 
 
@@ -1653,5 +2022,5 @@ def add_textbook_node(body: dict, session: Session = Depends(get_session)) -> di
     )
     session.add(node)
     session.flush()
+    sync_directory_knowledge_nodes(session, [node])
     return {"id": node.id, "title": node.title}
-    return result

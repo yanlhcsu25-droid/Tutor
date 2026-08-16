@@ -206,7 +206,7 @@ def _build_removal_operations(
     difference = target_total_score - sum(item.score for item in remaining)
     if abs(difference) < 1e-9:
         return operations, []
-    preferred = ["解答题", "计算题", "证明题", "填空题", "选择题"]
+    preferred = ["计算题", "证明题", "填空题", "选择题", "多选题"]
     groups: dict[str, list[PaperItem]] = defaultdict(list)
     for item in remaining:
         groups[canonical_question_type(item.section)].append(item)

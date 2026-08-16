@@ -86,7 +86,7 @@ class QuestionDraft(Base):
     subject: Mapped[str] = mapped_column(String(120), index=True)
     language: Mapped[str] = mapped_column(String(20), default="zh-CN", index=True)
     grade: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
-    question_type: Mapped[str] = mapped_column(String(40), default="解答题", index=True)
+    question_type: Mapped[str] = mapped_column(String(40), default="计算题", index=True)
     source_topic: Mapped[str | None] = mapped_column(String(255), nullable=True)
     source_subtopic: Mapped[str | None] = mapped_column(String(255), nullable=True)
     question_text: Mapped[str] = mapped_column(Text)
@@ -114,7 +114,7 @@ class Question(Base):
     draft_id: Mapped[str] = mapped_column(ForeignKey("question_draft.id"), unique=True, index=True)
     question_text: Mapped[str] = mapped_column(Text)
     grade: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
-    question_type: Mapped[str] = mapped_column(String(40), default="解答题", index=True)
+    question_type: Mapped[str] = mapped_column(String(40), default="计算题", index=True)
     default_score: Mapped[int] = mapped_column(Integer, default=10)
     final_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
     solution_json: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -124,8 +124,21 @@ class Question(Base):
     knowledge_match_status: Mapped[str] = mapped_column(
         String(30), default="current", index=True
     )
+    publish_source: Mapped[str] = mapped_column(
+        String(30), default="manual", index=True
+    )
+    ai_review_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    quality_sample_required: Mapped[bool] = mapped_column(
+        default=False, index=True
+    )
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
     )
 
 
@@ -310,15 +323,67 @@ class TeacherAgentRunTrace(Base):
     __tablename__ = "teacher_agent_run_trace"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    run_id: Mapped[str | None] = mapped_column(
+        String(36), nullable=True, unique=True, index=True, default=new_id
+    )
     conversation_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
     paper_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     user_message: Mapped[str] = mapped_column(Text)
+    # ── Run-level lifecycle (source of truth for one user turn) ──
+    status: Mapped[str] = mapped_column(String(40), default="received", index=True)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    agent_name: Mapped[str] = mapped_column(String(60), default="teacher_agent")
     tool_calls_json: Mapped[list] = mapped_column(JSON, default=list)
     final_response: Mapped[str | None] = mapped_column(Text, nullable=True)
     result_status: Mapped[str] = mapped_column(String(40), index=True)
+    state_before_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    state_after_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
     )
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    error_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_stage: Mapped[str | None] = mapped_column(String(60), nullable=True)
+
+
+class TeacherAgentSpan(Base):
+    """One observable step inside a Teacher Agent run.
+
+    Spans form a tree via ``parent_span_id`` so a run can be reconstructed as:
+
+        agent (teacher_agent)
+        ├── model_call
+        ├── tool_call
+        │   └── state_transition
+        └── tool_call
+            └── state_transition
+
+    ``run_id`` is the correlation id that links every span back to its
+    :class:`TeacherAgentRunTrace`. The table is the local source of truth;
+    Langfuse (if configured) is a separate, optional observability backend.
+    """
+
+    __tablename__ = "teacher_agent_span"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    span_id: Mapped[str] = mapped_column(
+        String(36), unique=True, index=True, default=new_id
+    )
+    run_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    parent_span_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    span_type: Mapped[str] = mapped_column(String(30), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    input_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    output_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class AdjustmentPlanRecord(Base):
@@ -433,7 +498,10 @@ class OcrImportSource(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     original_name: Mapped[str] = mapped_column(String(500))
     stored_path: Mapped[str] = mapped_column(Text)
+    # ``sha256`` remains the unique import fingerprint for backward-compatible
+    # SQLite schemas. ``content_sha256`` stores the actual file digest.
     sha256: Mapped[str] = mapped_column(String(64))
+    content_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     page_count: Mapped[int] = mapped_column(Integer, default=0)
     processing_status: Mapped[str] = mapped_column(String(20), default="processing", index=True)
     processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -460,6 +528,9 @@ class OcrImportDraft(Base):
     bbox_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     validation_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     knowledge_points_json: Mapped[list] = mapped_column(JSON, default=list)
+    # AI 预标注的只读快照与人工核对结果。它只服务 Shadow Evaluation，
+    # 正式发布仍以 knowledge_points_json（人工确认）为唯一事实来源。
+    knowledge_shadow_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     difficulty_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     formal_question_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     revision_of_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
@@ -468,6 +539,16 @@ class OcrImportDraft(Base):
     match_status: Mapped[str] = mapped_column(String(20), default="matched", index=True)
     match_method: Mapped[str] = mapped_column(String(20), default="inline")
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_review_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    publish_source: Mapped[str | None] = mapped_column(
+        String(30), nullable=True, index=True
+    )
+    quality_sample_required: Mapped[bool] = mapped_column(
+        default=False, index=True
+    )
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

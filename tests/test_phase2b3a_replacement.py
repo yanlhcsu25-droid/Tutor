@@ -290,5 +290,6 @@ def test_agent_version_operation_edges(session):
         "撤销",
         backend=_Backend(_tool("undo_paper"), _final("当前没有可操作的试卷。")),
     )
-    assert missing_context.status == "failed"
+    # 业务澄清（缺当前试卷）→ needs_clarification；只有执行异常才 failed
+    assert missing_context.status == "needs_clarification"
     assert missing_context.blocking_errors == ["no_current_paper"]

@@ -4,12 +4,13 @@ import {
   RobotOutlined, FilePdfOutlined, BookOutlined,
   FormOutlined, DatabaseOutlined, PlusOutlined,
 } from "@ant-design/icons";
-import AgentWorkspace from "./components/AgentWorkspace";
+import AgentWorkspace, { clearStoredConversationId } from "./components/AgentWorkspace";
 import OcrReviewDrawer from "./components/OcrReviewDrawer";
 import PaperDrawer from "./components/PaperDrawer";
 import QuestionBankDrawer from "./components/QuestionBankDrawer";
 import PdfImportPanel from "./components/PdfImportPanel";
 import TextbookDrawer from "./components/TextbookDrawer";
+import AdminConsole from "./components/AdminConsole";
 
 const { Sider, Content } = Layout;
 
@@ -20,6 +21,10 @@ type Preview = {
 type ValidationReport = { passed: boolean; violations: { code: string; field: string; required: unknown; actual: unknown; question_ids: string[]; repairable: boolean; message: string }[] };
 
 export default function App() {
+  if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/")) {
+    return <AdminConsole />;
+  }
+
   // ── drawers / modals ──
   const [pdfUploadOpen, setPdfUploadOpen] = useState(false);
   const [ocrReviewOpen, setOcrReviewOpen] = useState(false);
@@ -78,7 +83,7 @@ export default function App() {
         setPaperId(null);
         setPaperPreview(null);
         setPaperValidation(null);
-        // Reload the page to reset AgentWorkspace state
+        clearStoredConversationId();
         window.location.reload();
       },
     });

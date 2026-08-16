@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
 
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, select
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
@@ -73,6 +73,10 @@ def create_schema(database_url: str) -> None:
             connection.exec_driver_sql(
                 "ALTER TABLE ocr_import_source ADD COLUMN layout_json JSON"
             )
+        if "content_sha256" not in source_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE ocr_import_source ADD COLUMN content_sha256 VARCHAR(64)"
+            )
 
     # ocr_import_draft 匹配状态迁移；仅添加列，不改名、不删列。
     draft_columns = {item["name"] for item in inspect(engine).get_columns("ocr_import_draft")}
@@ -106,6 +110,30 @@ def create_schema(database_url: str) -> None:
                 """
             )
 
+    # AI 知识点预标注 Shadow Evaluation：为既有 OCR 草稿补充只读推荐快照。
+    draft_columns = {item["name"] for item in inspect(engine).get_columns("ocr_import_draft")}
+    with engine.begin() as connection:
+        if "knowledge_shadow_json" not in draft_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE ocr_import_draft ADD COLUMN knowledge_shadow_json JSON"
+            )
+        if "ai_review_json" not in draft_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE ocr_import_draft ADD COLUMN ai_review_json JSON"
+            )
+        if "publish_source" not in draft_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE ocr_import_draft ADD COLUMN publish_source VARCHAR(30)"
+            )
+        if "quality_sample_required" not in draft_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE ocr_import_draft ADD COLUMN quality_sample_required BOOLEAN NOT NULL DEFAULT 0"
+            )
+        if "published_at" not in draft_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE ocr_import_draft ADD COLUMN published_at DATETIME"
+            )
+
     # curriculum_node 迁移 — textbook_id
     cur_columns = {item["name"] for item in inspect(engine).get_columns("curriculum_node")}
     with engine.begin() as connection:
@@ -113,6 +141,18 @@ def create_schema(database_url: str) -> None:
             connection.exec_driver_sql(
                 "ALTER TABLE curriculum_node ADD COLUMN textbook_id VARCHAR(36) REFERENCES textbook(id)"
             )
+
+    # Existing textbook directories predate directory-to-taxonomy synchronization.
+    # Backfill them idempotently so reopening the application immediately exposes
+    # every directory entry in the knowledge review dropdown.
+    from calculus_agent.knowledge.curriculum import sync_directory_knowledge_nodes
+    from calculus_agent.models import CurriculumNode
+
+    with Session(engine) as migration_session, migration_session.begin():
+        textbook_nodes = list(migration_session.scalars(
+            select(CurriculumNode).where(CurriculumNode.textbook_id.is_not(None))
+        ).all())
+        sync_directory_knowledge_nodes(migration_session, textbook_nodes)
 
     # 正式题原地编辑与软删除。
     question_columns = {item["name"] for item in inspect(engine).get_columns("question")}
@@ -129,6 +169,26 @@ def create_schema(database_url: str) -> None:
                 "UPDATE question SET knowledge_match_status='unmatched' "
                 "WHERE NOT EXISTS (SELECT 1 FROM question_knowledge_link l WHERE l.question_id=question.id)"
             )
+        if "publish_source" not in question_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE question ADD COLUMN publish_source VARCHAR(30) NOT NULL DEFAULT 'manual'"
+            )
+        if "ai_review_json" not in question_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE question ADD COLUMN ai_review_json JSON"
+            )
+        if "quality_sample_required" not in question_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE question ADD COLUMN quality_sample_required BOOLEAN NOT NULL DEFAULT 0"
+            )
+        if "published_at" not in question_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE question ADD COLUMN published_at DATETIME"
+            )
+        if "updated_at" not in question_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE question ADD COLUMN updated_at DATETIME"
+            )
         connection.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS ix_question_is_active ON question (is_active)"
         )
@@ -136,6 +196,76 @@ def create_schema(database_url: str) -> None:
             "CREATE INDEX IF NOT EXISTS ix_question_knowledge_match_status "
             "ON question (knowledge_match_status)"
         )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_question_publish_source ON question (publish_source)"
+        )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_question_quality_sample_required "
+            "ON question (quality_sample_required)"
+        )
+
+    # Teacher Agent 运行 trace：失败错误明细（阶段 / 类型 / 文案），用于可观测性。
+    # create_all 不会为既有表加列，这里做幂等 ALTER。
+    trace_columns = {item["name"] for item in inspect(engine).get_columns("teacher_agent_run_trace")}
+    with engine.begin() as connection:
+        if "error_code" not in trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN error_code VARCHAR(80)"
+            )
+        if "error_type" not in trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN error_type VARCHAR(120)"
+            )
+        if "error_message" not in trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN error_message TEXT"
+            )
+        if "error_stage" not in trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN error_stage VARCHAR(60)"
+            )
+
+    # Run-Level Tracing（013）：为 teacher_agent_run_trace 增加 run_id 关联键与
+    # 生命周期 / 状态字段，使每一次用户 Turn 都有唯一可查询的 run_id。
+    # 新表 teacher_agent_span 由 create_all 自动建表，无需在此 ALTER。
+    run_trace_columns = {item["name"] for item in inspect(engine).get_columns("teacher_agent_run_trace")}
+    with engine.begin() as connection:
+        if "run_id" not in run_trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN run_id VARCHAR(36)"
+            )
+            connection.exec_driver_sql(
+                "CREATE UNIQUE INDEX IF NOT EXISTS "
+                "ix_teacher_agent_run_trace_run_id ON teacher_agent_run_trace (run_id)"
+            )
+        if "status" not in run_trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN status VARCHAR(40) NOT NULL DEFAULT 'received'"
+            )
+        if "started_at" not in run_trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN started_at DATETIME"
+            )
+        if "ended_at" not in run_trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN ended_at DATETIME"
+            )
+        if "latency_ms" not in run_trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN latency_ms INTEGER"
+            )
+        if "agent_name" not in run_trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN agent_name VARCHAR(60) NOT NULL DEFAULT 'teacher_agent'"
+            )
+        if "state_before_json" not in run_trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN state_before_json JSON"
+            )
+        if "state_after_json" not in run_trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN state_after_json JSON"
+            )
 
 
 @contextmanager

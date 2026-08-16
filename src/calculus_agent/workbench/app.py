@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import shutil
+import threading
 import uuid
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -14,26 +15,41 @@ from typing import Any, Iterator
 
 import pypdfium2 as pdfium
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from sqlalchemy import select
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from calculus_agent.config import get_settings
 from calculus_agent.db import build_session_factory
 
 from .database import PublishedDraftError, PublishedSourceError, WorkbenchDatabase
-from calculus_agent.knowledge.retrieval import retrieve_knowledge
-from .markdown_schema import payload_from_markdown, render_preview
+from .chapter_filter import (
+    chapter_descendant_knowledge_ids,
+    chapter_display_label,
+    filter_questions_by_chapter,
+    list_top_level_chapters,
+)
+from calculus_agent.knowledge.classification import (
+    classify_text_with_llm,
+    current_textbook_taxonomy,
+)
+from .markdown_schema import parse_markdown, payload_from_markdown, render_preview
 from .ocr import (
+    OCRPipelineError,
     persist_rendered_draft,
     render_drafts,
     run_ocr_into_database,
     trace_split_pages,
 )
 from .import_pipeline import DocumentLayout, import_document
+from .ai_content_review import (
+    audit_content_with_llm,
+    deterministic_content_issues,
+    recommend_difficulty_with_llm,
+)
 from .resplit import (
     ResplitBlockedError,
     ResplitError,
@@ -92,12 +108,29 @@ class DraftMetadataRequest(BaseModel):
     content_confirmed: bool | None = None
 
 
+class HumanKnowledgeReviewRequest(BaseModel):
+    primary_knowledge_point_id: str | None = None
+    secondary_knowledge_point_ids: list[str] = Field(default_factory=list, max_length=2)
+    modification_reason: str | None = Field(default=None, max_length=500)
+
+
+class PublishedAiProfileReviewRequest(BaseModel):
+    primary_knowledge_point_id: str
+    secondary_knowledge_point_ids: list[str] = Field(default_factory=list, max_length=2)
+    difficulty_level: int = Field(ge=1, le=5)
+    modification_reason: str | None = Field(default=None, max_length=500)
+
+
 class SubmitRequest(BaseModel):
     question_ids: list[str] | None = None
 
 
 class PublishRequest(BaseModel):
     question_ids: list[str] = Field(min_length=1)
+
+
+class AutoPublishRequest(BaseModel):
+    question_ids: list[str] | None = None
 
 
 class ResplitRequest(BaseModel):
@@ -121,6 +154,25 @@ class SplitDebugRequest(BaseModel):
 
 
 _logger = logging.getLogger(__name__)
+_ocr_cancel_events: dict[str, threading.Event] = {}
+_ocr_delete_requests: set[str] = set()
+_ocr_cancel_events_lock = threading.Lock()
+
+
+def _cancel_event(source_file_id: str) -> threading.Event:
+    with _ocr_cancel_events_lock:
+        return _ocr_cancel_events.setdefault(source_file_id, threading.Event())
+
+
+def _discard_cancel_event(source_file_id: str) -> None:
+    with _ocr_cancel_events_lock:
+        _ocr_cancel_events.pop(source_file_id, None)
+        _ocr_delete_requests.discard(source_file_id)
+
+
+def _delete_requested(source_file_id: str) -> bool:
+    with _ocr_cancel_events_lock:
+        return source_file_id in _ocr_delete_requests
 
 
 @app.post("/api/debug/split")
@@ -166,7 +218,9 @@ def list_sources() -> dict[str, Any]:
 @app.post("/api/sources")
 async def upload_source(
     file: UploadFile = File(...),
+    source_file_id: str | None = Form(None),
     solution_mode: str = Form("inline"),
+    ocr_mode: str = Form("mineru"),
     question_page_start: int | None = Form(None),
     question_page_end: int | None = Form(None),
     solution_page_start: int | None = Form(None),
@@ -177,6 +231,8 @@ async def upload_source(
         raise HTTPException(status_code=400, detail="第一版仅支持PDF文件")
     if solution_mode not in {"inline", "separate"}:
         raise HTTPException(status_code=400, detail="不支持的导入模式")
+    if ocr_mode not in {"mineru", "ppstructure", "page_recall"}:
+        raise HTTPException(status_code=400, detail="不支持的 OCR 方式")
     if solution_mode == "separate":
         values = (question_page_start, question_page_end, solution_page_start, solution_page_end)
         if any(value is None or value < 1 for value in values):
@@ -192,7 +248,8 @@ async def upload_source(
         )
     else:
         layout = DocumentLayout(solution_mode="inline")
-    source_file_id = f"src_{uuid.uuid4().hex}"
+    source_file_id = source_file_id or f"src_{uuid.uuid4().hex}"
+    _safe_id(source_file_id, "src")
     stored_path = FILES_ROOT / f"{source_file_id}.pdf"
     digest = hashlib.sha256()
     size = 0
@@ -221,15 +278,37 @@ async def upload_source(
     if actual_page_count <= 0:
         stored_path.unlink(missing_ok=True)
         raise HTTPException(status_code=422, detail="PDF没有可处理的页面")
+    try:
+        layout.validate(set(range(1, actual_page_count + 1)))
+    except ValueError as error:
+        stored_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
     with _get_session() as session:
         db = _get_db(session)
         initial_layout = layout.to_dict()
+        initial_layout["ocr_mode"] = ocr_mode
         initial_layout["progress"] = {
             "current_page": 0, "total_pages": actual_page_count, "status": "queued"
         }
+        content_sha256 = digest.hexdigest()
+        import_fingerprint = hashlib.sha256(json.dumps(
+            {
+                "content_sha256": content_sha256,
+                "ocr_mode": ocr_mode,
+                "layout": layout.to_dict(),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
         source = db.create_source(
-            source_file_id, filename, stored_path, digest.hexdigest(), initial_layout
+            source_file_id,
+            filename,
+            stored_path,
+            content_sha256,
+            initial_layout,
+            import_fingerprint=import_fingerprint,
         )
         if source["source_file_id"] != source_file_id:
             stored_path.unlink(missing_ok=True)
@@ -243,36 +322,95 @@ async def upload_source(
             source_file_id, current_page=0, total_pages=actual_page_count, status="ocr"
         )
 
+    cancel_event = _cancel_event(source_file_id)
+    cancel_event.clear()
+
     diagnostics: list[Any] = []
 
     def run_sync() -> tuple[int, int]:
-        with _get_session() as session:
-            return run_ocr_into_database(
-                stored_path,
-                source_file_id,
-                _get_db(session),
-                raw_root=DATA_ROOT / "ocr_raw" / source_file_id,
-                layout=layout,
-                diagnostics_out=diagnostics,
-            )
+        with _session_factory() as session:
+            db = _get_db(session)
+
+            def report_progress(current_page: int, total_pages: int, status: str) -> None:
+                db.update_processing(
+                    source_file_id,
+                    current_page=current_page,
+                    total_pages=total_pages,
+                    status=status,
+                )
+                # OCR pages are persisted incrementally so pausing does not
+                # roll back all pages completed earlier in the request.
+                session.commit()
+
+            try:
+                result = run_ocr_into_database(
+                    stored_path,
+                    source_file_id,
+                    db,
+                    raw_root=DATA_ROOT / "ocr_raw" / source_file_id,
+                    layout=layout,
+                    diagnostics_out=diagnostics,
+                    progress_callback=report_progress,
+                    cancel_callback=cancel_event.is_set,
+                    ocr_mode=ocr_mode,
+                )
+                session.commit()
+                return result
+            except Exception:
+                session.rollback()
+                raise
 
     try:
         page_count, question_count = await run_in_threadpool(run_sync)
-    except Exception as error:
+    except OCRPipelineError as error:
+        deleting = _delete_requested(source_file_id)
+        paused = cancel_event.is_set()
         with _get_session() as session:
             db = _get_db(session)
-            db.finish_source(source_file_id, page_count=0, error=str(error))
-            db.update_processing(source_file_id, status="failed", error=str(error))
+            db.finish_source(source_file_id, page_count=actual_page_count, error=str(error))
+            db.update_processing(
+                source_file_id,
+                current_page=error.page_count,
+                total_pages=actual_page_count,
+                status="deleting" if deleting else ("paused" if paused else "failed"),
+                error=str(error),
+            )
+        if deleting:
+            with _get_session() as session:
+                deleted = _get_db(session).delete_unpublished_source(source_file_id)
+            _cleanup_source_files(source_file_id, deleted["stored_path"])
+            raise HTTPException(status_code=410, detail="上传已停止并删除") from error
+        if paused:
+            raise HTTPException(status_code=409, detail="上传已暂停，已保留完成的 OCR 页面") from error
         raise HTTPException(status_code=422, detail=f"OCR或题目切分失败：{error}") from error
+    except Exception as error:
+        deleting = _delete_requested(source_file_id)
+        with _get_session() as session:
+            db = _get_db(session)
+            db.finish_source(source_file_id, page_count=actual_page_count, error=str(error))
+            db.update_processing(
+                source_file_id,
+                status="deleting" if deleting else "failed",
+                error=str(error),
+            )
+        if deleting:
+            with _get_session() as session:
+                deleted = _get_db(session).delete_unpublished_source(source_file_id)
+            _cleanup_source_files(source_file_id, deleted["stored_path"])
+            raise HTTPException(status_code=410, detail="上传已停止并删除") from error
+        raise HTTPException(status_code=422, detail=f"OCR或题目切分失败：{error}") from error
+    finally:
+        _discard_cancel_event(source_file_id)
 
     with _get_session() as session:
         db = _get_db(session)
         if layout.solution_mode == "inline":
-            layout = DocumentLayout("inline", list(range(1, page_count + 1)), [])
+            layout = DocumentLayout("inline", list(range(1, actual_page_count + 1)), [])
         saved_layout = layout.to_dict()
+        saved_layout["ocr_mode"] = ocr_mode
         saved_layout["workflow_stage"] = "markdown_reviewing"
         db.save_source_layout(source_file_id, saved_layout)
-        db.finish_source(source_file_id, page_count=page_count)
+        db.finish_source(source_file_id, page_count=actual_page_count)
         db.update_processing(
             source_file_id, current_page=page_count, total_pages=page_count,
             status="completed", question_count=question_count,
@@ -318,8 +456,24 @@ async def upload_source(
 
 @app.delete("/api/sources/{source_file_id}")
 def delete_source(source_file_id: str) -> dict[str, Any]:
-    """Atomically delete an import with no formal Question, then clean source files."""
+    """Stop an active OCR import, or immediately delete an inactive import."""
     _safe_id(source_file_id, "src")
+    with _ocr_cancel_events_lock:
+        event = _ocr_cancel_events.get(source_file_id)
+        if event is not None:
+            _ocr_delete_requests.add(source_file_id)
+            event.set()
+    if event is not None:
+        with _get_session() as session:
+            try:
+                _get_db(session).update_processing(source_file_id, status="deleting")
+            except KeyError:
+                pass
+        return {
+            "source_file_id": source_file_id,
+            "deleted": False,
+            "status": "deleting",
+        }
     try:
         with _get_session() as session:
             result = _get_db(session).delete_unpublished_source(source_file_id)
@@ -365,11 +519,37 @@ def _cleanup_source_files(source_file_id: str, stored_path: str) -> list[str]:
 
 
 @app.get("/api/sources/{source_file_id}/questions")
-def list_questions(source_file_id: str) -> dict[str, Any]:
+def list_questions(source_file_id: str, chapter_id: str | None = None) -> dict[str, Any]:
+    """列出某来源的全部题目；可选 chapter_id 仅返回属于该一级章节（含全部子节点）的题目。
+
+    chapter_id 为 CurriculumNode.id（一级章节）。不传或传空则不限制章节。
+    """
     with _get_session() as session:
         db = _get_db(session)
-        _source_or_404(db, source_file_id)
-        return {"items": db.list_questions(source_file_id)}
+        source = _source_or_404(db, source_file_id)
+        items = db.list_questions(source_file_id)
+        if chapter_id:
+            descendant_ids = chapter_descendant_knowledge_ids(session, chapter_id)
+            if descendant_ids:
+                items = filter_questions_by_chapter(items, descendant_ids)
+            # 无效章节 id 时 descendant_ids 为空，保持不过滤（返回全部题目）。
+        return {"items": items, "source": source}
+
+
+@app.get("/api/taxonomy/chapters")
+def list_chapters() -> dict[str, Any]:
+    """返回当前激活教材的一级章节（大章节）列表，供题库筛选下拉使用。
+
+    仅返回稳定 taxonomy id 与可读标签，不返回整棵知识点树。
+    """
+    with _get_session() as session:
+        chapters = list_top_level_chapters(session)
+        return {
+            "items": [
+                {"id": node.id, "name": chapter_display_label(node)}
+                for node in chapters
+            ]
+        }
 
 
 @app.get("/api/questions/{question_id}")
@@ -417,6 +597,75 @@ def update_draft_metadata(question_id: str, request: DraftMetadataRequest) -> di
         except PublishedDraftError as exc:
             raise HTTPException(status_code=409, detail=str(exc))
         return {"question": saved}
+
+
+@app.put("/api/questions/{question_id}/knowledge/human-review")
+def save_human_knowledge_review(
+    question_id: str, request: HumanKnowledgeReviewRequest
+) -> dict[str, Any]:
+    """保存人工知识点真值，同时保留不可变的 AI 推荐快照供准确率分析。"""
+    with _get_session() as session:
+        db = _get_db(session)
+        _question_or_404(db, question_id)
+        allowed_ids = {node.id for node in current_textbook_taxonomy(session)}
+        selected = ([request.primary_knowledge_point_id] if request.primary_knowledge_point_id else []) + request.secondary_knowledge_point_ids
+        if any(item not in allowed_ids for item in selected):
+            raise HTTPException(status_code=422, detail="知识点必须属于当前教材的已审核 taxonomy")
+        try:
+            saved = db.save_human_knowledge_review(
+                question_id,
+                primary_knowledge_point_id=request.primary_knowledge_point_id,
+                secondary_knowledge_point_ids=request.secondary_knowledge_point_ids,
+                modification_reason=request.modification_reason,
+            )
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        except PublishedDraftError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        return {"question": saved}
+
+
+@app.put("/api/questions/{question_id}/ai-published-profile-review")
+def review_ai_published_profile(
+    question_id: str, request: PublishedAiProfileReviewRequest
+) -> dict[str, Any]:
+    """人工复核 AI 已发布题的知识点与难度，不解封或改写题目正文。"""
+    from calculus_agent.models import OcrImportDraft
+    from calculus_agent.ocr.import_service import apply_ai_published_profile_review
+
+    with _get_session() as session:
+        db = _get_db(session)
+        question = _question_or_404(db, question_id)
+        if (
+            question.get("review_status") != "published"
+            or question.get("publish_source") != "ai_auto"
+        ):
+            raise HTTPException(status_code=409, detail="仅 AI 自动发布题支持此复核入口")
+        selected = [
+            request.primary_knowledge_point_id,
+            *request.secondary_knowledge_point_ids,
+        ]
+        if len(selected) != len(set(selected)):
+            raise HTTPException(status_code=422, detail="主知识点与辅助知识点不能重复")
+        allowed_ids = {node.id for node in current_textbook_taxonomy(session)}
+        if any(item not in allowed_ids for item in selected):
+            raise HTTPException(
+                status_code=422,
+                detail="知识点必须属于当前教材的已审核 taxonomy",
+            )
+        draft = session.get(OcrImportDraft, question_id)
+        try:
+            apply_ai_published_profile_review(
+                session,
+                draft,
+                primary_knowledge_point_id=request.primary_knowledge_point_id,
+                secondary_knowledge_point_ids=request.secondary_knowledge_point_ids,
+                difficulty_level=request.difficulty_level,
+                modification_reason=request.modification_reason,
+            )
+        except (KeyError, ValueError) as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return {"question": _question_or_404(db, question_id)}
 
 
 @app.post("/api/questions/{question_id}/revision")
@@ -557,27 +806,55 @@ def _source_generation_plan(db: WorkbenchDatabase, source_file_id: str) -> dict[
         rendered.extend(render_drafts(placed))
     old = db.list_questions(source_file_id)
     published = [item for item in old if item["review_status"] == "published"]
-    published_keys = {(item["page_number"], item["original_number"]) for item in published}
-    conflict_items = [item for item in published
-                      if (item["page_number"], item["original_number"]) in
-                      {(draft.page_number, draft.original_number) for draft in rendered}]
-    conflicts = [item["original_number"] for item in conflict_items]
+    published_keys = {
+        (item["page_number"], item["original_number"]) for item in published
+    }
+
+    # “整页 Markdown”仍需参与整份文档的 parser/matcher，才能正确识别题目与答案；
+    # 但生成阶段必须把已发布题对应的结果排除，避免覆盖正式题或创建同键副本。
+    # 与已发布题同键的未发布记录通常是人工修订草稿，也一并保留。
+    protected_rendered = [
+        item
+        for item in rendered
+        if (item.page_number, item.original_number) in published_keys
+    ]
+    rebuildable_rendered = [
+        item
+        for item in rendered
+        if (item.page_number, item.original_number) not in published_keys
+    ]
+    unpublished = [item for item in old if item["review_status"] != "published"]
+    protected_unpublished = [
+        item
+        for item in unpublished
+        if (item["page_number"], item["original_number"]) in published_keys
+    ]
+    rebuildable_unpublished = [
+        item
+        for item in unpublished
+        if (item["page_number"], item["original_number"]) not in published_keys
+    ]
     return {
         "source_file_id": source_file_id,
         "layout": layout.to_dict(),
-        "new_numbers": [item.original_number for item in rendered],
+        "new_numbers": [item.original_number for item in rebuildable_rendered],
         "created": [{"page_number": item.page_number, "original_number": item.original_number,
                      "match_status": item.match_status, "review_note": item.review_note,
-                     "preview": " ".join(item.markdown.split())[:160]} for item in rendered],
-        "old_unpublished": [item for item in old if item["review_status"] != "published"],
-        "published_conflicts": conflict_items,
+                     "preview": " ".join(item.markdown.split())[:160]}
+                    for item in rebuildable_rendered],
+        "old_unpublished": rebuildable_unpublished,
+        "preserved_published": published,
+        "preserved_unpublished": protected_unpublished,
+        "excluded_published_results": len(protected_rendered),
+        # 兼容旧前端字段。已发布题现在会被排除而不是阻塞整次重建。
+        "published_conflicts": [],
         "diagnostics": {
             "ambiguous_keys": result.diagnostics.ambiguous_keys,
             "missing_questions": [item.key[1] for item in result.diagnostics.missing_questions],
             "unmatched_solutions": [item.key[1] for item in result.diagnostics.unmatched_solutions],
         },
-        "blocked": bool(conflicts),
-        "_rendered": rendered,
+        "blocked": False,
+        "_rendered": rebuildable_rendered,
     }
 
 
@@ -615,6 +892,8 @@ def generate_apply(source_file_id: str, request: GenerateRequest) -> dict[str, A
             db.save_source_layout(source_file_id, layout)
             return {"source_file_id": source_file_id, "created_question_ids": created,
                     "created_count": len(created), "deleted_count": len(plan["old_unpublished"]),
+                    "preserved_published_count": len(plan["preserved_published"]),
+                    "preserved_unpublished_count": len(plan["preserved_unpublished"]),
                     "new_numbers": plan["new_numbers"], "diagnostics": plan["diagnostics"]}
         except ResplitStaleError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
@@ -625,6 +904,54 @@ def generate_apply(source_file_id: str, request: GenerateRequest) -> dict[str, A
         except Exception as error:
             logging.exception("生成题目失败 source=%s", source_file_id)
             raise HTTPException(status_code=500, detail=f"生成题目失败：{type(error).__name__}: {error}") from error
+
+
+@app.post("/api/sources/{source_file_id}/answers/repair")
+def repair_missing_answers(source_file_id: str) -> dict[str, Any]:
+    """用当前答案页重新匹配，只补空答案，不覆盖人工内容或已发布题。"""
+    with _get_session() as session:
+        db = _get_db(session)
+        try:
+            plan = _source_generation_plan(db, source_file_id)
+        except (KeyError, ResplitError, ValueError) as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        fresh_by_key: dict[tuple[int, str], list[Any]] = {}
+        for draft in plan["_rendered"]:
+            fresh_by_key.setdefault(
+                (draft.page_number, draft.original_number), []
+            ).append(draft)
+
+        repaired_ids: list[str] = []
+        for current in db.list_questions(source_file_id):
+            if current["review_status"] == "published":
+                continue
+            # 旧版本可能已补回答案并标记 matched，却遗漏清除 Markdown
+            # 中的 answer_not_found。这类历史残留无需重新依赖候选映射。
+            if db.clear_stale_answer_not_found_note(current["question_id"]):
+                repaired_ids.append(current["question_id"])
+                continue
+            candidates = fresh_by_key.get(
+                (current["page_number"], current["original_number"]), []
+            )
+            if len(candidates) != 1 or candidates[0].match_status != "matched":
+                continue
+            candidate = candidates[0]
+            solution = parse_markdown(candidate.markdown).sections.get(
+                "参考解答", ""
+            )
+            if db.repair_missing_answer(
+                current["question_id"],
+                solution_content=solution,
+                match_method=candidate.match_method,
+            ):
+                repaired_ids.append(current["question_id"])
+
+        return {
+            "source_file_id": source_file_id,
+            "repaired_count": len(repaired_ids),
+            "repaired_question_ids": repaired_ids,
+        }
 
 
 @app.post("/api/sources/{source_file_id}/pages/{page_number}/resplit/preview")
@@ -706,6 +1033,11 @@ def submit_questions(source_file_id: str, request: SubmitRequest) -> dict[str, A
             points = question.get("knowledge_points") or []
             if not 1 <= len(points) <= 3:
                 metadata_issues.append("知识点必须人工确认 1～3 个")
+            if question.get("match_status") in {"missing_answer", "ambiguous", "unknown"}:
+                metadata_issues.append(
+                    "参考解答匹配异常："
+                    + (question.get("review_note") or question.get("match_status"))
+                )
             if metadata_issues:
                 failures.append({"question_id": question["question_id"], "reasons": metadata_issues})
                 continue
@@ -720,6 +1052,12 @@ def submit_questions(source_file_id: str, request: SubmitRequest) -> dict[str, A
                     "question_id": question["question_id"],
                     "reasons": [f"{issue.field}: {issue.message}" for issue in validation.issues],
                     "issues": [issue.model_dump(mode="json") for issue in validation.issues],
+                })
+                continue
+            if not payload.solution_content.strip():
+                failures.append({
+                    "question_id": question["question_id"],
+                    "reasons": ["参考解答：未识别到参考解答内容，请核对答案页或在 Markdown 源码中补充"],
                 })
                 continue
             # 结构化元数据以数据库字段为事实来源，不被被反复修改的 Markdown 覆盖。
@@ -757,51 +1095,164 @@ def knowledge_options(question_id: str) -> dict[str, Any]:
     """
     with _get_session() as session:
         _question_or_404(_get_db(session), question_id)
-        from calculus_agent.models import CurriculumNode, KnowledgeNode, Textbook
-
-        nodes = session.scalars(
-            select(KnowledgeNode)
-            .join(CurriculumNode, KnowledgeNode.curriculum_node_id == CurriculumNode.id)
-            .join(Textbook, CurriculumNode.textbook_id == Textbook.id)
-            .where(
-                Textbook.is_active.is_(True),
-                CurriculumNode.node_type == "section",
-                KnowledgeNode.review_status == "approved",
-            )
-        ).all()
+        nodes = current_textbook_taxonomy(session)
         options = [{"knowledge_id": node.id, "name": node.name} for node in nodes]
         return {"question_id": question_id, "options": options}
 
 
 @app.post("/api/questions/{question_id}/knowledge/classify")
 def classify_workbench_question(question_id: str) -> dict[str, Any]:
-    """审核内容确认后调用的只读目录分类工具。"""
+    """Return a recommendation only; this endpoint never writes formal links."""
     with _get_session() as session:
         db = _get_db(session)
         question = _question_or_404(db, question_id)
         if not question.get("content_confirmed"):
             raise HTTPException(status_code=409, detail="请先确认题目内容")
-        text = f"{question['edited_markdown']}"
-        from calculus_agent.models import CurriculumNode, KnowledgeNode, Textbook
-        nodes = session.scalars(
-            select(KnowledgeNode).join(CurriculumNode, KnowledgeNode.curriculum_node_id == CurriculumNode.id)
-            .join(Textbook, CurriculumNode.textbook_id == Textbook.id)
-            .where(Textbook.is_active.is_(True), CurriculumNode.node_type == "section", KnowledgeNode.review_status == "approved")
-        ).all()
-        legal_ids = {node.id for node in nodes}
-        ranked = [
-            {"knowledge_id": item.node.id, "name": item.node.name, "confidence": item.score}
-            for item in retrieve_knowledge(session, text, limit=10)
-            if item.node.id in legal_ids
-        ][:3]
-        options = [{"knowledge_id": node.id, "name": node.name} for node in nodes]
+        # 同一份待审核内容只保留第一份 AI 建议，避免重新请求破坏 Shadow 基线。
+        shadow = question.get("knowledge_shadow") or {}
+        saved_ai = shadow.get("ai") if isinstance(shadow, dict) else None
+        taxonomy_nodes = current_textbook_taxonomy(session)
+        legal_ids = {node.id for node in taxonomy_nodes}
+        saved_ids = {
+            item
+            for item in [
+                saved_ai.get("primary_knowledge_point_id") if isinstance(saved_ai, dict) else None,
+                *((saved_ai.get("secondary_knowledge_point_ids") or []) if isinstance(saved_ai, dict) else []),
+            ]
+            if item
+        }
+        stale_taxonomy = bool(saved_ids - legal_ids)
+        payload, _validation = payload_from_markdown(
+            question["edited_markdown"],
+            question_id=question["question_id"],
+            source_file_id=question["source_file_id"],
+            ocr_markdown=question["ocr_markdown"],
+            source_bbox=question.get("source_bbox"),
+        )
+        question_body = payload.question_content if payload else question["edited_markdown"]
+        standard_solution = payload.solution_content if payload else ""
+        has_human_review = isinstance(shadow.get("human"), dict) if isinstance(shadow, dict) else False
+        should_retry_fallback = (
+            isinstance(saved_ai, dict)
+            and (
+                stale_taxonomy
+                or (
+                    saved_ai.get("provenance") != "llm_suggested"
+                    and not has_human_review
+                )
+            )
+        )
+        generated_knowledge = False
+        if isinstance(saved_ai, dict) and not should_retry_fallback:
+            result = dict(saved_ai)
+        else:
+            result = classify_text_with_llm(
+                session,
+                question_body=question_body,
+                standard_solution=standard_solution,
+                solution_steps=[],
+            )
+            generated_knowledge = True
+
+        knowledge_ids = [
+            item
+            for item in [
+                result.get("primary_knowledge_point_id"),
+                *(result.get("secondary_knowledge_point_ids") or []),
+            ]
+            if item
+        ]
+        difficulty_result = result.get("difficulty_result")
+        should_generate_difficulty = (
+            knowledge_ids
+            and (
+                not isinstance(difficulty_result, dict)
+                or difficulty_result.get("provenance") != "llm_suggested"
+            )
+        )
+        if should_generate_difficulty:
+            difficulty_result = recommend_difficulty_with_llm(
+                session,
+                question_body=question_body,
+                standard_solution=standard_solution,
+                question_type=payload.question_type if payload else "unknown",
+                knowledge_ids=knowledge_ids,
+            )
+            result = {**result, "difficulty_result": difficulty_result}
+
+        if generated_knowledge:
+            question = db.save_knowledge_shadow(
+                question_id,
+                result,
+                replace_fallback=should_retry_fallback,
+                replace_stale_taxonomy=stale_taxonomy,
+            )
+        elif should_generate_difficulty and isinstance(difficulty_result, dict):
+            question = db.save_ai_difficulty_shadow(
+                question_id,
+                difficulty_result,
+            )
+        options = [{"knowledge_id": node.id, "name": node.name} for node in taxonomy_nodes]
+        selected = []
+        if result["primary_knowledge_point"]:
+            selected.append({
+                **result["primary_knowledge_point"],
+                "confidence": result["confidence"],
+                "role": "primary",
+            })
+        selected.extend({
+            **item,
+            "confidence": result["confidence"],
+            "role": "secondary",
+        } for item in result["secondary_knowledge_points"])
         return {
             "question_id": question_id,
-            "knowledge_points": ranked[:3],
+            **result,
+            "knowledge_points": selected,
             "options": options,
-            "needs_review": not (1 <= len(ranked[:3]) <= 3),
-            "reason": "基于当前激活教材目录和本地术语匹配规则推荐",
-            "provenance": "rule_suggested",
+            "difficulty_result": difficulty_result,
+            "knowledge_shadow": question.get("knowledge_shadow"),
+        }
+
+
+@app.get("/api/knowledge/shadow/stats")
+def knowledge_shadow_stats() -> dict[str, Any]:
+    """基于教师已确认的真实题库审核记录统计 AI 推荐质量。"""
+    from calculus_agent.models import OcrImportDraft
+
+    with _get_session() as session:
+        rows = session.query(OcrImportDraft).filter(OcrImportDraft.knowledge_shadow_json.is_not(None)).all()
+        reviewed = [row.knowledge_shadow_json for row in rows if isinstance(row.knowledge_shadow_json, dict) and isinstance(row.knowledge_shadow_json.get("human"), dict)]
+        primary_correct = 0
+        modified = 0
+        secondary_tp = secondary_pred = secondary_gold = 0
+        high_conf_total = high_conf_wrong = 0
+        needs_review_total = needs_review_modified = 0
+        for item in reviewed:
+            ai, human = item["ai"], item["human"]
+            same_primary = ai.get("primary_knowledge_point_id") == human.get("primary_knowledge_point_id")
+            primary_correct += int(same_primary)
+            changed = bool(human.get("modified"))
+            modified += int(changed)
+            predicted, expected = set(ai.get("secondary_knowledge_point_ids") or []), set(human.get("secondary_knowledge_point_ids") or [])
+            secondary_tp += len(predicted & expected)
+            secondary_pred += len(predicted)
+            secondary_gold += len(expected)
+            if float(ai.get("confidence") or 0) >= 0.85:
+                high_conf_total += 1
+                high_conf_wrong += int(changed)
+            if ai.get("needs_review"):
+                needs_review_total += 1
+                needs_review_modified += int(changed)
+        total = len(reviewed)
+        return {
+            "total_ai_recommendations": len(rows), "reviewed_total": total,
+            "primary_accuracy": primary_correct / total if total else None,
+            "secondary_precision": secondary_tp / secondary_pred if secondary_pred else None,
+            "secondary_recall": secondary_tp / secondary_gold if secondary_gold else None,
+            "human_modification_rate": modified / total if total else None,
+            "high_confidence_error_rate": high_conf_wrong / high_conf_total if high_conf_total else None,
+            "needs_review_modified_rate": needs_review_modified / needs_review_total if needs_review_total else None,
         }
 
 
@@ -881,6 +1332,208 @@ def publish_questions(request: PublishRequest) -> dict[str, Any]:
         "failures": failures,
         "synced_to_bank": len(synced),
         "sync_details": synced,
+    }
+
+
+@app.post("/api/sources/{source_file_id}/ai-auto-publish")
+def ai_auto_publish(
+    source_file_id: str,
+    request: AutoPublishRequest,
+) -> dict[str, Any]:
+    """受控自动发布：硬校验、AI 语义审核、知识点和画像全部通过才发布。"""
+    from calculus_agent.models import OcrImportDraft, Question
+    from calculus_agent.ocr.import_service import publish_ocr_draft
+
+    published: list[str] = []
+    manual_review: list[dict[str, Any]] = []
+    sampled: list[str] = []
+    with _get_session() as session:
+        db = _get_db(session)
+        _source_or_404(db, source_file_id)
+        questions = db.list_questions(source_file_id)
+        selected_ids = set(request.question_ids or [item["question_id"] for item in questions])
+        questions = [item for item in questions if item["question_id"] in selected_ids]
+        already_ai_published = int(
+            session.scalar(
+                select(func.count())
+                .select_from(Question)
+                .where(Question.publish_source == "ai_auto")
+            )
+            or 0
+        )
+
+        for question in questions:
+            question_id = question["question_id"]
+            if question["review_status"] == "published":
+                continue
+            hard_issues, payload = deterministic_content_issues(question)
+            if hard_issues or payload is None:
+                audit = _blocked_ai_audit("deterministic_check_failed", hard_issues)
+                db.save_ai_content_review(question_id, audit, passed=False)
+                manual_review.append({"question_id": question_id, "reasons": hard_issues})
+                continue
+
+            audit = audit_content_with_llm(
+                question_body=payload.question_content,
+                standard_solution=payload.solution_content,
+                question_type=payload.question_type,
+            )
+            if not audit["passed"]:
+                db.save_ai_content_review(question_id, audit, passed=False)
+                manual_review.append({
+                    "question_id": question_id,
+                    "reasons": audit.get("risk_codes") or [audit.get("reason")],
+                })
+                continue
+
+            knowledge = classify_text_with_llm(
+                session,
+                question_body=payload.question_content,
+                standard_solution=payload.solution_content,
+                solution_steps=[],
+            )
+            knowledge_ids = [
+                item
+                for item in [
+                    knowledge.get("primary_knowledge_point_id"),
+                    *(knowledge.get("secondary_knowledge_point_ids") or []),
+                ]
+                if item
+            ]
+            if (
+                knowledge.get("provenance") != "llm_suggested"
+                or knowledge.get("needs_review")
+                or not knowledge.get("primary_knowledge_point_id")
+                or not 1 <= len(knowledge_ids) <= 3
+            ):
+                failed_audit = {
+                    **audit,
+                    "passed": False,
+                    "verdict": "REVIEW",
+                    "risk_codes": ["knowledge_classification_failed"],
+                    "reason": "知识点 AI 推荐未形成可自动发布的合法结果",
+                    "knowledge_result": knowledge,
+                }
+                db.save_ai_content_review(question_id, failed_audit, passed=False)
+                manual_review.append({
+                    "question_id": question_id,
+                    "reasons": ["knowledge_classification_failed"],
+                })
+                continue
+
+            difficulty_result = recommend_difficulty_with_llm(
+                session,
+                question_body=payload.question_content,
+                standard_solution=payload.solution_content,
+                question_type=payload.question_type,
+                knowledge_ids=knowledge_ids,
+            )
+            difficulty = difficulty_result.get("difficulty_level")
+            if (
+                difficulty_result.get("provenance") != "llm_suggested"
+                or difficulty_result.get("needs_review")
+                or difficulty not in {1, 2, 3, 4, 5}
+            ):
+                failed_audit = {
+                    **audit,
+                    "passed": False,
+                    "verdict": "REVIEW",
+                    "risk_codes": ["difficulty_classification_failed"],
+                    "reason": "AI 难度推荐未形成可自动发布的合法结果",
+                    "knowledge_result": knowledge,
+                    "difficulty_result": difficulty_result,
+                    "difficulty_level": difficulty,
+                }
+                db.save_ai_content_review(question_id, failed_audit, passed=False)
+                manual_review.append({
+                    "question_id": question_id,
+                    "reasons": ["difficulty_classification_failed"],
+                })
+                continue
+
+            sample_required = (
+                already_ai_published + len(published) < 200
+                and int(hashlib.sha256(question_id.encode()).hexdigest()[:8], 16) % 5 == 0
+            )
+            full_audit = {
+                **audit,
+                "knowledge_result": knowledge,
+                "difficulty_result": difficulty_result,
+                "difficulty_level": difficulty,
+                "publish_source": "ai_auto",
+                "quality_sample_required": sample_required,
+            }
+            db.save_knowledge_shadow(question_id, knowledge)
+            db.save_ai_content_review(
+                question_id,
+                full_audit,
+                passed=True,
+                knowledge_ids=knowledge_ids,
+                difficulty_level=difficulty,
+                quality_sample_required=sample_required,
+            )
+            draft = session.get(OcrImportDraft, question_id)
+            try:
+                with session.begin_nested():
+                    result = publish_ocr_draft(
+                        session,
+                        draft,
+                        publish_source="ai_auto",
+                        ai_review_result=full_audit,
+                        quality_sample_required=sample_required,
+                    )
+            except Exception:
+                _logger.exception("AI 自动发布失败 question_id=%s", question_id)
+                failed_audit = {
+                    **full_audit,
+                    "passed": False,
+                    "verdict": "REVIEW",
+                    "risk_codes": ["publish_error"],
+                    "reason": "正式发布失败，已转人工处理",
+                }
+                db.save_ai_content_review(question_id, failed_audit, passed=False)
+                manual_review.append({"question_id": question_id, "reasons": ["publish_error"]})
+                continue
+            if result is None:
+                failed_audit = {
+                    **full_audit,
+                    "passed": False,
+                    "verdict": "REVIEW",
+                    "risk_codes": ["publish_error"],
+                    "reason": "正式发布未产生题库记录，已转人工处理",
+                }
+                db.save_ai_content_review(question_id, failed_audit, passed=False)
+                manual_review.append({"question_id": question_id, "reasons": ["publish_error"]})
+                continue
+            published.append(question_id)
+            if sample_required:
+                sampled.append(question_id)
+
+    return {
+        "eligible_count": len(questions),
+        "published_count": len(published),
+        "published_question_ids": published,
+        "manual_review_count": len(manual_review),
+        "manual_review": manual_review,
+        "quality_sample_count": len(sampled),
+        "quality_sample_question_ids": sampled,
+    }
+
+
+def _blocked_ai_audit(reason: str, issues: list[str]) -> dict[str, Any]:
+    return {
+        "verdict": "REVIEW",
+        "answer_relevant": False,
+        "conclusion_consistent": False,
+        "no_cross_question": False,
+        "derivation_complete": False,
+        "confidence": 0.0,
+        "risk_codes": issues or [reason],
+        "reason": "确定性发布条件未全部通过，必须人工检查",
+        "passed": False,
+        "fallback_reason": reason,
+        "raw_response_type": None,
+        "model": None,
     }
 
 

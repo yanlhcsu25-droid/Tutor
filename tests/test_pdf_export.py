@@ -10,7 +10,7 @@ def _paper() -> PaperPreviewRead:
             PaperItemRead(
                 question_id="q1",
                 question_text=r"计算 $\frac{\sqrt{2}}{2}$。",
-                question_type="解答题",
+                question_type="计算题",
                 score=10,
             )
         ],

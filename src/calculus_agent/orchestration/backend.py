@@ -40,15 +40,27 @@ class BailianChatBackend:
         self.model = model
         self.timeout = timeout
 
-    def complete(self, messages: list[dict], tools: list[dict]) -> dict:
+    def complete(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        *,
+        tool_choice: str | dict = "auto",
+        response_format: dict | None = None,
+    ) -> dict:
+        optional_payload = {}
+        if tools:
+            optional_payload["tools"] = tools
+            optional_payload["tool_choice"] = tool_choice
+        if response_format:
+            optional_payload["response_format"] = response_format
         payload = json.dumps(
             {
                 "model": self.model,
                 "messages": messages,
-                "tools": tools,
-                "tool_choice": "auto",
                 "enable_thinking": False,
                 "temperature": 0,
+                **optional_payload,
             },
             ensure_ascii=False,
         ).encode()
@@ -62,4 +74,9 @@ class BailianChatBackend:
         )
         with urlopen(request, timeout=self.timeout) as response:
             body = json.loads(response.read().decode())
-        return {"message": body["choices"][0]["message"]}
+        choice = body["choices"][0]
+        return {
+            "message": choice["message"],
+            "finish_reason": choice.get("finish_reason"),
+            "model": body.get("model"),
+        }

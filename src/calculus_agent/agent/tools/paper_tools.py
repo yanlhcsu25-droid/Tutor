@@ -94,7 +94,7 @@ def _scope_node_ids(session: Session, labels: list[str]) -> tuple[list[str], lis
                 title="scope resolver",
                 total_questions=1,
                 total_score=1,
-                question_type_counts={"解答题": 1},
+                question_type_counts={"计算题": 1},
             ),
             constraints=GenerationConstraints(scope=[label]),
         )
@@ -105,16 +105,78 @@ def _scope_node_ids(session: Session, labels: list[str]) -> tuple[list[str], lis
     return sorted(resolved), []
 
 
+def _chapter_title(curriculum_by_id: dict, curriculum_node_id: str | None) -> str | None:
+    """Climb a knowledge node's curriculum link to the owning chapter title."""
+    current = curriculum_node_id
+    while current is not None:
+        node = curriculum_by_id.get(current)
+        if node is None:
+            return None
+        if node.node_type == "chapter":
+            return node.title
+        current = node.parent_id
+    return None
+
+
 def _knowledge_preferences(
-    session: Session, labels: list[str]
-) -> tuple[list[str], list[str], list[str]]:
+    session: Session,
+    labels: list[str],
+    scope_ids: list[str] | None = None,
+    scope_labels: list[str] | None = None,
+) -> tuple[list[str], list[str], list[str], list[str]]:
+    """Resolve teacher knowledge preferences against the taxonomy.
+
+    Each label resolves to one of these mutually exclusive outcomes:
+      - resolved                     : single canonical match within scope
+      - knowledge_unknown            : no taxonomy / alias hit at all
+      - knowledge_ambiguous          : several distinct candidates; scope cannot pick
+      - knowledge_scope_conflict     : matched node belongs to a different chapter
+      - knowledge_scope_uncertain    : matched node has no direct chapter assignment
+        (``curriculum_node_id is None``) so the system cannot confirm it belongs
+        to the requested scope; the safe default is to ask the teacher
+
+    Repeated imports may create duplicate ``KnowledgeNode`` rows with the same
+    name under the same chapter; those are the same concept and are collapsed
+    before any ambiguity decision is made.
+    """
     nodes = list(session.scalars(select(KnowledgeNode)))
     aliases = list(session.scalars(select(KnowledgeAlias)))
     alias_nodes: dict[str, set[str]] = {}
     for alias in aliases:
         alias_nodes.setdefault(alias.normalized_alias, set()).add(alias.node_id)
-    canonical_names: list[str] = []
-    node_ids: list[str] = []
+    curriculum_by_id = {node.id: node for node in session.scalars(select(CurriculumNode))}
+    # scope_ids are knowledge-node ids resolved from the requested scope; convert
+    # them back to the underlying curriculum node ids (chapters + sections) so
+    # a preference node can be checked by its curriculum ancestry.
+    scope_curriculum_ids: set[str] = set()
+    nodes_by_id = {node.id: node for node in nodes}
+    for knowledge_id in scope_ids or []:
+        linked = nodes_by_id.get(knowledge_id)
+        current = linked.curriculum_node_id if linked is not None else None
+        while current is not None:
+            scope_curriculum_ids.add(current)
+            parent = curriculum_by_id.get(current)
+            current = parent.parent_id if parent is not None else None
+
+    scope_text = "、".join(scope_labels) if scope_labels else "当前章节"
+
+    def ancestry_in_scope(node: KnowledgeNode) -> bool:
+        """Return True iff the node's curriculum chain intersects the scope set."""
+        if node.curriculum_node_id is None:
+            return False
+        current = node.curriculum_node_id
+        while current is not None:
+            if current in scope_curriculum_ids:
+                return True
+            parent = curriculum_by_id.get(current)
+            current = parent.parent_id if parent is not None else None
+        return False
+
+    preferred_names: list[str] = []
+    preferred_ids: list[str] = []
+    errors: list[str] = []
+    clarifications: list[str] = []
+
     for label in labels:
         normalized = normalize_name(label)
         matches = {
@@ -123,14 +185,66 @@ def _knowledge_preferences(
         }
         matches.update(alias_nodes.get(normalized, set()))
         if not matches:
-            return [], [], ["knowledge_not_found"]
-        if len(matches) > 1:
-            return [], [], ["knowledge_ambiguous"]
-        node_id = next(iter(matches))
-        node = next(node for node in nodes if node.id == node_id)
-        node_ids.append(node.id)
-        canonical_names.append(node.name)
-    return list(dict.fromkeys(canonical_names)), list(dict.fromkeys(node_ids)), []
+            errors.append("knowledge_unknown")
+            clarifications.append(
+                f"未能在知识点库中识别“{label}”，请确认名称是否正确，或换一种更具体的表述。"
+            )
+            continue
+
+        match_nodes = [node for node in nodes if node.id in matches]
+        # Collapse duplicate knowledge nodes (same name + same chapter) produced
+        # by repeated imports; they represent one concept, not a real ambiguity.
+        deduplicated: list[KnowledgeNode] = []
+        seen_keys: set[tuple[str, str | None]] = set()
+        for node in match_nodes:
+            key = (node.name, _chapter_title(curriculum_by_id, node.curriculum_node_id))
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            deduplicated.append(node)
+
+        if len(deduplicated) > 1:
+            scoped = [n for n in deduplicated if ancestry_in_scope(n)]
+            if len(scoped) == 1:
+                chosen = scoped[0]
+            else:
+                errors.append("knowledge_ambiguous")
+                clarifications.append(
+                    f"“{label}”对应多个不同章节的知识点，无法确定唯一目标，"
+                    f"请补充更具体的名称（例如带上所属章节）。"
+                )
+                continue
+        else:
+            chosen = deduplicated[0]
+
+        # Orphan nodes have no curriculum assignment; the system cannot prove
+        # they belong to the requested scope, so require teacher confirmation
+        # rather than silently accepting them under any chapter.
+        if chosen.curriculum_node_id is None:
+            errors.append("knowledge_scope_uncertain")
+            clarifications.append(
+                f"“{label}”已识别为知识点，但当前知识点库中没有明确的章节归属，"
+                f"无法确认它是否属于{scope_text}。"
+                f"请确认是否仍希望将它作为{scope_text}的重点知识点。"
+            )
+            continue
+
+        if scope_curriculum_ids and not ancestry_in_scope(chosen):
+            chapter_title = _chapter_title(curriculum_by_id, chosen.curriculum_node_id) or "其他章节"
+            errors.append("knowledge_scope_conflict")
+            clarifications.append(
+                f"当前选择的是{scope_text}，但“{label}”属于{chapter_title}范围，不在当前章节内。"
+                f"请确认：1）将章节改为{chapter_title}；2）保留{scope_text}并重新选择重点知识点。"
+            )
+            continue
+
+        if chosen.id not in preferred_ids:
+            preferred_ids.append(chosen.id)
+            preferred_names.append(chosen.name)
+
+    if errors:
+        return [], [], errors, clarifications
+    return list(dict.fromkeys(preferred_names)), list(dict.fromkeys(preferred_ids)), [], []
 
 
 def _difficulty(level: str | None) -> tuple[list[int], list[int], list[int]]:
@@ -156,11 +270,11 @@ def build_structured_generation_request(
     scope_ids, scope_errors = _scope_node_ids(session, scopes)
     if scope_errors:
         return None, [], scope_errors, ["请确认组卷范围名称是否与当前课程目录一致。"]
-    preferred_names, preferred_ids, knowledge_errors = _knowledge_preferences(
-        session, request.knowledge_preferences or []
+    preferred_names, preferred_ids, knowledge_errors, knowledge_questions = _knowledge_preferences(
+        session, request.knowledge_preferences or [], scope_ids, scopes
     )
     if knowledge_errors:
-        return None, [], knowledge_errors, ["请确认希望重点覆盖的知识点名称。"]
+        return None, [], knowledge_errors, knowledge_questions
 
     warnings: list[str] = []
     requirements = request.question_type_requirements or []
@@ -171,10 +285,9 @@ def build_structured_generation_request(
         if len(set(canonical)) != len(canonical):
             return None, [], ["question_type_invalid"], ["同一题型请只配置一次。"]
         derived_count = sum(item.count for item in requirements)
-        if request.question_count is not None and request.question_count != derived_count:
-            return None, [], ["question_count_mismatch"], [
-                f"题型数量合计为{derived_count}题，与总题数{request.question_count}题不一致。"
-            ]
+        # A complete per-type distribution is authoritative. question_count is
+        # retained for compatibility, but never blocks a pending-plan revision.
+        request = request.model_copy(update={"question_count": derived_count})
 
         section_values: list[SectionRequirement] = []
         score_completeness = []

@@ -12,7 +12,7 @@ def test_cp_sat_composition_scales_to_real_question_banks(session, size, limit):
     values = []
     for number in range(size):
         draft_id, question_id = new_id(), new_id()
-        question_type = "选择题" if number % 2 == 0 else "解答题"
+        question_type = "选择题" if number % 2 == 0 else "计算题"
         values.extend([
             QuestionDraft(
                 id=draft_id, source_name="performance", source_item_id=str(number), variant=1,
@@ -33,7 +33,7 @@ def test_cp_sat_composition_scales_to_real_question_banks(session, size, limit):
         grade="八年级", total_questions=10, total_score=100,
         sections=[
             SectionRequirement(question_type="选择题", count=5, score_per_question=5, total_score=25),
-            SectionRequirement(question_type="解答题", count=5, score_per_question=15, total_score=75),
+            SectionRequirement(question_type="计算题", count=5, score_per_question=15, total_score=75),
         ], seed=7,
     )
     started = perf_counter()

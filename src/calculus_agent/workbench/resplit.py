@@ -43,7 +43,7 @@ class ResplitError(Exception):
 
 
 class ResplitBlockedError(ResplitError):
-    """受影响范围内存在已发布草稿，禁止重建。"""
+    """兼容旧调用的重建阻塞异常；已发布草稿不再触发该异常。"""
 
     def __init__(self, drafts: list[dict[str, Any]]) -> None:
         numbers = "、".join(
@@ -183,10 +183,8 @@ def _rendered_summary(draft: RenderedDraft) -> dict[str, Any]:
 def _build_draft_diff(
     old_drafts: list[dict[str, Any]],
     rendered: list[RenderedDraft],
-    *,
-    block_published_changes: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[RenderedDraft], list[dict[str, Any]]]:
-    """共享 keep/remove/add 计算，不包含任何题目或答案解析规则。"""
+    """计算未发布草稿的重建差异，并始终原样保留已发布题。"""
     remaining = list(old_drafts)
     kept: list[dict[str, Any]] = []
     added: list[RenderedDraft] = []
@@ -203,21 +201,17 @@ def _build_draft_diff(
         protected = next((item for item in remaining if
             item["page_number"] == draft.page_number
             and item["original_number"] == draft.original_number
-            and item["review_status"] in {"reviewed", "published"}), None)
+            and item["review_status"] == "published"), None)
         if protected is not None:
             remaining.remove(protected)
             kept.append(protected)
-            if block_published_changes and protected["review_status"] == "published":
-                blocking.append(protected)
             continue
         added.append(draft)
 
     protected_remaining = [
-        item for item in remaining if item["review_status"] in {"reviewed", "published"}
+        item for item in remaining if item["review_status"] == "published"
     ]
     kept.extend(protected_remaining)
-    if block_published_changes:
-        blocking.extend(item for item in protected_remaining if item["review_status"] == "published")
     removed = [item for item in remaining if item not in protected_remaining]
     return kept, removed, added, blocking
 
@@ -261,9 +255,7 @@ def build_plan(
         rendered.extend(render_drafts(item))
 
     old_drafts = db.list_questions_by_pages(source_file_id, affected)
-    kept, removed, added, blocking = _build_draft_diff(
-        old_drafts, rendered, block_published_changes=layout.solution_mode == "separate"
-    )
+    kept, removed, added, blocking = _build_draft_diff(old_drafts, rendered)
 
     return ResplitPlan(
         source_file_id=source_file_id,

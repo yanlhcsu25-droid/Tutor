@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import threading
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,8 @@ def delete_env(tmp_path, monkeypatch):
     monkeypatch.setattr(app_mod, "FILES_ROOT", files)
     monkeypatch.setattr(app_mod, "DATA_ROOT", tmp_path)
     monkeypatch.setattr(app_mod, "PAGE_CACHE_ROOT", cache)
+    app_mod._ocr_cancel_events.clear()
+    app_mod._ocr_delete_requests.clear()
     return TestClient(app_mod.app), factory, files, raw, cache
 
 
@@ -92,6 +95,53 @@ def test_summary_aggregates_pending_progress_and_completed(delete_env):
     assert summaries[pending]["review"] == {"status": "pending", "completed": 0, "total": 1}
     assert summaries[progress]["review"] == {"status": "in_progress", "completed": 1, "total": 2}
     assert summaries[completed]["review"] == {"status": "completed", "completed": 1, "total": 1}
+
+
+def test_question_list_includes_source_for_zero_question_recovery(delete_env):
+    client, factory, files, _, _ = delete_env
+    source_id = _source_id("a")
+    pdf = files / f"{source_id}.pdf"
+    pdf.write_bytes(b"pdf-z")
+    with factory.begin() as session:
+        session.add(OcrImportSource(
+            id=source_id,
+            original_name="zero.pdf",
+            stored_path=str(pdf),
+            sha256=hashlib.sha256(pdf.read_bytes()).hexdigest(),
+            page_count=2,
+            processing_status="failed",
+            processing_error="题目切分结果为0",
+            layout_json={"progress": {"current_page": 2, "total_pages": 2}},
+        ))
+
+    response = client.get(f"/api/sources/{source_id}/questions")
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+    assert response.json()["source"]["source_file_id"] == source_id
+    assert response.json()["source"]["page_count"] == 2
+
+
+def test_delete_active_upload_requests_stop_before_cleanup(delete_env):
+    client, factory, files, _, _ = delete_env
+    source_id = _create_source(factory, files, "d")
+    import calculus_agent.workbench.app as app_mod
+
+    event = threading.Event()
+    app_mod._ocr_cancel_events[source_id] = event
+    response = client.delete(f"/api/sources/{source_id}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "source_file_id": source_id,
+        "deleted": False,
+        "status": "deleting",
+    }
+    assert event.is_set()
+    assert source_id in app_mod._ocr_delete_requests
+    with factory.begin() as session:
+        source = WorkbenchDatabase(session).get_source(source_id)
+    assert source["processing_status"] == "deleting"
+    assert files.joinpath(f"{source_id}.pdf").exists()
 
 
 def test_delete_reports_manual_edits_and_cleans_source_files_only(delete_env):
@@ -181,3 +231,26 @@ def test_missing_files_do_not_block_delete_and_sha_can_be_reused(delete_env):
             _source_id("b"), "same.pdf", files / f"{_source_id('b')}.pdf", old["sha256"]
         )
         assert recreated["source_file_id"] == _source_id("b")
+
+
+def test_same_pdf_can_be_imported_with_distinct_ocr_fingerprints(delete_env):
+    _, factory, files, _, _ = delete_env
+    content_sha = "a" * 64
+    with factory.begin() as session:
+        db = WorkbenchDatabase(session)
+        first = db.create_source(
+            _source_id("a"), "same.pdf", files / "a.pdf", content_sha,
+            import_fingerprint="1" * 64,
+        )
+        second = db.create_source(
+            _source_id("b"), "same.pdf", files / "b.pdf", content_sha,
+            import_fingerprint="2" * 64,
+        )
+        duplicate = db.create_source(
+            _source_id("c"), "same.pdf", files / "c.pdf", content_sha,
+            import_fingerprint="1" * 64,
+        )
+    assert first["source_file_id"] == _source_id("a")
+    assert second["source_file_id"] == _source_id("b")
+    assert duplicate["source_file_id"] == _source_id("a")
+    assert first["sha256"] == content_sha

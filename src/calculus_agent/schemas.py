@@ -467,6 +467,8 @@ class QuestionOptionRead(BaseModel):
     reasoning_depth: int | None = None
     calculation_load: int | None = None
     comprehensive_level: int | None = None
+    publish_source: str = "manual"
+    quality_sample_required: bool = False
 
 
 class QuestionDetailRead(BaseModel):
@@ -490,6 +492,9 @@ class QuestionDetailRead(BaseModel):
     difficulty: int | None = None
     knowledge_match_status: str = "current"
     is_active: bool = True
+    publish_source: str = "manual"
+    quality_sample_required: bool = False
+    ai_review: dict | None = None
 
 
 class ConstraintCheck(BaseModel):

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import shutil
 import uuid
-import gc
 import tempfile
 import time
 import os
@@ -17,9 +17,25 @@ from collections.abc import Callable, Sequence
 from typing import Any, Iterable
 
 from .database import WorkbenchDatabase
+from .math_normalization import normalize_escaped_blank_markers
 from .markdown_schema import fixed_template
 from .question_type_classifier import OPTION_TOKEN_RE, extract_normalized_options, infer_question_type
-from calculus_agent.ocr.pdf_preprocess import prepare_pdf_for_ocr
+from calculus_agent.ocr.pdf_preprocess import (
+    FALLBACK_DPI,
+    PreparedPdf,
+    prepare_pdf_for_ocr,
+    render_pdf_page,
+)
+from calculus_agent.ocr.mineru_adapter import (
+    MinerUCancelled,
+    MinerUError,
+    content_blocks_to_pages,
+    prepare_selected_pdf,
+    run_mineru,
+)
+
+
+_logger = logging.getLogger(__name__)
 
 
 def _rss_mb() -> float:
@@ -35,12 +51,32 @@ def _rss_mb() -> float:
 
 
 SECTION_HEADING_RE = re.compile(
-    r"(?m)^#{1,4}\s*([一二三四五六七八九十]+)[、.．]\s*([^\n]+)$"
+    r"(?m)^#{1,4}\s*([一二三四五六七八九十]+|\d{1,3})[、.．]\s*([^\n]+)$"
 )
 
 # 标准题号：7. / 7． / 7、 / 1.2.
 QUESTION_START_RE = re.compile(
     r"(?m)^[ \t]*(\d{1,3}(?:[.．]\d+)*)[、.．][ \t]*(?=\S)"
+)
+
+# Some exercise books number every choice/fill/judgment item as ``(1)``.
+# Parenthesized numbers normally mean subquestions, so this fallback is used
+# only when a page has no standard top-level number and an explicit objective
+# question section heading is present.
+PAREN_OBJECTIVE_START_RE = re.compile(
+    r"(?m)^[ \t]*[（(](\d{1,3})[)）][ \t]*(?=\S)"
+)
+OBJECTIVE_SECTION_RE = re.compile(
+    r"(?m)^#{1,4}\s*[一二三四五六七八九十]+[、.．]\s*"
+    r"(?:单项选择题|多项选择题|选择题|填空题|判断题)\s*$"
+)
+
+# 套卷还常见“中文大题标题 → (1) → (I)”层级。这里的阿拉伯数字括号是
+# 独立题，罗马数字括号才是子问。MinerU 有时会把下一题紧接在上一题选项
+# 后面，因此不能只识别行首；按每个中文大题区间寻找连续递增的 (n) 序列，
+# 可避开正文里孤立的公式编号或交叉引用。
+PAREN_MAJOR_START_RE = re.compile(
+    r"[（(]\s*(\d{1,3})\s*(?:[)）]|\$)[ \t]*(?=\S)"
 )
 
 # PaddleOCR 对教材题号前的小图标容易产生类似：
@@ -208,7 +244,7 @@ def _clean_ocr_markdown(markdown: str) -> str:
             continue
 
         cleaned_lines.append(_normalize_question_line(line))
-    return "\n".join(cleaned_lines).strip()
+    return normalize_escaped_blank_markers("\n".join(cleaned_lines)).strip()
 
 
 def normalize_page(markdown: str) -> str:
@@ -237,6 +273,15 @@ def _normalize_question_line(line: str) -> str:
     prefix = match.group("prefix") if "prefix" in match.groupdict() else match.group("noise")
     number = match.group("number")
     rest = match.group("rest").lstrip(" $}].．、")
+
+    # 正常数学续写不能被当成畸形题号。例如：
+    #   故 $C_1 = C_2$ .令 ...
+    #   ... F(0) = 0.由 ...
+    # 旧规则会从公式末尾抽出 2/0 并改写成 ``2.``/``0.``，从而压制同页
+    # 真正的 ``(7)(8)(9)`` 大题边界。含变量名、下标或等号的前缀显然
+    # 是公式正文，不属于 OCR 题号前的小图标/符号噪声。
+    if re.search(r"[A-Za-z_]", prefix) or "=" in prefix:
+        return line
 
     # 仅当行首确实含有 OCR/LaTeX 噪声符号时才归一化，避免把普通文本误判为题号。
     suspicious = any(
@@ -358,7 +403,7 @@ def _section_key_for_position(markdown: str, position: int) -> str | None:
 def _raw_page_chunks(markdown: str) -> tuple[str, list[RawQuestion]]:
     """返回：本页首个新题号之前的续页内容 + 本页新题块。"""
     cleaned = _clean_ocr_markdown(markdown)
-    starts = list(QUESTION_START_RE.finditer(cleaned))
+    starts = _major_question_starts(cleaned)
 
     if not starts:
         return _strip_section_headings(cleaned), []
@@ -380,6 +425,51 @@ def _raw_page_chunks(markdown: str) -> tuple[str, list[RawQuestion]]:
         )
 
     return preamble, chunks
+
+
+def _major_question_starts(cleaned: str) -> list[re.Match[str]]:
+    """Choose numbered major-question boundaries without confusing `(I)` subparts."""
+    headings = list(SECTION_HEADING_RE.finditer(cleaned))
+    boundaries = [0, *(heading.start() for heading in headings), len(cleaned)]
+    output: list[re.Match[str]] = []
+    for index in range(len(boundaries) - 1):
+        start, end = boundaries[index], boundaries[index + 1]
+        standard = list(QUESTION_START_RE.finditer(cleaned, start, end))
+        if standard:
+            output.extend(standard)
+            continue
+
+        matches = list(PAREN_MAJOR_START_RE.finditer(cleaned, start, end))
+        if not matches:
+            continue
+        # Keep the longest consecutive run. A segment before its first heading is
+        # accepted only with at least two numbers, because it is usually a page
+        # continuation and has no local section label to disambiguate it.
+        # Build increasing subsequences while ignoring formula references such
+        # as f(0) between two real boundaries `(1)` and `(2)`.
+        runs: list[list[re.Match[str]]] = []
+        for candidate_index, candidate in enumerate(matches):
+            first = int(candidate.group(1))
+            if first < 1:
+                continue
+            run = [candidate]
+            expected = first + 1
+            for following in matches[candidate_index + 1:]:
+                number = int(following.group(1))
+                if number == expected:
+                    run.append(following)
+                    expected += 1
+            runs.append(run)
+        if not runs:
+            continue
+        run = max(runs, key=len)
+        has_heading = index > 0
+        first_number = int(run[0].group(1))
+        if (has_heading and (len(run) >= 2 or first_number == 1)) or (
+            not has_heading and len(run) >= 2 and first_number > 1
+        ):
+            output.extend(run)
+    return sorted(output, key=lambda match: match.start())
 
 
 def split_major_questions(markdown: str) -> tuple[str, list[RawQuestion]]:
@@ -1281,190 +1371,160 @@ def run_ocr_into_database(
     cancel_callback: Callable[[], bool] | None = None,
     page_timeout_seconds: float = 300.0,
     rss_limit_mb: int = 8192,
-    ocr_mode: str = "ppstructure",
+    ocr_mode: str = "mineru",
 ) -> tuple[int, int]:
-    """统一 OCR 入口；page_recall 是独立的逐页纯 OCR 召回分支。"""
-    prepared = prepare_pdf_for_ocr(pdf_path)
-    pdf_path = prepared.path
-    if ocr_mode == "page_recall":
-        result = _run_page_recall_into_database(
-            pdf_path, source_file_id, database, raw_root=raw_root, layout=layout,
-            diagnostics_out=diagnostics_out, progress_callback=progress_callback,
-            cancel_callback=cancel_callback,
-        )
-    else:
-        if ocr_mode != "ppstructure":
-            raise ValueError(f"不支持的 OCR 模式：{ocr_mode}")
-        result = _run_unified_ppstructure_into_database(
-            pdf_path, source_file_id, database, device=device, raw_root=raw_root,
-            layout=layout, diagnostics_out=diagnostics_out,
-            progress_callback=progress_callback, cancel_callback=cancel_callback,
-        )
+    """Unified OCR entry with MinerU as the preferred backend."""
     preprocess_root = raw_root or Path("workbench_data/ocr_raw") / source_file_id
     preprocess_root.mkdir(parents=True, exist_ok=True)
-    (preprocess_root / "preprocess.json").write_text(
-        json.dumps(prepared.metadata, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    return result
-
-    # Legacy implementation retained below for source compatibility only.
-    # It is unreachable from the Workbench main entry.
-    if layout is None or getattr(layout, "solution_mode", "inline") == "inline":
-        return _run_inline_ppstructure_into_database(
-            pdf_path,
-            source_file_id,
-            database,
-            device=device,
-            raw_root=raw_root,
-            progress_callback=progress_callback,
-            cancel_callback=cancel_callback,
+    selected_pages = _selected_pages_for_layout(layout)
+    metrics: dict[str, Any] = {
+        "source_file_id": source_file_id,
+        "selected_pages": selected_pages,
+        "started_at_monotonic": time.monotonic(),
+    }
+    prepared: PreparedPdf | None = None
+    try:
+        if ocr_mode == "mineru":
+            preprocess_started = time.monotonic()
+            with tempfile.TemporaryDirectory(prefix="mineru-pdf-") as mineru_dir:
+                mineru_pdf, page_number_map = prepare_selected_pdf(
+                    pdf_path,
+                    Path(mineru_dir) / "selected-pages.pdf",
+                    selected_pages or None,
+                )
+                metrics["selected_pages"] = list(page_number_map)
+                metrics["preprocess_seconds"] = time.monotonic() - preprocess_started
+                metrics["preprocess_kind"] = "lossless_page_selection"
+                if progress_callback:
+                    progress_callback(0, len(page_number_map), "mineru")
+                return _run_mineru_into_database(
+                    mineru_pdf,
+                    page_number_map,
+                    source_file_id,
+                    database,
+                    raw_root=raw_root,
+                    layout=layout,
+                    diagnostics_out=diagnostics_out,
+                    progress_callback=progress_callback,
+                    cancel_callback=cancel_callback,
+                    metrics=metrics,
+                )
+        if progress_callback and selected_pages:
+            progress_callback(0, len(selected_pages), "preparing")
+        preprocess_started = time.monotonic()
+        with tempfile.TemporaryDirectory(prefix="ocr-pdf-") as prepared_dir:
+            prepared = prepare_pdf_for_ocr(
+                pdf_path,
+                prepared_dir,
+                page_numbers=selected_pages or None,
+            )
+            metrics["preprocess_seconds"] = time.monotonic() - preprocess_started
+            metrics["rss_after_preprocess_mb"] = _rss_mb()
+            if progress_callback:
+                progress_callback(0, len(prepared.page_numbers), "model_loading")
+            if ocr_mode == "page_recall":
+                result = _run_page_recall_into_database(
+                    prepared.path, source_file_id, database, raw_root=raw_root, layout=layout,
+                    diagnostics_out=diagnostics_out, progress_callback=progress_callback,
+                    cancel_callback=cancel_callback, page_number_map=prepared.page_numbers,
+                )
+            else:
+                if ocr_mode != "ppstructure":
+                    raise ValueError(f"不支持的 OCR 模式：{ocr_mode}")
+                result = _run_unified_ppstructure_into_database(
+                    prepared, source_file_id, database, device=device, raw_root=raw_root,
+                    layout=layout, diagnostics_out=diagnostics_out,
+                    progress_callback=progress_callback, cancel_callback=cancel_callback,
+                    metrics=metrics,
+                )
+        return result
+    finally:
+        metrics["total_seconds"] = time.monotonic() - metrics["started_at_monotonic"]
+        metrics["rss_final_mb"] = _rss_mb()
+        metrics.pop("started_at_monotonic", None)
+        if prepared is not None:
+            (preprocess_root / "preprocess.json").write_text(
+                json.dumps(prepared.metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        (preprocess_root / "timing.json").write_text(
+            json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-    from calculus_agent.ocr.pdf_blank_lines import (
-        extract_pdf_horizontal_lines,
-        restore_vector_blanks,
-    )
 
-    blank_line_diagnostics: dict[int, dict[str, Any]] = {}
-    vector_lines = extract_pdf_horizontal_lines(pdf_path, blank_line_diagnostics)
-    page_count = 0
-    question_count = 0
-    pages: list[tuple[int, str]] = []
-    bbox_by_page: dict[int, dict[str, dict[str, float] | None]] = {}
 
+def _selected_pages_for_layout(layout: Any | None) -> list[int]:
+    """Return the original PDF pages needed by a separate answer layout."""
+    if layout is None or getattr(layout, "solution_mode", "inline") != "separate":
+        return []
+    return sorted(set(layout.question_pages) | set(layout.solution_pages))
+
+
+def _run_mineru_into_database(
+    pdf_path: Path,
+    page_number_map: Sequence[int],
+    source_file_id: str,
+    database: WorkbenchDatabase,
+    *,
+    raw_root: Path | None,
+    layout: Any | None,
+    diagnostics_out: list[Any] | None,
+    progress_callback: Callable[[int, int, str], None] | None,
+    cancel_callback: Callable[[], bool] | None,
+    metrics: dict[str, Any],
+) -> tuple[int, int]:
+    """Run MinerU once, then persist its page-indexed Markdown through the shared matcher."""
     if raw_root is None:
         raw_root = Path("workbench_data/ocr_raw") / source_file_id
     if raw_root.exists():
         shutil.rmtree(raw_root)
     raw_root.mkdir(parents=True, exist_ok=True)
-
     try:
-        # OCR and matching are deliberately separate phases.  Each page is
-        # rendered, sent to the existing lightweight PaddleOCR subprocess, and
-        # persisted before the next page starts.  PPStructureV3 is not used.
-        document = pdfium.PdfDocument(str(pdf_path))
-        try:
-            with tempfile.TemporaryDirectory(prefix="ocr-pages-") as page_dir:
-                for page_count in range(1, len(document) + 1):
-                    if cancel_callback and cancel_callback():
-                        raise OCRPipelineError("用户已取消 OCR（已保留已落盘页面）", page_count=page_count - 1)
-                    if progress_callback:
-                        progress_callback(page_count, len(document), "ocr")
-                    page = document[page_count - 1]
-                    # The source PDF already has a large 1368x1920 pt page.
-                    # Rendering at 1x keeps the mobile OCR input bounded while
-                    # preserving sufficient text resolution for this workflow.
-                    bitmap = page.render(scale=1.0)
-                    page_image = Path(page_dir) / f"page_{page_count:04d}.png"
-                    bitmap.to_pil().save(page_image)
-                    del bitmap, page
-                    started = time.monotonic()
-                    rss_before = _rss_mb()
-                    result = _run_lightweight_paddleocr_page(
-                        page_image, timeout_seconds=page_timeout_seconds
-                    )
-                    elapsed = time.monotonic() - started
-                    rss_after = _rss_mb()
-                    if elapsed > page_timeout_seconds:
-                        raise OCRPipelineError(
-                            f"第 {page_count} / {len(document)} 页 OCR 超时（>{page_timeout_seconds:.0f}s，实际 {elapsed:.1f}s）",
-                            page_count=page_count,
-                        )
-                    if rss_after > rss_limit_mb:
-                        raise OCRPipelineError(
-                            f"第 {page_count} / {len(document)} 页 OCR 因内存超过限制而终止（RSS {rss_after:.0f}MB > {rss_limit_mb}MB）",
-                            page_count=page_count,
-                        )
-                    page_markdown = raw_root / f"page_{page_count:04d}.md"
-                    markdown = _lightweight_result_markdown(result)
-                    result = _lightweight_result_adapter(result)
-                    page_markdown.write_text(markdown, encoding="utf-8")
-                    page_blank_diagnostics = blank_line_diagnostics.setdefault(page_count, {})
-                    markdown = restore_vector_blanks(
-                        markdown,
-                        result,
-                        vector_lines.get(page_count, []),
-                        page_blank_diagnostics,
-                    )
-                    page_markdown.write_text(markdown, encoding="utf-8")
-                    diagnostics_path = raw_root / f"page_{page_count:04d}.blank_lines.json"
-                    diagnostics_path.write_text(
-                        json.dumps(page_blank_diagnostics, ensure_ascii=False, indent=2),
-                        encoding="utf-8",
-                    )
-                    _, chunks = _raw_page_chunks(markdown)
+        blocks, mineru_metrics = run_mineru(
+            pdf_path,
+            raw_root / "mineru_output",
+            cancel_callback=cancel_callback,
+            progress_callback=progress_callback,
+        )
+        metrics["mineru"] = mineru_metrics
+        pages = content_blocks_to_pages(blocks, page_number_map)
+        for processed_index, (page_number, markdown) in enumerate(pages, start=1):
+            page_markdown = raw_root / f"page_{page_number:04d}.md"
+            page_markdown.write_text(markdown, encoding="utf-8")
+            database.upsert_page(source_file_id, page_number, markdown, reset_edited=True)
+            if progress_callback:
+                progress_callback(processed_index, len(pages), "ocr_page_complete")
+            if cancel_callback and cancel_callback():
+                raise OCRPipelineError(
+                    "用户已停止 MinerU OCR（已保留已落盘页面）",
+                    page_count=processed_index,
+                )
+    except MinerUCancelled as error:
+        raise OCRPipelineError(str(error), page_count=0) from error
+    except MinerUError as error:
+        raise OCRPipelineError(str(error), page_count=0) from error
 
-            # 为本页新题计算起始页 bbox。先按本页独立候选构造一次即可。
-                    page_candidates_for_bbox: list[QuestionCandidate] = []
-                    for chunk in chunks:
-                        candidate = _candidate_from_raw(chunk)
-                        if candidate is not None:
-                            page_candidates_for_bbox.append(candidate)
-                    bbox_list = _candidate_bboxes(page_candidates_for_bbox, result)
-                    bbox_by_page[page_count] = {
-                        candidate.original_number: bbox
-                        for candidate, bbox in zip(page_candidates_for_bbox, bbox_list)
-                    }
+    if not pages or not any(markdown.strip() for _, markdown in pages):
+        raise OCRPipelineError("MinerU 没有解析到任何页面内容", page_count=0)
+    if progress_callback:
+        progress_callback(len(pages), len(pages), "matching")
+    if layout is not None and getattr(layout, "solution_mode", "inline") == "separate":
+        from .import_pipeline import import_document
 
-                    print(
-                        f"[OCR] page={page_count}, markdown_chars={len(markdown)}, "
-                        f"question_starts={len(chunks)}, elapsed={elapsed:.1f}s, "
-                        f"rss_before={rss_before:.0f}MB, rss_after={rss_after:.0f}MB, "
-                        f"markdown_saved=yes, raw={page_markdown}"
-                    )
-
-                    pages.append((page_count, markdown))
-            # 整页原文入库：后续「重新识别题目」以数据库为准，不再依赖磁盘。
-                    database.upsert_page(
-                        source_file_id, page_count, markdown, reset_edited=True
-                    )
-                    del result
-                    gc.collect()
-                    if progress_callback:
-                        progress_callback(page_count, len(document), "ocr_page_complete")
-        finally:
-            document.close()
-
-        def _bbox_provider(
-            page_number: int, candidates: list[QuestionCandidate]
-        ) -> list[dict[str, float] | None]:
-            mapping = bbox_by_page.get(page_number, {})
-            return [mapping.get(item.original_number) for item in candidates]
-
-        # 页面布局差异在统一编排层被消化；从 QuestionCandidate 起共用渲染链路。
-        if progress_callback:
-            progress_callback(page_count, page_count, "matching")
-        if layout is None or getattr(layout, "solution_mode", "inline") == "inline":
-            placed_candidates = split_pages_into_candidates(pages, bbox_provider=_bbox_provider)
-        else:
-            from .import_pipeline import import_document
-
-            result = import_document(pages, layout)
-            placed_candidates = result.candidates
-            if diagnostics_out is not None:
-                diagnostics_out.append(result.diagnostics)
-        for placed in placed_candidates:
-            question_count += _persist_candidate(
-                database, source_file_id=source_file_id, placed=placed
-            )
-
-    except OCRPipelineError:
-        raise
-    except Exception as error:
-        raise OCRPipelineError(
-            f"PaddleOCR 运行失败：{error}", page_count=page_count
-        ) from error
-
-    if page_count == 0:
-        raise OCRPipelineError("OCR没有解析到任何PDF页面", page_count=0)
-
+        import_result = import_document(pages, layout)
+        placed_candidates = import_result.candidates
+        if diagnostics_out is not None:
+            diagnostics_out.append(import_result.diagnostics)
+    else:
+        placed_candidates = split_pages_into_candidates(pages)
+    question_count = sum(
+        _persist_candidate(database, source_file_id=source_file_id, placed=placed)
+        for placed in placed_candidates
+    )
     if question_count == 0:
         raise OCRPipelineError(
-            "OCR已经完成，但题目切分结果为0。"
-            f"原始Markdown已保存在：{raw_root}",
-            page_count=page_count,
+            f"MinerU 已完成，但题目切分结果为0。原始Markdown已保存在：{raw_root}",
+            page_count=len(pages),
         )
-
-    return page_count, question_count
+    return len(pages), question_count
 
 
 def _run_page_recall_into_database(
@@ -1477,6 +1537,7 @@ def _run_page_recall_into_database(
     diagnostics_out: list[Any] | None,
     progress_callback: Callable[[int, int, str], None] | None,
     cancel_callback: Callable[[], bool] | None,
+    page_number_map: Sequence[int] | None = None,
 ) -> tuple[int, int]:
     """逐页渲染 + 纯 PaddleOCR 召回；后续仍复用统一切题/匹配层。
 
@@ -1496,14 +1557,18 @@ def _run_page_recall_into_database(
     bbox_by_page: dict[int, dict[str, dict[str, float] | None]] = {}
     try:
         with tempfile.TemporaryDirectory(prefix="page-recall-") as page_dir:
-            for page_number in range(1, total_pages + 1):
+            for processed_index in range(1, total_pages + 1):
+                page_number = (
+                    page_number_map[processed_index - 1]
+                    if page_number_map is not None else processed_index
+                )
                 if cancel_callback and cancel_callback():
                     raise OCRPipelineError(
-                        "用户已取消 OCR（已保留已落盘页面）", page_count=page_number - 1
+                        "用户已取消 OCR（已保留已落盘页面）", page_count=len(pages)
                     )
                 if progress_callback:
-                    progress_callback(page_number, total_pages, "ocr")
-                page = document[page_number - 1]
+                    progress_callback(processed_index, total_pages, "ocr")
+                page = document[processed_index - 1]
                 bitmap = page.render(scale=1.5)
                 image_path = Path(page_dir) / f"page_{page_number:04d}.png"
                 bitmap.to_pil().save(image_path, format="PNG", optimize=True)
@@ -1536,7 +1601,7 @@ def _run_page_recall_into_database(
                     for candidate, bbox in zip(page_candidates, bbox_list)
                 }
                 if progress_callback:
-                    progress_callback(page_number, total_pages, "ocr_page_complete")
+                    progress_callback(processed_index, total_pages, "ocr_page_complete")
     except OCRPipelineError:
         raise
     except Exception as error:
@@ -1577,7 +1642,7 @@ def _run_page_recall_into_database(
 
 
 def _run_unified_ppstructure_into_database(
-    pdf_path: Path,
+    prepared: PreparedPdf,
     source_file_id: str,
     database: WorkbenchDatabase,
     *,
@@ -1587,6 +1652,7 @@ def _run_unified_ppstructure_into_database(
     diagnostics_out: list[Any] | None,
     progress_callback: Callable[[int, int, str], None] | None,
     cancel_callback: Callable[[], bool] | None,
+    metrics: dict[str, Any],
 ) -> tuple[int, int]:
     """PPStructureV3 -> page Markdown -> layout-specific parser/matcher.
 
@@ -1601,30 +1667,76 @@ def _run_unified_ppstructure_into_database(
         shutil.rmtree(raw_root)
     raw_root.mkdir(parents=True, exist_ok=True)
 
-    document = pdfium.PdfDocument(str(pdf_path))
-    total_pages = len(document)
-    document.close()
+    total_pages = len(prepared.page_numbers)
     pages: list[tuple[int, str]] = []
+    page_timings: list[dict[str, Any]] = []
     try:
-        parser = PPStructureV3(device=device)
-        predictions = parser.predict(input=str(pdf_path))
-        for page_number, result in enumerate(predictions, start=1):
+        model_started = time.monotonic()
+        parser = PPStructureV3(
+            device=device,
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            use_textline_orientation=False,
+            use_seal_recognition=False,
+            use_table_recognition=False,
+            use_chart_recognition=False,
+        )
+        metrics["model_init_seconds"] = time.monotonic() - model_started
+        metrics["rss_after_model_init_mb"] = _rss_mb()
+        if cancel_callback and cancel_callback():
+            raise OCRPipelineError("用户已暂停 OCR", page_count=0)
+        for processed_index, (page_number, image_path) in enumerate(
+            zip(prepared.page_numbers, prepared.page_images), start=1
+        ):
             if cancel_callback and cancel_callback():
-                raise OCRPipelineError("用户已取消 OCR（已保留已落盘页面）", page_count=page_number - 1)
-            if progress_callback:
-                progress_callback(page_number, total_pages, "ocr")
-            page_markdown = raw_root / f"page_{page_number:04d}.md"
-            result.save_to_markdown(page_markdown)
-            if not page_markdown.is_file():
                 raise OCRPipelineError(
-                    f"第 {page_number} 页 OCR 已返回结果，但没有生成 Markdown：{page_markdown}",
-                    page_count=page_number,
+                    "用户已暂停 OCR（已保留已落盘页面）", page_count=len(pages)
                 )
-            markdown = page_markdown.read_text(encoding="utf-8")
+            if progress_callback:
+                progress_callback(processed_index, total_pages, "ocr")
+            page_started = time.monotonic()
+            page_markdown = raw_root / f"page_{page_number:04d}.md"
+            used_dpi = prepared.metadata["target_dpi"]
+            try:
+                markdown = _predict_ppstructure_page(parser, image_path, page_markdown)
+                if not markdown.strip():
+                    raise ValueError("OCR 返回了空 Markdown")
+            except Exception as first_error:
+                fallback_path = image_path.with_name(f"page_{page_number:04d}.fallback.jpg")
+                render_pdf_page(
+                    prepared.metadata["source_path"],
+                    page_number,
+                    fallback_path,
+                    dpi=FALLBACK_DPI,
+                )
+                _logger.warning(
+                    "第 %s 页快速 OCR 失败，使用 %s DPI 重试：%s",
+                    page_number, FALLBACK_DPI, first_error,
+                )
+                markdown = _predict_ppstructure_page(parser, fallback_path, page_markdown)
+                used_dpi = FALLBACK_DPI
             database.upsert_page(source_file_id, page_number, markdown, reset_edited=True)
             pages.append((page_number, markdown))
+            elapsed = time.monotonic() - page_started
+            page_timings.append({
+                "page": page_number,
+                "processed_index": processed_index,
+                "seconds": elapsed,
+                "dpi": used_dpi,
+                "markdown_chars": len(markdown),
+                "rss_mb": _rss_mb(),
+            })
+            metrics["pages"] = page_timings
+            _logger.info(
+                "OCR page %s (%s/%s) completed in %.1fs at %s DPI",
+                page_number, processed_index, total_pages, elapsed, used_dpi,
+            )
             if progress_callback:
-                progress_callback(page_number, total_pages, "ocr_page_complete")
+                progress_callback(processed_index, total_pages, "ocr_page_complete")
+            if cancel_callback and cancel_callback():
+                raise OCRPipelineError(
+                    "用户已暂停 OCR（已保留已落盘页面）", page_count=len(pages)
+                )
     except OCRPipelineError:
         raise
     except Exception as error:
@@ -1655,6 +1767,18 @@ def _run_unified_ppstructure_into_database(
             page_count=len(pages),
         )
     return len(pages), question_count
+
+
+def _predict_ppstructure_page(parser: Any, image_path: Path, markdown_path: Path) -> str:
+    """Run one image through an existing PPStructure instance and persist Markdown."""
+    predictions = iter(parser.predict(input=str(image_path)))
+    result = next(predictions, None)
+    if result is None:
+        raise ValueError(f"OCR 没有返回页面结果：{image_path}")
+    result.save_to_markdown(markdown_path)
+    if not markdown_path.is_file():
+        raise ValueError(f"OCR 已返回结果，但没有生成 Markdown：{markdown_path}")
+    return markdown_path.read_text(encoding="utf-8")
 
 
 def _run_inline_ppstructure_into_database(

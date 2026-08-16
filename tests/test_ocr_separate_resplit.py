@@ -5,7 +5,7 @@ from calculus_agent.models import OcrImportDraft, OcrImportSource
 from calculus_agent.workbench.database import WorkbenchDatabase
 from calculus_agent.workbench.import_pipeline import DocumentLayout, import_document
 from calculus_agent.workbench.ocr import persist_rendered_draft, render_drafts
-from calculus_agent.workbench.resplit import ResplitBlockedError, apply_plan, build_plan
+from calculus_agent.workbench.resplit import apply_plan, build_plan
 
 
 SOURCE_ID = "src_" + "a" * 32
@@ -90,22 +90,31 @@ def test_ambiguous_solution_is_not_overwritten_during_resplit(tmp_path):
     assert "答案：甲" not in q1.markdown and "答案：乙" not in q1.markdown
 
 
-def test_changed_published_separate_draft_blocks_apply(tmp_path):
+def test_changed_published_separate_draft_is_preserved_while_unpublished_rebuilds(
+    tmp_path,
+):
     factory = _database(tmp_path)
-    changed = "1. 答案：99\n\n2. 答案：2x"
+    changed = "1. 答案：99\n\n2. 答案：20x"
     with factory.begin() as session:
         db = WorkbenchDatabase(session)
         draft = next(item for item in db._session.query(OcrImportDraft).all() if item.original_number == "1")
         draft.review_status = "published"
+        published_id = draft.id
     with factory.begin() as session:
-        plan = build_plan(WorkbenchDatabase(session), SOURCE_ID, 2, changed)
-        assert [item["original_number"] for item in plan.blocking] == ["1"]
-        try:
-            apply_plan(WorkbenchDatabase(session), SOURCE_ID, 2, changed)
-        except ResplitBlockedError:
-            pass
-        else:
-            raise AssertionError("published 套卷草稿发生变化时必须阻止 apply")
+        db = WorkbenchDatabase(session)
+        plan = build_plan(db, SOURCE_ID, 2, changed)
+        assert plan.blocking == []
+        assert published_id in {item["question_id"] for item in plan.kept}
+        assert {item["original_number"] for item in plan.removed} == {"2"}
+        assert {item.original_number for item in plan.added} == {"2"}
+        apply_plan(db, SOURCE_ID, 2, changed)
+    with factory.begin() as session:
+        drafts = WorkbenchDatabase(session).list_questions(SOURCE_ID)
+        published = next(item for item in drafts if item["question_id"] == published_id)
+        rebuilt = next(item for item in drafts if item["original_number"] == "2")
+        assert "答案：1" in published["ocr_markdown"]
+        assert "答案：99" not in published["ocr_markdown"]
+        assert "答案：20x" in rebuilt["ocr_markdown"]
 
 
 def test_unchanged_full_reimport_renders_identically(tmp_path):

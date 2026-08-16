@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
@@ -18,6 +20,7 @@ from calculus_agent.models import (
     QuestionDraft,
     Question,
 )
+from calculus_agent.workbench.ocr import RenderedDraft
 import calculus_agent.workbench.app as wb_app
 
 SOURCE_ID = "src_00000000000000000000000000000001"
@@ -119,6 +122,70 @@ def test_save_in_review_question(client_and_factory):
     )
     assert r.status_code == 200
     assert r.json()["question"]["review_status"] == "in_review"
+
+
+def test_source_generation_plan_rebuilds_only_unpublished(monkeypatch):
+    """整份 Markdown 可重新解析，但已发布题及其同键修订不得进入替换集合。"""
+
+    published = {
+        "question_id": "published-1",
+        "page_number": 1,
+        "original_number": "1",
+        "review_status": "published",
+    }
+    revision = {
+        "question_id": "revision-1",
+        "page_number": 1,
+        "original_number": "1",
+        "review_status": "in_review",
+    }
+    unpublished = {
+        "question_id": "pending-2",
+        "page_number": 1,
+        "original_number": "2",
+        "review_status": "pending",
+    }
+
+    class FakeDatabase:
+        @staticmethod
+        def get_source(source_file_id):
+            assert source_file_id == SOURCE_ID
+            return {"layout": None}
+
+        @staticmethod
+        def list_pages(source_file_id):
+            assert source_file_id == SOURCE_ID
+            return [{"page_number": 1, "edited_markdown": "saved", "raw_markdown": "raw"}]
+
+        @staticmethod
+        def list_questions(source_file_id):
+            assert source_file_id == SOURCE_ID
+            return [published, revision, unpublished]
+
+    rendered = [
+        RenderedDraft(1, "1", "published result"),
+        RenderedDraft(1, "2", "rebuilt result"),
+        RenderedDraft(1, "3", "new result"),
+    ]
+    diagnostics = SimpleNamespace(
+        ambiguous_keys=[], missing_questions=[], unmatched_solutions=[]
+    )
+    monkeypatch.setattr(
+        wb_app,
+        "import_document",
+        lambda inputs, layout: SimpleNamespace(candidates=[object()], diagnostics=diagnostics),
+    )
+    monkeypatch.setattr(wb_app, "render_drafts", lambda placed: rendered)
+
+    plan = wb_app._source_generation_plan(FakeDatabase(), SOURCE_ID)
+
+    assert plan["blocked"] is False
+    assert plan["new_numbers"] == ["2", "3"]
+    assert [item.original_number for item in plan["_rendered"]] == ["2", "3"]
+    assert plan["old_unpublished"] == [unpublished]
+    assert plan["preserved_published"] == [published]
+    assert plan["preserved_unpublished"] == [revision]
+    assert plan["excluded_published_results"] == 1
 
 
 def test_save_published_question(client_and_factory):

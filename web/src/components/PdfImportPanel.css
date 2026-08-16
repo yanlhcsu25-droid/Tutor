@@ -7,6 +7,8 @@
 .pdf-source-icon { font-size: 28px; color: #d4380d; margin-top: 4px; }
 .pdf-source-detail { display: grid; gap: 5px; max-width: 430px; }
 .pdf-source-detail .ant-progress { margin: 0; }
+.pdf-upload-progress { width: 100%; display: grid; grid-template-columns: minmax(180px, 1fr) auto; align-items: center; gap: 12px; }
+.pdf-upload-progress .ant-progress { margin: 0; }
 @media (max-width: 680px) {
   .pdf-import-panel { padding: 12px; height: 86vh; }
   .pdf-source-item { align-items: flex-start !important; }

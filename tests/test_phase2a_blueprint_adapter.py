@@ -11,7 +11,7 @@ def test_chapter_requirement_uses_existing_default_structure():
     assert result.ok is True
     assert result.resolved_scope == ["第一章"]
     assert result.paper_blueprint.total_score == 100
-    assert result.paper_blueprint.question_type_counts == {"选择题": 4, "填空题": 2, "解答题": 4}
+    assert result.paper_blueprint.question_type_counts == {"选择题": 4, "填空题": 2, "计算题": 4}
     assert "scope_not_enforced_by_existing_paper_blueprint" in result.warnings
 
 
@@ -19,7 +19,7 @@ def test_homework_uses_five_question_compatible_blueprint():
     result = build_paper_blueprint(parse_teacher_requirement("给第一节出一套课后练习"))
     assert result.ok is True
     assert result.paper_blueprint.total_questions == 5
-    assert result.paper_blueprint.question_type_counts == {"计算题": 3, "解答题": 2}
+    assert result.paper_blueprint.question_type_counts == {"计算题": 3, "证明题": 2}
     assert result.paper_blueprint.total_score == 50
 
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Button, Input, Space, Spin, Tag, Typography, message, Row, Col,
   InputNumber, Statistic, Card, Divider, Drawer, Modal,
@@ -6,10 +6,11 @@ import {
 import {
   ArrowDownOutlined, ArrowUpOutlined, FilePdfOutlined,
   LockOutlined, ReloadOutlined, RobotOutlined, SafetyCertificateOutlined,
-  UnlockOutlined, SendOutlined,
+  UnlockOutlined, SendOutlined, PlusOutlined,
 } from "@ant-design/icons";
 
 const API = "/api/v1";
+const CONVERSATION_ID_STORAGE_KEY = "teacher-agent.conversation-id";
 
 // ── types ──
 type Blueprint = {
@@ -39,6 +40,9 @@ type TeacherAgentResponse = {
   blocking_errors?: string[];
   generation_preview?: {
     ok: boolean; title?: string | null; total_questions?: number | null; total_score?: number | null;
+    pending_version?: number | null;
+    blocking_errors?: string[];
+    clarification_questions?: string[];
     sections: { question_type: string; count: number; score_each?: number | null; total_score?: number | null }[];
   } | null;
 };
@@ -134,7 +138,7 @@ const TEMPLATES = [
 type ChatMessage =
   | { role: "user"; text: string }
   | { role: "agent"; type: "requirement_card"; title: string; sections: Blueprint["sections"]; total_questions: number; total_score: number; suggestions?: string[]; blueprintId: string }
-  | { role: "agent"; type: "generation_plan"; title: string; sections: { question_type: string; count: number; score_each?: number | null; total_score?: number | null }[]; total_questions: number; total_score: number; disabled?: boolean }
+  | { role: "agent"; type: "generation_plan"; title: string; sections: { question_type: string; count: number; score_each?: number | null; total_score?: number | null }[]; total_questions: number; total_score: number; pending_version: number; disabled?: boolean }
   | { role: "agent"; type: "status"; text: string }
   | { role: "agent"; type: "reply"; text: string }
   | { role: "agent"; type: "paper_ready"; paperId: string; version: number; preview: Preview; validationReport: ValidationReport }
@@ -146,12 +150,50 @@ interface Props {
 }
 
 type GenerationSection = { question_type: string; count: number; score_each?: number | null; total_score?: number | null };
+type GenerationPlanPatch = { question_type: string; count?: number; score_each?: number };
+type TeacherAgentSession = {
+  conversation_id: string;
+  messages: { role: string; content: string }[];
+  pending_generation?: {
+    request: {
+      scope_names?: string[] | null;
+      question_count?: number | null;
+      total_score?: number | null;
+      question_type_requirements?: GenerationSection[] | null;
+    };
+    pending_version: number;
+  } | null;
+};
+
+function loadConversationId(): string {
+  try {
+    const saved = globalThis.localStorage?.getItem(CONVERSATION_ID_STORAGE_KEY);
+    if (saved) return saved;
+  } catch {
+    // Browser privacy settings may disable storage; the active tab still works.
+  }
+  const created = globalThis.crypto?.randomUUID?.() ?? `agent-${Date.now()}`;
+  try {
+    globalThis.localStorage?.setItem(CONVERSATION_ID_STORAGE_KEY, created);
+  } catch {
+    // Keep the generated id in React state when localStorage is unavailable.
+  }
+  return created;
+}
+
+export function clearStoredConversationId(): void {
+  try {
+    globalThis.localStorage?.removeItem(CONVERSATION_ID_STORAGE_KEY);
+  } catch {
+    // The new tab will generate an in-memory id when storage is unavailable.
+  }
+}
 
 function GenerationPlanCard({
-  title, initialSections, loading, disabled, onRevise, onConfirm,
+  title, initialSections, loading, disabled, onUpdate, onConfirm,
 }: {
   title: string; initialSections: GenerationSection[]; loading: boolean; disabled?: boolean;
-  onRevise: (text: string) => void; onConfirm: () => void;
+  onUpdate: (patches: GenerationPlanPatch[]) => void; onConfirm: () => void;
 }) {
   const [sections, setSections] = useState(initialSections);
   const changed = JSON.stringify(sections) !== JSON.stringify(initialSections);
@@ -159,15 +201,15 @@ function GenerationPlanCard({
   const totalScore = sections.every((item) => item.score_each != null)
     ? sections.reduce((sum, item) => sum + item.count * Number(item.score_each), 0)
     : null;
-  const revise = () => {
-    const details = sections.flatMap((item, index) => {
+  const update = () => {
+    const patches = sections.flatMap((item, index) => {
       const original = initialSections[index];
-      const changes: string[] = [];
-      if (item.count !== original.count) changes.push(`${item.question_type}改成${item.count}道`);
-      if (item.score_each !== original.score_each) changes.push(`${item.question_type}改成每题${item.score_each}分`);
-      return changes;
+      const patch: GenerationPlanPatch = { question_type: item.question_type };
+      if (item.count !== original.count) patch.count = item.count;
+      if (item.score_each !== original.score_each && item.score_each != null) patch.score_each = item.score_each;
+      return Object.keys(patch).length > 1 ? [patch] : [];
     });
-    onRevise(`请修改当前组卷方案：${details.join("；")}。未提到的条件保持不变，目标总分保持${initialSections.reduce((sum, item) => sum + (item.total_score ?? item.count * Number(item.score_each ?? 0)), 0)}分。`);
+    onUpdate(patches);
   };
   return (
     <Card size="small" title={<span>📋 待确认组卷方案 — {title}</span>} style={{ maxWidth: 560, background: "#fafafa" }}>
@@ -181,7 +223,7 @@ function GenerationPlanCard({
       ))}
       <Divider style={{ margin: "12px 0" }} />
       <Space>
-        <Button size="small" disabled={disabled || !changed} loading={loading} onClick={revise}>更新方案</Button>
+        <Button size="small" disabled={disabled || !changed} loading={loading} onClick={update}>更新方案</Button>
         <Button type="primary" size="small" loading={loading} disabled={disabled || changed} onClick={onConfirm}>确认并组卷</Button>
       </Space>
       {changed && <Typography.Text type="warning" style={{ display: "block", marginTop: 8 }}>方案已修改，请先更新方案并重新校验。</Typography.Text>}
@@ -194,7 +236,8 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [conversationId] = useState(() => globalThis.crypto?.randomUUID?.() ?? `agent-${Date.now()}`);
+  const [conversationId, setConversationId] = useState(loadConversationId);
+  const [restoringSession, setRestoringSession] = useState(true);
 
   // ── blueprint/paper state (kept for compatibility) ──
   const [blueprintId, setBlueprintId] = useState<string | null>(null);
@@ -205,6 +248,62 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
   const [supplyCheck, setSupplyCheck] = useState<SupplyCheck | null>(null);
   const [candidatePreview, setCandidatePreview] = useState<Preview | null>(null);
   const [candidateBlueprintId, setCandidateBlueprintId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const restoreSession = async () => {
+      try {
+        const response = await fetch(
+          `${API}/teacher-agent/session?conversation_id=${encodeURIComponent(conversationId)}`,
+        );
+        if (!response.ok) throw new Error("会话恢复失败");
+        const restored: TeacherAgentSession = await response.json();
+        if (cancelled) return;
+        const restoredMessages: ChatMessage[] = restored.messages.map((item) => (
+          item.role === "user"
+            ? { role: "user", text: item.content }
+            : { role: "agent", type: "reply", text: item.content }
+        ));
+        const pending = restored.pending_generation;
+        const sections = pending?.request.question_type_requirements ?? [];
+        if (pending && sections.length) {
+          restoredMessages.push({
+            role: "agent",
+            type: "generation_plan",
+            title: `${pending.request.scope_names?.[0] ?? "高等数学"}测试卷`,
+            sections,
+            total_questions: pending.request.question_count ?? sections.reduce((sum, item) => sum + item.count, 0),
+            total_score: pending.request.total_score ?? sections.reduce((sum, item) => sum + (item.total_score ?? 0), 0),
+            pending_version: pending.pending_version,
+          });
+        }
+        setMessages(restoredMessages);
+      } catch (e) {
+        if (!cancelled) message.error(String(e));
+      } finally {
+        if (!cancelled) setRestoringSession(false);
+      }
+    };
+    void restoreSession();
+    return () => { cancelled = true; };
+  }, [conversationId]);
+
+  // ── start a brand-new conversation (no Conversation table; just switch id) ──
+  const handleNewConversation = useCallback(() => {
+    const newId = globalThis.crypto?.randomUUID?.() ?? `agent-${Date.now()}`;
+    try {
+      globalThis.localStorage?.setItem(CONVERSATION_ID_STORAGE_KEY, newId);
+    } catch {
+      // Storage may be disabled; the in-memory state still switches.
+    }
+    setConversationId(newId);   // re-runs the restore effect for the new id (empty)
+    setMessages([]);            // clear current messages
+    setSupplyCheck(null);
+    setCandidatePreview(null);
+    setCandidateBlueprintId(null);
+    setBlueprintId(null);
+    setCurrentPaperId(null);
+  }, []);
 
   const call = async (path: string, body: unknown) => {
     const r = await fetch(`${API}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -217,6 +316,7 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
 
   // ── send requirement → parse blueprint → show card ──
   const handleSend = async (overrideText?: string) => {
+    if (restoringSession) return;
     const text = (overrideText ?? input).trim();
     if (!text) return;
     setInput("");
@@ -250,6 +350,7 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
             sections: plan.sections,
             total_questions: plan.total_questions ?? plan.sections.reduce((sum, item) => sum + item.count, 0),
             total_score: plan.total_score ?? plan.sections.reduce((sum, item) => sum + (item.total_score ?? 0), 0),
+            pending_version: plan.pending_version ?? 1,
           },
         ]);
         return;
@@ -327,6 +428,73 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
       ]);
     } catch (e: unknown) {
       setMessages((prev) => [...prev, { role: "agent", type: "error", text: `操作失败：${e}` }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlanUpdate = async (patches: GenerationPlanPatch[], expectedVersion: number) => {
+    if (!patches.length) return;
+    setLoading(true);
+    try {
+      const r = await call("/teacher-agent/pending-generation/update", {
+        conversation_id: conversationId,
+        expected_version: expectedVersion,
+        question_type_patches: patches,
+      });
+      const response: { status: string; generation_preview: NonNullable<TeacherAgentResponse["generation_preview"]> } = await r.json();
+      const plan = response.generation_preview;
+      const pendingVersion = plan.pending_version;
+      if (response.status !== "waiting_confirmation" || !plan.ok || !pendingVersion) {
+        const detail = [
+          ...(plan.blocking_errors ?? []),
+          ...(plan.clarification_questions ?? []),
+        ].join("；") || "方案未能更新。";
+        setMessages((prev) => [...prev, { role: "agent", type: "error", text: detail }]);
+        return;
+      }
+      setMessages((prev) => [
+        ...prev.map((item) => item.role === "agent" && item.type === "generation_plan" ? { ...item, disabled: true } : item),
+        {
+          role: "agent",
+          type: "generation_plan",
+          title: plan.title ?? "组卷方案",
+          sections: plan.sections,
+          total_questions: plan.total_questions ?? plan.sections.reduce((sum, item) => sum + item.count, 0),
+          total_score: plan.total_score ?? plan.sections.reduce((sum, item) => sum + (item.total_score ?? 0), 0),
+          pending_version: pendingVersion,
+        },
+      ]);
+    } catch (e: unknown) {
+      setMessages((prev) => [...prev, { role: "agent", type: "error", text: `方案更新失败：${e}` }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlanConfirm = async (expectedVersion: number) => {
+    setLoading(true);
+    try {
+      const r = await call("/teacher-agent/pending-generation/confirm", {
+        conversation_id: conversationId,
+        expected_version: expectedVersion,
+      });
+      const response: { status: string; paper: TeacherAgentResponse["paper"] } = await r.json();
+      if (response.status !== "completed" || !response.paper?.ok || !response.paper.paper_id) {
+        setMessages((prev) => [...prev, { role: "agent", type: "error", text: "组卷未完成，请检查约束校验结果。" }]);
+        return;
+      }
+      const savedR = await fetch(`${API}/papers/${response.paper.paper_id}`);
+      if (!savedR.ok) throw new Error("试卷已生成，但读取草稿失败");
+      const saved: SavedPaper = await savedR.json();
+      setCurrentPaperId(saved.paper_id);
+      setMessages((prev) => [
+        ...prev.map((item) => item.role === "agent" && item.type === "generation_plan" ? { ...item, disabled: true } : item),
+        { role: "agent", type: "reply", text: "已按已确认的待生成方案创建试卷。" },
+        { role: "agent", type: "paper_ready", paperId: saved.paper_id, version: saved.version, preview: saved.preview, validationReport: saved.validation_report },
+      ]);
+    } catch (e: unknown) {
+      setMessages((prev) => [...prev, { role: "agent", type: "error", text: `组卷失败：${e}` }]);
     } finally {
       setLoading(false);
     }
@@ -446,10 +614,10 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
           <GenerationPlanCard
             title={msg.title}
             initialSections={msg.sections}
-            loading={loading}
+            loading={loading || restoringSession}
             disabled={msg.disabled || idx !== latestPlanIndex}
-            onRevise={(text) => void handleSend(text)}
-            onConfirm={() => void handleSend("确认按这个方案组卷")}
+            onUpdate={(patches) => void handlePlanUpdate(patches, msg.pending_version)}
+            onConfirm={() => void handlePlanConfirm(msg.pending_version)}
           />
         </div>
       );
@@ -555,7 +723,7 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
     <div style={{ display: "flex", flexDirection: "column", height: "100%", maxWidth: 800, margin: "0 auto", padding: "0 24px" }}>
       {/* messages area */}
       <div style={{ flex: 1, overflow: "auto", padding: "16px 0" }}>
-        {messages.length === 0 && (
+        {!restoringSession && messages.length === 0 && (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <RobotOutlined style={{ fontSize: 48, color: "#d9d9d9" }} />
             <Typography.Title level={4} type="secondary" style={{ marginTop: 16 }}>
@@ -606,6 +774,11 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
 
       {/* input area */}
       <div style={{ borderTop: "1px solid #f0f0f0", padding: "12px 0", background: "#fff" }}>
+        <Space style={{ marginBottom: 8 }}>
+          <Button size="small" icon={<PlusOutlined />} onClick={handleNewConversation}>
+            新建对话
+          </Button>
+        </Space>
         <Space wrap style={{ marginBottom: 8 }}>
           {TEMPLATES.map((t) => (
             <Button key={t.label} size="small" type="dashed" onClick={() => setInput(t.prompt)}>
@@ -621,10 +794,10 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
           }}
           placeholder="输入你的组卷要求……（Enter 发送，Shift+Enter 换行）"
           autoSize={{ minRows: 2, maxRows: 6 }}
-          disabled={loading}
+          disabled={loading || restoringSession}
         />
         <div style={{ textAlign: "right", marginTop: 4 }}>
-          <Button type="primary" icon={<SendOutlined />} loading={loading} disabled={!input.trim()} onClick={() => void handleSend()}>
+          <Button type="primary" icon={<SendOutlined />} loading={loading} disabled={restoringSession || !input.trim()} onClick={() => void handleSend()}>
             发送
           </Button>
         </div>

@@ -351,7 +351,6 @@ def test_apply_preserves_published_draft(client_and_factory):
         draft.review_status = "published"
         published_id = draft.id
 
-    before = sorted(item["question_id"] for item in _drafts(factory))
     response = client.post(
         f"/api/sources/{SOURCE_ID}/pages/2/resplit/apply",
         json={"markdown": _fixed_page2(_raw_pages()[2])},

@@ -66,7 +66,7 @@ def _seed_paper(session, *, count: int = 5) -> Paper:
             source_item_id=str(position),
             variant=1,
             subject="高数",
-            question_type="选择题" if position == 1 else "解答题",
+            question_type="选择题" if position == 1 else "计算题",
             question_text=f"第{position}题真实题干",
             options_json=["A. 选项一", "B. 选项二"] if position == 1 else [],
             normalized_fingerprint=f"{position:064d}",
@@ -217,7 +217,7 @@ def test_read_without_current_paper_fails_without_generation(session):
         conversation_id="read-no-paper",
         backend=backend,
     )
-    assert result.status == "failed"
+    assert result.status == "needs_clarification"
     assert result.blocking_errors == ["no_current_paper"]
     assert result.paper is None
 

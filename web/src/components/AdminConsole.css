@@ -1,0 +1,19 @@
+.admin-console { min-height: 100vh; background: #f6f7f9; }
+.admin-session-sider { background: #fff !important; border-right: 1px solid #e7e9ed; overflow: auto; }
+.admin-brand { display: flex; align-items: center; gap: 9px; padding: 18px 20px; font-weight: 700; font-size: 16px; border-bottom: 1px solid #e7e9ed; }
+.admin-session-heading { display: flex; align-items: center; justify-content: space-between; padding: 13px 12px 7px 20px; }
+.admin-session-list .ant-list-item { padding: 0; cursor: pointer; border-block-end: 1px solid #f0f1f3; }
+.admin-session-item { width: 100%; padding: 13px 20px; }
+.admin-session-active .admin-session-item { background: #edf6ff; border-left: 3px solid #1677ff; padding-left: 17px; }
+.admin-session-meta, .admin-turn-label { display: flex; align-items: center; gap: 8px; color: #6b7280; font-size: 12px; }
+.admin-session-message { margin: 8px 0 5px !important; color: #1f2937; }
+.admin-trace-content { min-width: 0; padding: 24px 32px 56px; }
+.admin-trace-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.admin-trace-header h4 { margin: 0 0 4px !important; }
+.admin-turn-list { background: #fff; }
+.admin-turn-list .ant-collapse-header { align-items: center !important; }
+.admin-trace-detail { display: grid; gap: 16px; }
+.admin-trace-detail section { display: grid; gap: 6px; }
+.admin-trace-detail .ant-card { border-radius: 6px; }
+.admin-trace-detail pre { margin: 0; max-height: 310px; overflow: auto; padding: 10px 12px; white-space: pre-wrap; overflow-wrap: anywhere; background: #f7f8fa; border: 1px solid #eceef1; border-radius: 4px; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: #293241; }
+@media (max-width: 760px) { .admin-session-sider { width: 230px !important; flex: 0 0 230px !important; max-width: 230px !important; }.admin-trace-content { padding: 16px; }.admin-trace-header { align-items: flex-start; flex-direction: column; } }

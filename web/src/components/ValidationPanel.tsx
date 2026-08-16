@@ -8,13 +8,15 @@ interface Props {
 }
 
 export default function ValidationPanel({ validation, onJumpLine }: Props) {
-  if (!validation) {
+  if (!validation || !Array.isArray(validation.issues)) {
     return (
       <div style={{ padding: 12, background: "#fafafa", borderRadius: 8 }}>
         <Typography.Text type="secondary">尚未执行完整校验</Typography.Text>
       </div>
     );
   }
+
+  const issues = validation.issues;
 
   return (
     <div
@@ -32,10 +34,10 @@ export default function ValidationPanel({ validation, onJumpLine }: Props) {
           <WarningOutlined style={{ color: "#ff4d4f" }} />
         )}
         <Typography.Text strong>
-          {validation.valid ? "格式与字段校验通过" : `发现 ${validation.issues.length} 个问题`}
+          {validation.valid ? "格式与字段校验通过" : `发现 ${issues.length} 个问题`}
         </Typography.Text>
       </div>
-      {validation.issues.map((issue, i) => (
+      {issues.map((issue, i) => (
         <div key={i} style={{ marginBottom: 4 }}>
           {issue.line && onJumpLine ? (
             <Button

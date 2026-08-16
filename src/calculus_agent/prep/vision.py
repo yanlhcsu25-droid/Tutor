@@ -38,7 +38,7 @@ class BailianVisionExtractor:
                     "识别标准印刷数学题图片，严格返回JSON。保留数学公式并使用$...$ LaTeX。"
                     "不要补写图片中不存在的信息。字段必须为question_text、options、"
                     "question_type、final_answer、solution_text、knowledge_names、warnings。"
-                    "question_type只能是选择题、填空题或解答题；无法确认的答案或解析填空字符串，"
+                    "question_type只能是选择题、填空题、计算题或证明题；无法确认的答案或解析填空字符串，"
                     "并在warnings说明。第一张图是题目，若有第二张图则是答案或解析。"
                 ),
             },
@@ -70,7 +70,7 @@ class BailianVisionExtractor:
         return VisionQuestionExtractRead(
             question_text=str(parsed.get("question_text") or "").strip(),
             options=[str(item).strip() for item in parsed.get("options") or [] if str(item).strip()],
-            question_type=str(parsed.get("question_type") or "解答题").strip(),
+            question_type=str(parsed.get("question_type") or "计算题").strip(),
             final_answer=str(parsed.get("final_answer") or "").strip(),
             solution_text=str(parsed.get("solution_text") or "").strip(),
             knowledge_names=[

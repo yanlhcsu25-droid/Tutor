@@ -55,6 +55,8 @@ export const wb = {
   // 来源
   listSources: () => api.get<WbSourceList>("/workbench/api/sources"),
   uploadPdf: (file: File, layout?: {
+    sourceFileId?: string;
+    ocrMode?: "mineru" | "ppstructure";
     solutionMode: "inline" | "separate";
     questionPageStart?: number;
     questionPageEnd?: number;
@@ -63,6 +65,8 @@ export const wb = {
   }) => {
     const form = new FormData();
     form.append("file", file);
+    if (layout?.sourceFileId) form.append("source_file_id", layout.sourceFileId);
+    form.append("ocr_mode", layout?.ocrMode ?? "mineru");
     form.append("solution_mode", layout?.solutionMode ?? "inline");
     if (layout?.solutionMode === "separate") {
       form.append("question_page_start", String(layout.questionPageStart));
@@ -75,8 +79,15 @@ export const wb = {
   deleteSource: (sourceId: string) =>
     api.delete<WbDeleteSourceResult>(`/workbench/api/sources/${sourceId}`),
   // 题目
-  listQuestions: (sourceId: string) =>
-    api.get<WbQuestionList>(`/workbench/api/sources/${sourceId}/questions`),
+  listQuestions: (sourceId: string, chapterId?: string | null) =>
+    api.get<WbQuestionList>(
+      chapterId
+        ? `/workbench/api/sources/${sourceId}/questions?chapter_id=${encodeURIComponent(chapterId)}`
+        : `/workbench/api/sources/${sourceId}/questions`,
+    ),
+  // 当前激活教材的一级章节（大章节）列表，供题库筛选下拉使用
+  listChapters: () =>
+    api.get<WbChapterList>("/workbench/api/taxonomy/chapters"),
   getQuestion: (questionId: string) =>
     api.get<WbQuestionDetail>(`/workbench/api/questions/${questionId}`),
   saveQuestion: (questionId: string, markdown: string) =>
@@ -95,6 +106,18 @@ export const wb = {
     api.post<WbValidation>(`/workbench/api/questions/${questionId}/validate`, { markdown }),
   classifyKnowledge: (questionId: string) =>
     api.post<WbKnowledgeClassification>(`/workbench/api/questions/${questionId}/knowledge/classify`, {}),
+  saveHumanKnowledgeReview: (questionId: string, payload: {
+    primary_knowledge_point_id: string | null;
+    secondary_knowledge_point_ids: string[];
+    modification_reason?: string | null;
+  }) => api.put<{ question: WbQuestion }>(`/workbench/api/questions/${questionId}/knowledge/human-review`, payload),
+  reviewPublishedAiProfile: (questionId: string, payload: {
+    primary_knowledge_point_id: string;
+    secondary_knowledge_point_ids: string[];
+    difficulty_level: number;
+    modification_reason?: string | null;
+  }) => api.put<{ question: WbQuestion }>(`/workbench/api/questions/${questionId}/ai-published-profile-review`, payload),
+  knowledgeShadowStats: () => api.get<WbKnowledgeShadowStats>("/workbench/api/knowledge/shadow/stats"),
   confirmContent: (questionId: string) =>
     api.post<WbQuestion>(`/workbench/api/questions/${questionId}/confirm-content`, {}),
   // 预览 / 差异
@@ -116,6 +139,11 @@ export const wb = {
     api.post<WbGeneratePreview>(`/workbench/api/sources/${sourceId}/generate/preview`),
   generateApply: (sourceId: string, expectedNumbers: string[]) =>
     api.post<WbGenerateResult>(`/workbench/api/sources/${sourceId}/generate/apply`, { expected_numbers: expectedNumbers }),
+  repairMissingAnswers: (sourceId: string) =>
+    api.post<{ source_file_id: string; repaired_count: number; repaired_question_ids: string[] }>(
+      `/workbench/api/sources/${sourceId}/answers/repair`,
+      {},
+    ),
   resplitPreview: (sourceId: string, page: number, markdown: string) =>
     api.post<WbResplitPlan>(
       `/workbench/api/sources/${sourceId}/pages/${page}/resplit/preview`,
@@ -133,6 +161,11 @@ export const wb = {
     api.post<WbSubmitResult>(`/workbench/api/sources/${sourceId}/submit`, questionIds ? { question_ids: questionIds } : {}),
   publish: (questionIds: string[]) =>
     api.post<WbPublishResult>("/workbench/api/publish", { question_ids: questionIds }),
+  aiAutoPublish: (sourceId: string, questionIds?: string[]) =>
+    api.post<WbAiAutoPublishResult>(
+      `/workbench/api/sources/${sourceId}/ai-auto-publish`,
+      { question_ids: questionIds ?? null },
+    ),
   // PDF 页面渲染（直接用 img src，不走 api client）
   pageUrl: (sourceId: string, page: number, scale = 1.4) =>
     `/workbench/api/sources/${sourceId}/pages/${page}?scale=${scale.toFixed(1)}`,
@@ -156,6 +189,12 @@ export interface WbSource {
   can_delete: boolean;
   has_manual_edits: boolean;
   manual_edit_count: number;
+  layout?: {
+    solution_mode?: "inline" | "separate";
+    question_pages?: number[];
+    solution_pages?: number[];
+    [key: string]: unknown;
+  } | null;
   progress?: { current_page?: number; total_pages?: number; status?: string; error?: string; question_count?: number };
 }
 
@@ -164,14 +203,16 @@ export interface WbSourceList {
 }
 
 export interface WbDeleteSourceResult {
-  source_id: string;
+  source_id?: string;
+  source_file_id?: string;
   deleted: boolean;
-  deleted_page_count: number;
-  deleted_draft_count: number;
-  deleted_bank_draft_count: number;
-  had_manual_edits: boolean;
-  manual_edit_count: number;
-  file_cleanup_warnings: string[];
+  status?: string;
+  deleted_page_count?: number;
+  deleted_draft_count?: number;
+  deleted_bank_draft_count?: number;
+  had_manual_edits?: boolean;
+  manual_edit_count?: number;
+  file_cleanup_warnings?: string[];
 }
 
 export interface WbQuestion {
@@ -182,15 +223,100 @@ export interface WbQuestion {
   ocr_markdown: string;
   edited_markdown: string;
   review_status: string;
+  match_status: "matched" | "missing_answer" | "ambiguous" | "unknown";
+  match_method: string;
+  review_note: string | null;
   source_bbox: { x: number; y: number; width: number; height: number; page_width: number; page_height: number } | null;
   validation: WbValidation | null;
   knowledge_points: string[];
+  knowledge_shadow?: WbKnowledgeShadow | null;
   difficulty_level: number | null;
   content_confirmed: boolean;
+  ai_review?: {
+    passed: boolean;
+    verdict: "PASS" | "REVIEW";
+    confidence: number;
+    risk_codes: string[];
+    reason: string;
+    model?: string | null;
+    difficulty_level?: number;
+    difficulty_result?: {
+      difficulty_level: number;
+      confidence: number;
+      needs_review: boolean;
+      reason: string;
+      provenance: "llm_suggested" | "rule_fallback";
+      fallback_reason?: string | null;
+      model?: string | null;
+      example_count?: number;
+    };
+    profile_human_review?: {
+      primary_knowledge_point_id: string;
+      secondary_knowledge_point_ids: string[];
+      difficulty_level: number;
+      modified: boolean;
+      modification_reason: string;
+      reviewed_at: string;
+    };
+  } | null;
+  publish_source?: "manual" | "ai_auto" | null;
+  quality_sample_required?: boolean;
+  published_at?: string | null;
+  formal_question_id?: string | null;
+}
+
+export interface WbAiAutoPublishResult {
+  eligible_count: number;
+  published_count: number;
+  published_question_ids: string[];
+  manual_review_count: number;
+  manual_review: { question_id: string; reasons: string[] }[];
+  quality_sample_count: number;
+  quality_sample_question_ids: string[];
+}
+
+export interface WbKnowledgeShadow {
+  ai: {
+    primary_knowledge_point_id: string | null;
+    secondary_knowledge_point_ids: string[];
+    confidence: number;
+    needs_review: boolean;
+    reason: string;
+    provenance: "llm_suggested" | "rule_fallback" | "rule_suggested";
+  };
+  human?: {
+    primary_knowledge_point_id: string | null;
+    secondary_knowledge_point_ids: string[];
+    modified: boolean;
+    modification_reason: string;
+    reviewed_at: string;
+    difficulty_level?: number;
+  } | null;
+}
+
+export interface WbKnowledgeShadowStats {
+  total_ai_recommendations: number;
+  reviewed_total: number;
+  primary_accuracy: number | null;
+  secondary_precision: number | null;
+  secondary_recall: number | null;
+  human_modification_rate: number | null;
+  high_confidence_error_rate: number | null;
+  needs_review_modified_rate: number | null;
 }
 
 export interface WbQuestionList {
   items: WbQuestion[];
+  source: WbSource;
+}
+
+export interface WbChapter {
+  id: string;
+  name: string;
+}
+
+export interface WbChapterList {
+  items: WbChapter[];
 }
 
 export interface WbQuestionDetail {
@@ -242,6 +368,9 @@ export interface WbGeneratePreview {
   new_numbers: string[];
   created: { page_number: number; original_number: string; match_status: string; review_note: string; preview: string }[];
   old_unpublished: WbQuestion[];
+  preserved_published: WbQuestion[];
+  preserved_unpublished: WbQuestion[];
+  excluded_published_results: number;
   diagnostics: { ambiguous_keys: string[]; missing_questions: string[]; unmatched_solutions: string[] };
   blocked: boolean;
 }
@@ -251,6 +380,8 @@ export interface WbGenerateResult {
   created_question_ids: string[];
   created_count: number;
   deleted_count: number;
+  preserved_published_count: number;
+  preserved_unpublished_count: number;
   new_numbers: string[];
   diagnostics: WbGeneratePreview["diagnostics"];
 }
@@ -335,9 +466,23 @@ export interface WbPublishResult {
 
 export interface WbKnowledgeClassification {
   question_id: string;
-  knowledge_points: { knowledge_id: string; name: string; confidence: number }[];
+  knowledge_points: { knowledge_id: string; name: string; confidence: number; role?: "primary" | "secondary" }[];
   options?: { knowledge_id: string; name: string }[];
+  primary_knowledge_point?: { knowledge_id: string; name: string } | null;
+  secondary_knowledge_points?: { knowledge_id: string; name: string }[];
+  confidence?: number;
   needs_review: boolean;
   reason: string;
-  provenance: "rule_suggested";
+  provenance: "llm_suggested" | "rule_fallback" | "rule_suggested";
+  difficulty_result?: {
+    difficulty_level: number;
+    confidence: number;
+    needs_review: boolean;
+    reason: string;
+    provenance: "llm_suggested" | "rule_fallback";
+    fallback_reason?: string | null;
+    model?: string | null;
+    example_count?: number;
+  } | null;
+  knowledge_shadow?: WbKnowledgeShadow | null;
 }

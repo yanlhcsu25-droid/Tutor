@@ -1,0 +1,1156 @@
+{
+  "generated_at": "2026-08-16T06:38:42.816833+00:00",
+  "summary": {
+    "cases": 1,
+    "passed": 1,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "results": [
+    {
+      "case_id": "MOD-02",
+      "category": "modification",
+      "title": "multi_field_partial_modification_keep_total_100",
+      "conversation_id": "eval-MOD-02-0f010a7b",
+      "passed": true,
+      "expected": {
+        "generation": {
+          "total_score": 100,
+          "question_type_requirements": [
+            {
+              "question_type": "填空题",
+              "count": 4,
+              "score_each": 5,
+              "total_score": 20
+            },
+            {
+              "question_type": "计算题",
+              "count": 2,
+              "score_each": 10,
+              "total_score": 20
+            },
+            {
+              "question_type": "解答题",
+              "count": 2,
+              "score_each": 10,
+              "total_score": 20
+            }
+          ]
+        }
+      },
+      "actual": {
+        "status": "needs_clarification",
+        "message": "预览结果显示存在一个问题：调整后的题型数量合计为14题（选择题4道 + 填空题4道 + 计算题2道 + 解答题2道 + 证明题2道 = 14题），但总题数要求是12题。\n\n为了保持总题数12题不变，我们需要调整其他题型的数量。目前：\n- 选择题：4道\n- 填空题：4道（新增2道）\n- 计算题：2道\n- 解答题：2道\n- 证明题：2道\n\n总计14题，需要减少2题。请问您希望：\n1. 减少选择题数量（从4道减到2道）？\n2. 减少证明题数量（从2道减到0道）？\n3. 或者您有其他调整方案？\n\n请告诉我您希望如何调整题型数量，以便保持总题数为12题。",
+        "result": {
+          "status": "needs_clarification",
+          "message": "预览结果显示存在一个问题：调整后的题型数量合计为14题（选择题4道 + 填空题4道 + 计算题2道 + 解答题2道 + 证明题2道 = 14题），但总题数要求是12题。\n\n为了保持总题数12题不变，我们需要调整其他题型的数量。目前：\n- 选择题：4道\n- 填空题：4道（新增2道）\n- 计算题：2道\n- 解答题：2道\n- 证明题：2道\n\n总计14题，需要减少2题。请问您希望：\n1. 减少选择题数量（从4道减到2道）？\n2. 减少证明题数量（从2道减到0道）？\n3. 或者您有其他调整方案？\n\n请告诉我您希望如何调整题型数量，以便保持总题数为12题。",
+          "clarification_questions": [
+            "题型数量合计为14题，与总题数12题不一致。"
+          ],
+          "paper": null,
+          "warnings": [],
+          "blocking_errors": [
+            "question_count_mismatch"
+          ],
+          "pending_action": null,
+          "version_operation": null,
+          "replacement": null,
+          "replacement_preview": null,
+          "analysis": null,
+          "adjustment_preview": null,
+          "adjustment": null,
+          "paper_read": null,
+          "generation_preview": {
+            "ok": false,
+            "request": {
+              "paper_type": "chapter_test",
+              "scope_names": [
+                "第三章"
+              ],
+              "audience": null,
+              "question_count": 12,
+              "total_score": 100,
+              "question_type_requirements": [
+                {
+                  "question_type": "选择题",
+                  "count": 4,
+                  "score_each": 5.0,
+                  "total_score": 20.0
+                },
+                {
+                  "question_type": "填空题",
+                  "count": 4,
+                  "score_each": 5.0,
+                  "total_score": 20.0
+                },
+                {
+                  "question_type": "计算题",
+                  "count": 2,
+                  "score_each": 10.0,
+                  "total_score": 20.0
+                },
+                {
+                  "question_type": "解答题",
+                  "count": 2,
+                  "score_each": 10.0,
+                  "total_score": 20.0
+                },
+                {
+                  "question_type": "证明题",
+                  "count": 2,
+                  "score_each": 10.0,
+                  "total_score": 20.0
+                }
+              ],
+              "knowledge_preferences": null,
+              "difficulty_level": null,
+              "difficulty_ratio": null,
+              "difficulty_preference": null,
+              "diversity_preference": null
+            },
+            "title": null,
+            "total_questions": null,
+            "total_score": null,
+            "sections": [],
+            "warnings": [],
+            "blocking_errors": [
+              "question_count_mismatch"
+            ],
+            "clarification_questions": [
+              "题型数量合计为14题，与总题数12题不一致。"
+            ]
+          }
+        },
+        "working_memory": {
+          "active_task": {
+            "type": "generation",
+            "status": "drafting"
+          },
+          "generation_summary": {
+            "paper_type": "chapter_test",
+            "scope_names": [
+              "第三章"
+            ],
+            "audience": null,
+            "question_count": 12,
+            "total_score": 100,
+            "question_type_requirements": [
+              {
+                "question_type": "选择题",
+                "count": 4,
+                "score_each": 5.0,
+                "total_score": 20.0
+              },
+              {
+                "question_type": "填空题",
+                "count": 4,
+                "score_each": 5.0,
+                "total_score": 20.0
+              },
+              {
+                "question_type": "计算题",
+                "count": 2,
+                "score_each": 10.0,
+                "total_score": 20.0
+              },
+              {
+                "question_type": "解答题",
+                "count": 2,
+                "score_each": 10.0,
+                "total_score": 20.0
+              },
+              {
+                "question_type": "证明题",
+                "count": 2,
+                "score_each": 10.0,
+                "total_score": 20.0
+              }
+            ],
+            "knowledge_preferences": null,
+            "difficulty_level": null,
+            "difficulty_ratio": null,
+            "difficulty_preference": null,
+            "diversity_preference": null
+          },
+          "last_clarification": {
+            "missing_fields": [
+              "question_count_mismatch"
+            ],
+            "questions": [
+              "题型数量合计为14题，与总题数12题不一致。"
+            ]
+          },
+          "last_completed_paper": null,
+          "unsupported_preferences": []
+        },
+        "active_task": {
+          "type": "generation",
+          "status": "drafting"
+        },
+        "generation": {
+          "paper_type": "chapter_test",
+          "scope_names": [
+            "第三章"
+          ],
+          "audience": null,
+          "question_count": 12,
+          "total_score": 100,
+          "question_type_requirements": [
+            {
+              "question_type": "选择题",
+              "count": 4,
+              "score_each": 5.0,
+              "total_score": 20.0
+            },
+            {
+              "question_type": "填空题",
+              "count": 4,
+              "score_each": 5.0,
+              "total_score": 20.0
+            },
+            {
+              "question_type": "计算题",
+              "count": 2,
+              "score_each": 10.0,
+              "total_score": 20.0
+            },
+            {
+              "question_type": "解答题",
+              "count": 2,
+              "score_each": 10.0,
+              "total_score": 20.0
+            },
+            {
+              "question_type": "证明题",
+              "count": 2,
+              "score_each": 10.0,
+              "total_score": 20.0
+            }
+          ],
+          "knowledge_preferences": null,
+          "difficulty_level": null,
+          "difficulty_ratio": null,
+          "difficulty_preference": null,
+          "diversity_preference": null
+        },
+        "clarification": {
+          "missing_fields": [
+            "question_count_mismatch"
+          ],
+          "questions": [
+            "题型数量合计为14题，与总题数12题不一致。"
+          ]
+        },
+        "pending_generation": null,
+        "pending_replacement": null,
+        "paper": {},
+        "trace": {
+          "id": "380fc6b7-67e3-442a-8194-db3f202c2216",
+          "conversation_id": "eval-MOD-02-0f010a7b",
+          "paper_id": null,
+          "user_message": "填空题改成4道；解答题改成每题10分；计算题改成每题10分。 未提到的条件保持不变，目标总分保持100分。",
+          "tool_calls_json": [
+            {
+              "tool_call_id": "chatcmpl-tool-8ac27a1daec8c806",
+              "tool_name": "preview_generation_plan",
+              "arguments": {
+                "question_type_patches": [
+                  {
+                    "count": 4,
+                    "question_type": "填空题"
+                  },
+                  {
+                    "question_type": "解答题",
+                    "score_each": 10
+                  },
+                  {
+                    "question_type": "计算题",
+                    "score_each": 10
+                  }
+                ]
+              },
+              "result": {
+                "ok": false,
+                "request": {
+                  "paper_type": "chapter_test",
+                  "scope_names": [
+                    "第三章"
+                  ],
+                  "audience": null,
+                  "question_count": 12,
+                  "total_score": 100,
+                  "question_type_requirements": [
+                    {
+                      "question_type": "选择题",
+                      "count": 4,
+                      "score_each": 5.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "填空题",
+                      "count": 4,
+                      "score_each": 5.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "计算题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "解答题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "证明题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    }
+                  ],
+                  "knowledge_preferences": null,
+                  "difficulty_level": null,
+                  "difficulty_ratio": null,
+                  "difficulty_preference": null,
+                  "diversity_preference": null
+                },
+                "title": null,
+                "total_questions": null,
+                "total_score": null,
+                "sections": [],
+                "warnings": [],
+                "blocking_errors": [
+                  "question_count_mismatch"
+                ],
+                "clarification_questions": [
+                  "题型数量合计为14题，与总题数12题不一致。"
+                ]
+              }
+            }
+          ],
+          "final_response": "预览结果显示存在一个问题：调整后的题型数量合计为14题（选择题4道 + 填空题4道 + 计算题2道 + 解答题2道 + 证明题2道 = 14题），但总题数要求是12题。\n\n为了保持总题数12题不变，我们需要调整其他题型的数量。目前：\n- 选择题：4道\n- 填空题：4道（新增2道）\n- 计算题：2道\n- 解答题：2道\n- 证明题：2道\n\n总计14题，需要减少2题。请问您希望：\n1. 减少选择题数量（从4道减到2道）？\n2. 减少证明题数量（从2道减到0道）？\n3. 或者您有其他调整方案？\n\n请告诉我您希望如何调整题型数量，以便保持总题数为12题。",
+          "result_status": "needs_clarification",
+          "created_at": "2026-08-16 06:38:37.487552",
+          "error_code": null,
+          "error_type": null,
+          "error_message": null,
+          "error_stage": null,
+          "tool_calls": [
+            {
+              "tool_call_id": "chatcmpl-tool-8ac27a1daec8c806",
+              "tool_name": "preview_generation_plan",
+              "arguments": {
+                "question_type_patches": [
+                  {
+                    "count": 4,
+                    "question_type": "填空题"
+                  },
+                  {
+                    "question_type": "解答题",
+                    "score_each": 10
+                  },
+                  {
+                    "question_type": "计算题",
+                    "score_each": 10
+                  }
+                ]
+              },
+              "result": {
+                "ok": false,
+                "request": {
+                  "paper_type": "chapter_test",
+                  "scope_names": [
+                    "第三章"
+                  ],
+                  "audience": null,
+                  "question_count": 12,
+                  "total_score": 100,
+                  "question_type_requirements": [
+                    {
+                      "question_type": "选择题",
+                      "count": 4,
+                      "score_each": 5.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "填空题",
+                      "count": 4,
+                      "score_each": 5.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "计算题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "解答题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "证明题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    }
+                  ],
+                  "knowledge_preferences": null,
+                  "difficulty_level": null,
+                  "difficulty_ratio": null,
+                  "difficulty_preference": null,
+                  "diversity_preference": null
+                },
+                "title": null,
+                "total_questions": null,
+                "total_score": null,
+                "sections": [],
+                "warnings": [],
+                "blocking_errors": [
+                  "question_count_mismatch"
+                ],
+                "clarification_questions": [
+                  "题型数量合计为14题，与总题数12题不一致。"
+                ]
+              }
+            }
+          ]
+        },
+        "error": null,
+        "before": {
+          "status": null,
+          "message": "",
+          "result": {},
+          "working_memory": {
+            "active_task": {
+              "type": "generation",
+              "status": "awaiting_confirmation"
+            },
+            "generation_summary": {
+              "paper_type": "chapter_test",
+              "scope_names": [
+                "第三章"
+              ],
+              "audience": null,
+              "question_count": 12,
+              "total_score": 100,
+              "question_type_requirements": [
+                {
+                  "question_type": "选择题",
+                  "count": 4,
+                  "score_each": 5,
+                  "total_score": 20
+                },
+                {
+                  "question_type": "填空题",
+                  "count": 2,
+                  "score_each": 5,
+                  "total_score": 10
+                },
+                {
+                  "question_type": "计算题",
+                  "count": 2,
+                  "score_each": 5,
+                  "total_score": 10
+                },
+                {
+                  "question_type": "解答题",
+                  "count": 2,
+                  "score_each": 20,
+                  "total_score": 40
+                },
+                {
+                  "question_type": "证明题",
+                  "count": 2,
+                  "score_each": 10,
+                  "total_score": 20
+                }
+              ],
+              "knowledge_preferences": null,
+              "difficulty_level": null,
+              "difficulty_ratio": null,
+              "difficulty_preference": null,
+              "diversity_preference": null
+            },
+            "last_clarification": null,
+            "last_completed_paper": null,
+            "unsupported_preferences": []
+          },
+          "active_task": {
+            "type": "generation",
+            "status": "awaiting_confirmation"
+          },
+          "generation": {
+            "paper_type": "chapter_test",
+            "scope_names": [
+              "第三章"
+            ],
+            "audience": null,
+            "question_count": 12,
+            "total_score": 100,
+            "question_type_requirements": [
+              {
+                "question_type": "选择题",
+                "count": 4,
+                "score_each": 5,
+                "total_score": 20
+              },
+              {
+                "question_type": "填空题",
+                "count": 2,
+                "score_each": 5,
+                "total_score": 10
+              },
+              {
+                "question_type": "计算题",
+                "count": 2,
+                "score_each": 5,
+                "total_score": 10
+              },
+              {
+                "question_type": "解答题",
+                "count": 2,
+                "score_each": 20,
+                "total_score": 40
+              },
+              {
+                "question_type": "证明题",
+                "count": 2,
+                "score_each": 10,
+                "total_score": 20
+              }
+            ],
+            "knowledge_preferences": null,
+            "difficulty_level": null,
+            "difficulty_ratio": null,
+            "difficulty_preference": null,
+            "diversity_preference": null
+          },
+          "clarification": {},
+          "pending_generation": null,
+          "pending_replacement": null,
+          "paper": {},
+          "trace": {
+            "tool_calls": []
+          },
+          "error": null
+        },
+        "fixture_state": {
+          "status": null,
+          "message": "",
+          "result": {},
+          "working_memory": {
+            "active_task": {
+              "type": "generation",
+              "status": "awaiting_confirmation"
+            },
+            "generation_summary": {
+              "paper_type": "chapter_test",
+              "scope_names": [
+                "第三章"
+              ],
+              "audience": null,
+              "question_count": 12,
+              "total_score": 100,
+              "question_type_requirements": [
+                {
+                  "question_type": "选择题",
+                  "count": 4,
+                  "score_each": 5,
+                  "total_score": 20
+                },
+                {
+                  "question_type": "填空题",
+                  "count": 2,
+                  "score_each": 5,
+                  "total_score": 10
+                },
+                {
+                  "question_type": "计算题",
+                  "count": 2,
+                  "score_each": 5,
+                  "total_score": 10
+                },
+                {
+                  "question_type": "解答题",
+                  "count": 2,
+                  "score_each": 20,
+                  "total_score": 40
+                },
+                {
+                  "question_type": "证明题",
+                  "count": 2,
+                  "score_each": 10,
+                  "total_score": 20
+                }
+              ],
+              "knowledge_preferences": null,
+              "difficulty_level": null,
+              "difficulty_ratio": null,
+              "difficulty_preference": null,
+              "diversity_preference": null
+            },
+            "last_clarification": null,
+            "last_completed_paper": null,
+            "unsupported_preferences": []
+          },
+          "active_task": {
+            "type": "generation",
+            "status": "awaiting_confirmation"
+          },
+          "generation": {
+            "paper_type": "chapter_test",
+            "scope_names": [
+              "第三章"
+            ],
+            "audience": null,
+            "question_count": 12,
+            "total_score": 100,
+            "question_type_requirements": [
+              {
+                "question_type": "选择题",
+                "count": 4,
+                "score_each": 5,
+                "total_score": 20
+              },
+              {
+                "question_type": "填空题",
+                "count": 2,
+                "score_each": 5,
+                "total_score": 10
+              },
+              {
+                "question_type": "计算题",
+                "count": 2,
+                "score_each": 5,
+                "total_score": 10
+              },
+              {
+                "question_type": "解答题",
+                "count": 2,
+                "score_each": 20,
+                "total_score": 40
+              },
+              {
+                "question_type": "证明题",
+                "count": 2,
+                "score_each": 10,
+                "total_score": 20
+              }
+            ],
+            "knowledge_preferences": null,
+            "difficulty_level": null,
+            "difficulty_ratio": null,
+            "difficulty_preference": null,
+            "diversity_preference": null
+          },
+          "clarification": {},
+          "pending_generation": null,
+          "pending_replacement": null,
+          "paper": {},
+          "trace": {
+            "tool_calls": []
+          },
+          "error": null
+        }
+      },
+      "graders": [
+        {
+          "grader": "state",
+          "passed": true,
+          "errors": []
+        },
+        {
+          "grader": "constraint_preservation",
+          "passed": true,
+          "errors": []
+        },
+        {
+          "grader": "score",
+          "passed": true,
+          "errors": [],
+          "expected_total_score": 100,
+          "actual_total_score": 100
+        }
+      ],
+      "turns": [
+        {
+          "turn": 1,
+          "synthetic_setup": false,
+          "user": "填空题改成4道；解答题改成每题10分；计算题改成每题10分。 未提到的条件保持不变，目标总分保持100分。\n",
+          "result": {
+            "status": "needs_clarification",
+            "message": "预览结果显示存在一个问题：调整后的题型数量合计为14题（选择题4道 + 填空题4道 + 计算题2道 + 解答题2道 + 证明题2道 = 14题），但总题数要求是12题。\n\n为了保持总题数12题不变，我们需要调整其他题型的数量。目前：\n- 选择题：4道\n- 填空题：4道（新增2道）\n- 计算题：2道\n- 解答题：2道\n- 证明题：2道\n\n总计14题，需要减少2题。请问您希望：\n1. 减少选择题数量（从4道减到2道）？\n2. 减少证明题数量（从2道减到0道）？\n3. 或者您有其他调整方案？\n\n请告诉我您希望如何调整题型数量，以便保持总题数为12题。",
+            "clarification_questions": [
+              "题型数量合计为14题，与总题数12题不一致。"
+            ],
+            "paper": null,
+            "warnings": [],
+            "blocking_errors": [
+              "question_count_mismatch"
+            ],
+            "pending_action": null,
+            "version_operation": null,
+            "replacement": null,
+            "replacement_preview": null,
+            "analysis": null,
+            "adjustment_preview": null,
+            "adjustment": null,
+            "paper_read": null,
+            "generation_preview": {
+              "ok": false,
+              "request": {
+                "paper_type": "chapter_test",
+                "scope_names": [
+                  "第三章"
+                ],
+                "audience": null,
+                "question_count": 12,
+                "total_score": 100,
+                "question_type_requirements": [
+                  {
+                    "question_type": "选择题",
+                    "count": 4,
+                    "score_each": 5.0,
+                    "total_score": 20.0
+                  },
+                  {
+                    "question_type": "填空题",
+                    "count": 4,
+                    "score_each": 5.0,
+                    "total_score": 20.0
+                  },
+                  {
+                    "question_type": "计算题",
+                    "count": 2,
+                    "score_each": 10.0,
+                    "total_score": 20.0
+                  },
+                  {
+                    "question_type": "解答题",
+                    "count": 2,
+                    "score_each": 10.0,
+                    "total_score": 20.0
+                  },
+                  {
+                    "question_type": "证明题",
+                    "count": 2,
+                    "score_each": 10.0,
+                    "total_score": 20.0
+                  }
+                ],
+                "knowledge_preferences": null,
+                "difficulty_level": null,
+                "difficulty_ratio": null,
+                "difficulty_preference": null,
+                "diversity_preference": null
+              },
+              "title": null,
+              "total_questions": null,
+              "total_score": null,
+              "sections": [],
+              "warnings": [],
+              "blocking_errors": [
+                "question_count_mismatch"
+              ],
+              "clarification_questions": [
+                "题型数量合计为14题，与总题数12题不一致。"
+              ]
+            }
+          },
+          "state": {
+            "status": "needs_clarification",
+            "message": "预览结果显示存在一个问题：调整后的题型数量合计为14题（选择题4道 + 填空题4道 + 计算题2道 + 解答题2道 + 证明题2道 = 14题），但总题数要求是12题。\n\n为了保持总题数12题不变，我们需要调整其他题型的数量。目前：\n- 选择题：4道\n- 填空题：4道（新增2道）\n- 计算题：2道\n- 解答题：2道\n- 证明题：2道\n\n总计14题，需要减少2题。请问您希望：\n1. 减少选择题数量（从4道减到2道）？\n2. 减少证明题数量（从2道减到0道）？\n3. 或者您有其他调整方案？\n\n请告诉我您希望如何调整题型数量，以便保持总题数为12题。",
+            "result": {
+              "status": "needs_clarification",
+              "message": "预览结果显示存在一个问题：调整后的题型数量合计为14题（选择题4道 + 填空题4道 + 计算题2道 + 解答题2道 + 证明题2道 = 14题），但总题数要求是12题。\n\n为了保持总题数12题不变，我们需要调整其他题型的数量。目前：\n- 选择题：4道\n- 填空题：4道（新增2道）\n- 计算题：2道\n- 解答题：2道\n- 证明题：2道\n\n总计14题，需要减少2题。请问您希望：\n1. 减少选择题数量（从4道减到2道）？\n2. 减少证明题数量（从2道减到0道）？\n3. 或者您有其他调整方案？\n\n请告诉我您希望如何调整题型数量，以便保持总题数为12题。",
+              "clarification_questions": [
+                "题型数量合计为14题，与总题数12题不一致。"
+              ],
+              "paper": null,
+              "warnings": [],
+              "blocking_errors": [
+                "question_count_mismatch"
+              ],
+              "pending_action": null,
+              "version_operation": null,
+              "replacement": null,
+              "replacement_preview": null,
+              "analysis": null,
+              "adjustment_preview": null,
+              "adjustment": null,
+              "paper_read": null,
+              "generation_preview": {
+                "ok": false,
+                "request": {
+                  "paper_type": "chapter_test",
+                  "scope_names": [
+                    "第三章"
+                  ],
+                  "audience": null,
+                  "question_count": 12,
+                  "total_score": 100,
+                  "question_type_requirements": [
+                    {
+                      "question_type": "选择题",
+                      "count": 4,
+                      "score_each": 5.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "填空题",
+                      "count": 4,
+                      "score_each": 5.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "计算题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "解答题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    },
+                    {
+                      "question_type": "证明题",
+                      "count": 2,
+                      "score_each": 10.0,
+                      "total_score": 20.0
+                    }
+                  ],
+                  "knowledge_preferences": null,
+                  "difficulty_level": null,
+                  "difficulty_ratio": null,
+                  "difficulty_preference": null,
+                  "diversity_preference": null
+                },
+                "title": null,
+                "total_questions": null,
+                "total_score": null,
+                "sections": [],
+                "warnings": [],
+                "blocking_errors": [
+                  "question_count_mismatch"
+                ],
+                "clarification_questions": [
+                  "题型数量合计为14题，与总题数12题不一致。"
+                ]
+              }
+            },
+            "working_memory": {
+              "active_task": {
+                "type": "generation",
+                "status": "drafting"
+              },
+              "generation_summary": {
+                "paper_type": "chapter_test",
+                "scope_names": [
+                  "第三章"
+                ],
+                "audience": null,
+                "question_count": 12,
+                "total_score": 100,
+                "question_type_requirements": [
+                  {
+                    "question_type": "选择题",
+                    "count": 4,
+                    "score_each": 5.0,
+                    "total_score": 20.0
+                  },
+                  {
+                    "question_type": "填空题",
+                    "count": 4,
+                    "score_each": 5.0,
+                    "total_score": 20.0
+                  },
+                  {
+                    "question_type": "计算题",
+                    "count": 2,
+                    "score_each": 10.0,
+                    "total_score": 20.0
+                  },
+                  {
+                    "question_type": "解答题",
+                    "count": 2,
+                    "score_each": 10.0,
+                    "total_score": 20.0
+                  },
+                  {
+                    "question_type": "证明题",
+                    "count": 2,
+                    "score_each": 10.0,
+                    "total_score": 20.0
+                  }
+                ],
+                "knowledge_preferences": null,
+                "difficulty_level": null,
+                "difficulty_ratio": null,
+                "difficulty_preference": null,
+                "diversity_preference": null
+              },
+              "last_clarification": {
+                "missing_fields": [
+                  "question_count_mismatch"
+                ],
+                "questions": [
+                  "题型数量合计为14题，与总题数12题不一致。"
+                ]
+              },
+              "last_completed_paper": null,
+              "unsupported_preferences": []
+            },
+            "active_task": {
+              "type": "generation",
+              "status": "drafting"
+            },
+            "generation": {
+              "paper_type": "chapter_test",
+              "scope_names": [
+                "第三章"
+              ],
+              "audience": null,
+              "question_count": 12,
+              "total_score": 100,
+              "question_type_requirements": [
+                {
+                  "question_type": "选择题",
+                  "count": 4,
+                  "score_each": 5.0,
+                  "total_score": 20.0
+                },
+                {
+                  "question_type": "填空题",
+                  "count": 4,
+                  "score_each": 5.0,
+                  "total_score": 20.0
+                },
+                {
+                  "question_type": "计算题",
+                  "count": 2,
+                  "score_each": 10.0,
+                  "total_score": 20.0
+                },
+                {
+                  "question_type": "解答题",
+                  "count": 2,
+                  "score_each": 10.0,
+                  "total_score": 20.0
+                },
+                {
+                  "question_type": "证明题",
+                  "count": 2,
+                  "score_each": 10.0,
+                  "total_score": 20.0
+                }
+              ],
+              "knowledge_preferences": null,
+              "difficulty_level": null,
+              "difficulty_ratio": null,
+              "difficulty_preference": null,
+              "diversity_preference": null
+            },
+            "clarification": {
+              "missing_fields": [
+                "question_count_mismatch"
+              ],
+              "questions": [
+                "题型数量合计为14题，与总题数12题不一致。"
+              ]
+            },
+            "pending_generation": null,
+            "pending_replacement": null,
+            "paper": {},
+            "trace": {
+              "id": "380fc6b7-67e3-442a-8194-db3f202c2216",
+              "conversation_id": "eval-MOD-02-0f010a7b",
+              "paper_id": null,
+              "user_message": "填空题改成4道；解答题改成每题10分；计算题改成每题10分。 未提到的条件保持不变，目标总分保持100分。",
+              "tool_calls_json": [
+                {
+                  "tool_call_id": "chatcmpl-tool-8ac27a1daec8c806",
+                  "tool_name": "preview_generation_plan",
+                  "arguments": {
+                    "question_type_patches": [
+                      {
+                        "count": 4,
+                        "question_type": "填空题"
+                      },
+                      {
+                        "question_type": "解答题",
+                        "score_each": 10
+                      },
+                      {
+                        "question_type": "计算题",
+                        "score_each": 10
+                      }
+                    ]
+                  },
+                  "result": {
+                    "ok": false,
+                    "request": {
+                      "paper_type": "chapter_test",
+                      "scope_names": [
+                        "第三章"
+                      ],
+                      "audience": null,
+                      "question_count": 12,
+                      "total_score": 100,
+                      "question_type_requirements": [
+                        {
+                          "question_type": "选择题",
+                          "count": 4,
+                          "score_each": 5.0,
+                          "total_score": 20.0
+                        },
+                        {
+                          "question_type": "填空题",
+                          "count": 4,
+                          "score_each": 5.0,
+                          "total_score": 20.0
+                        },
+                        {
+                          "question_type": "计算题",
+                          "count": 2,
+                          "score_each": 10.0,
+                          "total_score": 20.0
+                        },
+                        {
+                          "question_type": "解答题",
+                          "count": 2,
+                          "score_each": 10.0,
+                          "total_score": 20.0
+                        },
+                        {
+                          "question_type": "证明题",
+                          "count": 2,
+                          "score_each": 10.0,
+                          "total_score": 20.0
+                        }
+                      ],
+                      "knowledge_preferences": null,
+                      "difficulty_level": null,
+                      "difficulty_ratio": null,
+                      "difficulty_preference": null,
+                      "diversity_preference": null
+                    },
+                    "title": null,
+                    "total_questions": null,
+                    "total_score": null,
+                    "sections": [],
+                    "warnings": [],
+                    "blocking_errors": [
+                      "question_count_mismatch"
+                    ],
+                    "clarification_questions": [
+                      "题型数量合计为14题，与总题数12题不一致。"
+                    ]
+                  }
+                }
+              ],
+              "final_response": "预览结果显示存在一个问题：调整后的题型数量合计为14题（选择题4道 + 填空题4道 + 计算题2道 + 解答题2道 + 证明题2道 = 14题），但总题数要求是12题。\n\n为了保持总题数12题不变，我们需要调整其他题型的数量。目前：\n- 选择题：4道\n- 填空题：4道（新增2道）\n- 计算题：2道\n- 解答题：2道\n- 证明题：2道\n\n总计14题，需要减少2题。请问您希望：\n1. 减少选择题数量（从4道减到2道）？\n2. 减少证明题数量（从2道减到0道）？\n3. 或者您有其他调整方案？\n\n请告诉我您希望如何调整题型数量，以便保持总题数为12题。",
+              "result_status": "needs_clarification",
+              "created_at": "2026-08-16 06:38:37.487552",
+              "error_code": null,
+              "error_type": null,
+              "error_message": null,
+              "error_stage": null,
+              "tool_calls": [
+                {
+                  "tool_call_id": "chatcmpl-tool-8ac27a1daec8c806",
+                  "tool_name": "preview_generation_plan",
+                  "arguments": {
+                    "question_type_patches": [
+                      {
+                        "count": 4,
+                        "question_type": "填空题"
+                      },
+                      {
+                        "question_type": "解答题",
+                        "score_each": 10
+                      },
+                      {
+                        "question_type": "计算题",
+                        "score_each": 10
+                      }
+                    ]
+                  },
+                  "result": {
+                    "ok": false,
+                    "request": {
+                      "paper_type": "chapter_test",
+                      "scope_names": [
+                        "第三章"
+                      ],
+                      "audience": null,
+                      "question_count": 12,
+                      "total_score": 100,
+                      "question_type_requirements": [
+                        {
+                          "question_type": "选择题",
+                          "count": 4,
+                          "score_each": 5.0,
+                          "total_score": 20.0
+                        },
+                        {
+                          "question_type": "填空题",
+                          "count": 4,
+                          "score_each": 5.0,
+                          "total_score": 20.0
+                        },
+                        {
+                          "question_type": "计算题",
+                          "count": 2,
+                          "score_each": 10.0,
+                          "total_score": 20.0
+                        },
+                        {
+                          "question_type": "解答题",
+                          "count": 2,
+                          "score_each": 10.0,
+                          "total_score": 20.0
+                        },
+                        {
+                          "question_type": "证明题",
+                          "count": 2,
+                          "score_each": 10.0,
+                          "total_score": 20.0
+                        }
+                      ],
+                      "knowledge_preferences": null,
+                      "difficulty_level": null,
+                      "difficulty_ratio": null,
+                      "difficulty_preference": null,
+                      "diversity_preference": null
+                    },
+                    "title": null,
+                    "total_questions": null,
+                    "total_score": null,
+                    "sections": [],
+                    "warnings": [],
+                    "blocking_errors": [
+                      "question_count_mismatch"
+                    ],
+                    "clarification_questions": [
+                      "题型数量合计为14题，与总题数12题不一致。"
+                    ]
+                  }
+                }
+              ]
+            },
+            "error": null
+          }
+        }
+      ],
+      "error": null
+    }
+  ]
+}

@@ -32,7 +32,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 /**
- * 整页 Markdown 编辑 + 「重新识别题目」。
+ * 整页 Markdown 编辑 + 「重新切题」。
  *
  * OCR 把题号识别坏时（例如 `3.` 变成异常字符、`4.` 变成 `河4.`），
  * splitter 认不出新题号，整页会被并进上一页的题里。用户在这里把题号改回来，
@@ -72,7 +72,7 @@ export default function PageMarkdownPanel({ sourceId, page, onRebuilt }: Props) 
     try {
       const result = await wb.savePageMarkdown(sourceId, page, markdown);
       setData(result);
-      message.success("整页 Markdown 已保存");
+      message.success("整页 Markdown 已保存；如需更新右侧单题，请继续预览并确认重新切题");
     } catch (e: unknown) {
       message.error(String(e instanceof Error ? e.message : e));
     } finally {
@@ -131,8 +131,8 @@ export default function PageMarkdownPanel({ sourceId, page, onRebuilt }: Props) 
       </Space>
 
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        题号被 OCR 识别错时（如 <code>河4.</code>），在这里改回 <code>4.</code> 再点「重新识别题目」。
-        跨页影响范围会自动计算，已审核或已发布的题目不会被静默改动。
+        题号被 OCR 识别错时（如 <code>河4.</code>），在这里改回 <code>4.</code> 再点「预览重新切题」。
+        “保存修改”只保存整页 Markdown，不会自动覆盖右侧单题；跨页影响范围会自动计算，已审核或已发布的题目不会被静默改动。
       </Typography.Text>
 
       <Space wrap className="ocr-page-markdown-toolbar">
@@ -157,7 +157,7 @@ export default function PageMarkdownPanel({ sourceId, page, onRebuilt }: Props) 
           恢复 OCR 原文
         </Button>
         <Button type="primary" icon={<ReloadOutlined />} onClick={openPreview} loading={busy}>
-          重新识别题目
+          预览重新切题
         </Button>
       </Space>
 
@@ -182,13 +182,14 @@ export default function PageMarkdownPanel({ sourceId, page, onRebuilt }: Props) 
 
       <Modal
         open={plan !== null}
-        title="重新识别题目 — 确认变更"
+        title="重新切题 — 确认变更"
         width={860}
         onCancel={() => setPlan(null)}
         onOk={apply}
         okText="确认重建"
         okButtonProps={{ danger: true, disabled: plan?.blocked, loading: busy }}
         cancelText="取消"
+        styles={{ body: { maxHeight: "calc(100vh - 220px)", overflowY: "auto" } }}
       >
         {plan && (
           <Space direction="vertical" size={12} style={{ width: "100%" }}>
@@ -207,7 +208,7 @@ export default function PageMarkdownPanel({ sourceId, page, onRebuilt }: Props) 
               <Alert
                 type="error"
                 showIcon
-                message="存在已审核/已发布题目，无法重建"
+                message="存在不能安全保留的题目，无法重建"
                 description={plan.blocking_drafts
                   .map((item) => `第${item.page_number}页 第${item.original_number}题`)
                   .join("、")}

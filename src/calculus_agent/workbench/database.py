@@ -52,9 +52,11 @@ class WorkbenchDatabase:
         stored_path: str,
         sha256: str,
         layout: dict[str, Any] | None = None,
+        import_fingerprint: str | None = None,
     ) -> dict[str, Any]:
+        dedupe_key = import_fingerprint or sha256
         existing = self._session.scalar(
-            select(OcrImportSource).where(OcrImportSource.sha256 == sha256)
+            select(OcrImportSource).where(OcrImportSource.sha256 == dedupe_key)
         )
         if existing is not None:
             return _source_dict(existing)
@@ -63,7 +65,8 @@ class WorkbenchDatabase:
             id=source_file_id,
             original_name=original_name,
             stored_path=str(stored_path),
-            sha256=sha256,
+            sha256=dedupe_key,
+            content_sha256=sha256,
             processing_status="queued",
             layout_json=layout,
         )
@@ -89,10 +92,12 @@ class WorkbenchDatabase:
         stage = values.get("status")
         if stage == "queued":
             source.processing_status = "queued"
-        elif stage in {"ocr", "matching"}:
+        elif stage in {"ocr", "mineru", "mineru_layout", "mineru_predict", "mineru_ocr", "mineru_pages", "matching"}:
             source.processing_status = "processing"
         elif stage == "completed":
             source.processing_status = "completed"
+        elif stage in {"pausing", "paused", "deleting"}:
+            source.processing_status = stage
         elif stage in {"failed", "cancelled"}:
             source.processing_status = "failed"
         source.layout_json = layout
@@ -276,6 +281,8 @@ class WorkbenchDatabase:
         draft.edited_markdown = markdown
         if content_changed:
             draft.content_confirmed = False
+            # 题干/解答变更后，旧 AI 推荐不再对应当前内容，也不能用于准确率统计。
+            draft.knowledge_shadow_json = None
         # 只有人工实际补充了参考解答，才解除答案匹配门禁。
         # 单独修改题干不能把 ambiguous/missing_answer 静默恢复为 matched。
         solution = _markdown_section(markdown, ("参考解答", "答案", "解析"))
@@ -285,6 +292,130 @@ class WorkbenchDatabase:
         # 不再从被反复人工修改的 Markdown 反解，避免 UUID / literal \n 等污染写回字段。
         draft.review_status = "in_review"
         draft.validation_json = validation
+        self._session.flush()
+        return _draft_dict(draft)
+
+    def save_knowledge_shadow(
+        self,
+        question_id: str,
+        recommendation: dict[str, Any],
+        *,
+        replace_fallback: bool = False,
+        replace_stale_taxonomy: bool = False,
+    ) -> dict[str, Any]:
+        """持久化 AI 建议；有效 AI 快照保持不可变。
+
+        尚未形成人工真值的 rule_fallback 不是有效 AI 样本，配置恢复后允许
+        用真正的 llm_suggested 替换，避免把系统故障记录混入准确率统计。
+        """
+        draft = self._session.get(OcrImportDraft, question_id)
+        if draft is None:
+            raise KeyError(question_id)
+        if draft.review_status == "published":
+            raise PublishedDraftError("已发布题目不能新增 AI 推荐快照")
+        shadow = draft.knowledge_shadow_json or {}
+        previous_ai = shadow.get("ai") if isinstance(shadow, dict) else None
+        can_replace = (
+            (replace_fallback or replace_stale_taxonomy)
+            and isinstance(previous_ai, dict)
+            and (
+                replace_stale_taxonomy
+                or (
+                    previous_ai.get("provenance") != "llm_suggested"
+                    and not shadow.get("human")
+                )
+            )
+        )
+        if not draft.knowledge_shadow_json or can_replace:
+            draft.knowledge_shadow_json = {
+                "ai": recommendation,
+                "human": None,
+                "created_at": datetime.now(UTC).isoformat(),
+            }
+            difficulty = recommendation.get("difficulty_result")
+            if (
+                draft.difficulty_level is None
+                and isinstance(difficulty, dict)
+                and difficulty.get("provenance") == "llm_suggested"
+                and not difficulty.get("needs_review")
+                and difficulty.get("difficulty_level") in {1, 2, 3, 4, 5}
+            ):
+                draft.difficulty_level = difficulty["difficulty_level"]
+            self._session.flush()
+        return _draft_dict(draft)
+
+    def save_ai_difficulty_shadow(
+        self,
+        question_id: str,
+        recommendation: dict[str, Any],
+    ) -> dict[str, Any]:
+        """为既有知识点 AI 快照补充难度推荐，不改写知识点判断。"""
+        draft = self._session.get(OcrImportDraft, question_id)
+        if draft is None:
+            raise KeyError(question_id)
+        if draft.review_status == "published":
+            raise PublishedDraftError("已发布题目不能新增 AI 推荐快照")
+        shadow = draft.knowledge_shadow_json or {}
+        ai = shadow.get("ai") if isinstance(shadow, dict) else None
+        if not isinstance(ai, dict):
+            raise ValueError("请先生成 AI 知识点推荐")
+        previous = ai.get("difficulty_result")
+        can_replace = (
+            not isinstance(previous, dict)
+            or previous.get("provenance") != "llm_suggested"
+        )
+        if can_replace:
+            updated_ai = {**ai, "difficulty_result": recommendation}
+            draft.knowledge_shadow_json = {**shadow, "ai": updated_ai}
+            if (
+                draft.difficulty_level is None
+                and recommendation.get("provenance") == "llm_suggested"
+                and not recommendation.get("needs_review")
+                and recommendation.get("difficulty_level") in {1, 2, 3, 4, 5}
+            ):
+                draft.difficulty_level = recommendation["difficulty_level"]
+            self._session.flush()
+        return _draft_dict(draft)
+
+    def save_human_knowledge_review(
+        self,
+        question_id: str,
+        *,
+        primary_knowledge_point_id: str | None,
+        secondary_knowledge_point_ids: list[str],
+        modification_reason: str | None,
+    ) -> dict[str, Any]:
+        """写入人工真值及 Shadow 对比信息，不改写 AI 原始快照。"""
+        draft = self._session.get(OcrImportDraft, question_id)
+        if draft is None:
+            raise KeyError(question_id)
+        if draft.review_status == "published":
+            raise PublishedDraftError("已发布题目不能修改知识点")
+        if not draft.knowledge_shadow_json or not isinstance(draft.knowledge_shadow_json.get("ai"), dict):
+            raise ValueError("请先生成 AI 知识点推荐")
+        secondary = list(dict.fromkeys(item.strip() for item in secondary_knowledge_point_ids if item and item.strip()))
+        if len(secondary) > 2:
+            raise ValueError("辅助知识点最多 2 个")
+        if primary_knowledge_point_id and primary_knowledge_point_id in secondary:
+            raise ValueError("主知识点不能同时作为辅助知识点")
+        human_ids = ([primary_knowledge_point_id] if primary_knowledge_point_id else []) + secondary
+        if not human_ids:
+            raise ValueError("请至少确认 1 个知识点")
+        ai = draft.knowledge_shadow_json["ai"]
+        ai_primary = ai.get("primary_knowledge_point_id")
+        ai_secondary = list(ai.get("secondary_knowledge_point_ids") or [])
+        modified = ai_primary != primary_knowledge_point_id or ai_secondary != secondary
+        shadow = dict(draft.knowledge_shadow_json)
+        shadow["human"] = {
+            "primary_knowledge_point_id": primary_knowledge_point_id,
+            "secondary_knowledge_point_ids": secondary,
+            "modified": modified,
+            "modification_reason": modification_reason.strip() if modification_reason else ("manual_adjustment" if modified else "ai_accepted"),
+            "reviewed_at": datetime.now(UTC).isoformat(),
+        }
+        draft.knowledge_shadow_json = shadow
+        # 这是人工确认后的真值，后续提交/发布继续只使用该字段。
+        draft.knowledge_points_json = human_ids
         self._session.flush()
         return _draft_dict(draft)
 
@@ -315,6 +446,69 @@ class WorkbenchDatabase:
         self._session.flush()
         return _draft_dict(draft)
 
+    def repair_missing_answer(
+        self,
+        question_id: str,
+        *,
+        solution_content: str,
+        match_method: str,
+    ) -> bool:
+        """仅给未发布且答案为空的草稿补回确定匹配的参考解答。"""
+        draft = self._session.get(OcrImportDraft, question_id)
+        if draft is None or draft.review_status == "published":
+            return False
+        existing_solution = _markdown_section(
+            draft.edited_markdown, ("参考解答", "答案", "解析")
+        ).strip()
+        if existing_solution:
+            return self.clear_stale_answer_not_found_note(question_id)
+        if not solution_content.strip():
+            return False
+        draft.edited_markdown = _replace_markdown_section(
+            draft.edited_markdown,
+            "参考解答",
+            solution_content,
+        )
+        # 审核备注属于可编辑 Markdown 的一部分。仅清空结构化 review_note
+        # 会导致页面继续显示历史 answer_not_found，造成“已修复但没变化”的假象。
+        draft.edited_markdown = _replace_markdown_section(
+            draft.edited_markdown,
+            "审核备注",
+            "",
+        )
+        draft.match_status = "matched"
+        draft.match_method = match_method
+        draft.review_note = None
+        draft.content_confirmed = False
+        draft.knowledge_shadow_json = None
+        draft.review_status = "in_review"
+        self._session.flush()
+        return True
+
+    def clear_stale_answer_not_found_note(self, question_id: str) -> bool:
+        """清理旧版本在已匹配、有答案草稿中遗留的系统缺答案提示。"""
+        draft = self._session.get(OcrImportDraft, question_id)
+        if draft is None or draft.review_status == "published":
+            return False
+        if draft.match_status != "matched":
+            return False
+        if not _markdown_section(
+            draft.edited_markdown, ("参考解答", "答案", "解析")
+        ).strip():
+            return False
+        markdown_note = _markdown_section(draft.edited_markdown, ("审核备注",))
+        if not markdown_note.startswith("answer_not_found"):
+            return False
+        # 这里只删除系统生成的旧提示，绝不修改现有答案或人工备注。
+        draft.edited_markdown = _replace_markdown_section(
+            draft.edited_markdown,
+            "审核备注",
+            "",
+        )
+        draft.review_note = None
+        self._session.flush()
+        return True
+
     def confirm_content(self, question_id: str) -> dict[str, Any]:
         draft = self._session.get(OcrImportDraft, question_id)
         if draft is None:
@@ -322,6 +516,39 @@ class WorkbenchDatabase:
         if draft.review_status == "published":
             raise PublishedDraftError()
         draft.content_confirmed = True
+        self._session.flush()
+        return _draft_dict(draft)
+
+    def save_ai_content_review(
+        self,
+        question_id: str,
+        result: dict[str, Any],
+        *,
+        passed: bool,
+        knowledge_ids: list[str] | None = None,
+        difficulty_level: int | None = None,
+        quality_sample_required: bool = False,
+    ) -> dict[str, Any]:
+        """保存 AI 内容审核审计；只有完整门禁通过时才写自动发布元数据。"""
+        draft = self._session.get(OcrImportDraft, question_id)
+        if draft is None:
+            raise KeyError(question_id)
+        if draft.review_status == "published":
+            raise PublishedDraftError("已发布题目不能重复执行 AI 内容审核")
+        draft.ai_review_json = result
+        # AI 语义审核有独立的 ai_review_json。validation_json 只允许保存
+        # Markdown ValidationResult，混用会让前端 ValidationPanel 结构崩溃。
+        if passed:
+            ids = list(dict.fromkeys(knowledge_ids or []))[:3]
+            draft.content_confirmed = True
+            draft.knowledge_points_json = ids
+            draft.difficulty_level = difficulty_level
+            draft.publish_source = "ai_auto"
+            draft.quality_sample_required = quality_sample_required
+            draft.review_status = "reviewed"
+        else:
+            draft.content_confirmed = False
+            draft.review_status = "in_review"
         self._session.flush()
         return _draft_dict(draft)
 
@@ -496,7 +723,7 @@ def _source_dict(source: OcrImportSource) -> dict[str, Any]:
         "source_file_id": source.id,
         "original_name": source.original_name,
         "stored_path": source.stored_path,
-        "sha256": source.sha256,
+        "sha256": source.content_sha256 or source.sha256,
         "page_count": source.page_count,
         "processing_status": source.processing_status,
         "processing_error": source.processing_error,
@@ -517,9 +744,14 @@ def _draft_dict(draft: OcrImportDraft) -> dict[str, Any]:
         "match_status": draft.match_status,
         "match_method": draft.match_method,
         "review_note": draft.review_note,
+        "ai_review": draft.ai_review_json,
+        "publish_source": draft.publish_source,
+        "quality_sample_required": draft.quality_sample_required,
+        "published_at": draft.published_at.isoformat() if draft.published_at else None,
         "source_bbox": draft.bbox_json,
-        "validation": draft.validation_json,
+        "validation": _safe_validation_dict(draft.validation_json),
         "knowledge_points": list(draft.knowledge_points_json or []),
+        "knowledge_shadow": draft.knowledge_shadow_json,
         "difficulty_level": draft.difficulty_level,
         "formal_question_id": draft.formal_question_id,
         "revision_of_id": draft.revision_of_id,
@@ -529,11 +761,35 @@ def _draft_dict(draft: OcrImportDraft) -> dict[str, Any]:
     }
 
 
+def _safe_validation_dict(value: Any) -> dict[str, Any] | None:
+    """兼容清理旧版本误写入 validation_json 的 AI 审核对象。"""
+    if not isinstance(value, dict):
+        return None
+    if not isinstance(value.get("valid"), bool):
+        return None
+    if not isinstance(value.get("issues"), list):
+        return None
+    return value
+
+
 def _markdown_section(markdown: str, names: tuple[str, ...]) -> str:
     import re
     pattern = r"(?ms)^##\s+(?:" + "|".join(names) + r")\s*\n(.*?)(?=^##\s+|\Z)"
     match = re.search(pattern, markdown)
     return match.group(1).strip() if match else ""
+
+
+def _replace_markdown_section(markdown: str, name: str, value: str) -> str:
+    pattern = re.compile(
+        rf"(?ms)(^##\s+{re.escape(name)}\s*\n)(.*?)(?=^##\s+|\Z)"
+    )
+
+    def replacement(match: re.Match[str]) -> str:
+        return f"{match.group(1)}\n{value.strip()}\n\n"
+
+    if pattern.search(markdown):
+        return pattern.sub(replacement, markdown, count=1)
+    return f"{markdown.rstrip()}\n\n## {name}\n\n{value.strip()}\n"
 
 
 def _parse_difficulty(markdown: str) -> int | None:

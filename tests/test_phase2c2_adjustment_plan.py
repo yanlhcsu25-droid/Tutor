@@ -288,7 +288,7 @@ def test_pending_adjustment_cannot_be_verbally_updated_without_new_preview(sessi
             _final("已经改好了，请确认。"),
         ),
     )
-    assert result.status == "waiting_confirmation"
+    assert result.status == "needs_clarification"
     assert "pending_adjustment_not_updated" in result.blocking_errors
     assert "不会确认旧方案" in result.message
 

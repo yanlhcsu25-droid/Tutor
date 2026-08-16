@@ -21,9 +21,20 @@ _DISPLAY_ALIGNED_RE = re.compile(
     re.DOTALL,
 )
 
+_ESCAPED_BLANK_RE = re.compile(r"(?<!\\)(?:\\_){3,}")
+
+
+def normalize_escaped_blank_markers(markdown: str) -> str:
+    """Turn OCR/Markdown escaped underscore runs back into visible fill blanks."""
+    return _ESCAPED_BLANK_RE.sub(
+        lambda match: "_" * match.group(0).count(r"\_"),
+        markdown,
+    )
+
 
 def normalize_math_format(markdown: str) -> str:
     """只做可证明等价的格式转换，不改数学数值或方向。"""
+    markdown = normalize_escaped_blank_markers(markdown)
     # OCR 常把 x_{0} 识别成 x*{0}，或把带粗体命令的下标拆坏。
     # 仅处理明确的“变量 + *{数字/字母}”形态，避免改动普通乘法。
     markdown = re.sub(r"\\pmb\{([A-Za-z])\}\*\{([^{}]+)\}", r"\1_{\2}", markdown)

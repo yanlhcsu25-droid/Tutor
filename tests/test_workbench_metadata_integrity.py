@@ -9,8 +9,6 @@
 
 import pytest
 
-from calculus_agent.workbench.app import app
-from calculus_agent.workbench.database import WorkbenchDatabase
 from calculus_agent.workbench.markdown_schema import fixed_template, payload_from_markdown
 from calculus_agent.workbench.models import QuestionPayload
 from calculus_agent.models import OcrImportDraft, OcrImportSource
@@ -44,8 +42,6 @@ def env(tmp_path):
     factory = build_session_factory(db_url)
     files = tmp_path / "files"
     files.mkdir()
-    import hashlib
-
     pdf = files / f"{SOURCE_ID}.pdf"
     pdf.write_bytes(b"pdf")
     monkeypatch = None
@@ -59,7 +55,14 @@ def env(tmp_path):
     monkeypatch.undo()
 
 
-def _seed(factory, *, original_number="3(1)", knowledge_points=None, difficulty=None):
+def _seed(
+    factory,
+    *,
+    original_number="3(1)",
+    knowledge_points=None,
+    difficulty=None,
+    answer="测试答案",
+):
     with factory.begin() as session:
         session.add(OcrImportSource(
             id=SOURCE_ID, original_name="x.pdf", stored_path="/tmp/x.pdf",
@@ -68,6 +71,7 @@ def _seed(factory, *, original_number="3(1)", knowledge_points=None, difficulty=
         md = fixed_template(
             "题目正文", question_type="calculation", page_number=1,
             original_number=original_number,
+            answer=answer,
         )
         draft = OcrImportDraft(
             id=QUESTION_ID, source_id=SOURCE_ID, page_number=1,
@@ -200,6 +204,31 @@ def test_submit_uses_db_metadata_not_markdown(env):
     body = resp.json()
     assert body["success_count"] == 1, body
     assert body["failure_count"] == 0
+
+
+def test_submit_rejects_empty_solution_with_explicit_field_reason(env):
+    client, factory, _ = env
+    uid = "7439051e-a023-4281-adad-f97150c9f796"
+    _seed(factory, knowledge_points=[uid], difficulty=2, answer="")
+    client.put(
+        f"/api/questions/{QUESTION_ID}/metadata",
+        json={
+            "knowledge_points": [uid],
+            "difficulty_level": 2,
+            "content_confirmed": True,
+        },
+    )
+
+    response = client.post(
+        f"/api/sources/{SOURCE_ID}/submit",
+        json={"question_ids": [QUESTION_ID]},
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["success_count"] == 0
+    assert result["failure_count"] == 1
+    assert "参考解答" in result["failures"][0]["reasons"][0]
 
 
 # ── 5. 加载时按 knowledge_id 反显名称（不触发 AI 分类）──

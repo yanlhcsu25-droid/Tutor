@@ -31,7 +31,7 @@ def test_explicit_knowledge_and_image_constraints_override_model():
 def test_explicit_section_scores_are_preserved_in_blueprint():
     blueprint = PaperBlueprint(total_questions=1, total_score=1)
     result = apply_explicit_constraints(
-        "选择题4道，每题5分；填空题2道，每题5分；解答题4道，共70分。",
+        "选择题4道，每题5分；填空题2道，每题5分；计算题4道，共70分。",
         blueprint,
     )
     assert result.total_questions == 10
@@ -42,7 +42,7 @@ def test_explicit_section_scores_are_preserved_in_blueprint():
     ] == [
         ("选择题", 4, 5, 20),
         ("填空题", 2, 5, 10),
-        ("解答题", 4, 17.5, 70),
+        ("计算题", 4, 17.5, 70),
     ]
 
 
@@ -79,7 +79,7 @@ def _existing_blueprint() -> PaperBlueprint:
         sections=[
             SectionRequirement(question_type="选择题", count=3, score_per_question=5, total_score=15),
             SectionRequirement(question_type="填空题", count=3, score_per_question=5, total_score=15),
-            SectionRequirement(question_type="解答题", count=4, score_per_question=10, total_score=40),
+            SectionRequirement(question_type="计算题", count=4, score_per_question=10, total_score=40),
         ],
     )
 
@@ -87,7 +87,7 @@ def _existing_blueprint() -> PaperBlueprint:
 def test_add_three_proof_questions_preserves_existing_sections():
     result = apply_blueprint_modification("加入3道证明题", _existing_blueprint())
     assert result.question_type_counts == {
-        "选择题": 3, "填空题": 3, "解答题": 4, "证明题": 3,
+        "选择题": 3, "填空题": 3, "计算题": 4, "证明题": 3,
     }
     assert result.total_questions == 13
     assert result.total_questions == sum(section.count for section in result.sections)
@@ -98,7 +98,7 @@ def test_add_proof_questions_accepts_type_before_count_wording():
     result = apply_blueprint_modification("加入证明题2道", _existing_blueprint())
 
     assert result.question_type_counts == {
-        "选择题": 3, "填空题": 3, "解答题": 4, "证明题": 2,
+        "选择题": 3, "填空题": 3, "计算题": 4, "证明题": 2,
     }
     assert result.total_questions == 12
 
@@ -149,10 +149,10 @@ def test_reduce_two_proof_questions():
 
 def test_replace_one_qa_question_with_one_proof_question():
     result = apply_blueprint_modification(
-        "把1道解答题换成1道证明题", _existing_blueprint()
+        "把1道计算题换成1道证明题", _existing_blueprint()
     )
     assert result.question_type_counts == {
-        "选择题": 3, "填空题": 3, "解答题": 3, "证明题": 1,
+        "选择题": 3, "填空题": 3, "计算题": 3, "证明题": 1,
     }
     assert result.total_questions == 10
     assert result.total_score == 70
@@ -180,14 +180,14 @@ def test_keep_100_points_when_adding_three_proof_questions():
         sections=[
             SectionRequirement(question_type="选择题", count=3, score_per_question=4, total_score=12),
             SectionRequirement(question_type="填空题", count=3, score_per_question=6, total_score=18),
-            SectionRequirement(question_type="解答题", count=4, score_per_question=17.5, total_score=70),
+            SectionRequirement(question_type="计算题", count=4, score_per_question=17.5, total_score=70),
         ],
     )
     result = apply_blueprint_modification("保持100分，加入3道证明题", base)
     by_type = {section.question_type: section for section in result.sections}
     assert (by_type["选择题"].count, by_type["选择题"].score_per_question) == (3, 4)
     assert (by_type["填空题"].count, by_type["填空题"].score_per_question) == (3, 6)
-    assert (by_type["解答题"].count, by_type["解答题"].score_per_question) == (4, 10)
+    assert (by_type["计算题"].count, by_type["计算题"].score_per_question) == (4, 10)
     assert (by_type["证明题"].count, by_type["证明题"].score_per_question) == (3, 10)
     assert result.total_questions == sum(section.count for section in result.sections) == 13
     assert sum(section.total_score for section in result.sections) == result.total_score == 100
@@ -202,7 +202,7 @@ def test_focus_topics_become_soft_preferences_and_default_total_remains_100():
             SectionRequirement(question_type="填空题", count=2, score_per_question=5, total_score=10),
             SectionRequirement(question_type="计算题", count=3, score_per_question=12, total_score=36),
             SectionRequirement(question_type="证明题", count=1, score_per_question=12, total_score=12),
-            SectionRequirement(question_type="解答题", count=1, score_per_question=15, total_score=15),
+            SectionRequirement(question_type="多选题", count=1, score_per_question=15, total_score=15),
         ],
         knowledge_quotas=[
             {"name": "函数极限", "count": 4},

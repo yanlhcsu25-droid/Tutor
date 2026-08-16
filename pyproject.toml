@@ -21,6 +21,7 @@ dependencies = [
   "sqlalchemy>=2.0",
   "sympy>=1.13",
   "uvicorn[standard]>=0.32",
+  "langfuse>=4.14.4",
 ]
 
 [dependency-groups]
@@ -31,7 +32,11 @@ packages = ["src/calculus_agent"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q"
+markers = [
+    "integration: reads the real local calculus_agent.db; skipped automatically when that DB is absent",
+]
 
 [tool.ruff]
 line-length = 100

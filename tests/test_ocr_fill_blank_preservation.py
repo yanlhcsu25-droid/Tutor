@@ -24,3 +24,19 @@ def test_pipeline_does_not_invent_blank_when_raw_ocr_has_none():
     draft = render_drafts(PlacedCandidate(1, candidate))[0]
     assert candidate.body.endswith("a=")
     assert "____" not in draft.markdown
+
+
+def test_escaped_ocr_blank_is_normalized_for_storage_and_preview():
+    source = r"1. 若向量满足条件，则 $r =$ \_\_\_\_."
+
+    normalized = normalize_page(source)
+    candidate = split_page_markdown(source)[0]
+    draft = render_drafts(PlacedCandidate(1, candidate))[0]
+    rendered_html, issues = render_preview(draft.markdown)
+
+    assert normalized.endswith("$r =$ ____.")
+    assert r"\_" not in candidate.body
+    assert "____" in draft.markdown
+    assert r"\_" not in rendered_html
+    assert "____" in rendered_html
+    assert not issues

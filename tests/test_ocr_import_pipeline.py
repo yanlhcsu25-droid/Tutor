@@ -3,9 +3,12 @@ from calculus_agent.workbench.import_pipeline import (
     import_document,
     normalize_match_number,
 )
-from calculus_agent.workbench.ocr import split_pages_into_candidates, _page_recall_reordered_markdown
+from calculus_agent.workbench.ocr import (
+    _page_recall_reordered_markdown,
+    _selected_pages_for_layout,
+    split_pages_into_candidates,
+)
 from calculus_agent.workbench.ocr import RawQuestion, _candidate_from_raw, split_candidate_subquestions
-from calculus_agent.workbench.import_pipeline import extract_solutions
 
 
 def test_page_recall_reorders_side_by_side_question_anchors():
@@ -18,6 +21,29 @@ def test_page_recall_reorders_side_by_side_question_anchors():
     reordered = _page_recall_reordered_markdown(result)
     assert reordered.index("1. 左题") < reordered.index("2. 右题")
     assert reordered.index("左选项") < reordered.index("右题")
+
+
+def test_separate_layout_only_selects_question_and_solution_pages_for_ocr():
+    layout = DocumentLayout("separate", [1, 2, 5], [8, 9])
+    assert _selected_pages_for_layout(layout) == [1, 2, 5, 8, 9]
+    assert _selected_pages_for_layout(DocumentLayout("inline")) == []
+
+
+def test_parenthesized_numbers_are_top_level_in_explicit_choice_section():
+    pages = [
+        (1, "## 一、选择题\n\n(1) 第一题\nA.甲 B.乙\n\n(2) 第二题\nA.甲 B.乙"),
+        (2, "## 一、选择题\n\n(1) 答案：A\n解 第一题解析\n\n(2) 答案：B\n解 第二题解析"),
+    ]
+    result = import_document(pages, DocumentLayout("separate", [1], [2]))
+    candidates = {item.candidate.original_number: item.candidate for item in result.candidates}
+    assert list(candidates) == ["1", "2"]
+    assert candidates["1"].answer.startswith("A")
+    assert candidates["2"].answer.startswith("B")
+
+
+def test_parenthesized_numbers_remain_subquestions_without_objective_heading():
+    candidates = split_pages_into_candidates([(1, "求下列各式：\n(1) a\n(2) b")])
+    assert candidates == []
 
 
 def _by_number(result):

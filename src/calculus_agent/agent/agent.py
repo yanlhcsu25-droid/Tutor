@@ -1,7 +1,9 @@
 """Autonomous tool-calling Teacher Agent with deterministic business tools."""
 
 import json
+import logging
 import re
+from datetime import UTC, datetime
 from typing import Any, Literal, Protocol
 from uuid import uuid4
 
@@ -18,6 +20,14 @@ from .conversation_state import (
     PendingReplacement,
     PendingReplacementStore,
 )
+from .langfuse_tracing import (
+    llm_generation_span,
+    safe_update as _langfuse_update,
+    teacher_turn_span,
+    tool_observation_span,
+)
+from .run_tracing import TeacherAgentRunManager
+from .trace_log import AgentTraceRecorder, redact_trace_value
 from .tool_registry import AgentExecutionContext, build_agent_tools, execute_tool
 from .schemas import GenerationPlanPreview
 from .tools.analysis_tools import (
@@ -30,6 +40,46 @@ from .tools.read_tools import ReadCurrentPaperResult
 from .tools.replacement_tools import ApplyReplacementResult, ReplacementDryRunResult
 from .tools.version_tools import VersionOperationResult
 
+logger = logging.getLogger(__name__)
+
+
+# Blocking-error categories used by the final state machine.
+# A code belongs to AT MOST ONE category; the categories drive the priority:
+#   execution_error  >  pending_preservation  >  clarification  >  pending  >  completed
+# Where execution_error is signalled by turn_error being set (caught exception),
+# not by a string match.
+CLARIFICATION_BLOCKING_ERRORS: frozenset[str] = frozenset({
+    "knowledge_scope_conflict",
+    "knowledge_unknown",
+    "knowledge_ambiguous",
+    "knowledge_scope_uncertain",
+    "missing_scope",
+    "missing_exam_scope",
+    "scope_not_found",
+    "scope_ambiguous",
+    "missing_total_score",
+    "missing_difficulty_ratio",
+    "question_count_mismatch",
+    "score_total_mismatch",
+    "question_type_invalid",
+    "candidate_insufficient",
+    "insufficient_candidates",
+    "generation_partial_patch_required",
+    "score_rebalance_ambiguous",
+    "pending_adjustment_not_updated",
+    "paper_observation_required",
+    "no_current_paper",
+    "no_pending_generation",
+    "no_pending_action",
+    "no_pending_adjustment",
+})
+
+PENDING_PRESERVATION_ERRORS: frozenset[str] = frozenset({
+    "pending_replacement_exists",
+    "pending_generation_exists",
+    "pending_adjustment_exists",
+})
+
 
 class ChatBackend(Protocol):
     def complete(self, messages: list[dict], tools: list[dict]) -> dict: ...
@@ -38,6 +88,7 @@ class ChatBackend(Protocol):
 class TeacherAgentResult(BaseModel):
     status: Literal["completed", "needs_clarification", "waiting_confirmation", "failed"]
     message: str
+    run_id: str | None = None
     clarification_questions: list[str] = Field(default_factory=list)
     paper: GeneratePaperToolResult | None = None
     warnings: list[str] = Field(default_factory=list)
@@ -269,6 +320,49 @@ def _persist_final_message(
         pass
 
 
+def _working_memory_snapshot(
+    store: PendingReplacementStore | None,
+    conversation_id: str | None,
+) -> dict[str, Any] | None:
+    if store is None or not conversation_id or not hasattr(store, "get_memory"):
+        return None
+    try:
+        return store.get_memory(conversation_id).model_dump(mode="json")
+    except Exception:
+        return None
+
+
+def _build_turn_output_emitter(turn_span: Any) -> Any:
+    """Return a closure that writes ``turn_span.update(output=...)`` safely.
+
+    Langfuse may be unavailable (``turn_span is None``) or its SDK may throw
+    on update; both must be silent. Errors themselves are surfaced through
+    ``error`` argument so the agent span is marked ``level=ERROR`` when the
+    turn was a genuine execution failure.
+    """
+    def emit(result: TeacherAgentResult, error: dict[str, Any] | None) -> None:
+        if turn_span is None:
+            return
+        payload: dict[str, Any] = {
+            "status": result.status,
+            "message": result.message,
+            "final_response": result.message,
+        }
+        if error:
+            payload["error_code"] = error.get("error_code")
+            payload["error_type"] = error.get("error_type")
+            payload["error_message"] = error.get("error_message")
+            payload["error_stage"] = error.get("error_stage")
+        try:
+            turn_span.update(
+                output=payload,
+                level="ERROR" if (error is not None or result.status == "failed") else "DEFAULT",
+            )
+        except Exception:
+            pass
+    return emit
+
+
 def run_teacher_agent(
     session: Session,
     user_message: str,
@@ -279,9 +373,65 @@ def run_teacher_agent(
     state_store: PendingReplacementStore | None = None,
     backend: ChatBackend | None = None,
     max_tool_rounds: int = 8,
+    trace_recorder: AgentTraceRecorder | None = None,
 ) -> TeacherAgentResult:
     """Run LLM → tool observation → LLM until a final natural-language answer."""
     message = user_message.strip() if isinstance(user_message, str) else ""
+    trace_recorder = trace_recorder or AgentTraceRecorder()
+    trace_recorder.start(
+        conversation_id=conversation_id,
+        paper_id=paper_id,
+        user_input=message,
+    )
+    # ── Run-Level Tracing (source of truth for this turn) ──
+    # Create exactly one run_id BEFORE any business logic or early return so a
+    # request that fails fast (e.g. model unavailable) still produces a queryable
+    # trace. All writes are best-effort and degrade to a no-op if the DB/manager
+    # fails, so business behaviour is never affected.
+    run_manager = TeacherAgentRunManager(
+        session, conversation_id, paper_id, message
+    ).create()
+    run_id = run_manager.run_id
+    agent_span = (
+        run_manager.add_span("agent", "teacher_agent_run") if run_manager.row is not None else None
+    )
+    if agent_span is not None:
+        run_manager.mark_running()
+    store: PendingReplacementStore | None = None
+    context: AgentExecutionContext | None = None
+    turn_error: dict[str, Any] | None = None  # captured for langfuse agent span
+
+    with teacher_turn_span(conversation_id, message) as turn_span:
+        _emit_turn_output = _build_turn_output_emitter(turn_span)
+
+        def finish(result: TeacherAgentResult, error: dict[str, Any] | None = None) -> TeacherAgentResult:
+            trace_recorder.finish(
+                agent_status=result.status,
+                final_response=result.message,
+                memory_after=_working_memory_snapshot(store, conversation_id),
+                paper_id=context.paper_id if context is not None else paper_id,
+                error=error,
+            )
+            _emit_turn_output(result, error)
+            # Finalize the local run-level trace (best-effort; never breaks business).
+            run_manager.finalize(
+                status=result.status,
+                final_response=result.message,
+                state_after=_working_memory_snapshot(store, conversation_id),
+                paper_id=context.paper_id if context is not None else paper_id,
+                error=error,
+            )
+            run_manager.update_span(
+                agent_span,
+                # A genuine exception is a technical error (span=error); a normal
+                # business return -- even status="failed" (e.g. insufficient
+                # candidates / model unavailable) -- is NOT a span error.
+                status="error" if error is not None else "success",
+                output={"status": result.status, "message": result.message},
+            )
+            result.run_id = run_id
+            return result
+
     explicit_question_positions = _explicit_question_positions(message)
     history_store = DatabaseConversationHistoryStore(session) if conversation_id else None
     recent_messages: list[dict[str, str]] = []
@@ -290,11 +440,11 @@ def run_teacher_agent(
             recent_messages = history_store.recent_messages(conversation_id)
             history_store.append(conversation_id, role="user", content=message)
         except Exception:
-            return TeacherAgentResult(
+            return finish(TeacherAgentResult(
                 status="failed",
                 message="无法读取会话上下文。",
                 blocking_errors=["conversation_context_error"],
-            )
+            ))
     if backend is None:
         result = TeacherAgentResult(
             status="failed",
@@ -302,7 +452,7 @@ def run_teacher_agent(
             blocking_errors=["agent_model_unavailable"],
         )
         _persist_final_message(history_store, conversation_id, result.message)
-        return result
+        return finish(result)
 
     store = state_store or (DatabasePendingReplacementStore(session) if conversation_id else None)
     context = AgentExecutionContext(
@@ -336,6 +486,12 @@ def run_teacher_agent(
     working_memory = (
         store.get_memory(conversation_id)
         if store and conversation_id and hasattr(store, "get_memory") else None
+    )
+    trace_recorder.set_memory_before(
+        working_memory.model_dump(mode="json") if working_memory else None
+    )
+    run_manager.set_state_before(
+        working_memory.model_dump(mode="json") if working_memory else None
     )
     dynamic_context = {
         "current_paper": {
@@ -374,6 +530,7 @@ def run_teacher_agent(
         "clarification_questions": [],
     }
     turn_status: Literal["completed", "needs_clarification", "waiting_confirmation", "failed"] = "completed"
+    current_stage = "init"
     trace_calls: list[dict[str, Any]] = []
     pending_state_at_turn_start = bool(pending or pending_adjustment or pending_generation)
     pending_state_rechecked = False
@@ -386,20 +543,52 @@ def run_teacher_agent(
     paper_read_call_retried = False
     paper_observation_version_id: str | None = None
     malformed_response_retried = False
-    trace = TeacherAgentRunTrace(
-        conversation_id=conversation_id,
-        paper_id=paper_id,
-        user_message=message,
-        tool_calls_json=[],
-        result_status="running",
-    )
-    session.add(trace)
-    session.flush()
+    # Reuse the run-level trace row created at the very top so there is exactly
+    # ONE row per turn (carrying run_id + the legacy tool_calls_json fields used
+    # by existing tests). If run creation failed, fall back to a standalone
+    # legacy row (no run_id) so the historical write path is preserved.
+    trace = run_manager.row
+    if trace is None:
+        trace = TeacherAgentRunTrace(
+            conversation_id=conversation_id,
+            paper_id=paper_id,
+            user_message=message,
+            tool_calls_json=[],
+            result_status="running",
+        )
+        session.add(trace)
+        session.flush()
 
     final_text = ""
     try:
         for _round in range(max_tool_rounds + 1):
-            response_message = _assistant_message(backend.complete(messages, definitions))
+            current_stage = "llm_call"
+            model_span = run_manager.add_span(
+                "model_call", "llm_completion",
+                parent_span_id=agent_span.span_id if agent_span is not None else None,
+                input={"n_messages": len(messages), "n_definitions": len(definitions)},
+            )
+            with llm_generation_span(backend, messages, definitions) as _lf_llm:
+                try:
+                    response_message = _assistant_message(backend.complete(messages, definitions))
+                    run_manager.update_span(
+                        model_span,
+                        status="success",
+                        output={"tool_calls": len(response_message.get("tool_calls") or [])},
+                        ended_at=datetime.now(UTC),
+                    )
+                except Exception as exc:
+                    _langfuse_update(_lf_llm, level="ERROR", status_message=str(exc))
+                    run_manager.update_span(
+                        model_span, status="error", output={"error": str(exc)},
+                        ended_at=datetime.now(UTC),
+                    )
+                    raise
+                _langfuse_update(
+                    _lf_llm,
+                    output={"response": redact_trace_value(response_message)},
+                )
+            current_stage = "response_parse"
             tool_calls = response_message.get("tool_calls") or []
             if not tool_calls:
                 content = response_message.get("content")
@@ -622,6 +811,7 @@ def run_teacher_agent(
             })
             for call in normalized_calls:
                 call_id = call["id"]
+                current_stage = "tool_arguments_parse"
                 name, arguments = _tool_arguments(call)
                 if (
                     name == "read_current_paper"
@@ -632,6 +822,12 @@ def run_teacher_agent(
                     # silently expand into loading the whole paper if the model omits it.
                     arguments = {**arguments, "positions": explicit_question_positions}
                 tool = tools.get(name)
+                tool_span = run_manager.add_span(
+                    "tool_call", name,
+                    parent_span_id=agent_span.span_id if agent_span is not None else None,
+                    input={"arguments": redact_trace_value(arguments)},
+                )
+                memory_before_tool = _working_memory_snapshot(store, conversation_id)
                 if tool is None:
                     execution_payload = {
                         "ok": False,
@@ -640,12 +836,41 @@ def run_teacher_agent(
                     }
                     turn_status = "failed"
                     result_values["blocking_errors"].append("unknown_tool")
+                    # A missing tool is a business failure of the call, not a crash:
+                    # the span succeeds and the failure lives in its output.
+                    run_manager.update_span(
+                        tool_span, status="success",
+                        output=redact_trace_value(execution_payload),
+                        ended_at=datetime.now(UTC),
+                    )
                 else:
                     observed_version_id = context.version_id or context.paper_id
-                    execution = execute_tool(tool, arguments)
+                    current_stage = "tool_execution"
+                    with tool_observation_span(name, arguments) as _lf_tool:
+                        try:
+                            execution = execute_tool(tool, arguments)
+                        except Exception as exc:
+                            _langfuse_update(_lf_tool, level="ERROR", status_message=str(exc))
+                            run_manager.update_span(
+                                tool_span, status="error",
+                                output={"error": str(exc)}, ended_at=datetime.now(UTC),
+                            )
+                            raise
+                        _langfuse_update(
+                            _lf_tool,
+                            output={
+                                "payload": redact_trace_value(execution.payload),
+                                "status": execution.status,
+                            },
+                        )
                     execution_payload = execution.payload
                     turn_status = execution.status
                     _merge_result_fields(result_values, execution.result_fields)
+                    run_manager.update_span(
+                        tool_span, status="success",
+                        output=redact_trace_value(execution_payload),
+                        ended_at=datetime.now(UTC),
+                    )
                     if name == "preview_generation_plan" and execution_payload.get("ok"):
                         # Earlier invalid patch attempts remain visible in trace, but a
                         # later validated preview resolves their transient user-facing state.
@@ -653,6 +878,19 @@ def run_teacher_agent(
                         result_values["clarification_questions"] = []
                     if name == "read_current_paper":
                         paper_observation_version_id = observed_version_id
+                memory_after_tool = _working_memory_snapshot(store, conversation_id)
+                # A state_transition span records the working-memory / pending-state
+                # delta this tool call produced, hanging off the tool_call span
+                # (mirrors the spec's span tree). A read-only tool simply shows
+                # equal before/after snapshots.
+                run_manager.add_span(
+                    "state_transition", f"{name}_state_change",
+                    parent_span_id=tool_span.span_id if tool_span is not None else None,
+                    status="success",
+                    input={"before": redact_trace_value(memory_before_tool)},
+                    output={"after": redact_trace_value(memory_after_tool)},
+                    ended_at=datetime.now(UTC),
+                )
                 trace_entry = {
                     "tool_call_id": call_id,
                     "tool_name": name,
@@ -667,6 +905,13 @@ def run_teacher_agent(
                         "code": execution_payload.get("code"),
                     }
                 trace_calls.append(trace_entry)
+                trace_recorder.record_tool_call(
+                    tool_name=name,
+                    arguments=arguments,
+                    memory_before=memory_before_tool,
+                    result=execution_payload,
+                    memory_after=memory_after_tool,
+                )
                 messages.append({
                     "role": "tool",
                     "tool_call_id": call_id,
@@ -676,20 +921,46 @@ def run_teacher_agent(
         else:
             raise RuntimeError("agent_tool_round_limit")
     except Exception as exc:
-        final_text = "Teacher Agent 暂时无法完成这次请求，请稍后重试。"
         turn_status = "failed"
         code = str(exc) if str(exc).startswith("agent_") else "agent_execution_failed"
         if code not in result_values["blocking_errors"]:
             result_values["blocking_errors"].append(code)
+        turn_error = {
+            "error_code": code,
+            "error_type": type(exc).__name__,
+            "error_message": str(exc),
+            "error_stage": current_stage,
+        }
+        logger.exception("Teacher Agent turn failed at stage=%s code=%s", current_stage, code)
+        final_text = "Teacher Agent 暂时无法完成这次请求，请稍后重试。"
 
-    if store and conversation_id:
-        current_pending = store.get(conversation_id)
-        current_adjustment = store.get_adjustment(conversation_id) if hasattr(store, "get_adjustment") else None
-        current_generation = store.get_generation(conversation_id) if hasattr(store, "get_generation") else None
-        if current_pending or current_adjustment or current_generation:
-            turn_status = "waiting_confirmation"
-        elif turn_status == "waiting_confirmation":
-            turn_status = "completed"
+    blocking_errors = result_values["blocking_errors"]
+    pending_query_possible = bool(store and conversation_id)
+    pending_action_in_store = False
+    if pending_query_possible:
+        pending_action_in_store = bool(
+            store.get(conversation_id)
+            or (store.get_adjustment(conversation_id) if hasattr(store, "get_adjustment") else None)
+            or (store.get_generation(conversation_id) if hasattr(store, "get_generation") else None)
+        )
+    if turn_error is not None:
+        # Genuine execution exception caught by the broad except block.
+        # Never mask with a softer business status.
+        pass
+    elif any(code in PENDING_PRESERVATION_ERRORS for code in blocking_errors):
+        # The existing pending action was kept; the tool refused this turn but
+        # the teacher still has something waiting to confirm or cancel.
+        turn_status = "waiting_confirmation"
+    elif any(code in CLARIFICATION_BLOCKING_ERRORS for code in blocking_errors):
+        # Business-level signal: the teacher can adjust parameters and re-run.
+        # Must not be masked by a stale pending from earlier turns.
+        turn_status = "needs_clarification"
+    elif pending_action_in_store:
+        # Successful turn that left a pending action awaiting confirmation.
+        turn_status = "waiting_confirmation"
+    elif pending_query_possible and turn_status == "waiting_confirmation":
+        # The pending was cleared between turns; report the turn as completed.
+        turn_status = "completed"
 
     if "avoid_previous_paper_questions_unsupported" in result_values["warnings"]:
         final_text = (
@@ -702,10 +973,15 @@ def run_teacher_agent(
     trace.final_response = final_text
     trace.paper_id = context.paper_id
     trace.result_status = turn_status
+    if turn_error:
+        trace.error_code = turn_error.get("error_code")
+        trace.error_type = turn_error.get("error_type")
+        trace.error_message = turn_error.get("error_message")
+        trace.error_stage = turn_error.get("error_stage")
     session.flush()
     _persist_final_message(history_store, conversation_id, final_text)
-    return TeacherAgentResult(
+    return finish(TeacherAgentResult(
         status=turn_status,
         message=final_text,
         **result_values,
-    )
+    ), error=turn_error)

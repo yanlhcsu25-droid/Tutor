@@ -37,3 +37,11 @@ def test_inline_aligned_is_converted_to_mathml_supported_array():
     assert r"\begin{array}{rl}" in result
     assert r"\end{array}" in result
     assert "aligned" not in result
+
+
+def test_only_repeated_escaped_underscores_are_normalized_as_blank():
+    source = r"填空：\_\_\_\_；变量名：test\_value"
+
+    result = normalize_math_format(source)
+
+    assert result == r"填空：____；变量名：test\_value"

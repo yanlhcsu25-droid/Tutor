@@ -1,0 +1,682 @@
+version: "0.1"
+
+suite:
+  name: teacher_agent_regression
+  description: >
+    Teacher Agent 回归测试集。
+    以最终业务状态和用户可见结果为主要评测目标，
+    Tool 调用轨迹仅用于必要的规则验证和失败诊断。
+
+defaults:
+  max_tool_rounds: 8
+  isolated_session: true
+  reset_pending_before_case: true
+  reset_working_memory_before_case: true
+
+cases:
+
+  # =========================================================
+  # Generation
+  # =========================================================
+
+  - id: GEN-01
+    category: generation
+    title: direct_chapter_generation
+    turns:
+      - user: "帮我出一套第四章普通测试"
+    expected:
+      active_task:
+        type: generation
+      generation:
+        scope_names:
+          - "第四章"
+    graders:
+      - type: state
+      - type: semantic
+
+  - id: GEN-02
+    category: generation
+    title: explicit_question_count_and_score
+    turns:
+      - user: "帮我出一套第一章章节测试，10题100分"
+    expected:
+      generation:
+        scope_names:
+          - "第一章"
+        question_count: 10
+        total_score: 100
+    graders:
+      - type: state
+
+  # =========================================================
+  # Clarification
+  # =========================================================
+
+  - id: CLA-01
+    category: clarification
+    title: missing_scope
+    turns:
+      - user: "出一套章节测试"
+    expected:
+      status: needs_clarification
+      clarification:
+        missing_fields:
+          - scope_names
+    forbidden:
+      statuses:
+        - failed
+    graders:
+      - type: state
+      - type: semantic
+
+  - id: CLA-02
+    category: clarification
+    title: resume_generation_after_scope_reply
+    turns:
+      - user: "出一套章节测试"
+      - user: "第一章，知识点不限"
+    expected:
+      generation:
+        scope_names:
+          - "第一章"
+        knowledge_preferences: []
+      preserve_previous_task:
+        paper_type: true
+    graders:
+      - type: state
+      - type: constraint_preservation
+
+  - id: CLA-03
+    category: clarification
+    title: clarification_is_not_failure
+    turns:
+      - user: "给我出一套章节测试"
+    expected:
+      status: needs_clarification
+    forbidden:
+      statuses:
+        - failed
+    graders:
+      - type: state
+
+  # =========================================================
+  # Modification
+  # =========================================================
+
+  - id: MOD-01
+    category: modification
+    title: modify_choice_count_only
+    setup:
+      generation_plan:
+        paper_type: chapter_test
+        scope_names:
+          - "第一章"
+        total_score: 100
+        question_type_requirements:
+          - question_type: "选择题"
+            count: 4
+            score_each: 5
+          - question_type: "填空题"
+            count: 2
+            score_each: 10
+          - question_type: "计算题"
+            count: 4
+            score_each: 15
+    turns:
+      - user: "选择题改成1道"
+    expected:
+      generation:
+        scope_names:
+          - "第一章"
+        question_type_requirements:
+          - question_type: "选择题"
+            count: 1
+    preserve:
+      - paper_type
+      - scope_names
+      - unspecified_question_types
+    graders:
+      - type: state
+      - type: constraint_preservation
+
+  - id: MOD-02
+    category: modification
+    title: multi_field_partial_modification_keep_total_100
+
+    setup:
+      generation_plan:
+        paper_type: chapter_test
+        scope_names:
+          - "第三章"
+        total_score: 100
+        question_type_requirements:
+          - question_type: "选择题"
+            count: 4
+            score_each: 5
+            total_score: 20
+
+          - question_type: "填空题"
+            count: 2
+            score_each: 5
+            total_score: 10
+
+          - question_type: "计算题"
+            count: 2
+            score_each: 5
+            total_score: 10
+
+          - question_type: "计算题"
+            count: 2
+            score_each: 20
+            total_score: 40
+
+          - question_type: "证明题"
+            count: 2
+            score_each: 10
+            total_score: 20
+
+    turns:
+      - user: >
+          填空题改成4道；计算题改成每题10分；计算题改成每题10分。
+          未提到的条件保持不变，目标总分保持100分。
+
+    expected:
+      generation:
+        total_score: 100
+        question_type_requirements:
+          - question_type: "填空题"
+            count: 4
+            score_each: 5
+            total_score: 20
+
+          - question_type: "计算题"
+            count: 2
+            score_each: 10
+            total_score: 20
+
+          - question_type: "计算题"
+            count: 2
+            score_each: 10
+            total_score: 20
+
+    preserve:
+      - paper_type
+      - scope_names
+      - unspecified_question_types
+
+    graders:
+      - type: state
+      - type: constraint_preservation
+      - type: score
+    
+  - id: MOD-03
+    category: modification
+    title: modify_total_score_to_85
+    setup:
+      generation_plan:
+        paper_type: chapter_test
+        scope_names:
+          - "第一章"
+        total_score: 100
+    turns:
+      - user: "总分改成85"
+    expected:
+      generation:
+        total_score: 85
+      pending:
+        total_score: 85
+    forbidden:
+      confirmed_total_score:
+        - 100
+    graders:
+      - type: state
+      - type: score
+
+  - id: MOD-04
+    category: modification
+    title: preserve_unspecified_fields
+    setup:
+      generation_plan:
+        paper_type: chapter_test
+        scope_names:
+          - "第一章"
+        total_score: 100
+    turns:
+      - user: "填空题改成3道"
+    preserve:
+      - paper_type
+      - scope_names
+      - total_score
+      - unspecified_question_types
+    graders:
+      - type: constraint_preservation
+
+  - id: MOD-05
+    category: modification
+    title: explicit_empty_list_clears_field
+    setup:
+      generation_plan:
+        paper_type: chapter_test
+        scope_names:
+          - "第一章"
+        knowledge_preferences:
+          - "函数极限"
+    invoke:
+      mode: structured
+      payload:
+        knowledge_preferences: []
+    expected:
+      generation:
+        knowledge_preferences: []
+    graders:
+      - type: state
+
+  # =========================================================
+  # Score
+  # =========================================================
+
+  - id: SCORE-01
+    category: score
+    title: rebalance_after_question_count_change
+    setup:
+      generation_plan:
+        total_score: 100
+    turns:
+      - user: "选择题改成1道，其余条件保持不变，总分还是100分"
+    expected:
+      generation:
+        total_score: 100
+    graders:
+      - type: score
+      - type: constraint_preservation
+
+  - id: SCORE-02
+    category: score
+    title: locked_score_each_must_not_be_rebalanced
+    setup:
+      generation_plan:
+        total_score: 100
+    turns:
+      - user: "计算题改成每题10分，总分仍然100分"
+    expected:
+      generation:
+        total_score: 100
+        question_type_requirements:
+          - question_type: "计算题"
+            score_each: 10
+    graders:
+      - type: score
+      - type: state
+
+  # =========================================================
+  # Delete
+  # =========================================================
+
+  - id: DEL-01
+    category: deletion
+    title: delete_question_and_renumber
+    setup:
+      current_paper:
+        question_count: 10
+        total_score: 100
+    turns:
+      - user: "删除第8题"
+    expected:
+      paper:
+        question_count: 9
+        continuous_positions: true
+        missing_original_position:
+          - 8
+    graders:
+      - type: paper_state
+
+  - id: DEL-02
+    category: deletion
+    title: delete_question_and_change_total_score
+    setup:
+      current_paper:
+        question_count: 10
+        total_score: 100
+    turns:
+      - user: "删除第8题，总分改成80"
+    expected:
+      paper:
+        question_count: 9
+        total_score: 80
+        continuous_positions: true
+    graders:
+      - type: paper_state
+      - type: score
+
+  # =========================================================
+  # Replacement
+  # =========================================================
+
+  - id: REP-01
+    category: replacement
+    title: replace_with_easier_question
+    setup:
+      current_paper:
+        question_count: 10
+    turns:
+      - user: "第3题简单一点"
+    expected:
+      pending_replacement:
+        position: 3
+        direction: easier
+    business_rules:
+      must_read_target_question: true
+      must_not_modify_before_confirmation: true
+    graders:
+      - type: state
+      - type: tool_rule
+
+  - id: REP-02
+    category: replacement
+    title: contextual_reference_to_same_question
+    setup:
+      current_paper:
+        question_count: 10
+    turns:
+      - user: "第3题简单一点"
+      - user: "那第3题再简单一点"
+    expected:
+      referenced_position: 3
+    graders:
+      - type: state
+      - type: context
+
+  - id: REP-03
+    category: replacement
+    title: confirm_pending_replacement
+    setup:
+      pending_replacement:
+        position: 3
+    turns:
+      - user: "就用这道"
+    expected:
+      pending_replacement: null
+      paper:
+        version_incremented: true
+        replaced_position: 3
+    graders:
+      - type: paper_state
+      - type: state
+
+  - id: REP-04
+    category: replacement
+    title: cancel_pending_replacement
+    setup:
+      pending_replacement:
+        position: 3
+    turns:
+      - user: "算了，不换了"
+    expected:
+      pending_replacement: null
+      paper:
+        unchanged: true
+    graders:
+      - type: paper_state
+      - type: state
+
+  # =========================================================
+  # Query
+  # =========================================================
+
+  - id: QUERY-01
+    category: query
+    title: query_question_knowledge_point
+    setup:
+      current_paper:
+        question_count: 10
+    turns:
+      - user: "第5题是什么知识点"
+    expected:
+      referenced_position: 5
+      paper:
+        unchanged: true
+    forbidden:
+      active_task_types:
+        - generation
+        - replacement
+    graders:
+      - type: state
+      - type: semantic
+
+  # =========================================================
+  # Unsupported
+  # =========================================================
+
+  - id: UNSUP-01
+    category: unsupported
+    title: avoid_previous_paper_questions_not_supported
+    setup:
+      current_paper:
+        question_count: 10
+    turns:
+      - user: "不要跟上一套题重复"
+    expected:
+      unsupported:
+        code: avoid_previous_paper_questions_unsupported
+    forbidden:
+      response_claims:
+        - "已经排重"
+        - "保证不重复"
+        - "不会与上一套重复"
+    graders:
+      - type: state
+      - type: semantic
+
+  - id: UNSUP-02
+    category: schema
+    title: reject_unknown_generate_input_fields
+    invoke:
+      mode: structured
+      tool: generate_paper
+      arguments:
+        paper_type: chapter_test
+        scope_names:
+          - "第一章"
+        invented_unknown_field: true
+    expected:
+      schema_valid: false
+    graders:
+      - type: schema
+
+  # =========================================================
+  # Chat
+  # =========================================================
+
+  - id: CHAT-01
+    category: conversation
+    title: normal_chat_must_not_trigger_generation
+    turns:
+      - user: "你能简单介绍一下你能做什么吗"
+    forbidden:
+      active_task_types:
+        - generation
+      tools:
+        - preview_generation_plan
+        - generate_paper
+    graders:
+      - type: tool_rule
+      - type: semantic
+
+  # =========================================================
+  # Working Memory
+  # =========================================================
+
+  - id: MEM-01
+    category: memory
+    title: preserve_generation_context_across_turns
+    turns:
+      - user: "帮我出一套第一章测试"
+      - user: "选择题改成1道"
+    expected:
+      generation:
+        scope_names:
+          - "第一章"
+        question_type_requirements:
+          - question_type: "选择题"
+            count: 1
+    preserve:
+      - paper_type
+      - scope_names
+      - unspecified_question_types
+    graders:
+      - type: state
+      - type: constraint_preservation
+
+  # =========================================================
+  # State / Pending
+  # =========================================================
+
+  - id: STATE-01
+    category: state
+    title: new_complete_task_replaces_old_pending
+    setup:
+      pending_generation:
+        scope_names:
+          - "第一章"
+        total_score: 100
+    turns:
+      - user: "重新给我出一套第三章测试，80分"
+    expected:
+      pending_generation:
+        scope_names:
+          - "第三章"
+        total_score: 80
+      single_active_task: true
+    forbidden:
+      pending_generation:
+        scope_names:
+          - "第一章"
+    graders:
+      - type: state
+
+  - id: STATE-02
+    category: state
+    title: incomplete_new_task_can_enter_clarification
+    setup:
+      pending_generation:
+        scope_names:
+          - "第一章"
+        total_score: 100
+    turns:
+      - user: "重新给我出一套章节测试"
+    expected:
+      status: needs_clarification
+      single_active_task: true
+    forbidden:
+      behavior:
+        - old_pending_blocks_new_task
+    graders:
+      - type: state
+      - type: semantic
+
+  # =========================================================
+  # Knowledge Point
+  # =========================================================
+
+  - id: KP-01
+    category: knowledge_point
+    title: exclude_current_knowledge_requires_target
+    setup:
+      current_paper:
+        question_count: 10
+    turns:
+      - user: "第3题不要这个知识点了"
+    expected:
+      status: needs_clarification
+      clarification:
+        requires_target_knowledge_point: true
+    forbidden:
+      behavior:
+        - infer_target_knowledge_point_without_user_input
+    graders:
+      - type: state
+      - type: semantic
+
+  - id: KP-02
+    category: knowledge_point
+    title: invalid_knowledge_status_is_business_clarification
+    setup:
+      knowledge_status: unknown
+    turns:
+      - user: "按这个知识点给我换一道题"
+    expected:
+      status: needs_clarification
+    forbidden:
+      statuses:
+        - failed
+    graders:
+      - type: state
+
+  # =========================================================
+  # Confirm
+  # =========================================================
+
+  - id: CONF-01
+    category: confirmation
+    title: confirm_complete_pending_generation
+    setup:
+      pending_generation:
+        scope_names:
+          - "第一章"
+        total_score: 100
+        complete: true
+    turns:
+      - user: "确认"
+    expected:
+      pending_generation: null
+      paper:
+        created: true
+        version_incremented: true
+        total_score: 100
+    graders:
+      - type: paper_state
+      - type: state
+
+  # =========================================================
+  # Error
+  # =========================================================
+
+  - id: ERR-01
+    category: error_handling
+    title: backend_runtime_error
+    backend:
+      behavior: raise
+      exception:
+        type: RuntimeError
+        message: "simulated llm error"
+    turns:
+      - user: "帮我出一套第一章测试"
+    expected:
+      status: failed
+      error:
+        code: agent_execution_failed
+        type: RuntimeError
+        stage: llm_call
+    graders:
+      - type: error
+      - type: trace
+
+  # =========================================================
+  # Trace
+  # =========================================================
+
+  - id: TRACE-01
+    category: observability
+    title: preserve_multiple_tool_calls_in_order
+    backend:
+      behavior: scripted_multi_tool
+    turns:
+      - user: "帮我处理当前试卷"
+    expected:
+      trace:
+        preserve_tool_call_order: true
+        tool_call_count_min: 2
+        jsonl_present: true
+        db_trace_present: true
+    graders:
+      - type: trace

@@ -66,3 +66,35 @@ def test_dependent_subquestions_do_not_emit_composite_type():
         "1. 计算下列各式：\n(1) 第一式\n(2) 利用(1)的结论计算第二式"
     )[0]
     assert candidate.question_type == "calculation"
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "设 f(x) 可导，则 $f(x) =$ ___.",
+        "设 f(x) 可导，则 $f(x) =$ _____ .",
+        "设 f(x) 可导，则 $f(x)=________$.",
+        "设 f(x) 可导，则 f(x) =   _____.",
+        r"设 f(x) 可导，则 $f(x)=\underline{\qquad}$.",
+        r"设 f(x) 可导，则 $f(x)=\blank$.",
+        "设 f(x) 可导，则 $f(x) =$ ＿＿＿＿＿.",
+    ],
+)
+def test_markdown_blank_placeholders_are_fill_blank(content):
+    result = infer_question_type(content)
+    assert result.question_type == "fill_blank"
+    assert result.needs_review is False
+
+
+def test_fill_blank_placeholder_survives_full_split_pipeline():
+    candidate = split_page_markdown(
+        "1. 设 f(x) 可导，且 $f(1)=\\sqrt2$，则 $f(x) =$ _____."
+    )[0]
+    assert candidate.question_type == "fill_blank"
+
+
+def test_options_still_take_priority_over_blank_placeholder():
+    result = infer_question_type(
+        "请选择正确答案：_____ A. 甲 B. 乙 C. 丙 D. 丁"
+    )
+    assert result.question_type == "selection"

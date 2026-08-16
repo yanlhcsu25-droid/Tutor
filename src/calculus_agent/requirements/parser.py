@@ -271,7 +271,12 @@ _OBJECTIVE_TYPES = {"选择题", "多选题", "填空题"}
 
 
 def _type_from_text(value: str) -> str:
-    return canonical_question_type(value if value.endswith("题") else f"{value}题")
+    normalized = value if value.endswith("题") else f"{value}题"
+    canonical = canonical_question_type(normalized)
+    # 自由作答类（解答题/问答题/问答/解答）在微积分中统一归为计算题。
+    if canonical in {"解答题", "问答题", "问答", "解答"}:
+        canonical = "计算题"
+    return canonical
 
 
 def _default_score(blueprint: PaperBlueprint, question_type: str) -> float:

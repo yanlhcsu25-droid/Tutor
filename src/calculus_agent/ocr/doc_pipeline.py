@@ -56,7 +56,7 @@ _TYPE_MAP: dict[str, str] = {
     "fill_blank": "填空题",
     "calculation": "计算题",
     "proof": "证明题",
-    "subjective": "解答题",
+    "subjective": "计算题",
     "other": "其他",
 }
 

@@ -47,7 +47,7 @@ def _blueprint(seed=42):
         title="持久化测试卷", grade="八年级", total_questions=3, total_score=25,
         sections=[
             SectionRequirement(question_type="选择题", count=2, score_per_question=5, total_score=10),
-            SectionRequirement(question_type="解答题", count=1, score_per_question=15, total_score=15),
+            SectionRequirement(question_type="计算题", count=1, score_per_question=15, total_score=15),
         ], seed=seed,
     )
 
@@ -61,7 +61,7 @@ def test_unconfirmed_blueprint_cannot_create_paper(session):
 def test_paper_items_persist_and_validate_exact_constraints(session):
     _question(session, 1, "选择题")
     _question(session, 2, "选择题")
-    _question(session, 3, "解答题")
+    _question(session, 3, "计算题")
     saved = save_blueprint(session, _blueprint())
     confirm_blueprint(session, saved.blueprint_id)
     paper = create_paper(session, saved.blueprint_id)
@@ -76,7 +76,7 @@ def test_paper_items_persist_and_validate_exact_constraints(session):
 def test_saved_paper_is_single_source_for_preview_and_export(session):
     _question(session, 1, "选择题")
     _question(session, 2, "选择题")
-    _question(session, 3, "解答题")
+    _question(session, 3, "计算题")
     saved = save_blueprint(session, _blueprint())
     confirm_blueprint(session, saved.blueprint_id)
     paper = create_paper(session, saved.blueprint_id)
@@ -97,7 +97,7 @@ def test_infeasible_supply_returns_structured_shortage(session):
 
 def test_same_seed_produces_same_order(session):
     for number in range(1, 7):
-        _question(session, number, "选择题" if number <= 4 else "解答题")
+        _question(session, number, "选择题" if number <= 4 else "计算题")
     first = save_blueprint(session, _blueprint(seed=7))
     second = save_blueprint(session, _blueprint(seed=7))
     confirm_blueprint(session, first.blueprint_id)
@@ -109,7 +109,7 @@ def test_same_seed_produces_same_order(session):
 
 def test_paper_edits_create_persistent_versions(session):
     for number in range(1, 5):
-        _question(session, number, "选择题" if number <= 3 else "解答题")
+        _question(session, number, "选择题" if number <= 3 else "计算题")
     saved = save_blueprint(session, _blueprint())
     confirm_blueprint(session, saved.blueprint_id)
     original = create_paper(session, saved.blueprint_id)
@@ -139,7 +139,7 @@ def test_paper_edits_create_persistent_versions(session):
 
 def test_operation_history_supports_undo_redo_and_restore(session):
     for number in range(1, 5):
-        _question(session, number, "选择题" if number <= 3 else "解答题")
+        _question(session, number, "选择题" if number <= 3 else "计算题")
     saved = save_blueprint(session, _blueprint())
     confirm_blueprint(session, saved.blueprint_id)
     original = create_paper(session, saved.blueprint_id)

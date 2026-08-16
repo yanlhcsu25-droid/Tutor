@@ -16,6 +16,7 @@ tmp/
 data/external/
 uploads/
 workbench_data/
+logs/
 *.preprocess.json
 web/node_modules/
 web/dist/

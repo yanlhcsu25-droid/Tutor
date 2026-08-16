@@ -59,7 +59,7 @@ def test_conversation_modification_uses_saved_blueprint_as_base(session, monkeyp
         sections=[
             SectionRequirement(question_type="选择题", count=3, score_per_question=5, total_score=15),
             SectionRequirement(question_type="填空题", count=3, score_per_question=5, total_score=15),
-            SectionRequirement(question_type="解答题", count=4, score_per_question=10, total_score=40),
+            SectionRequirement(question_type="计算题", count=4, score_per_question=10, total_score=40),
         ],
     ))
     monkeypatch.setattr(
@@ -76,7 +76,7 @@ def test_conversation_modification_uses_saved_blueprint_as_base(session, monkeyp
     )
     assert result.blueprint.total_questions == 13
     assert result.blueprint.question_type_counts == {
-        "选择题": 3, "填空题": 3, "解答题": 4, "证明题": 3,
+        "选择题": 3, "填空题": 3, "计算题": 4, "证明题": 3,
     }
 
 

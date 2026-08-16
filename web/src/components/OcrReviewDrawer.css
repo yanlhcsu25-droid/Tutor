@@ -138,6 +138,12 @@
   overflow-x: auto;
 }
 
+.ocr-review-modal-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
 .ocr-page-markdown-panel {
   display: flex;
   flex-direction: column;
@@ -208,28 +214,26 @@
 }
 
 .question-review-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   height: 100%;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   align-items: stretch;
+  overscroll-behavior-y: auto;
 }
 
 .question-review-stack > .question-editor-layout {
-  flex: 0 0 400px;
-  min-height: 400px;
-}
-
-/* QuestionEditor is wrapped by Ant Design Space in the real drawer DOM. */
-.question-review-stack > .ant-space-item:first-child {
   flex: 0 0 460px;
   min-height: 460px;
 }
 
-.question-review-stack > .ant-space-item:first-child .question-editor-layout,
-.question-review-stack > .ant-space-item:first-child .question-editor-tabs,
-.question-review-stack > .ant-space-item:first-child .ant-tabs-content-holder,
-.question-review-stack > .ant-space-item:first-child .ant-tabs-content,
-.question-review-stack > .ant-space-item:first-child .ant-tabs-tabpane {
+.question-review-stack > .question-editor-layout .question-editor-tabs,
+.question-review-stack > .question-editor-layout .ant-tabs-content-holder,
+.question-review-stack > .question-editor-layout .ant-tabs-content,
+.question-review-stack > .question-editor-layout .ant-tabs-tabpane {
   height: 100%;
   min-height: 0;
 }
@@ -261,20 +265,22 @@
   height: 100%;
   min-height: 0;
   overflow: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
 }
 
 .question-editor-source-tab {
   display: flex;
+  overflow: hidden;
 }
 
 .question-editor-source {
   flex: 1 1 auto;
-  min-height: 420px !important;
+  min-height: 0 !important;
   height: 100% !important;
   max-height: none !important;
-  resize: vertical !important;
+  resize: none !important;
   overflow-y: auto !important;
+  overscroll-behavior-y: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   line-height: 1.65;
@@ -288,7 +294,9 @@
 @media (max-width: 960px) {
   .ocr-review-workspace {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(260px, 42%) minmax(360px, 58%);
+    grid-template-rows: minmax(260px, 42%) minmax(520px, 58%);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
 
   .ocr-review-pdf-pane {

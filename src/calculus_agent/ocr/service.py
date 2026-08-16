@@ -407,7 +407,7 @@ async def create_doc_ocr_task_async(
             candidate.body.encode("utf-8")
         ).hexdigest()
 
-        question_type_cn = _TYPE_MAP.get(candidate.question_type, "解答题")
+        question_type_cn = _TYPE_MAP.get(candidate.question_type, "计算题")
 
         # 构建选项 JSON（适配 QuestionDraft.options_json 格式）
         options_json = [
@@ -471,7 +471,7 @@ _WORKBENCH_TYPE_MAP: dict[str, str] = {
     "fill_blank": "填空题",
     "calculation": "计算题",
     "proof": "证明题",
-    "subjective": "解答题",
+    "subjective": "计算题",
     "other": "其他",
 }
 
@@ -516,7 +516,7 @@ def sync_workbench_question_to_bank(
         question_text = f"{stem}\n\n{option_lines}"
 
     # 映射题目类型
-    main_question_type = _WORKBENCH_TYPE_MAP.get(wb_type, "解答题")
+    main_question_type = _WORKBENCH_TYPE_MAP.get(wb_type, "计算题")
 
     # 映射难度等级
     level_map = {1: "easy", 2: "easy-medium", 3: "medium", 4: "medium-hard", 5: "hard"}

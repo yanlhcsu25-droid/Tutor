@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, Input } from "antd";
 import PreviewPane from "./PreviewPane";
 import DiffPanel from "./DiffPanel";
@@ -16,6 +16,12 @@ interface Props {
 
 export default function QuestionEditor({ questionId, markdown, validation, onChange, onJumpLine, readOnly = false }: Props) {
   const [activeTab, setActiveTab] = useState("edit");
+
+  // 切换题目时不能继承上一题停留的“实时预览/修改差异”状态。
+  // 每道新题都从可编辑的 Markdown 源码开始，避免用户误以为源码消失。
+  useEffect(() => {
+    setActiveTab("edit");
+  }, [questionId]);
 
   return (
     <div className="question-editor-layout">

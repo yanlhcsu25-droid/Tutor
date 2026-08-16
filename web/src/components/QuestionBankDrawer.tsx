@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Drawer, Table, Tag, Typography, Input, Select, Space, Empty, Button, Spin, Alert, Modal, Card, message, Popconfirm, InputNumber, Collapse, Radio } from "antd";
 import { SearchOutlined, ArrowLeftOutlined, TagsOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import PreviewPane from "./PreviewPane";
 import { extractPlainQuestionPreview } from "../utils/questionMarkdown";
+import { wb } from "../api";
+import type { WbChapter } from "../api";
 import "./QuestionBankDrawer.css";
 
   /** 正式题库列表项 —— 来自 GET /api/v1/questions/search（approved + 仅用户自己 OCR 导入）。 */
@@ -17,6 +19,8 @@ import "./QuestionBankDrawer.css";
   chapter: string | null;
   difficulty: number | null;
   knowledge_match_status: string;
+  publish_source: "manual" | "ai_auto";
+  quality_sample_required: boolean;
 }
 
 /** 正式题详情 —— 来自 GET /api/v1/questions/{id}。 */
@@ -26,6 +30,7 @@ interface QuestionDetail extends QuestionRow {
   chapter: string | null;
   knowledge_node_ids: string[];
   is_active: boolean;
+  ai_review?: { reason?: string } | null;
 }
 
 interface EditDraft {
@@ -57,6 +62,11 @@ interface QuestionProfileItem {
 
 const { Option } = Select;
 
+/** 合法题型（与后端 ALLOWED_QUESTION_TYPES 对齐；后端仍是唯一权威）。
+ * 注：多选题已从 UI 入口移除——当前候选池无多选题题源，组卷无法产出，故不在选题器中暴露。
+ * 后端 ALLOWED_QUESTION_TYPES 仍保留多选题，以维持 canonical 契约稳定。 */
+const QUESTION_TYPES = ["选择题", "填空题", "计算题", "证明题"];
+
 const EMPTY = "—";
 const KNOWLEDGE_EMPTY = "暂未标注";
 
@@ -86,8 +96,12 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [publishSourceFilter, setPublishSourceFilter] = useState<string>("all");
+  const [chapterFilter, setChapterFilter] = useState<string>("all");
+  const [chapters, setChapters] = useState<WbChapter[]>([]);
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const editOriginalRef = useRef<QuestionDetail | null>(null);
   const [knowledgeOptions, setKnowledgeOptions] = useState<{ value: string; label: string }[]>([]);
 
   const [detail, setDetail] = useState<QuestionDetail | null>(null);
@@ -110,6 +124,8 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
       params.set("source_name", "ocr_import,ocr_doc");
       if (search.trim()) params.set("query", search.trim());
       if (typeFilter !== "all") params.set("question_type", typeFilter);
+      if (publishSourceFilter !== "all") params.set("publish_source", publishSourceFilter);
+      if (chapterFilter !== "all") params.set("chapter_id", chapterFilter);
       const response = await fetch(`/api/v1/questions/search?${params.toString()}`);
       if (!response.ok) {
         const body = await response.text();
@@ -129,7 +145,15 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
     if (!open) return;
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
-  }, [open, search, typeFilter]);
+  }, [open, search, typeFilter, publishSourceFilter, chapterFilter]);
+
+  // 加载当前激活教材的一级章节（大章节）供筛选
+  useEffect(() => {
+    if (!open) return;
+    wb.listChapters()
+      .then((result) => setChapters(result.items))
+      .catch(() => setChapters([]));
+  }, [open]);
 
   useEffect(() => {
     if (!open) setDetail(null);
@@ -203,6 +227,7 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
       const item = await detailResponse.json() as QuestionDetail;
       const options = await optionsResponse.json() as { knowledge: { id: string; name: string }[] };
       setKnowledgeOptions(options.knowledge.map((node) => ({ value: node.id, label: node.name })));
+      editOriginalRef.current = item;
       setEditDraft({
         id: item.id,
         question_text: item.question_text,
@@ -221,6 +246,19 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
     }
   };
 
+  const patchQuestionType = async (questionId: string, questionType: string): Promise<QuestionDetail> => {
+    const response = await fetch(`/api/v1/questions/${questionId}/question-type`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question_type: questionType }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null) as { detail?: string } | null;
+      throw new Error(body?.detail ?? `HTTP ${response.status}`);
+    }
+    return (await response.json()) as QuestionDetail;
+  };
+
   const saveEdit = async () => {
     if (!editDraft || !editDraft.question_text.trim() || !editDraft.question_type.trim()) {
       message.warning("题目内容和题型不能为空");
@@ -228,6 +266,26 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
     }
     setEditSaving(true);
     try {
+      // 仅修改题型：走专用轻量端点，避免整题重校验知识点 / 重置审核态 / 标记知识点待重匹配。
+      const orig = editOriginalRef.current;
+      const onlyTypeChanged =
+        orig != null &&
+        editDraft.question_type !== orig.question_type &&
+        editDraft.question_text.trim() === (orig.question_text ?? "").trim() &&
+        (editDraft.solution_content ?? "") === (orig.solution_content ?? "") &&
+        (editDraft.difficulty ?? null) === (orig.difficulty ?? null) &&
+        (editDraft.original_number ?? "") === (orig.original_number ?? "") &&
+        editDraft.source_page === orig.source_page &&
+        JSON.stringify(editDraft.knowledge_node_ids) === JSON.stringify(orig.knowledge_node_ids);
+      if (onlyTypeChanged) {
+        const updated = await patchQuestionType(editDraft.id, editDraft.question_type);
+        setEditDraft(null);
+        editOriginalRef.current = null;
+        setDetail((current) => (current?.id === updated.id ? updated : current));
+        message.success("题型已更新（审核状态与知识点保持不变）");
+        await load();
+        return;
+      }
       const response = await fetch(`/api/v1/questions/${editDraft.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -326,6 +384,8 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
           <Typography.Text strong>{record.original_number ?? "未编号"}</Typography.Text>
           <Tag color="blue">{record.question_type}</Tag>
           {record.difficulty ? <Tag color="gold">难度 {record.difficulty}</Tag> : null}
+          {record.publish_source === "ai_auto" && <Tag color="green">AI 自动发布</Tag>}
+          {record.quality_sample_required && <Tag color="purple">随机抽检</Tag>}
         </Space>
         {renderActions(record)}
       </div>
@@ -348,6 +408,33 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
         </Button>
         <Tag>原题号 {item.original_number ?? EMPTY}</Tag>
         <Tag color="blue">{item.question_type}</Tag>
+        {item.publish_source === "ai_auto" && <Tag color="green">AI 自动发布</Tag>}
+        {item.quality_sample_required && <Tag color="purple">随机抽检</Tag>}
+      </Space>
+      <Space style={{ marginBottom: 8 }}>
+        <Typography.Text strong>快速改题型：</Typography.Text>
+        <Select
+          style={{ width: 160 }}
+          value={item.question_type}
+          onChange={(value: string) => {
+            void (async () => {
+              try {
+                const updated = await patchQuestionType(item.id, value);
+                setDetail(updated);
+                message.success("题型已更新（审核状态与知识点保持不变）");
+                await load();
+              } catch (e) {
+                message.error(String(e));
+              }
+            })();
+          }}
+          options={[
+            ...QUESTION_TYPES.map((t) => ({ value: t, label: t })),
+            ...(QUESTION_TYPES.includes(item.question_type)
+              ? []
+              : [{ value: item.question_type, label: `${item.question_type}（原始）` }]),
+          ]}
+        />
       </Space>
 
       <Section title="题目内容">
@@ -377,6 +464,9 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
         </Space>
       </Section>
       <Section title="来源">{formatSource(item.source_name, item.source_page)}</Section>
+      {item.publish_source === "ai_auto" && item.ai_review?.reason && (
+        <Section title="AI 审核依据">{item.ai_review.reason}</Section>
+      )}
       <Section title="技术信息"><Typography.Text type="secondary">question_id：{item.id}</Typography.Text></Section>
     </div>
   );
@@ -405,8 +495,18 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
               <Option value="all">全部题型</Option>
               <Option value="选择题">选择题</Option>
               <Option value="填空题">填空题</Option>
-              <Option value="解答题">解答题</Option>
-              <Option value="calculation">计算题</Option>
+              <Option value="计算题">计算题</Option>
+            </Select>
+            <Select value={publishSourceFilter} onChange={setPublishSourceFilter} style={{ width: 150 }}>
+              <Option value="all">全部发布来源</Option>
+              <Option value="ai_auto">AI 自动发布</Option>
+              <Option value="manual">人工发布</Option>
+            </Select>
+            <Select value={chapterFilter} onChange={setChapterFilter} style={{ width: 220 }}>
+              <Option value="all">全部章节</Option>
+              {chapters.map((chapter) => (
+                <Option key={chapter.id} value={chapter.id}>{chapter.name}</Option>
+              ))}
             </Select>
             <Button icon={<TagsOutlined />} onClick={() => void loadKnowledgeSuggestions()}>
               知识点审核
@@ -449,8 +549,14 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
             <div className="question-edit-preview"><PreviewPane markdown={editDraft.solution_content} /></div>
             <Space wrap style={{ width: "100%" }}>
               <div><Typography.Text strong>题型</Typography.Text><br />
-                <Input style={{ width: 180 }} value={editDraft.question_type}
-                  onChange={(e) => setEditDraft({ ...editDraft, question_type: e.target.value })} /></div>
+                <Select style={{ width: 180 }} value={editDraft.question_type}
+                  onChange={(value: string) => setEditDraft({ ...editDraft, question_type: value })}
+                  options={[
+                    ...QUESTION_TYPES.map((t) => ({ value: t, label: t })),
+                    ...(QUESTION_TYPES.includes(editDraft.question_type)
+                      ? []
+                      : [{ value: editDraft.question_type, label: `${editDraft.question_type}（原始）` }]),
+                  ]} /></div>
               <div><Typography.Text strong>章节</Typography.Text><br />
                 <Typography.Text type="secondary">{editDraft.chapter || "根据知识点自动派生"}</Typography.Text></div>
               <div><Typography.Text strong>难度</Typography.Text><br />

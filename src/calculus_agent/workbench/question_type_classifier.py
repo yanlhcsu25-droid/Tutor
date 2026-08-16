@@ -20,6 +20,15 @@ SELECTION_CUE_RE = re.compile(
 )
 PROOF_RE = re.compile(r"(?:试证明|试证|证明下列|根据.{0,30}证明|利用.{0,30}证明|证明)")
 FILL_EXPLICIT_RE = re.compile(r"填空|填入|填在空格|在空格内")
+# 版式信号比“求、证明、积分”等数学语义更可靠。OCR/Markdown 常把
+# ``$f(x) =$ _____.`` 的公式边界留在等号与空白之间，因此在专用的
+# layout_text 中移除未转义 ``$`` 后再判断连续下划线。
+FILL_PLACEHOLDER_RE = re.compile(
+    r"(?P<equals>=\s*(?:_{3,}|＿{3,}))|"
+    r"(?P<underscores>_{3,}|＿{3,})|"
+    r"(?P<underline>\\underline\s*\{)|"
+    r"(?P<blank>\\blank\b)"
+)
 FILL_END_RE = re.compile(
     r"(?:则\s*\$?[A-Za-zα-ωΑ-Ω][\wα-ωΑ-Ω]*\$?\s*=\s*\$?(?=解|答案|[。．.]|$)|"
     r"其值为|结果为|应为)\s*(?:[。．.]|$)?"
@@ -60,6 +69,7 @@ def infer_question_type(
 ) -> ClassificationResult:
     """Classify without changing splitting, Markdown, answers, or matching state."""
     text = re.sub(r"\s+", "", question_content)
+    layout_text = re.sub(r"(?<!\\)\$", "", question_content)
     if options is None:
         _, detected_options = extract_normalized_options(question_content)
         options = detected_options
@@ -69,11 +79,17 @@ def infer_question_type(
         return ClassificationResult("selection", f"识别到{option_count}个规范化选项")
     if SELECTION_CUE_RE.search(text) and option_count >= 2:
         return ClassificationResult("selection", "题干包含选择指令且识别到多个选项")
-    if PROOF_RE.search(text):
-        return ClassificationResult("proof", "题干包含明确的证明指令")
+    placeholder = FILL_PLACEHOLDER_RE.search(layout_text)
+    if placeholder:
+        return ClassificationResult(
+            "fill_blank",
+            f"题干包含明确空白占位符“{placeholder.group(0)}”",
+        )
     explicit_fill = FILL_EXPLICIT_RE.search(text)
     if explicit_fill:
         return ClassificationResult("fill_blank", f"题干包含“{explicit_fill.group(0)}”")
+    if PROOF_RE.search(text):
+        return ClassificationResult("proof", "题干包含明确的证明指令")
     fill_end = FILL_END_RE.search(text)
     if fill_end:
         return ClassificationResult("fill_blank", f"题干以待填写表达“{fill_end.group(0)}”结束")

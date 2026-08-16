@@ -20,12 +20,47 @@ const REVIEW_COPY = {
   completed: { text: "已审核", color: "success" },
 } as const;
 
+type OcrProgress = NonNullable<WbSource["progress"]>;
+
+function ratio(progress: OcrProgress): number {
+  const current = progress.current_page ?? 0;
+  const total = progress.total_pages ?? 0;
+  return total > 0 ? Math.min(1, Math.max(0, current / total)) : 0;
+}
+
+function ocrProgressView(progress: OcrProgress): { percent: number; label: string } {
+  const stageRatio = ratio(progress);
+  const current = progress.current_page ?? 0;
+  const total = progress.total_pages ?? 0;
+  switch (progress.status) {
+    case "mineru_layout":
+      return { percent: Math.round(2 + 8 * stageRatio), label: `版面分析 ${current}/${total} · ${Math.round(stageRatio * 100)}%` };
+    case "mineru_predict":
+      return { percent: Math.round(10 + 80 * stageRatio), label: `内容识别 ${current}/${total} · ${Math.round(stageRatio * 100)}%` };
+    case "mineru_ocr":
+      return { percent: Math.round(90 + 7 * stageRatio), label: `文字检测 ${current}/${total} · ${Math.round(stageRatio * 100)}%` };
+    case "mineru_pages":
+      return { percent: Math.round(97 + 2 * stageRatio), label: `正在生成结果 ${Math.round(stageRatio * 100)}%` };
+    case "matching":
+      return { percent: 99, label: "正在切分并匹配题目与答案" };
+    case "ocr":
+    case "ocr_page_complete":
+      return { percent: Math.round(stageRatio * 100), label: `OCR 识别进度 ${Math.round(stageRatio * 100)}%` };
+    case "queued":
+      return { percent: 0, label: "OCR 任务排队中" };
+    default:
+      return { percent: 1, label: "MinerU 正在初始化" };
+  }
+}
+
 export default function PdfImportPanel({ open, onReady, onSelectExisting }: Props) {
   const [sources, setSources] = useState<WbSource[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [activeSourceId, setActiveSourceId] = useState("");
   const [deletingId, setDeletingId] = useState("");
   const [loadError, setLoadError] = useState("");
   const [solutionMode, setSolutionMode] = useState<"inline" | "separate">("inline");
+  const [ocrMode, setOcrMode] = useState<"mineru" | "ppstructure">("mineru");
   const [ranges, setRanges] = useState({ questionStart: 1, questionEnd: 1, solutionStart: 2, solutionEnd: 2 });
   const [preview, setPreview] = useState<{ sourceId: string; page: number; total: number; markdown: string } | null>(null);
 
@@ -39,7 +74,28 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
     }
   }, []);
 
-  useEffect(() => { if (open) void refresh(); }, [open, refresh]);
+  useEffect(() => {
+    if (!open) return;
+    void refresh();
+    const refreshVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    const timer = window.setInterval(refreshVisible, 2500);
+    window.addEventListener("focus", refreshVisible);
+    document.addEventListener("visibilitychange", refreshVisible);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshVisible);
+      document.removeEventListener("visibilitychange", refreshVisible);
+    };
+  }, [open, refresh]);
+
+  useEffect(() => {
+    if (!open || !uploading) return;
+    void refresh();
+    const timer = window.setInterval(() => { void refresh(); }, 1000);
+    return () => window.clearInterval(timer);
+  }, [open, uploading, refresh]);
 
   useEffect(() => {
     if (!open) return;
@@ -48,6 +104,7 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
     );
     if (!active) return;
     const progress = active.progress ?? {};
+    if (progress.status?.startsWith("mineru")) return;
     const page = progress.current_page ?? 0;
     if (page < 1) return;
     let cancelled = false;
@@ -78,8 +135,12 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
       return false;
     }
     setUploading(true);
+    const sourceFileId = `src_${crypto.randomUUID().replaceAll("-", "")}`;
+    setActiveSourceId(sourceFileId);
     try {
       const result: WbUploadResult = await wb.uploadPdf(file, {
+        sourceFileId,
+        ocrMode,
         solutionMode,
         questionPageStart: ranges.questionStart,
         questionPageEnd: ranges.questionEnd,
@@ -93,6 +154,8 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
       message.error(String(error));
     } finally {
       setUploading(false);
+      setActiveSourceId("");
+      await refresh();
     }
     return false;
   };
@@ -113,7 +176,8 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
         setDeletingId(source.source_file_id);
         try {
           const result = await wb.deleteSource(source.source_file_id);
-          if (result.file_cleanup_warnings.length) message.warning(result.file_cleanup_warnings.join("；"));
+          if (result.status === "deleting") message.success("已请求停止 OCR，当前页结束后自动删除");
+          else if (result.file_cleanup_warnings?.length) message.warning(result.file_cleanup_warnings.join("；"));
           else message.success("PDF 导入记录已删除");
           await refresh();
         } catch (error: unknown) {
@@ -137,6 +201,18 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
           <Radio.Button value="inline">普通习题</Radio.Button>
           <Radio.Button value="separate">套卷</Radio.Button>
         </Radio.Group>
+        <Space size="small">
+          <Typography.Text>识别引擎</Typography.Text>
+          <Select
+            value={ocrMode}
+            onChange={setOcrMode}
+            style={{ width: 220 }}
+            options={[
+              { value: "mineru", label: "MinerU（推荐）" },
+              { value: "ppstructure", label: "Paddle PPStructure（兼容）" },
+            ]}
+          />
+        </Space>
         {solutionMode === "separate" && (
           <Space wrap size="small">
             <Typography.Text>题目页</Typography.Text>
@@ -155,7 +231,19 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
           </Upload>
           <Typography.Text type="secondary">支持 PDF · 最大 200MB</Typography.Text>
         </Space>
-        {uploading && <Progress percent={99} status="active" size="small" />}
+        {uploading && (() => {
+          const active = sources.find((source) => source.source_file_id === activeSourceId);
+          const progress = active?.progress ?? {};
+          const view = ocrProgressView(progress);
+          return (
+            <div className="pdf-upload-progress">
+              <Progress percent={view.percent} status="active" size="small" />
+              <Typography.Text type="secondary">
+                {active ? view.label : "正在上传并创建 OCR 任务…"}
+              </Typography.Text>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="pdf-source-header">
@@ -169,17 +257,16 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
             const review = source.review ?? { status: "pending", completed: source.reviewed_count ?? 0, total: questionCount };
             const copy = REVIEW_COPY[review.status];
             const percent = review.total ? Math.round(review.completed / review.total * 100) : 0;
-            const processing = source.processing_status === "queued" || source.processing_status === "processing";
+            const processing = ["queued", "processing", "pausing", "paused", "deleting"].includes(source.processing_status);
             const progress = source.progress ?? {};
-            const currentPage = progress.current_page ?? 0;
-            const totalPages = progress.total_pages || source.page_count || 0;
-            const canDelete = source.can_delete === true;
+            const progressView = ocrProgressView(progress);
+            const canDelete = source.can_delete === true && source.processing_status !== "deleting";
             return (
               <List.Item className="pdf-source-item" actions={[
                 <Button key="review" type="primary" ghost disabled={processing} onClick={() => onSelectExisting(source.source_file_id)}>
                   {review.status === "completed" ? "查看审核" : "进入审核"}
                 </Button>,
-                <Tooltip key="delete" title={source.can_delete ? "删除导入记录" : "已有题目发布到正式题库，不能删除"}>
+                <Tooltip key="delete" title={source.processing_status === "deleting" ? "正在停止 OCR 并删除" : (source.can_delete ? (processing ? "停止 OCR 并删除" : "删除导入记录") : "已有题目发布到正式题库，不能删除")}>
                   <span>
                     <Button danger icon={<DeleteOutlined />} disabled={!canDelete}
                       loading={deletingId === source.source_file_id} onClick={() => confirmDelete(source)}>
@@ -194,8 +281,11 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
                   description={(
                     <div className="pdf-source-detail">
                       <Typography.Text type="secondary">{source.page_count} 页 · {questionCount} 题 · {review.completed}/{review.total}</Typography.Text>
-                      {processing && <Typography.Text type="warning">{progress.status === "matching" ? "正在匹配题目与答案" : `正在识别第 ${currentPage} / ${totalPages || "?"} 页`}</Typography.Text>}
-                      <Progress percent={processing && totalPages ? Math.round(currentPage / totalPages * 100) : percent} size="small" showInfo={false} status={processing ? "active" : undefined} />
+                      {processing && <Typography.Text type="warning">{source.processing_status === "deleting" ? "正在停止 OCR 并删除" : progressView.label}</Typography.Text>}
+                      {source.processing_status === "failed" && source.processing_error && (
+                        <Typography.Text type="danger">处理失败：{source.processing_error}</Typography.Text>
+                      )}
+                      <Progress percent={processing ? progressView.percent : percent} size="small" showInfo={processing} status={processing ? "active" : undefined} />
                       {(source.published_count ?? 0) > 0 && <Typography.Text type="secondary">已有 {source.published_count} 题发布到正式题库</Typography.Text>}
                     </div>
                   )}

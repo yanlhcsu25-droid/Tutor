@@ -81,9 +81,44 @@ class Settings(BaseSettings):
             "SILICONFLOW_TIMEOUT_SECONDS",
         ),
     )
+    # AI knowledge pre-annotation is recommendation-only and can be disabled
+    # independently from OCR/agent model calls.
+    knowledge_llm_enabled: bool = False
 
     # 外部数据集路径
     external_data_root: Path = Path("../data/external/ugmathbench")
+
+    # 教材知识库（Textbook RAG）embedding 配置
+    # provider: "local"（离线确定性哈希向量，无需网络/密钥）或 "siliconflow"（OpenAI 兼容语义向量）
+    textbook_embedding_provider: str = Field(
+        default="local",
+        validation_alias=AliasChoices(
+            "CALCULUS_AGENT_EMBEDDING_PROVIDER",
+            "EMBEDDING_PROVIDER",
+        ),
+    )
+    textbook_embedding_model: str = Field(
+        default="BAAI/bge-m3",
+        validation_alias=AliasChoices(
+            "CALCULUS_AGENT_EMBEDDING_MODEL",
+            "EMBEDDING_MODEL",
+        ),
+    )
+    textbook_embedding_dim: int = Field(
+        default=2048,
+        validation_alias=AliasChoices(
+            "CALCULUS_AGENT_EMBEDDING_DIM",
+            "EMBEDDING_DIM",
+        ),
+    )
+    # Textbook RAG 向量库落盘路径（SQLite，零外部服务）
+    textbook_vector_db_path: Path = Field(
+        default=Path("output/knowledge/textbook_vectors.db"),
+        validation_alias=AliasChoices(
+            "CALCULUS_AGENT_TEXTBOOK_VECTOR_DB_PATH",
+            "TEXTBOOK_VECTOR_DB_PATH",
+        ),
+    )
 
 
 @lru_cache

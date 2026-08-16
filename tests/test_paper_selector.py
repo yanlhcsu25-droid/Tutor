@@ -55,7 +55,7 @@ def test_compose_paper_satisfies_explicit_constraints(session):
     session.flush()
     _question(session, 1, "选择题", knowledge)
     _question(session, 2, "选择题", knowledge)
-    _question(session, 3, "解答题", knowledge)
+    _question(session, 3, "计算题", knowledge)
     session.flush()
 
     result = compose_paper(
@@ -65,7 +65,7 @@ def test_compose_paper_satisfies_explicit_constraints(session):
             grade="八年级",
             total_questions=3,
             total_score=100,
-            question_type_counts={"选择题": 2, "解答题": 1},
+            question_type_counts={"选择题": 2, "计算题": 1},
             knowledge_quotas=[KnowledgeQuota(name="一次函数", count=2)],
         ),
     )
@@ -197,7 +197,7 @@ def test_fractional_scores_return_infeasible_report_instead_of_validation_error(
             total_score=70,
             sections=[
                 {
-                    "question_type": "解答题",
+                    "question_type": "计算题",
                     "count": 4,
                     "score_per_question": 17.5,
                     "total_score": 70,
@@ -245,7 +245,7 @@ def test_compose_paper_checks_image_requirement(session):
     )
     session.add(knowledge)
     session.flush()
-    _question(session, 1, "解答题", knowledge, image_path="figure.png")
+    _question(session, 1, "计算题", knowledge, image_path="figure.png")
     session.flush()
 
     result = compose_paper(
@@ -307,7 +307,7 @@ def test_compose_paper_applies_manual_order_and_score_override(session):
     session.add(knowledge)
     session.flush()
     first = _question(session, 1, "选择题", knowledge)
-    second = _question(session, 2, "解答题", knowledge)
+    second = _question(session, 2, "计算题", knowledge)
     third = _question(session, 3, "填空题", knowledge)
     session.flush()
 

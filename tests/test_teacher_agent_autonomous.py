@@ -51,7 +51,7 @@ def _question(session, number: int, difficulty: int, knowledge_id: str) -> Quest
         source_item_id=str(number),
         variant=1,
         subject="高数",
-        question_type="解答题",
+        question_type="计算题",
         question_text=f"自主 Agent 真实题干{number}",
         normalized_fingerprint=f"{number:064d}",
         status="approved",
@@ -61,7 +61,7 @@ def _question(session, number: int, difficulty: int, knowledge_id: str) -> Quest
     question = Question(
         draft_id=draft.id,
         question_text=draft.question_text,
-        question_type="解答题",
+        question_type="计算题",
         verification_status="verified",
         review_status="approved",
     )
@@ -126,7 +126,7 @@ def _paper(session) -> Paper:
         session.add(PaperItem(
             paper_id=paper.id,
             question_id=question.id,
-            section="解答题",
+            section="计算题",
             position=position,
             score=10,
             locked=False,
@@ -236,7 +236,7 @@ def test_agent_reads_real_question_then_answers_from_observation(session):
     paper = _paper(session)
     backend = SequenceBackend(
         tool_call("read_current_paper", {"positions": [3]}),
-        final("第3题是“自主 Agent 真实题干3”，是一道10分的解答题。"),
+        final("第3题是“自主 Agent 真实题干3”，是一道10分的计算题。"),
     )
     result = run_teacher_agent(
         session, "第3题是什么？", conversation_id="read", paper_id=paper.id,
@@ -331,7 +331,7 @@ def test_whole_paper_read_then_llm_summary(session):
     paper = _paper(session)
     backend = SequenceBackend(
         tool_call("read_current_paper"),
-        final("当前试卷共3道解答题，每题10分，总分30分。"),
+        final("当前试卷共3道计算题，每题10分，总分30分。"),
     )
     result = run_teacher_agent(
         session, "现在这张卷子整体是什么情况？", conversation_id="overview",
@@ -528,7 +528,7 @@ def test_ungrounded_paper_fact_is_rejected_after_focused_recheck(session):
             final("第2题仍然是我猜的极限题。"),
         ),
     )
-    assert result.status == "failed"
+    assert result.status == "needs_clarification"
     assert "我猜" not in result.message
     assert result.blocking_errors == ["paper_observation_required"]
 

@@ -1,22 +1,30 @@
-from __future__ import annotations
-
-import pytest
-
 """separate OCR 匹配与发布语义测试（对应第二十节验收场景）。
 
 仅覆盖 solution_mode='separate'；inline 模式行为见 test_ocr_*_inline* 套件，
 本文件末尾用最小用例确认 inline 未被影响。
 """
 
+from __future__ import annotations
+
+import pytest
+
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy import select
 
 from calculus_agent.db import build_session_factory, create_schema
 from calculus_agent.models import OcrImportDraft, OcrImportSource, Question
 from calculus_agent.workbench.database import WorkbenchDatabase
-from calculus_agent.workbench.import_pipeline import DocumentLayout, import_document
+from calculus_agent.workbench.import_pipeline import (
+    DocumentLayout,
+    extract_questions,
+    extract_solutions,
+    import_document,
+)
 from calculus_agent.workbench.ocr import persist_rendered_draft, render_drafts
 from calculus_agent.ocr.import_service import publish_ocr_draft
 from calculus_agent.workbench.resplit import apply_plan, build_plan
+import calculus_agent.workbench.app as app_module
 
 
 SOURCE_ID = "src_" + "b" * 32
@@ -92,6 +100,278 @@ def test_subquestion_missing_middle(tmp_path):
     assert _statuses(result) == {
         "3(1)": "matched", "3(2)": "missing_answer", "3(3)": "matched"
     }
+
+
+def test_parenthesized_major_numbers_keep_roman_subquestions_nested():
+    questions = """## 一、选择题
+(1) 第一题. A.甲 B.乙 C.丙 D.丁 (2) 第二题. A.甲 B.乙 C.丙 D.丁
+## 二、解答题
+(1) 求下列各式：
+(I) 第一问
+(II) 第二问
+"""
+    solutions = """## 一、选择题
+(1)A.
+(2)B.
+## 二、解答题
+(1) 解：(I) 第一问解答；(II) 第二问解答
+"""
+
+    result = _run(questions, solutions)
+
+    assert [item.candidate.original_number for item in result.candidates] == ["1", "2", "1"]
+    assert all(item.candidate.match_status == "matched" for item in result.candidates)
+
+
+def test_parenthesized_major_number_continuation_without_repeated_heading():
+    questions = """(7) 第七题. A.甲 B.乙 C.丙 D.丁
+(8) 第八题. A.甲 B.乙 C.丙 D.丁"""
+    solutions = """(7)C.
+(8)D."""
+
+    result = _run(questions, solutions)
+
+    assert [item.candidate.original_number for item in result.candidates] == ["7", "8"]
+    assert all(item.candidate.match_status == "matched" for item in result.candidates)
+
+
+def test_cross_page_formula_does_not_hide_parenthesized_solution_numbers():
+    questions = """## 一、选择题
+(1) 第一题. A.甲 B.乙 C.丙 D.丁
+(2) 第二题. A.甲 B.乙 C.丙 D.丁
+(3) 第三题. A.甲 B.乙 C.丙 D.丁
+(4) 第四题. A.甲 B.乙 C.丙 D.丁
+(5) 第五题. A.甲 B.乙 C.丙 D.丁
+(6) 第六题. A.甲 B.乙 C.丙 D.丁
+(7) 第七题. A.甲 B.乙 C.丙 D.丁
+(8) 第八题. A.甲 B.乙 C.丙 D.丁
+(9) 第九题. A.甲 B.乙 C.丙 D.丁
+(10) 第十题. A.甲 B.乙 C.丙 D.丁"""
+    solution_page_one = """## 一、选择题
+(1)A.
+(2)B.
+(3)C.
+(4)D.
+(5)A.
+(6)B. 解答跨页开始，且 $F(0)=0$。"""
+    solution_page_two = """故 $C_1 = C_2$ .令 $C_1=C_2=C$，第六题结束。
+(7)C.
+(8)B. 解 题目八的答案。
+(9)D.
+(10)A."""
+    layout = DocumentLayout("separate", [1], [2, 3])
+
+    result = import_document(
+        [(1, questions), (2, solution_page_one), (3, solution_page_two)],
+        layout,
+    )
+
+    assert _statuses(result) == {
+        str(number): "matched" for number in range(1, 11)
+    }
+    question_eight = next(
+        item.candidate for item in result.candidates
+        if item.candidate.original_number == "8"
+    )
+    assert question_eight.answer.startswith("B.")
+
+
+def test_single_next_parenthesized_solution_number_is_promoted_across_pages():
+    questions = """## 一、选择题
+(11) 第十一题. A.甲 B.乙 C.丙 D.丁
+(12) 第十二题. A.甲 B.乙 C.丙 D.丁
+(13) 第十三题. A.甲 B.乙 C.丙 D.丁
+(14) 第十四题. A.甲 B.乙 C.丙 D.丁
+(15) 第十五题. A.甲 B.乙 C.丙 D.丁
+(16) 第十六题. A.甲 B.乙 C.丙 D.丁"""
+    page_two = """## 一、选择题
+(11)A. 第十一题答案。
+(12)B. 第十二题答案。
+(13)C. 第十三题答案。
+(14)A. 第十四题答案从本页开始。"""
+    page_three = """第十四题答案续写，且 $F(0)=0$。
+(15)B. 第十五题答案。"""
+    page_four = """第十五题答案续写。
+(16)C. 第十六题答案。
+## 二、填空题
+(1) 填空答案"""
+    layout = DocumentLayout("separate", [1], [2, 3, 4])
+
+    result = import_document(
+        [(1, questions), (2, page_two), (3, page_three), (4, page_four)],
+        layout,
+    )
+
+    by_number = {
+        item.candidate.original_number: item.candidate
+        for item in result.candidates
+    }
+    assert {number: by_number[number].match_status for number in ("14", "15", "16")} == {
+        "14": "matched",
+        "15": "matched",
+        "16": "matched",
+    }
+    assert by_number["15"].answer.startswith("B.")
+    assert by_number["16"].answer.startswith("C.")
+
+
+def test_repeated_section_titles_are_matched_by_occurrence():
+    questions = """## 一、选择题
+(1) 基础题一. A.甲 B.乙 C.丙 D.丁
+## 二、填空题
+(1) 填空题一
+## 一、选择题
+(1$ 综合题一. A.甲 B.乙 C.丙 D.丁
+"""
+    solutions = """## 一、选择题
+(1)A.
+## 二、填空题
+(1)答案甲
+## 一、选择题
+(1)D.
+"""
+
+    result = _run(questions, solutions)
+
+    assert [item.candidate.answer for item in result.candidates] == ["A.", "甲", "D."]
+    assert all(item.candidate.match_status == "matched" for item in result.candidates)
+
+
+def test_single_explicit_section_keeps_existing_occurrence_behavior():
+    questions = """## 二、填空题
+1. 第一题
+2. 第二题
+3. 第三题"""
+    solutions = """## 二、填空题
+1. 答案一
+2. 答案二
+3. 答案三"""
+
+    result = _run(questions, solutions)
+
+    assert [item.candidate.section_key for item in result.candidates] == [
+        "二#1",
+        "二#1",
+        "二#1",
+    ]
+    assert all(item.candidate.match_status == "matched" for item in result.candidates)
+
+
+def test_confirmed_top_level_number_restart_creates_implicit_occurrence():
+    questions = """1. 第一组第一题
+2. 第一组第二题
+3. 第一组第三题
+4. 第一组第四题
+1. 第二组第一题
+2. 第二组第二题
+3. 第二组第三题"""
+    solutions = """1. 第一组答案一
+2. 第一组答案二
+3. 第一组答案三
+4. 第一组答案四
+1. 第二组答案一
+2. 第二组答案二
+3. 第二组答案三"""
+
+    result = _run(questions, solutions)
+
+    assert [item.candidate.section_key for item in result.candidates] == [
+        "__implicit__#1",
+        "__implicit__#1",
+        "__implicit__#1",
+        "__implicit__#1",
+        "__implicit__#2",
+        "__implicit__#2",
+        "__implicit__#2",
+    ]
+    assert all(item.candidate.match_status == "matched" for item in result.candidates)
+
+
+def test_parenthesized_subquestions_do_not_create_implicit_section():
+    questions = """8. 求下列各式：
+(1) 第一问
+(2) 第二问
+(3) 第三问
+9. 下一道顶层题"""
+    solutions = """8. 解：
+(1) 第一问答案
+(2) 第二问答案
+(3) 第三问答案
+9. 第九题答案"""
+
+    result = _run(questions, solutions)
+
+    assert [item.candidate.original_number for item in result.candidates] == [
+        "8(1)",
+        "8(2)",
+        "8(3)",
+        "9",
+    ]
+    assert all(item.candidate.section_key is None for item in result.candidates)
+    assert all(item.candidate.match_status == "matched" for item in result.candidates)
+
+
+def test_question_and_solution_restart_occurrences_produce_one_to_one_keys():
+    questions = "1. Q1A\n2. Q2A\n3. Q3A\n1. Q1B\n2. Q2B\n3. Q3B"
+    solutions = "1. A1A\n2. A2A\n3. A3A\n1. A1B\n2. A2B\n3. A3B"
+
+    question_items = extract_questions([(1, questions)])
+    solution_items = extract_solutions([(2, solutions)])
+    question_keys = [item.key for item in question_items]
+    solution_keys = [item.key for item in solution_items]
+
+    assert question_keys == solution_keys
+    assert len(question_keys) == len(set(question_keys)) == 6
+    result = _run(questions, solutions)
+    assert result.diagnostics.ambiguous_keys == []
+    assert all(item.candidate.match_status == "matched" for item in result.candidates)
+
+
+def test_real_bad_case_restarts_8_to_13_into_second_occurrence():
+    questions_fill = "\n".join(
+        ["## 二、填空题"]
+        + [f"({number}) 填空题 {number} = _____." for number in range(1, 14)]
+    )
+    questions_calculation = "\n".join(
+        f"({number}) 求第 {number} 个积分." for number in range(8, 14)
+    )
+    solutions_fill = "\n".join(
+        ["## 二、填空题"]
+        + [f"({number}) 填空答案 {number}." for number in range(1, 14)]
+    )
+    solutions_calculation = "\n".join(
+        f"({number}) 解 第 {number} 个积分的过程." for number in range(8, 14)
+    )
+    layout = DocumentLayout("separate", [1, 2], [3, 4])
+
+    result = import_document(
+        [
+            (1, questions_fill),
+            (2, questions_calculation),
+            (3, solutions_fill),
+            (4, solutions_calculation),
+        ],
+        layout,
+    )
+
+    repeated = [
+        item.candidate
+        for item in result.candidates
+        if item.candidate.original_number in {str(number) for number in range(8, 14)}
+    ]
+    assert len(repeated) == 12
+    assert {
+        (item.original_number, item.section_key)
+        for item in repeated
+    } == {
+        *((str(number), "二#1") for number in range(8, 14)),
+        *((str(number), "二#2") for number in range(8, 14)),
+    }
+    assert all(item.match_status == "matched" for item in repeated)
+    assert not any(
+        key.endswith(tuple(f":{number}" for number in range(8, 14)))
+        for key in result.diagnostics.ambiguous_keys
+    )
 
 
 # ── 5. 同一题号两份答案 → ambiguous，不进入待审核 ──
@@ -197,6 +477,71 @@ def test_missing_answer_still_in_review_list(tmp_path):
         nums = {d["original_number"]: d["match_status"] for d in drafts}
     # 缺答案题仍返回，列表不过滤；仅发布被拦截
     assert nums == {"1": "matched", "3": "missing_answer"}
+
+
+def test_repair_missing_answers_restores_stale_empty_draft(tmp_path, monkeypatch):
+    factory = _database(tmp_path, "1. 第一题", "1. 正确答案")
+    with factory.begin() as session:
+        draft = session.scalar(select(OcrImportDraft))
+        assert draft is not None
+        draft.edited_markdown = draft.edited_markdown.replace(
+            "## 参考解答\n\n答案：正确答案",
+            "## 参考解答\n\n",
+        )
+        draft.match_status = "missing_answer"
+        draft.match_method = "unmatched"
+        draft.review_note = "历史错误匹配"
+        draft.edited_markdown = draft.edited_markdown.replace(
+            "## 审核备注\n\n",
+            "## 审核备注\n\nanswer_not_found（未找到与该题号对应的参考解答）\n\n",
+        )
+        draft.content_confirmed = True
+        question_id = draft.id
+
+    monkeypatch.setattr(app_module, "_session_factory", factory)
+    response = TestClient(app_module.app).post(
+        f"/api/sources/{SOURCE_ID}/answers/repair"
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["repaired_count"] == 1
+    with factory.begin() as session:
+        repaired = session.get(OcrImportDraft, question_id)
+        assert repaired is not None
+        assert "正确答案" in repaired.edited_markdown
+        assert "answer_not_found" not in repaired.edited_markdown
+        assert repaired.review_note is None
+        assert repaired.match_status == "matched"
+        assert repaired.content_confirmed is False
+
+
+def test_repair_missing_answers_clears_legacy_note_after_answer_was_restored(
+    tmp_path, monkeypatch
+):
+    factory = _database(tmp_path, "1. 第一题", "1. 正确答案")
+    with factory.begin() as session:
+        draft = session.scalar(select(OcrImportDraft))
+        assert draft is not None
+        draft.edited_markdown = draft.edited_markdown.replace(
+            "## 审核备注\n\n",
+            "## 审核备注\n\nanswer_not_found（未找到与该题号对应的参考解答）\n\n",
+        )
+        draft.match_status = "matched"
+        draft.review_note = None
+        question_id = draft.id
+
+    monkeypatch.setattr(app_module, "_session_factory", factory)
+    response = TestClient(app_module.app).post(
+        f"/api/sources/{SOURCE_ID}/answers/repair"
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["repaired_question_ids"] == [question_id]
+    with factory.begin() as session:
+        repaired = session.get(OcrImportDraft, question_id)
+        assert repaired is not None
+        assert "正确答案" in repaired.edited_markdown
+        assert "answer_not_found" not in repaired.edited_markdown
 
 
 # ── 2（补）. 历史 separate 草稿迁移回填为 unknown，inline/legacy 保持 matched ──

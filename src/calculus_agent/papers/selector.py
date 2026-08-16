@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from calculus_agent.models import KnowledgeNode, Question, QuestionDraft, QuestionKnowledgeLink, QuestionProfile
-from calculus_agent.question_types import canonical_question_type
+from calculus_agent.question_types import ALLOWED_QUESTION_TYPES, canonical_question_type
 from calculus_agent.schemas import ConstraintCheck, PaperBlueprint, PaperItemRead, PaperPreviewRead
 from calculus_agent.agent.schemas import GenerationConstraints, PaperGenerationRequest
 
@@ -111,7 +111,10 @@ def _candidates(
             (QuestionProfile.question_id == latest.c.question_id)
             & (QuestionProfile.profile_version == latest.c.profile_version),
         ).where(QuestionProfile.difficulty.in_(constraints.allowed_difficulty_levels))
-    questions = list(session.scalars(statement).all())
+    questions = [
+        q for q in session.scalars(statement).all()
+        if canonical_question_type(q.question_type) in ALLOWED_QUESTION_TYPES
+    ]
     if not questions:
         return []
     question_ids = [question.id for question in questions]
