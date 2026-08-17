@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from calculus_agent.config import Settings
 from calculus_agent.models import TeacherAgentRunTrace
 from calculus_agent.orchestration.backend import BailianChatBackend
+from calculus_agent.papers.addressing import QuestionAddress
 
 from .conversation_state import (
     DatabaseConversationHistoryStore,
@@ -116,7 +117,7 @@ _SYSTEM_PROMPT = """你是 Teacher Agent。
 
 你必须自主判断当前问题是否需要工具、调用哪个工具、是否需要连续调用多个工具，以及获得工具结果后下一步做什么。不要要求用户使用固定指令格式。
 
-普通聊天、能力介绍和不依赖系统事实的解释，直接用自然语言回答，不调用工具。回答依赖当前试卷、题目、题库或版本的真实状态时，不要猜测，主动调用对应读取工具。教师明确询问一个或多个题号时，read_current_paper 必须传 positions 且只读取这些题号；只有整卷概览问题才省略 positions。你可以连续调用多个工具完成一个用户目标。
+普通聊天、能力介绍和不依赖系统事实的解释，直接用自然语言回答，不调用工具。回答依赖当前试卷、题目、题库或版本的真实状态时，不要猜测，主动调用对应读取工具。教师明确说“选择题第N题、填空题第N题、计算题第N题或证明题第N题”时，read_current_paper 必须使用 addresses={section_type, section_order}，不得把题型内编号误当成全卷 position；只有教师明确说“全卷第N题”时才使用 legacy positions。教师只说“第N题”且没有明确题型时必须追问题型。只有整卷概览问题才省略 addresses 和 positions。你可以连续调用多个工具完成一个用户目标。
 
 工具负责确定性业务执行。你不得绕过工具直接修改数据库，不得编造 Paper、Question、KnowledgeNode 或版本 ID，不得把工具失败说成成功。Tool 返回约束失败时，应根据 Observation 向教师解释；必要时可以调用其他相关工具，但不能擅自放宽教师约束。
 
@@ -235,10 +236,14 @@ def _paper_grounding_messages(
                 "判断回答是否涉及当前试卷、当前题目、分值、难度、知识点或当前版本的事实。"
                 "版本刚变化时，旧版本读取结果一律无效。"
                 "本步骤没有工具，不要尝试回答 Paper 事实。"
-                "需要 Paper 事实时只返回 JSON；若教师明确提到题号，将题号放入 requested_positions，"
-                "例如“第五题是什么”返回："
-                '{"paper_observation_required":true,"requested_positions":[5],"answer":""}；'
-                "整卷问题则返回 requested_positions:[]。"
+                "需要 Paper 事实时只返回 JSON。当前试卷按题型分别编号。"
+                "若教师说“填空题第2题、选择题第1题、证明题第1题”等题型内编号，"
+                "返回 paper_observation_required=true 且 requested_positions=[]；"
+                "执行层会从教师原始消息中确定性解析 section address。"
+                "只有教师明确说“全卷第N题”时才把 N 放入 requested_positions。"
+                "若教师只说“第N题”而没有题型，也没有明确说全卷，则不要猜，"
+                "返回 paper_observation_required=false，并在 answer 中追问题型。"
+                "整卷问题返回 requested_positions:[]。"
                 "如果请求完全不依赖当前 Paper（例如问候、能力介绍、通用知识解释），"
                 "只返回一个 JSON 对象，格式必须严格为："
                 '{"paper_observation_required":false,"answer":"给教师的自然语言回答"}。'
@@ -267,14 +272,27 @@ def _paper_read_messages(
     message: str,
     serialized_context: str,
     requested_positions: list[int] | None = None,
+    requested_addresses: list[QuestionAddress] | None = None,
     retry: bool = False,
 ) -> list[dict[str, str]]:
-    scope_instruction = (
-        f"教师明确询问题号 {requested_positions}；必须调用 "
-        f"read_current_paper(positions={requested_positions})，不得扩大为整卷读取。"
-        if requested_positions else
-        "教师询问整卷情况；调用 read_current_paper 时可以省略 positions。"
-    )
+    if requested_addresses:
+        payload = [
+            address.model_dump(mode="json")
+            for address in requested_addresses
+        ]
+        scope_instruction = (
+            f"教师明确指定题型内地址 {payload}；必须调用 "
+            f"read_current_paper(addresses={payload})，不得转换成全卷 position。"
+        )
+    elif requested_positions:
+        scope_instruction = (
+            f"教师明确指定全卷内部题号 {requested_positions}；必须调用 "
+            f"read_current_paper(positions={requested_positions})。"
+        )
+    else:
+        scope_instruction = (
+            "教师询问整卷情况；调用 read_current_paper 时省略 addresses 和 positions。"
+        )
     return [
         {
             "role": "system",
@@ -298,7 +316,17 @@ def _paper_read_messages(
     ]
 
 
-_QUESTION_POSITION_PATTERN = re.compile(r"第\s*(\d+|[一二三四五六七八九十]+)\s*题")
+_QUESTION_NUMBER_TOKEN = r"(?P<number>\d+|[一二三四五六七八九十]+)"
+_SECTION_QUESTION_PATTERN = re.compile(
+    rf"(?P<section>选择题|多选题|填空题|计算题|证明题)\s*"
+    rf"第\s*{_QUESTION_NUMBER_TOKEN}\s*题"
+)
+_GLOBAL_QUESTION_PATTERN = re.compile(
+    rf"(?:全卷|全卷的)\s*第\s*{_QUESTION_NUMBER_TOKEN}\s*题"
+)
+_BARE_QUESTION_PATTERN = re.compile(
+    rf"第\s*{_QUESTION_NUMBER_TOKEN}\s*题"
+)
 _CHINESE_DIGITS = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 
 
@@ -315,14 +343,48 @@ def _question_position(value: str) -> int | None:
     return _CHINESE_DIGITS.get(value)
 
 
+def _explicit_question_addresses(message: str) -> list[QuestionAddress]:
+    """Extract explicit teacher-facing section-local addresses deterministically."""
+    addresses: list[QuestionAddress] = []
+    seen: set[tuple[str, int]] = set()
+
+    for match in _SECTION_QUESTION_PATTERN.finditer(message):
+        section_order = _question_position(match.group("number"))
+        if not section_order:
+            continue
+
+        address = QuestionAddress(
+            section_type=match.group("section"),
+            section_order=section_order,
+        )
+        key = (address.section_type, address.section_order)
+
+        if key not in seen:
+            addresses.append(address)
+            seen.add(key)
+
+    return addresses
+
+
 def _explicit_question_positions(message: str) -> list[int]:
-    """Extract only explicit 第N题 references; this narrows a read, never routes an action."""
+    """Extract only explicit legacy references such as 全卷第5题."""
     positions: list[int] = []
-    for match in _QUESTION_POSITION_PATTERN.finditer(message):
-        position = _question_position(match.group(1))
+
+    for match in _GLOBAL_QUESTION_PATTERN.finditer(message):
+        position = _question_position(match.group("number"))
         if position and position not in positions:
             positions.append(position)
+
     return positions
+
+
+def _has_ambiguous_bare_question_reference(message: str) -> bool:
+    """Return True only for 第N题 without an explicit section or 全卷 prefix."""
+    if _explicit_question_addresses(message):
+        return False
+    if _explicit_question_positions(message):
+        return False
+    return _BARE_QUESTION_PATTERN.search(message) is not None
 
 
 def _parse_paper_grounding_decision(content: str) -> _PaperGroundingDecision | None:
@@ -447,7 +509,9 @@ def run_teacher_agent(
             result.run_id = run_id
             return result
 
+        explicit_question_addresses = _explicit_question_addresses(message)
         explicit_question_positions = _explicit_question_positions(message)
+        ambiguous_bare_question = _has_ambiguous_bare_question_reference(message)
         history_store = DatabaseConversationHistoryStore(session) if conversation_id else None
         recent_messages: list[dict[str, str]] = []
         if history_store and conversation_id:
@@ -460,6 +524,27 @@ def run_teacher_agent(
                     message="无法读取会话上下文。",
                     blocking_errors=["conversation_context_error"],
                 ))
+        if (version_id or paper_id) and ambiguous_bare_question:
+            result = TeacherAgentResult(
+                status="needs_clarification",
+                message=(
+                    "当前试卷按题型分别编号。请明确题型，"
+                    "例如“选择题第2题”“填空题第2题”或“证明题第2题”。"
+                ),
+                clarification_questions=[
+                    "请明确题型和题型内编号。"
+                ],
+                blocking_errors=[
+                    "section_question_reference_ambiguous"
+                ],
+            )
+            _persist_final_message(
+                history_store,
+                conversation_id,
+                result.message,
+            )
+            return finish(result)
+
         if backend is None:
             result = TeacherAgentResult(
                 status="failed",
@@ -737,8 +822,14 @@ def run_teacher_agent(
                                 messages = _paper_read_messages(
                                     message=message,
                                     requested_positions=(
-                                        decision.requested_positions or explicit_question_positions
+                                        []
+                                        if explicit_question_addresses
+                                        else (
+                                            decision.requested_positions
+                                            or explicit_question_positions
+                                        )
                                     ),
+                                    requested_addresses=explicit_question_addresses,
                                     serialized_context=json.dumps(
                                         {
                                             **dynamic_context,
@@ -781,6 +872,7 @@ def run_teacher_agent(
                             messages = _paper_read_messages(
                                 message=message,
                                 requested_positions=explicit_question_positions,
+                                requested_addresses=explicit_question_addresses,
                                 serialized_context=json.dumps(
                                     {
                                         **dynamic_context,
@@ -828,12 +920,18 @@ def run_teacher_agent(
                     call_id = call["id"]
                     current_stage = "tool_arguments_parse"
                     name, arguments = _tool_arguments(call)
-                    if (
-                        name == "read_current_paper"
-                        and explicit_question_positions
-                        and not arguments.get("positions")
-                    ):
-                        arguments = {**arguments, "positions": explicit_question_positions}
+                    if name == "read_current_paper":
+                        if explicit_question_addresses:
+                            arguments = {
+                                "addresses": [
+                                    address.model_dump(mode="json")
+                                    for address in explicit_question_addresses
+                                ]
+                            }
+                        elif explicit_question_positions:
+                            arguments = {
+                                "positions": explicit_question_positions
+                            }
                     tool = tools.get(name)
                     tool_span = run_manager.add_span(
                         "tool_call", name,
