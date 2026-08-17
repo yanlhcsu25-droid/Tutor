@@ -284,7 +284,7 @@ def update_ocr_block(
 
 def save_ocr_as_draft(
     session: Session, task_id: str, merged_text: str | None = None,
-    question_type: str = "解答题", subject: str = "高等数学",
+    question_type: str = "unknown", subject: str = "高等数学",
 ) -> dict | None:
     """将 OCR 审核结果合并保存为 QuestionDraft + Question。
 
@@ -407,7 +407,8 @@ async def create_doc_ocr_task_async(
             candidate.body.encode("utf-8")
         ).hexdigest()
 
-        question_type_cn = _TYPE_MAP.get(candidate.question_type, "计算题")
+        # 未识别题型落 unknown（待人工），不静默当作计算题。
+        question_type_cn = _TYPE_MAP.get(candidate.question_type, "unknown")
 
         # 构建选项 JSON（适配 QuestionDraft.options_json 格式）
         options_json = [
@@ -465,14 +466,18 @@ async def create_doc_ocr_task_async(
 
 # --- 工作台 → 主题库同步 ---
 
+# 工作台内部词表 → 正式业务题型（五类 contract）。
+# ``subjective`` / ``other`` 表示分类器未能判定为四个可组卷题型之一，
+# 因此一律落成 ``unknown``（题型待定，需人工处理），绝不静默塞进计算题。
 _WORKBENCH_TYPE_MAP: dict[str, str] = {
-    "single_choice": "单选题",
-    "multiple_choice": "多选题",
+    "selection": "选择题",
+    "single_choice": "选择题",
+    "multiple_choice": "选择题",
     "fill_blank": "填空题",
     "calculation": "计算题",
     "proof": "证明题",
-    "subjective": "计算题",
-    "other": "其他",
+    "subjective": "unknown",
+    "other": "unknown",
 }
 
 
@@ -516,7 +521,8 @@ def sync_workbench_question_to_bank(
         question_text = f"{stem}\n\n{option_lines}"
 
     # 映射题目类型
-    main_question_type = _WORKBENCH_TYPE_MAP.get(wb_type, "计算题")
+    # 未识别的工作台题型不得静默落成计算题，一律 unknown 交人工判定。
+    main_question_type = _WORKBENCH_TYPE_MAP.get(wb_type, "unknown")
 
     # 映射难度等级
     level_map = {1: "easy", 2: "easy-medium", 3: "medium", 4: "medium-hard", 5: "hard"}

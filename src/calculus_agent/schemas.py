@@ -461,6 +461,8 @@ class QuestionOptionRead(BaseModel):
     source_name: str | None = None
     source_page: int | None = None
     chapter: str | None = None
+    chapter_id: str | None = None
+    chapter_status: Literal["ok", "missing", "unresolvable"] | None = None
     knowledge_match_status: str = "current"
     difficulty: int | None = None
     estimated_time_min: int | None = None
@@ -486,6 +488,8 @@ class QuestionDetailRead(BaseModel):
     solution_content: str | None = None
     final_answer: str | None = None
     chapter: str | None = None
+    chapter_id: str | None = None
+    chapter_status: Literal["ok", "missing", "unresolvable"] | None = None
     original_number: str | None = None
     source_name: str | None = None
     source_page: int | None = None

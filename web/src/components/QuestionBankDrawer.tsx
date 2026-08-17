@@ -17,6 +17,8 @@ import "./QuestionBankDrawer.css";
   source_name: string | null;
   source_page: number | null;
   chapter: string | null;
+  chapter_id: string | null;
+  chapter_status: "ok" | "missing" | "unresolvable" | null;
   difficulty: number | null;
   knowledge_match_status: string;
   publish_source: "manual" | "ai_auto";
@@ -62,10 +64,18 @@ interface QuestionProfileItem {
 
 const { Option } = Select;
 
-/** 合法题型（与后端 ALLOWED_QUESTION_TYPES 对齐；后端仍是唯一权威）。
- * 注：多选题已从 UI 入口移除——当前候选池无多选题题源，组卷无法产出，故不在选题器中暴露。
- * 后端 ALLOWED_QUESTION_TYPES 仍保留多选题，以维持 canonical 契约稳定。 */
-const QUESTION_TYPES = ["选择题", "填空题", "计算题", "证明题"];
+/** 合法题型（与后端 canonical 契约对齐；后端是唯一权威）。
+ * canonical 契约固定为 5 个值：选择题 / 填空题 / 计算题 / 证明题 / unknown。
+ * 多选题作为选择题的别名已在契约层收敛，不在 UI 入口单独暴露；
+ * unknown 表示「未知 / 未分类」，纳入选择器便于人工重新归类。 */
+const QUESTION_TYPES = ["选择题", "填空题", "计算题", "证明题", "unknown"];
+const QUESTION_TYPE_LABEL: Record<string, string> = {
+  "选择题": "选择题",
+  "填空题": "填空题",
+  "计算题": "计算题",
+  "证明题": "证明题",
+  "unknown": "未知（未分类）",
+};
 
 const EMPTY = "—";
 const KNOWLEDGE_EMPTY = "暂未标注";
@@ -394,7 +404,16 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
       </div>
       <div className="question-bank-card-meta">
         <div><Typography.Text type="secondary">知识点：</Typography.Text>{record.knowledge.length ? record.knowledge.map((name) => <Tag key={name}>{name}</Tag>) : <Typography.Text type="secondary">{KNOWLEDGE_EMPTY}</Typography.Text>}</div>
-        {record.chapter && <div><Typography.Text type="secondary">章节：</Typography.Text>{record.chapter}</div>}
+        <div>
+          <Typography.Text type="secondary">章节：</Typography.Text>
+          {record.chapter_status === "unresolvable" ? (
+            <Typography.Text type="danger">无法确定（知识点无法追溯章节）</Typography.Text>
+          ) : record.chapter ? (
+            record.chapter
+          ) : (
+            <Typography.Text type="secondary">未确定章节</Typography.Text>
+          )}
+        </div>
         <div><Typography.Text type="secondary">来源：</Typography.Text>{formatSource(record.source_name, record.source_page)}</div>
       </div>
     </Card>
@@ -429,7 +448,7 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
             })();
           }}
           options={[
-            ...QUESTION_TYPES.map((t) => ({ value: t, label: t })),
+            ...QUESTION_TYPES.map((t) => ({ value: t, label: QUESTION_TYPE_LABEL[t] ?? t })),
             ...(QUESTION_TYPES.includes(item.question_type)
               ? []
               : [{ value: item.question_type, label: `${item.question_type}（原始）` }]),
@@ -459,7 +478,13 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
       </Section>
       <Section title="章节与难度">
         <Space wrap>
-          <Tag>{item.chapter ?? EMPTY}</Tag>
+          {item.chapter_status === "unresolvable" ? (
+            <Tag color="red">章节无法确定</Tag>
+          ) : item.chapter ? (
+            <Tag color="blue">{item.chapter}</Tag>
+          ) : (
+            <Tag>未确定章节</Tag>
+          )}
           <Tag color="gold">{item.difficulty ? `难度 ${item.difficulty}` : "难度未设置"}</Tag>
         </Space>
       </Section>
@@ -552,7 +577,7 @@ export default function QuestionBankDrawer({ open, onClose }: Props) {
                 <Select style={{ width: 180 }} value={editDraft.question_type}
                   onChange={(value: string) => setEditDraft({ ...editDraft, question_type: value })}
                   options={[
-                    ...QUESTION_TYPES.map((t) => ({ value: t, label: t })),
+                    ...QUESTION_TYPES.map((t) => ({ value: t, label: QUESTION_TYPE_LABEL[t] ?? t })),
                     ...(QUESTION_TYPES.includes(editDraft.question_type)
                       ? []
                       : [{ value: editDraft.question_type, label: `${editDraft.question_type}（原始）` }]),

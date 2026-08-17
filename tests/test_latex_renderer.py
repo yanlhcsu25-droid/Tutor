@@ -12,7 +12,7 @@ def _paper() -> PaperPreviewRead:
             PaperItemRead(
                 question_id="q1",
                 question_text=r"已知 $y=\frac{1}{2}x+3$，求增长率（占比 50%）。",
-                question_type="解答题",
+                question_type="计算题",
                 score=20,
                 knowledge=["一次函数"],
                 final_answer=r"$\frac{1}{2}$",
@@ -29,7 +29,7 @@ def test_student_latex_escapes_prose_and_preserves_math():
     assert r"$y=\frac{1}{2}x+3$" in result
     assert r"50\%" in result
     assert "本卷附参考答案与解析" not in result
-    assert "解答应写出文字说明、证明过程或演算步骤" in result
+    assert "解答应写出必要的计算步骤。" in result
     assert r"\Needspace{11.2cm}" in result
     assert "姓名：" in result
     assert "满分：20 分" in result
@@ -64,7 +64,7 @@ def test_question_numbers_continue_across_dynamic_sections():
     result = render_paper_latex(paper, teacher_version=False)
 
     assert r"\section*{一、选择题" in result
-    assert r"\section*{二、解答题" in result
+    assert r"\section*{二、计算题" in result
     assert r"\question{1}{5}" in result
     assert r"\question{2}{20}" in result
 

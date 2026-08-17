@@ -20,6 +20,7 @@ from calculus_agent.agent.schemas import (
     RequirementBlueprint,
     RequirementPreferences,
 )
+from calculus_agent.knowledge.classification import current_taxonomy_knowledge_nodes
 from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.models import CurriculumNode, KnowledgeAlias, KnowledgeNode
 from calculus_agent.papers.selector import compose_paper
@@ -139,7 +140,13 @@ def _knowledge_preferences(
     name under the same chapter; those are the same concept and are collapsed
     before any ambiguity decision is made.
     """
-    nodes = list(session.scalars(select(KnowledgeNode)))
+    # Only consider KnowledgeNodes that belong to the current valid taxonomy:
+    # an existing, approved curriculum node in the active textbook (or a null
+    # curriculum_node_id, which the resolver reports as scope_uncertain). This
+    # excludes stale KnowledgeNodes whose curriculum_node_id points to a deleted
+    # CurriculumNode, which previously leaked into name matches and produced a
+    # spurious knowledge_ambiguous.
+    nodes = current_taxonomy_knowledge_nodes(session)
     aliases = list(session.scalars(select(KnowledgeAlias)))
     alias_nodes: dict[str, set[str]] = {}
     for alias in aliases:

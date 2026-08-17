@@ -267,16 +267,15 @@ def apply_explicit_constraints(requirement: str, blueprint: PaperBlueprint) -> P
 
 
 _TYPE_WORD = r"选择题?|多选题?|填空题?|计算题?|证明题?|问答题?|解答题?"
-_OBJECTIVE_TYPES = {"选择题", "多选题", "填空题"}
+_OBJECTIVE_TYPES = {"选择题", "填空题"}
 
 
 def _type_from_text(value: str) -> str:
     normalized = value if value.endswith("题") else f"{value}题"
-    canonical = canonical_question_type(normalized)
     # 自由作答类（解答题/问答题/问答/解答）在微积分中统一归为计算题。
-    if canonical in {"解答题", "问答题", "问答", "解答"}:
-        canonical = "计算题"
-    return canonical
+    if normalized in {"解答题", "问答题"}:
+        return "计算题"
+    return canonical_question_type(normalized)
 
 
 def _default_score(blueprint: PaperBlueprint, question_type: str) -> float:

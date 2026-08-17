@@ -4,15 +4,17 @@ from dataclasses import dataclass, field
 from math import isclose
 from typing import Any, Callable, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from calculus_agent.models import AdjustmentPlanRecord, PaperItem, QuestionKnowledgeLink
+from calculus_agent.papers.addressing import QuestionAddress, resolve_section_item
 from calculus_agent.question_types import canonical_question_type
 
 from .conversation_state import DatabasePendingReplacementStore, PendingGeneration, PendingReplacement
 from .schemas import AgentWorkingMemory, GenerationPlanPatch, GenerationPlanPreview, GeneratePaperInput, QuestionTypeRequirement, ReplacementIntent
+from .tools.add_tools import AddQuestionPreview, preview_add_question
 from .tools.analysis_tools import (
     KnowledgePreference,
     analyze_paper,
@@ -31,7 +33,25 @@ class EmptyInput(BaseModel):
 
 
 class PreviewReplacementInput(BaseModel):
-    position: int = Field(ge=1, le=100)
+    model_config = ConfigDict(extra="forbid")
+
+    address: QuestionAddress | None = Field(
+        default=None,
+        description=(
+            "Teacher-facing section-local question address. "
+            "Example: 填空题第2题 -> "
+            '{"section_type":"填空题","section_order":2}.'
+        ),
+    )
+    position: int | None = Field(
+        default=None,
+        ge=1,
+        le=100,
+        description=(
+            "Legacy internal global PaperItem.position. "
+            "Do not derive this from normal teacher-facing numbering."
+        ),
+    )
     difficulty_direction: Literal["easier", "harder", "same"] | None = None
     target_difficulty: int | None = Field(default=None, ge=1, le=5)
     preserve_knowledge_points: bool = Field(
@@ -43,6 +63,21 @@ class PreviewReplacementInput(BaseModel):
     )
     avoid_similarity_with_question_numbers: list[int] = Field(default_factory=list)
 
+    @model_validator(mode="after")
+    def one_target_address_mode(self):
+        if bool(self.address) == bool(self.position):
+            raise ValueError("address 和 legacy position 必须且只能提供一个")
+        return self
+
+
+class PreviewAddQuestionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_type: Literal[
+        "选择题", "多选题", "填空题", "计算题", "证明题"
+    ]
+    score: float | None = Field(default=None, gt=0, le=300)
+
 
 class RestoreVersionInput(BaseModel):
     target_version: int = Field(ge=1)
@@ -53,8 +88,39 @@ class PreviewAdjustmentInput(BaseModel):
 
     knowledge_preferences: list[KnowledgePreference] = Field(default_factory=list)
     question_type_changes: dict[str, int] = Field(default_factory=dict)
-    remove_positions: list[int] = Field(default_factory=list, description="Exact 1-based positions to remove from the current paper.")
-    target_total_score: float | None = Field(default=None, gt=0, validation_alias=AliasChoices("target_total_score", "total_score"), description="Desired final paper score after the adjustment. Omit to preserve the current total score. The compatibility alias total_score is also accepted.")
+    remove_addresses: list[QuestionAddress] = Field(
+        default_factory=list,
+        description=(
+            "Teacher-facing section-local addresses to remove. "
+            "Example: 填空题第2题 -> "
+            '[{"section_type":"填空题","section_order":2}].'
+        ),
+    )
+    remove_positions: list[int] = Field(
+        default_factory=list,
+        description=(
+            "Legacy internal global PaperItem.position values. "
+            "Do not infer these from normal teacher-facing numbering."
+        ),
+    )
+    target_total_score: float | None = Field(
+        default=None,
+        gt=0,
+        validation_alias=AliasChoices("target_total_score", "total_score"),
+        description=(
+            "Explicit desired final paper score. For deletion, omit this field "
+            "to let the removed questions' scores disappear naturally. "
+            "Set it only when the teacher explicitly asks to keep or change the total."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def removal_addressing_is_unambiguous(self):
+        if self.remove_addresses and self.remove_positions:
+            raise ValueError(
+                "remove_addresses 和 legacy remove_positions 不能同时使用"
+            )
+        return self
 
 
 @dataclass
@@ -232,7 +298,7 @@ def _rebalance_scores(request: GeneratePaperInput, *, locked_types: set[str], ch
             "question_type_requirements": normalized,
             "question_count": sum(item.count for item in normalized),
         }), None
-    preferred = ["计算题", "证明题", "填空题", "选择题", "多选题"]
+    preferred = ["计算题", "证明题", "填空题", "选择题"]
     candidates = sorted(
         (item for item in requirements if item.question_type not in locked_types and item.question_type not in changed_count_types),
         key=lambda item: preferred.index(item.question_type) if item.question_type in preferred else len(preferred),
@@ -482,11 +548,31 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                 "pending_replacement_exists",
                 "当前已有待确认换题方案；必须先确认或取消，不能用新预览静默覆盖。",
             )
+
+        if values.address is not None:
+            target_item = resolve_section_item(
+                session,
+                paper_id=context.version_id,
+                section_type=values.address.section_type,
+                section_order=values.address.section_order,
+            )
+            if target_item is None:
+                return _failed(
+                    "question_address_not_found",
+                    f"当前试卷没有{values.address.section_type}第{values.address.section_order}题。",
+                )
+            target_position = target_item.position
+        else:
+            target_position = values.position
+
+        if target_position is None:
+            return _failed("invalid_replacement_target", "没有可解析的换题目标。")
+
         target_knowledge: list[str] = []
         if values.preserve_knowledge_points:
             item = session.scalar(select(PaperItem).where(
                 PaperItem.paper_id == context.version_id,
-                PaperItem.position == values.position,
+                PaperItem.position == target_position,
             ))
             if item is not None:
                 target_knowledge = sorted(set(session.scalars(
@@ -500,7 +586,7 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                         "当前题目没有可验证的知识点标注，无法保证换题后知识点不变。",
                     )
         intent = ReplacementIntent(
-            target_position=values.position,
+            target_position=target_position,
             difficulty_direction=values.difficulty_direction or "same",
             target_difficulty=values.target_difficulty,
             target_knowledge_node_ids=target_knowledge,
@@ -524,7 +610,7 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         pending = PendingReplacement(
             paper_id=context.paper_id,
             source_version_id=context.version_id,
-            target_position=values.position,
+            target_position=target_position,
             old_question_id=result.current_question.question_id,
             replacement_question_id=result.recommended_question.question_id,
             difficulty_direction=intent.difficulty_direction,
@@ -573,16 +659,98 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         store.clear(context.conversation_id)
         return ExecutedTool({"ok": True, "cancelled": True}, "completed")
 
+    def preview_add(raw: BaseModel) -> ExecutedTool:
+        values = PreviewAddQuestionInput.model_validate(raw)
+        if not (context.version_id or context.paper_id):
+            return _failed(
+                "no_current_paper",
+                "当前还没有可新增题目的试卷。",
+            )
+
+        if store and context.conversation_id:
+            if store.get_adjustment(context.conversation_id):
+                return _failed(
+                    "pending_adjustment_exists",
+                    "当前已有待确认的试卷调整方案；必须先确认或处理该方案，不能静默覆盖。",
+                )
+            if store.get(context.conversation_id) is not None:
+                return _failed(
+                    "pending_replacement_exists",
+                    "当前已有待确认换题方案；必须先确认或取消，不能静默覆盖。",
+                )
+
+        result = preview_add_question(
+            session,
+            paper_id=context.version_id or context.paper_id,
+            question_type=values.question_type,
+            score=values.score,
+        )
+
+        if (
+            result.ok
+            and result.plan
+            and store
+            and context.conversation_id
+        ):
+            store.set_adjustment(
+                context.conversation_id,
+                result.plan.plan_id,
+            )
+
+        status = (
+            "waiting_confirmation"
+            if result.ok
+            else "needs_clarification"
+            if result.clarification_questions
+            else "failed"
+        )
+        return ExecutedTool(
+            payload=result.model_dump(mode="json"),
+            status=status,
+            result_fields={
+                "add_preview": result,
+                "warnings": result.warnings,
+                "blocking_errors": result.blocking_errors,
+                "clarification_questions": result.clarification_questions,
+            },
+        )
+
     def preview_adjustment(raw: BaseModel) -> ExecutedTool:
         values = PreviewAdjustmentInput.model_validate(raw)
         if not (context.version_id or context.paper_id):
             return _failed("no_current_paper", "当前还没有可调整的试卷。")
-        remove_positions = values.remove_positions
+        remove_positions = list(values.remove_positions)
+
+        if values.remove_addresses:
+            resolved_positions: list[int] = []
+            for address in values.remove_addresses:
+                item = resolve_section_item(
+                    session,
+                    paper_id=context.version_id or context.paper_id,
+                    section_type=address.section_type,
+                    section_order=address.section_order,
+                )
+                if item is None:
+                    return _failed(
+                        "question_address_not_found",
+                        (
+                            f"当前试卷没有{address.section_type}"
+                            f"第{address.section_order}题。"
+                        ),
+                    )
+                resolved_positions.append(item.position)
+            remove_positions = resolved_positions
+
         pending_plan_id = (
             store.get_adjustment(context.conversation_id)
             if store and context.conversation_id else None
         )
-        if pending_plan_id and not remove_positions and values.target_total_score is not None:
+        if (
+            pending_plan_id
+            and not remove_positions
+            and not values.remove_addresses
+            and values.target_total_score is not None
+        ):
             pending_plan = session.get(AdjustmentPlanRecord, pending_plan_id)
             if pending_plan is not None:
                 remove_positions = [
@@ -649,14 +817,26 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         )
 
     tools = [
-        AgentTool("read_current_paper", "Read the concrete current paper or selected positions. For a request about named question numbers, positions is required and must contain exactly those numbers (for example, 第五题是什么 means positions=[5]); omit positions only for a whole-paper overview. Use before answering factual questions about existing questions. Read-only. If the teacher also requested an operation such as replacement, continue to the appropriate operation tool after reading; do not promise background work.", ReadCurrentPaperInput, read),
+        AgentTool("read_current_paper", "Read the concrete current paper. For normal teacher-facing numbering, use addresses with section_type + section_order (for example, 填空题第2题). positions is legacy internal global order and must not be inferred from a normal 第N题 reference. Omit both only for a whole-paper overview. Read-only.", ReadCurrentPaperInput, read),
         AgentTool("preview_generation_plan", "Create or patch a validated generation plan without selecting questions. When pending exists, use question_type_patches for only the teacher's changed type/count/score fields; Python preserves the authoritative target total and deterministically rebalances unlocked scores in 0.5-point increments. Never change total_score merely to match stale per-type scores. Empty lists explicitly clear a preference. avoid_previous_paper_questions records an unsupported preference only and must be disclosed as unsupported.", GenerationPlanPatch, preview_generation),
         AgentTool("confirm_generation_plan", "Create the paper from the currently pending validated generation plan. Call only after the teacher explicitly accepts the displayed plan. Never call in the same turn that creates or revises a preview.", EmptyInput, confirm_generation),
-        AgentTool("preview_replace_question", "Find a deterministic single-question replacement preview. This never modifies the paper and always requires later confirmation. Do not call it to handle rejection of an existing pending proposal: cancel that proposal first, and only create another preview when the teacher explicitly asks for another candidate. IMPORTANT: when the teacher wants knowledge points unchanged, preserve_knowledge_points must be true; omitting it permits only the paper's normal scope constraints. When true, the preview-time knowledge IDs are persisted as a hard confirmation contract.", PreviewReplacementInput, preview_replacement),
+        AgentTool("preview_replace_question", "Find a deterministic single-question replacement preview. Use address={section_type, section_order} for teacher-facing numbering such as 填空题第2题; position is legacy internal global order only. This never modifies the paper and always requires later confirmation. Do not call it to handle rejection of an existing pending proposal: cancel that proposal first, and only create another preview when the teacher explicitly asks for another candidate. IMPORTANT: when the teacher wants knowledge points unchanged, preserve_knowledge_points must be true; omitting it permits only the paper's normal scope constraints. When true, the preview-time knowledge IDs are persisted as a hard confirmation contract.", PreviewReplacementInput, preview_replacement),
         AgentTool("confirm_replace_question", "Required state-changing tool when the teacher accepts or confirms the currently pending single-question replacement. Hard constraints captured by the pending preview are revalidated against current database state before mutation. Never claim it was applied without calling this tool.", EmptyInput, confirm_replacement),
         AgentTool("cancel_replace_question", "Required state-changing tool when the teacher rejects, does not want, abandons, or cancels the currently pending single-question replacement. Rejection alone means cancel, not automatically finding another candidate. Never claim it was cancelled without calling this tool.", EmptyInput, cancel_replacement),
+        AgentTool(
+            "preview_add_question",
+            "Preview adding one existing-bank question to the current paper. "
+            "Provide canonical question_type and optional explicit score only. "
+            "Python selects an approved/active/current, in-scope, non-duplicate "
+            "candidate and inserts it at the end of that section. If score is "
+            "omitted, Python inherits a uniform score from the existing section; "
+            "otherwise it returns clarification. Preview never mutates Paper state "
+            "and requires later confirm_adjust_paper.",
+            PreviewAddQuestionInput,
+            preview_add,
+        ),
         AgentTool("analyze_current_paper", "Analyze difficulty, question-type, and knowledge distributions of the current paper. Read-only.", EmptyInput, analyze),
-        AgentTool("preview_adjust_paper", "Create a whole-paper AdjustmentPlan preview. It does not modify the paper and requires confirmation. To delete concrete questions, first read the paper if needed, then pass exact remove_positions. target_total_score is the desired final total; when omitted, Python preserves the current total. After removals, Python deterministically rebalances one remaining question type at 0.5-point granularity or returns clarification. Do not encode deletion only as a negative question_type_changes delta.", PreviewAdjustmentInput, preview_adjustment),
+        AgentTool("preview_adjust_paper", "Create a whole-paper AdjustmentPlan preview. It does not modify the paper and requires confirmation. To delete teacher-visible questions, use remove_addresses with section_type + section_order; remove_positions is legacy internal global order only. When deleting and target_total_score is omitted, removed scores disappear naturally and remaining question scores are unchanged. Only when the teacher explicitly requests a final total should target_total_score be set; Python then deterministically rebalances at 0.5-point granularity or returns clarification. Do not encode deletion only as a negative question_type_changes delta.", PreviewAdjustmentInput, preview_adjustment),
         AgentTool("confirm_adjust_paper", "Required state-changing tool to apply the pending whole-paper AdjustmentPlan after explicit teacher confirmation. Never claim it was applied without calling this tool.", EmptyInput, confirm_adjustment),
         AgentTool("undo_paper", "Undo the latest version-chain operation on the current paper.", EmptyInput, lambda raw: version_operation("undo")),
         AgentTool("redo_paper", "Redo the latest undone version-chain operation on the current paper.", EmptyInput, lambda raw: version_operation("redo")),

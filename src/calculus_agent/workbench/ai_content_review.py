@@ -21,6 +21,7 @@ from calculus_agent.models import (
     Textbook,
 )
 from calculus_agent.workbench.markdown_schema import payload_from_markdown
+from calculus_agent.workbench.models import QuestionType
 
 
 class ChatBackend(Protocol):
@@ -102,7 +103,10 @@ def deterministic_content_issues(question: dict[str, Any]) -> tuple[list[str], A
         issues.append("ocr_placeholder_remaining")
     if payload.review_notes.strip():
         issues.append("review_note_present")
-    if payload.question_type in {"选择题", "多选题"}:
+    # 工作台内部题型词表是英文枚举（selection/fill_blank/...），不是中文业务类型。
+    # 旧代码写成 ``in {"选择题", "多选题"}``，与 QuestionType 永不相等 → 该分支恒为假。
+    # 现按工作台自身词表比较；多选题业务分支已并入 selection（唯一选择型）。
+    if payload.question_type == QuestionType.SELECTION:
         labels = sorted(payload.options)
         if labels != ["A", "B", "C", "D"]:
             issues.append("selection_options_abnormal")

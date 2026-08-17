@@ -31,6 +31,7 @@ from .run_tracing import TeacherAgentRunManager
 from .trace_log import AgentTraceRecorder, redact_trace_value
 from .tool_registry import AgentExecutionContext, build_agent_tools, execute_tool
 from .schemas import GenerationPlanPreview
+from .tools.add_tools import AddQuestionPreview
 from .tools.analysis_tools import (
     ConfirmAdjustmentResult,
     PaperAdjustmentPreview,
@@ -62,6 +63,8 @@ CLARIFICATION_BLOCKING_ERRORS: frozenset[str] = frozenset({
     "insufficient_candidates",
     "generation_partial_patch_required",
     "score_rebalance_ambiguous",
+    "add_question_score_required",
+    "add_question_score_ambiguous",
     "pending_adjustment_not_updated",
     "paper_observation_required",
     "no_current_paper",
@@ -94,6 +97,7 @@ class TeacherAgentResult(BaseModel):
     replacement: ApplyReplacementResult | None = None
     replacement_preview: ReplacementDryRunResult | None = None
     analysis: PaperAnalysisResult | None = None
+    add_preview: AddQuestionPreview | None = None
     adjustment_preview: PaperAdjustmentPreview | None = None
     adjustment: ConfirmAdjustmentResult | None = None
     paper_read: ReadCurrentPaperResult | None = None
@@ -127,7 +131,9 @@ Working Memory 只用于理解当前任务、上一轮追问和上一份试卷�
 
 教师只修改某个题型的数量或分值时，使用 question_type_patches 只表达变更字段。pending 中的目标总分会保留，Python 会按0.5分粒度尝试确定性平衡；不得自行把100分改成85分。Tool 返回 score_rebalance_ambiguous 时，按其 clarification 追问，不得自行凑分。
 
-单题换题和整卷调整都先生成 preview，必须等教师明确确认后才能调用对应 confirm 工具。不要在同一轮预览后替教师自行确认。
+单题换题和整卷调整都先生成 preview，必须等教师明确确认后才能调用对应 confirm 工具。不要在同一轮预览后替教师自行确认。单题换题引用“选择题第N题、填空题第N题、计算题第N题、证明题第N题”时，preview_replace_question 必须使用 address，不得把题型内编号当成全卷 position。删除具体题目时必须使用 remove_addresses。教师只说“删除填空题第2题”而没有要求保持总分时，不得自行填写 target_total_score；删除题目的分值应自然从总分中扣除。只有教师明确说“总分保持100分”或指定新的总分时才传 target_total_score。
+
+新增题目必须先调用 preview_add_question，并等待教师下一轮明确确认后再调用 confirm_adjust_paper。教师说“加一道填空题”时只传 question_type，由 Python 从当前 scope 内确定性选择 approved/active/current 且未在当前试卷中的题；不得自行指定 question_id 或 position。教师说“加一道5分填空题”时传 score=5。没有显式分值时由 Python 从当前同题型统一分值推导；Tool 返回 add_question_score_required 或 add_question_score_ambiguous 时必须追问，禁止自行猜分。新增题进入对应题型 section 末尾。
 
 当前工作区上下文中的 pending 是业务状态事实，优先于聊天中的口头描述。教师接受或拒绝 pending 单题换题时，必须分别调用 confirm_replace_question 或 cancel_replace_question；教师接受 pending 整卷调整时必须调用 confirm_adjust_paper。没有对应 Tool Observation 时，绝不能声称已经确认、取消或应用。
 
@@ -714,7 +720,7 @@ def run_teacher_agent(
                         malformed_response_retried = True
                         continue
                     adjustment_observed = any(
-                        call["tool_name"] in {"preview_adjust_paper", "confirm_adjust_paper"}
+                        call["tool_name"] in {"preview_adjust_paper", "preview_add_question", "confirm_adjust_paper"}
                         for call in trace_calls
                     )
                     if pending_adjustment and not adjustment_observed and not pending_adjustment_rechecked:
@@ -734,7 +740,7 @@ def run_teacher_agent(
                         ])
                         definitions = [
                             tools[name].definition()
-                            for name in ("read_current_paper", "preview_adjust_paper", "confirm_adjust_paper")
+                            for name in ("read_current_paper", "preview_adjust_paper", "preview_add_question", "confirm_adjust_paper")
                         ]
                         pending_adjustment_rechecked = True
                         continue
@@ -932,6 +938,33 @@ def run_teacher_agent(
                             arguments = {
                                 "positions": explicit_question_positions
                             }
+                    elif (
+                        name == "preview_replace_question"
+                        and explicit_question_addresses
+                        and len(explicit_question_addresses) == 1
+                    ):
+                        arguments = {
+                            key: value
+                            for key, value in arguments.items()
+                            if key not in {"address", "position"}
+                        }
+                        arguments["address"] = explicit_question_addresses[0].model_dump(
+                            mode="json"
+                        )
+                    elif (
+                        name == "preview_adjust_paper"
+                        and explicit_question_addresses
+                        and re.search(r"删除|删掉|去掉|移除", message)
+                    ):
+                        arguments = {
+                            key: value
+                            for key, value in arguments.items()
+                            if key not in {"remove_addresses", "remove_positions"}
+                        }
+                        arguments["remove_addresses"] = [
+                            address.model_dump(mode="json")
+                            for address in explicit_question_addresses
+                        ]
                     tool = tools.get(name)
                     tool_span = run_manager.add_span(
                         "tool_call", name,

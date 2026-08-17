@@ -2,9 +2,10 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from calculus_agent.db import Base
+from calculus_agent.question_types import canonical_question_type
 
 
 def new_id() -> str:
@@ -106,6 +107,10 @@ class QuestionDraft(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
+    @validates("question_type")
+    def _validate_question_type(self, key, value):
+        return canonical_question_type(value)
+
 
 class Question(Base):
     __tablename__ = "question"
@@ -140,6 +145,10 @@ class Question(Base):
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
+
+    @validates("question_type")
+    def _validate_question_type(self, key, value):
+        return canonical_question_type(value)
 
 
 class QuestionKnowledgeLink(Base):

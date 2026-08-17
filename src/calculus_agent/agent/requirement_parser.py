@@ -5,7 +5,7 @@ import re
 from .schemas import RequirementBlueprint, RequirementPreferences
 
 
-_QUESTION_TYPES = ("选择题", "多选题", "填空题", "计算题", "证明题")
+_QUESTION_TYPES = ("选择题", "填空题", "计算题", "证明题")
 
 
 def _scope(text: str) -> list[str]:

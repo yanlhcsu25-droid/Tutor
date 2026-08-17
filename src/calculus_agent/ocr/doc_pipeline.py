@@ -50,14 +50,17 @@ ANSWER_RE = re.compile(r"(?m)^\s*(?:答案|参考答案)\s*[:：]\s*(.*)$")
 ANALYSIS_RE = re.compile(r"(?m)^\s*(?:解析|解答|答案解析)\s*[:：]\s*(.*)$")
 
 # 题型中文 → QuestionDraft.question_type
+# 工作台内部词表 → 正式业务题型（五类 contract）。
+# ``subjective`` / ``other`` 表示未判定为四个可组卷题型之一 → unknown（待人工）。
 _TYPE_MAP: dict[str, str] = {
+    "selection": "选择题",
     "single_choice": "选择题",
-    "multiple_choice": "多选题",
+    "multiple_choice": "选择题",
     "fill_blank": "填空题",
     "calculation": "计算题",
     "proof": "证明题",
-    "subjective": "计算题",
-    "other": "其他",
+    "subjective": "unknown",
+    "other": "unknown",
 }
 
 
@@ -65,7 +68,7 @@ _TYPE_MAP: dict[str, str] = {
 class QuestionCandidate:
     """OCR 切分出的单道题目候选。"""
     original_number: str      # 原始题号，如 "1"、"2.1"
-    question_type: str        # single_choice / multiple_choice / ...（内部 key）
+    question_type: str        # selection / fill_blank / calculation / proof / subjective / other（内部 key）
     body: str                 # 题干文本（Markdown）
     options: dict[str, str]   # {"A": "选项A内容", ...}
     answer: str               # 答案文本
@@ -76,11 +79,14 @@ class QuestionCandidate:
 # --- 辅助函数 ---
 
 def _question_type(section_title: str) -> str:
+    """章节标题（输入 alias）→ 内部题型 key。
+
+    ``单项选择题 / 多项选择题 / 多选题 / 单选题`` 只是输入别名，
+    输出立即折算为唯一的选择型 ``selection``。
+    """
     title = section_title.replace(" ", "")
-    if "多项选择" in title or "多选" in title:
-        return "multiple_choice"
-    if "选择" in title:
-        return "single_choice"
+    if "选择" in title or "多选" in title or "单选" in title:
+        return "selection"
     if "填空" in title:
         return "fill_blank"
     if "证明" in title:

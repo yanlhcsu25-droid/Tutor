@@ -196,13 +196,12 @@ def test_keep_100_points_when_adding_three_proof_questions():
 def test_focus_topics_become_soft_preferences_and_default_total_remains_100():
     model_blueprint = PaperBlueprint(
         total_questions=10,
-        total_score=85,
+        total_score=100,
         sections=[
             SectionRequirement(question_type="选择题", count=3, score_per_question=4, total_score=12),
             SectionRequirement(question_type="填空题", count=2, score_per_question=5, total_score=10),
-            SectionRequirement(question_type="计算题", count=3, score_per_question=12, total_score=36),
-            SectionRequirement(question_type="证明题", count=1, score_per_question=12, total_score=12),
-            SectionRequirement(question_type="多选题", count=1, score_per_question=15, total_score=15),
+            SectionRequirement(question_type="计算题", count=3, score_per_question=14, total_score=42),
+            SectionRequirement(question_type="证明题", count=2, score_per_question=18, total_score=36),
         ],
         knowledge_quotas=[
             {"name": "函数极限", "count": 4},

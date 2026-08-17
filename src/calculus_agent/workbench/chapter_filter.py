@@ -97,19 +97,60 @@ def chapter_descendant_knowledge_ids(session: Session, chapter_id: str) -> set[s
     return set(knowledge)
 
 
-def filter_questions_by_chapter(
-    items: Iterable[dict],
-    descendant_knowledge_ids: set[str],
-) -> list[dict]:
-    """在已加载的题目列表（每项含 knowledge_points 字段）中保留属于目标章节的题目。
+def chapter_filter_knowledge_id_sets(
+    session: Session, chapter_id: str
+) -> tuple[set[str], set[str]] | None:
+    """Compute ``(include_ids, exclude_ids)`` for filtering by a question's *derived* chapter.
 
-    一道题只要任意一个已确认知识点命中章节后代即保留；天然去重。
-    当 descendant_knowledge_ids 为空（无效章节）时返回空列表——调用方应在
-    chapter_id 无效时跳过本函数，以保持「无效章节 = 不限制」的语义。
+    Per the chapter-derivation invariant, a question's chapter is the latest chapter
+    (ordered by ``(sort_order, id)``) among all chapters its knowledge points belong to.
+    Hence a question matches the filter for ``chapter_id`` iff it has a knowledge point in
+    ``chapter_id`` **and** none in any *later* chapter of the same textbook. This keeps a
+    Ch1+Ch3 question in the Ch3 filter only — never the Ch1 filter.
+
+    Returns ``None`` when ``chapter_id`` is not a valid chapter node, so callers can keep
+    the "invalid chapter = no restriction" behaviour.
     """
+    chapter = session.get(CurriculumNode, chapter_id)
+    if chapter is None or chapter.node_type != "chapter":
+        return None
+
+    include_ids = chapter_descendant_knowledge_ids(session, chapter_id)
+
+    target_key = (chapter.sort_order, chapter.id)
+    later_chapters = session.scalars(
+        select(CurriculumNode).where(
+            CurriculumNode.textbook_id == chapter.textbook_id,
+            CurriculumNode.node_type == "chapter",
+            CurriculumNode.review_status == "approved",
+        )
+    ).all()
+    exclude_ids: set[str] = set()
+    for later in later_chapters:
+        if (later.sort_order, later.id) > target_key:
+            exclude_ids |= chapter_descendant_knowledge_ids(session, later.id)
+
+    return include_ids, exclude_ids
+
+
+def filter_questions_by_chapter(
+    session: Session,
+    items: Iterable[dict],
+    chapter_id: str,
+) -> list[dict]:
+    """在已加载的题目列表（每项含 knowledge_points 字段）中保留「派生章节 == chapter_id」的题目。
+
+    与正式题库筛选（search_questions）共用 ``chapter_filter_knowledge_id_sets`` 这一唯一
+    确定性判断：题目须含目标章节知识点、且不含任何更靠后章节（同教材，按
+    ``(sort_order, id)``）的知识点。无效章节返回原列表（不过滤）。
+    """
+    id_sets = chapter_filter_knowledge_id_sets(session, chapter_id)
+    if id_sets is None:
+        return list(items)
+    include_ids, exclude_ids = id_sets
     result: list[dict] = []
     for item in items:
-        points = item.get("knowledge_points") or []
-        if set(points) & descendant_knowledge_ids:
+        points = set(item.get("knowledge_points") or [])
+        if (points & include_ids) and not (points & exclude_ids):
             result.append(item)
     return result

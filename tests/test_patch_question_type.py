@@ -66,15 +66,17 @@ def test_patch_does_not_trigger_knowledge_revalidation(session):
     assert session.get(Question, q.id).knowledge_match_status == "current"
 
 
-def test_patch_invalid_type_rejected(session):
+def test_unrecognized_type_canonicalizes_to_unknown(session):
     q = _make_question(session, "q-patch-3")
-    try:
-        patch_question_type_value(session, q.id, "诺米拉不存在的题型")
-        assert False, "非法题型应被拒绝"
-    except ValueError:
-        pass
-    # 原题型保持不变
-    assert session.get(Question, q.id).question_type == "unknown"
+    # 无法识别的题型必须归一到 unknown（合法存储态），不应抛错；
+    # unknown 是 contract 中保留的“题型待定，需人工处理”状态，不是非法值。
+    patch_question_type_value(session, q.id, "诺米拉不存在的题型")
+    got = session.get(Question, q.id)
+    assert got.question_type == "unknown"
+    assert got.review_status == "approved"
+    assert got.verification_status == "manual_verified"
+    draft = session.get(QuestionDraft, got.draft_id)
+    assert draft.question_type == "unknown"
 
 
 def test_patch_missing_question_rejected(session):

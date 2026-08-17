@@ -27,7 +27,6 @@ from calculus_agent.db import build_session_factory
 
 from .database import PublishedDraftError, PublishedSourceError, WorkbenchDatabase
 from .chapter_filter import (
-    chapter_descendant_knowledge_ids,
     chapter_display_label,
     filter_questions_by_chapter,
     list_top_level_chapters,
@@ -520,19 +519,18 @@ def _cleanup_source_files(source_file_id: str, stored_path: str) -> list[str]:
 
 @app.get("/api/sources/{source_file_id}/questions")
 def list_questions(source_file_id: str, chapter_id: str | None = None) -> dict[str, Any]:
-    """列出某来源的全部题目；可选 chapter_id 仅返回属于该一级章节（含全部子节点）的题目。
+    """列出某来源的全部题目；可选 chapter_id 仅返回「派生章节 == chapter_id」的题目。
 
     chapter_id 为 CurriculumNode.id（一级章节）。不传或传空则不限制章节。
+    章节归属与正式题库筛选（search_questions）共用同一确定性规则。
     """
     with _get_session() as session:
         db = _get_db(session)
         source = _source_or_404(db, source_file_id)
         items = db.list_questions(source_file_id)
         if chapter_id:
-            descendant_ids = chapter_descendant_knowledge_ids(session, chapter_id)
-            if descendant_ids:
-                items = filter_questions_by_chapter(items, descendant_ids)
-            # 无效章节 id 时 descendant_ids 为空，保持不过滤（返回全部题目）。
+            # 无效章节 id 时保持不过滤（返回全部题目）。
+            items = filter_questions_by_chapter(session, items, chapter_id)
         return {"items": items, "source": source}
 
 

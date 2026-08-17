@@ -22,7 +22,6 @@ from calculus_agent.models import (
 )
 from calculus_agent.workbench import app as workbench_app
 from calculus_agent.workbench.chapter_filter import (
-    chapter_descendant_knowledge_ids,
     chapter_display_label,
     filter_questions_by_chapter,
     list_top_level_chapters,
@@ -123,8 +122,7 @@ def test_no_chapter_filter_returns_all(session) -> None:
 def test_filter_by_chapter_one_returns_child_knowledge_question(session) -> None:
     ctx = _seed(session)
     ch1 = ctx["chapters"]["函数与极限"]
-    desc = chapter_descendant_knowledge_ids(session, ch1.id)
-    items = filter_questions_by_chapter(_load(session), desc)
+    items = filter_questions_by_chapter(session, _load(session), ch1.id)
     ids = {i["question_id"] for i in items}
     assert "Q1" in ids  # 映射与函数（第一章子节点）
 
@@ -134,8 +132,7 @@ def test_filter_by_chapter_one_returns_child_knowledge_question(session) -> None
 def test_filter_by_chapter_one_excludes_other_chapter(session) -> None:
     ctx = _seed(session)
     ch1 = ctx["chapters"]["函数与极限"]
-    desc = chapter_descendant_knowledge_ids(session, ch1.id)
-    items = filter_questions_by_chapter(_load(session), desc)
+    items = filter_questions_by_chapter(session, _load(session), ch1.id)
     ids = {i["question_id"] for i in items}
     assert "Q2" not in ids  # 导数定义（第二章子节点）
 
@@ -145,24 +142,41 @@ def test_filter_by_chapter_one_excludes_other_chapter(session) -> None:
 def test_filter_dedup_multiple_knowledge_points_same_chapter(session) -> None:
     ctx = _seed(session)
     ch1 = ctx["chapters"]["函数与极限"]
-    desc = chapter_descendant_knowledge_ids(session, ch1.id)
-    items = filter_questions_by_chapter(_load(session), desc)
+    items = filter_questions_by_chapter(session, _load(session), ch1.id)
     q4 = [i for i in items if i["question_id"] == "Q4"]
     assert len(q4) == 1
 
 
-# ── Case 5：跨第一/二章的题目，两个章节筛选都应返回 ──
+# ── Case 5：跨第一/二章的题目，派生到最靠后的第二章，只在第二章筛选出现 ──
 
-def test_filter_cross_chapter_question_appears_in_both(session) -> None:
+def test_filter_cross_chapter_question_appears_only_in_latest(session) -> None:
     ctx = _seed(session)
     ch1 = ctx["chapters"]["函数与极限"]
     ch2 = ctx["chapters"]["导数与微分"]
-    desc1 = chapter_descendant_knowledge_ids(session, ch1.id)
-    desc2 = chapter_descendant_knowledge_ids(session, ch2.id)
-    ids1 = {i["question_id"] for i in filter_questions_by_chapter(_load(session), desc1)}
-    ids2 = {i["question_id"] for i in filter_questions_by_chapter(_load(session), desc2)}
-    assert "Q3" in ids1
+    ids1 = {i["question_id"] for i in filter_questions_by_chapter(session, _load(session), ch1.id)}
+    ids2 = {i["question_id"] for i in filter_questions_by_chapter(session, _load(session), ch2.id)}
+    assert "Q3" not in ids1  # 跨章派生到第二章，不出现在第一章筛选
     assert "Q3" in ids2
+
+
+# ── Case 5b：跨第一章 + 第三章的题目，派生到第三章，只在第三章筛选出现 ──
+
+def test_filter_cross_ch1_ch3_question_appears_only_in_ch3(session) -> None:
+    ctx = _seed(session)
+    kp = ctx["kp"]
+    ch1 = ctx["chapters"]["函数与极限"]
+    ch3 = ctx["chapters"]["微分中值定理"]
+    session.add(OcrImportDraft(
+        id="Q8", source_id=SOURCE_ID, page_number=1, original_number="Q8",
+        ocr_markdown="", edited_markdown="",
+        review_status="published",
+        knowledge_points_json=[kp["s1a"], kp["s3"]],
+    ))
+    session.flush()
+    ids1 = {i["question_id"] for i in filter_questions_by_chapter(session, _load(session), ch1.id)}
+    ids3 = {i["question_id"] for i in filter_questions_by_chapter(session, _load(session), ch3.id)}
+    assert "Q8" not in ids1  # 筛选第一章：不能出现
+    assert "Q8" in ids3      # 筛选第三章：必须出现
 
 
 # ── Case 6：章节筛选 + 已发布筛选 = AND，非 OR ──
@@ -170,12 +184,12 @@ def test_filter_cross_chapter_question_appears_in_both(session) -> None:
 def test_chapter_filter_combined_with_published_is_and(session) -> None:
     ctx = _seed(session)
     ch1 = ctx["chapters"]["函数与极限"]
-    desc = chapter_descendant_knowledge_ids(session, ch1.id)
-    items = filter_questions_by_chapter(_load(session), desc)
+    items = filter_questions_by_chapter(session, _load(session), ch1.id)
     # 前端在 API 结果之上再叠加「仅已发布」过滤；两者为 AND。
     published = [i for i in items if i["review_status"] == "published"]
     ids = {i["question_id"] for i in published}
-    assert ids == {"Q1", "Q3", "Q4"}  # 第一章且已发布；Q7（reviewed）被排除
+    assert ids == {"Q1", "Q4"}  # 第一章且已发布；Q3（跨章→第二章）、Q7（reviewed）被排除
+    assert "Q3" not in ids
     assert "Q7" not in ids
 
 
@@ -184,8 +198,7 @@ def test_chapter_filter_combined_with_published_is_and(session) -> None:
 def test_switch_back_to_all_restores_unfiltered(session) -> None:
     ctx = _seed(session)
     ch1 = ctx["chapters"]["函数与极限"]
-    desc = chapter_descendant_knowledge_ids(session, ch1.id)
-    filtered = filter_questions_by_chapter(_load(session), desc)
+    filtered = filter_questions_by_chapter(session, _load(session), ch1.id)
     full = _load(session)
     # 切回全部章节 = 不再应用章节过滤，恢复完整列表
     assert len(full) == 7

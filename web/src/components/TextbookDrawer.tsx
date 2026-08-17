@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Drawer, Button, Space, Typography, Select, Input, Modal, Tree, message, Popconfirm } from "antd";
-import { PlusOutlined, ImportOutlined, EditOutlined, DeleteOutlined, FolderOutlined, FileOutlined } from "@ant-design/icons";
+import { PlusOutlined, ImportOutlined, EditOutlined, DeleteOutlined, FolderOutlined, FileOutlined, RedoOutlined } from "@ant-design/icons";
+import DirectoryReimportModal from "./DirectoryReimportModal";
 
 const API = "/api/v1";
 
@@ -24,6 +25,7 @@ export default function TextbookDrawer({ open, onClose }: Props) {
   const [newBookEdition, setNewBookEdition] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
+  const [reimportOpen, setReimportOpen] = useState(false);
   const [editNodeOpen, setEditNodeOpen] = useState(false);
   const [editNodeId, setEditNodeId] = useState<string | null>(null);
   const [editNodeTitle, setEditNodeTitle] = useState("");
@@ -146,6 +148,9 @@ export default function TextbookDrawer({ open, onClose }: Props) {
           <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)} disabled={!activeBookId}>
             导入目录
           </Button>
+          <Button icon={<RedoOutlined />} onClick={() => setReimportOpen(true)} disabled={!activeBookId}>
+            重新导入目录
+          </Button>
           <Button icon={<PlusOutlined />} onClick={() => setNewBookOpen(true)}>
             新建教材
           </Button>
@@ -205,6 +210,14 @@ export default function TextbookDrawer({ open, onClose }: Props) {
           placeholder="粘贴目录文本..."
         />
       </Modal>
+
+      {/* 重新导入目录 Modal */}
+      <DirectoryReimportModal
+        open={reimportOpen}
+        bookId={activeBookId}
+        onClose={() => setReimportOpen(false)}
+        onImported={() => { if (activeBookId) loadTree(activeBookId); }}
+      />
 
       {/* 编辑节点 Modal */}
       <Modal open={editNodeOpen} onCancel={() => setEditNodeOpen(false)} onOk={handleSaveNode} title="编辑节点">

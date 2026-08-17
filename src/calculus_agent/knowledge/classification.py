@@ -12,7 +12,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from calculus_agent.config import get_settings
-from calculus_agent.knowledge.normalization import normalize_name
+from calculus_agent.knowledge.normalization import normalize_name, terms
 from calculus_agent.models import (
     CurriculumNode,
     KnowledgeAlias,
@@ -169,6 +169,56 @@ def current_textbook_taxonomy(session: Session) -> list[KnowledgeNode]:
     return [node for node in ensure_calculus_taxonomy(session) if node.review_status == "approved"]
 
 
+def current_taxonomy_knowledge_nodes(session: Session) -> list[KnowledgeNode]:
+    """KnowledgeNodes eligible as knowledge-preference resolver candidates.
+
+    This is the resolver's single source of truth, mirroring
+    :func:`current_textbook_taxonomy` so the two call sites cannot drift.
+
+    Eligibility rules:
+      - ``curriculum_node_id IS NULL`` -> still listed; the resolver reports
+        ``knowledge_scope_uncertain`` (the node exists but has no chapter).
+      - ``curriculum_node_id`` references an existing, approved ``CurriculumNode``
+        that belongs to the active textbook (when one is configured) -> normal
+        candidate.
+
+    KnowledgeNodes whose ``curriculum_node_id`` points to a deleted/missing
+    ``CurriculumNode`` are stale (e.g. left behind by a taxonomy replace) and are
+    excluded, so they cannot masquerade as valid alternatives and force a spurious
+    ``knowledge_ambiguous``. ``source_type`` is intentionally ignored: validity is
+    decided by referential integrity (the curriculum node actually exists in the
+    current textbook), not by a historical source label.
+    """
+    curriculum_by_id = {node.id: node for node in session.scalars(select(CurriculumNode))}
+    active_textbook_id = session.scalar(
+        select(Textbook.id)
+        .where(Textbook.is_active.is_(True))
+        .order_by(Textbook.created_at.desc(), Textbook.id)
+        .limit(1)
+    )
+    result: list[KnowledgeNode] = []
+    for node in session.scalars(select(KnowledgeNode)):
+        # Only approved nodes participate at all (regardless of scoping).
+        if node.review_status != "approved":
+            continue
+        cn_id = node.curriculum_node_id
+        if cn_id is None:
+            # Unscoped node: exists but has no chapter -> resolver reports
+            # knowledge_scope_uncertain (not ambiguous, not unknown).
+            result.append(node)
+            continue
+        cn = curriculum_by_id.get(cn_id)
+        if cn is None:
+            # Stale node: curriculum_node_id points to a deleted/missing
+            # CurriculumNode -> excluded from the current taxonomy entirely.
+            continue
+        if active_textbook_id is not None and cn.textbook_id != active_textbook_id:
+            # Belongs to a different (historical) textbook.
+            continue
+        result.append(node)
+    return result
+
+
 def generate_knowledge_candidates(
     session: Session,
     *,
@@ -189,26 +239,38 @@ def generate_knowledge_candidates(
     builtins = {item.name: item for item in CALCULUS_TAXONOMY}
     text = " ".join([question_body, standard_solution, *(solution_steps or [])])
     compact = normalize_name(text)
+    query_terms = terms(text)
     candidates: list[CandidateKnowledgePoint] = []
     for node in nodes:
-        terms = [node.name, *aliases[node.id]]
+        term_strings = [node.name, *aliases[node.id]]
         item = builtins.get(node.name)
         if item:
-            terms.extend(item.aliases)
-            terms.extend(item.keywords)
+            term_strings.extend(item.aliases)
+            term_strings.extend(item.keywords)
+        # Direct substring: the whole term appears verbatim in the question.
         evidence = list(dict.fromkeys(
-            term for term in terms
+            term for term in term_strings
             if term and normalize_name(term) and normalize_name(term) in compact
         ))
-        if not evidence:
+        # Token-level recall: a query token (≥2 chars) appearing anywhere inside
+        # the KP name also counts as a hit. This lets compound directory KPs
+        # such as "参数方程确定函数的二阶导数" be recalled from a question
+        # mentioning "参数方程", even when the full name never appears verbatim.
+        node_terms: set[str] = set()
+        for term in term_strings:
+            if term and normalize_name(term):
+                node_terms |= terms(term)
+        token_hits = query_terms & node_terms
+        if not evidence and not token_hits:
             continue
         exact_name = normalize_name(node.name) in compact
-        score = min(0.98, 0.48 + (0.22 if exact_name else 0) + 0.1 * len(evidence))
+        overlap = len(token_hits) / len(query_terms) if query_terms else 0.0
+        score = min(0.98, 0.48 + (0.22 if exact_name else 0) + 0.5 * overlap + 0.1 * len(evidence))
         candidates.append(CandidateKnowledgePoint(
             id=node.id,
             name=node.name,
             score=round(score, 2),
-            evidence=evidence[:4],
+            evidence=(evidence[:4] if evidence else sorted(token_hits)[:4]),
         ))
     # Small deterministic family expansion prevents a broad keyword from
     # starving the LLM of specific method candidates (for example, an

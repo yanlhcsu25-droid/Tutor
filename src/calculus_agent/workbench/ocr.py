@@ -301,11 +301,15 @@ def _strip_section_headings(text: str) -> str:
 # ---------- 题型 / 题干 / 答案 / 解析 ----------
 
 def _question_type(section_title: str) -> str:
+    """把书面章节标题（输入 alias）折算为工作台内部题型词表。
+
+    ``单项选择题 / 多项选择题 / 多选题 / 单选题`` 都只是**输入别名**，
+    输出一律立即折算为唯一的选择型 ``selection``——工作台不再保留
+    single_choice / multiple_choice 这两个会渗出到业务层的中间态。
+    """
     title = section_title.replace(" ", "")
-    if "多项选择" in title or "多选" in title:
-        return "multiple_choice"
-    if "选择" in title:
-        return "single_choice"
+    if "选择" in title or "多选" in title or "单选" in title:
+        return "selection"
     if "填空" in title:
         return "fill_blank"
     if "证明" in title:

@@ -48,6 +48,22 @@ export default function PaperDrawer({ open, paperId, preview, validation, versio
     finally { setLoading(false); }
   };
 
+  const sectionCounters: Record<string, number> = {};
+  let currentSection = "";
+  let sectionNumber = 0;
+  const numberedItems = preview.items.map((item) => {
+    if (item.question_type !== currentSection) {
+      currentSection = item.question_type;
+      sectionNumber += 1;
+    }
+    const sectionOrder = (sectionCounters[item.question_type] ?? 0) + 1;
+    sectionCounters[item.question_type] = sectionOrder;
+    return { ...item, sectionOrder, sectionNumber };
+  });
+  const chineseSectionNumber = [
+    "零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十",
+  ];
+
   const download = async (ver: "student" | "teacher") => {
     try {
       const r = await fetch(`${API}/papers/${paperId}/exports/${ver}.pdf`);
@@ -109,9 +125,15 @@ export default function PaperDrawer({ open, paperId, preview, validation, versio
         </Col>
       </Row>
 
-      {preview.items.map((item, i) => (
-        <div key={item.item_id} style={{ marginBottom: 16, padding: 12, background: item.locked ? "#fffbe6" : "#fafafa", borderRadius: 8, border: "1px solid #f0f0f0" }}>
-          <Typography.Text strong>{i + 1}. {item.question_text}</Typography.Text>
+      {numberedItems.map((item, i) => (
+        <div key={item.item_id}>
+          {(i === 0 || numberedItems[i - 1]?.question_type !== item.question_type) && (
+            <Typography.Title level={5} style={{ marginTop: 18, marginBottom: 10 }}>
+              {chineseSectionNumber[item.sectionNumber] ?? item.sectionNumber}、{item.question_type}
+            </Typography.Title>
+          )}
+          <div style={{ marginBottom: 16, padding: 12, background: item.locked ? "#fffbe6" : "#fafafa", borderRadius: 8, border: "1px solid #f0f0f0" }}>
+          <Typography.Text strong>{item.sectionOrder}. {item.question_text}</Typography.Text>
           <div style={{ marginTop: 8 }}>
             <Space wrap>
               <Tag>{item.question_type}</Tag>
@@ -120,13 +142,13 @@ export default function PaperDrawer({ open, paperId, preview, validation, versio
                 审核：{item.review_status === "approved" ? "已发布" : item.review_status ?? "未知"}
               </Tag>
               <InputNumber size="small" min={1} value={item.score} onChange={(v) => v && mutate(`/items/${item.item_id}`, { score: v }, "PATCH")} addonAfter="分" />
-              <Button size="small" icon={<ArrowUpOutlined />} disabled={i === 0} onClick={() => {
-                const order = preview.items.map((q) => q.item_id);
+              <Button size="small" icon={<ArrowUpOutlined />} disabled={i === 0 || numberedItems[i - 1]?.question_type !== item.question_type} onClick={() => {
+                const order = numberedItems.map((q) => q.item_id);
                 [order[i], order[i - 1]] = [order[i - 1], order[i]];
                 mutate("/items/reorder", { item_ids: order });
               }} />
-              <Button size="small" icon={<ArrowDownOutlined />} disabled={i === preview.items.length - 1} onClick={() => {
-                const order = preview.items.map((q) => q.item_id);
+              <Button size="small" icon={<ArrowDownOutlined />} disabled={i === numberedItems.length - 1 || numberedItems[i + 1]?.question_type !== item.question_type} onClick={() => {
+                const order = numberedItems.map((q) => q.item_id);
                 [order[i], order[i + 1]] = [order[i + 1], order[i]];
                 mutate("/items/reorder", { item_ids: order });
               }} />
@@ -140,6 +162,7 @@ export default function PaperDrawer({ open, paperId, preview, validation, versio
                 换一题
               </Button>
             </Space>
+          </div>
           </div>
         </div>
       ))}

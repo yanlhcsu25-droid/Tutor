@@ -9,23 +9,29 @@ from calculus_agent.knowledge.normalization import normalize_name
 
 _CHAPTER = re.compile(r"^(第[一二三四五六七八九十百]+章)\s*(.+)$")
 _SECTION = re.compile(r"^(?:第[一二三四五六七八九十百]+节|\d+(?:\.\d+)+)\s*(.+)$")
+_SUBSECTION = re.compile(r"^(\d+\.\d+\.\d+)\s*(.+)$")
 
 
 def import_curriculum(session: Session, text: str) -> list[CurriculumNode]:
     nodes: list[CurriculumNode] = []
-    parent: CurriculumNode | None = None
+    current_chapter_id: str | None = None
+    current_section_id: str | None = None
     for order, raw in enumerate(text.splitlines()):
         line = raw.strip().lstrip("-•* ")
         if not line:
             continue
         chapter = _CHAPTER.match(line)
+        subsection = _SUBSECTION.match(line)
         section = _SECTION.match(line)
         if chapter:
             node_type, code, title, parent_id = "chapter", chapter.group(1), line, None
+        elif subsection:
+            # 三级编号知识点 X.Y.Z：作为 topic 挂到最近的节，而非误判为节
+            node_type, code, title, parent_id = "topic", subsection.group(1), subsection.group(2), current_section_id
         elif section:
-            node_type, code, title, parent_id = "section", None, line, parent.id if parent else None
+            node_type, code, title, parent_id = "section", None, line, current_chapter_id
         else:
-            node_type, code, title, parent_id = "topic", None, line, parent.id if parent else None
+            node_type, code, title, parent_id = "topic", None, line, current_section_id or current_chapter_id
         node = CurriculumNode(
             parent_id=parent_id,
             node_type=node_type,
@@ -37,7 +43,10 @@ def import_curriculum(session: Session, text: str) -> list[CurriculumNode]:
         session.flush()
         nodes.append(node)
         if node_type == "chapter":
-            parent = node
+            current_chapter_id = node.id
+            current_section_id = None
+        elif node_type == "section":
+            current_section_id = node.id
         concept_name = _concept_name(title)
         if concept_name:
             session.add(
@@ -86,7 +95,7 @@ def sync_directory_knowledge_nodes(
     reusable_by_name = {
         normalize_name(item.name): item
         for item in (reusable_nodes or [])
-        if item.source_type == "directory"
+        if item.source_type in ("directory", "textbook_directory")
     }
     synced: list[KnowledgeNode] = []
     used_ids: set[str] = set()

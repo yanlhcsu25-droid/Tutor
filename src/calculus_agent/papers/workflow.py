@@ -265,6 +265,14 @@ def reorder_paper_items(
     existing = {item.id for item in source_items}
     if len(item_ids) != len(existing) or set(item_ids) != existing:
         raise BlueprintStateError("item_ids必须包含当前试卷的全部题目且不能重复")
+
+    by_id = {item.id: item for item in source_items}
+    original_sections = [item.section for item in source_items]
+    requested_sections = [by_id[item_id].section for item_id in item_ids]
+    if requested_sections != original_sections:
+        raise BlueprintStateError(
+            "P0仅支持同题型内部排序，不能跨题型移动题目"
+        )
     paper, cloned = _clone_version(session, source, source_items)
     by_old_id = dict(cloned)
     # Use temporary negative positions to avoid the per-paper uniqueness constraint on flush.

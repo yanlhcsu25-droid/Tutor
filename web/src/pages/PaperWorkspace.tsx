@@ -32,10 +32,10 @@ type OcrBlock = { block_id: string; block_order: number; page_number: number; bl
 type OcrResult = { task_id: string; original_filename: string; image_path: string; page_images: string[]; engine: string; status: string; image_width: number; image_height: number; duration_ms: number; warnings: string[]; created_at: string; blocks: OcrBlock[] };
 type OcrSaveResult = { draft_id: string; question_id: string; question_text: string; question_type: string; block_count: number };
 
-const initial: Blueprint = { title: "高等数学测试卷", total_questions: 10, total_score: 100, question_type_counts: { 选择题: 4, 填空题: 2, 解答题: 4 }, sections: [{question_type:"选择题",count:4,score_per_question:5,total_score:20},{question_type:"填空题",count:2,score_per_question:10,total_score:20},{question_type:"解答题",count:4,score_per_question:15,total_score:60}], knowledge_quotas: [], soft_knowledge_preferences: [], locked_question_ids: [], manual_question_ids: [], excluded_question_ids: [], question_order: [], score_overrides: {}, seed: 42 };
+const initial: Blueprint = { title: "高等数学测试卷", total_questions: 10, total_score: 100, question_type_counts: { 选择题: 4, 填空题: 2, 证明题: 4 }, sections: [{question_type:"选择题",count:4,score_per_question:5,total_score:20},{question_type:"填空题",count:2,score_per_question:10,total_score:20},{question_type:"证明题",count:4,score_per_question:15,total_score:60}], knowledge_quotas: [], soft_knowledge_preferences: [], locked_question_ids: [], manual_question_ids: [], excluded_question_ids: [], question_order: [], score_overrides: {}, seed: 42 };
 
 export default function PaperWorkspace() {
-  const [requirement, setRequirement] = useState("生成一套一元函数微分学测试卷，共10题100分，其中选择题4道、填空题2道、解答题4道，导数运算至少5题");
+  const [requirement, setRequirement] = useState("生成一套一元函数微分学测试卷，共10题100分，其中选择题4道、填空题2道、证明题4道，导数运算至少5题");
   const [blueprint, setBlueprint] = useState<Blueprint>(initial);
   const [blueprintId, setBlueprintId] = useState<string | null>(null);
   const [paperId, setPaperId] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export default function PaperWorkspace() {
   const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
   const [paperVersion, setPaperVersion] = useState<number | null>(null);
   const [supplyCheck, setSupplyCheck] = useState<SupplyCheck | null>(null);
-  const [prepInput, setPrepInput] = useState({ question_text: "", final_answer: "", solution_text: "", error_reason: "", question_type: "解答题", knowledge_names: "极限运算", match_count: 5 });
+  const [prepInput, setPrepInput] = useState({ question_text: "", final_answer: "", solution_text: "", error_reason: "", question_type: "计算题", knowledge_names: "极限运算", match_count: 5 });
   const [prepResult, setPrepResult] = useState<PrepResult | null>(null);
   const [prepLoading, setPrepLoading] = useState(false);
   const [questionImage, setQuestionImage] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export default function PaperWorkspace() {
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const [ocrMergedText, setOcrMergedText] = useState("");
   const [ocrSaveResult, setOcrSaveResult] = useState<OcrSaveResult | null>(null);
-  const [ocrQuestionType, setOcrQuestionType] = useState("解答题");
+  const [ocrQuestionType, setOcrQuestionType] = useState("计算题");
 
   const API_PATH = "/api/v1";
 
@@ -140,7 +140,7 @@ export default function PaperWorkspace() {
                       })}
                     </div>
                     <div style={{ marginTop: 12 }}><Form.Item label="合并文本（可直接修改后保存）"><Input.TextArea rows={6} value={ocrMergedText} onChange={e => setOcrMergedText(e.target.value)} /></Form.Item></div>
-                    <Space><Form.Item label="题型" style={{ marginBottom: 0 }}><Select value={ocrQuestionType} options={["选择题", "填空题", "解答题"].map(v => ({ value: v, label: v }))} onChange={setOcrQuestionType} /></Form.Item><Button type="primary" icon={<SaveOutlined />} loading={ocrLoading} onClick={ocrSave} disabled={!ocrMergedText.trim()}>保存入库</Button></Space>
+                    <Space><Form.Item label="题型" style={{ marginBottom: 0 }}><Select value={ocrQuestionType} options={["选择题", "填空题", "计算题", "证明题"].map(v => ({ value: v, label: v }))} onChange={setOcrQuestionType} /></Form.Item><Button type="primary" icon={<SaveOutlined />} loading={ocrLoading} onClick={ocrSave} disabled={!ocrMergedText.trim()}>保存入库</Button></Space>
                   </Col>
                 </Row>
               </div>
@@ -164,7 +164,7 @@ export default function PaperWorkspace() {
       </div>
       <Row gutter={14}><Col xs={24} lg={12}><Form.Item label="错题题目" required><Input.TextArea rows={4} value={prepInput.question_text} onChange={event=>setPrepInput({...prepInput,question_text:event.target.value})}/></Form.Item></Col><Col xs={24} lg={12}><Form.Item label="标准解析" required><Input.TextArea rows={4} value={prepInput.solution_text} onChange={event=>setPrepInput({...prepInput,solution_text:event.target.value})}/></Form.Item></Col></Row>
       <Row gutter={14}><Col xs={24} lg={12}><Form.Item label="标准答案" required><Input value={prepInput.final_answer} onChange={event=>setPrepInput({...prepInput,final_answer:event.target.value})}/></Form.Item></Col><Col xs={24} lg={12}><Form.Item label="学生错误原因（由教师或 ChatGPT 提供）" required><Input value={prepInput.error_reason} onChange={event=>setPrepInput({...prepInput,error_reason:event.target.value})}/></Form.Item></Col></Row>
-      <Row gutter={14}><Col xs={12} md={6}><Form.Item label="题型"><Select value={prepInput.question_type} options={["选择题","填空题","解答题"].map(value=>({value,label:value}))} onChange={question_type=>setPrepInput({...prepInput,question_type})}/></Form.Item></Col><Col xs={24} md={8}><Form.Item label="目标知识点（逗号分隔）"><Input value={prepInput.knowledge_names} onChange={event=>setPrepInput({...prepInput,knowledge_names:event.target.value})}/></Form.Item></Col><Col xs={12} md={4}><Form.Item label="匹配数量"><InputNumber min={1} max={20} value={prepInput.match_count} onChange={value=>setPrepInput({...prepInput,match_count:value??5})}/></Form.Item></Col></Row>
+      <Row gutter={14}><Col xs={12} md={6}><Form.Item label="题型"><Select value={prepInput.question_type} options={["选择题","填空题","计算题","证明题"].map(value=>({value,label:value}))} onChange={question_type=>setPrepInput({...prepInput,question_type})}/></Form.Item></Col><Col xs={24} md={8}><Form.Item label="目标知识点（逗号分隔）"><Input value={prepInput.knowledge_names} onChange={event=>setPrepInput({...prepInput,knowledge_names:event.target.value})}/></Form.Item></Col><Col xs={12} md={4}><Form.Item label="匹配数量"><InputNumber min={1} max={20} value={prepInput.match_count} onChange={value=>setPrepInput({...prepInput,match_count:value??5})}/></Form.Item></Col></Row>
       <Button type="primary" icon={<RobotOutlined/>} loading={prepLoading} disabled={!prepInput.question_text.trim()||!prepInput.final_answer.trim()||!prepInput.solution_text.trim()||!prepInput.error_reason.trim()||!prepInput.knowledge_names.trim()} onClick={createPrepTask}>保存并匹配巩固题</Button>
       {prepResult && <div className="prep-results"><Typography.Title level={4}>匹配结果</Typography.Title>{!prepResult.matches.length?<Empty description="当前题库没有匹配题，请调整知识点或先扩充题库"/>:prepResult.matches.map((item,index)=><div className="prep-match" key={item.question_id}><div><Typography.Text strong>{index+1}. {item.question_text}</Typography.Text><div className="prep-tags"><Tag>{item.question_type}</Tag>{item.knowledge.map(name=><Tag color="geekblue" key={name}>{name}</Tag>)}{item.match_reasons.map(reason=><Tag color="green" key={reason}>{reason}</Tag>)}</div></div><Typography.Paragraph><b>答案：</b>{item.final_answer??"暂无"}</Typography.Paragraph><Typography.Paragraph><b>解析：</b>{item.solution_steps.join(" ")||"暂无"}</Typography.Paragraph></div>)}</div>}
     </Card>

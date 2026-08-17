@@ -26,3 +26,13 @@ web/.vite/
 web/vite.config.js
 web/vite.config.d.ts
 /测试卷.pdf
+
+# Local patch / recovery artifacts
+*.bak
+*.bak.*
+*.phase*.bak
+apply_phase3*.py
+teacher_agent_p0_numbering_patch.py
+phase*_patch_*.py
+fix_delete_preview_reindex.py
+diagnose_candidates.py

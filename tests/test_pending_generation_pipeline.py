@@ -54,12 +54,15 @@ def _scope(session) -> None:
 
 
 def _requirements(*, fill_count: int = 2, proof_count: int = 2):
+    # Only the four generatable types are used. `unknown` is NOT a normal
+    # Blueprint section (it means "题型待定，需人工处理"), and the deprecated
+    # `多选题` folds into `选择题` under the contract, so it must not appear here.
+    # Scores are chosen so the four types sum to exactly 100 (no rebalance).
     return [
         QuestionTypeRequirement(question_type="选择题", count=4, score_each=5),
         QuestionTypeRequirement(question_type="填空题", count=fill_count, score_each=5),
-        QuestionTypeRequirement(question_type="计算题", count=2, score_each=5),
-        QuestionTypeRequirement(question_type="多选题", count=2, score_each=20),
-        QuestionTypeRequirement(question_type="证明题", count=proof_count, score_each=10),
+        QuestionTypeRequirement(question_type="计算题", count=2, score_each=15),
+        QuestionTypeRequirement(question_type="证明题", count=proof_count, score_each=20),
     ]
 
 
@@ -103,7 +106,7 @@ def test_pending_count_01_complete_counts_derive_total_questions(session):
     generation_request, _, errors, _ = build_structured_generation_request(session, request)
 
     assert errors == []
-    assert generation_request.blueprint.total_questions == 14
+    assert generation_request.blueprint.total_questions == 12
 
 
 def test_pending_count_02_card_patch_updates_saved_plan_and_derived_count(session):
@@ -249,7 +252,6 @@ def test_pending_multi_update_01_chat_card_chat_preserves_all_state(session):
     assert types["填空题"].count == 4
     assert types["选择题"].count == 4
     assert types["计算题"].count == 2
-    assert types["多选题"].count == 2
     assert saved.question_count == sum(item.count for item in saved.question_type_requirements)
 
 
@@ -300,5 +302,5 @@ def test_session_restore_reads_the_latest_card_updated_pending_plan(session):
 
     assert restored.conversation_id == conversation_id
     assert types["证明题"].count == 3
-    assert restored.pending_generation.request.question_count == 13
+    assert restored.pending_generation.request.question_count == 11
     assert restored.pending_generation.pending_version == pending.pending_version + 1

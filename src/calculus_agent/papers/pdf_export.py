@@ -53,12 +53,18 @@ def export_paper_pdf(
     # behind a "successful" ReportLab PDF.
     if engine is None or binary is None:
         return PaperPdfResult(
-            content=render_paper_pdf(paper, teacher_version=teacher_version),
+            content=render_paper_pdf(
+                paper,
+                teacher_version=teacher_version,
+            ),
             renderer="reportlab",
             warning="未找到 Tectonic 或 XeLaTeX，已使用兼容 PDF 渲染器",
         )
 
-    latex = render_paper_latex(paper, teacher_version=teacher_version)
+    latex = render_paper_latex(
+        paper,
+        teacher_version=teacher_version,
+    )
 
     # Do NOT silently fall back to ReportLab here.
     #
@@ -76,7 +82,6 @@ def export_paper_pdf(
         content=content,
         renderer=engine,
     )
-
 
 def _find_engine(preferred: str) -> tuple[str | None, str | None]:
     if preferred not in {"auto", "tectonic", "xelatex", "reportlab"}:

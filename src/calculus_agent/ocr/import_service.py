@@ -193,27 +193,20 @@ def publish_ocr_draft(
 
 
 def derive_chapter_from_knowledge(session: Session, knowledge_ids: list[str]) -> str | None:
-    """由全部 KnowledgeNode 的教材目录层级反推去重后的章节路径。
+    """OCR/import **provenance** helper for ``QuestionDraft.source_topic``.
 
-    仅用于发布时填写 QuestionDraft.source_topic（题库"章节"展示列）。
-    没有结构化知识点时返回 None，调用方回退到 Markdown 章节兼容文本。
+    IMPORTANT: this is NOT the formal business chapter. Formal chapter
+    derivation now lives in
+    ``calculus_agent.knowledge.chapter.resolve_chapter_from_knowledge_ids``
+    and is consumed by the question-bank API. This helper only produces a
+    human-readable original-topic string for OCR/import metadata; callers must
+    never treat its result as the authoritative question chapter.
+
+    Returns the single latest chapter name (by textbook order) or None.
     """
-    paths: set[str] = set()
-    for node_id in dict.fromkeys(knowledge_ids):
-        node = session.get(KnowledgeNode, node_id)
-        if node is None or not node.curriculum_node_id:
-            continue
-        titles: list[str] = []
-        seen: set[str] = set()
-        cur = session.get(CurriculumNode, node.curriculum_node_id)
-        while cur is not None and cur.id not in seen:
-            seen.add(cur.id)
-            titles.insert(0, cur.title)
-            cur = session.get(CurriculumNode, cur.parent_id) if cur.parent_id else None
-        if titles:
-            # source_topic 是章节字段：只保留所属章，避免同章不同节产生多个章节。
-            paths.add(titles[0])
-    return "；".join(sorted(paths)) or None
+    from calculus_agent.knowledge.chapter import resolve_chapter_from_knowledge_ids
+
+    return resolve_chapter_from_knowledge_ids(session, knowledge_ids).chapter_name
 
 
 def apply_ai_published_profile_review(

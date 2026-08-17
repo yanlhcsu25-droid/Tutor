@@ -1,5 +1,6 @@
 from sqlalchemy import select
 
+from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.knowledge.classification import (
     classify_knowledge_points,
     confirm_question_knowledge,
@@ -274,3 +275,95 @@ def test_candidate_recall_recognizes_derivative_definition_from_difference_quoti
         solution_steps=["写出差商并令增量趋于零"],
     )
     assert "导数定义" in {item.name for item in candidates}
+
+
+def _three_level_directory_kn(session, *, textbook, parent_title, point_name, order):
+    """Mirror a textbook-imported three-level knowledge point.
+
+    These KNs have no aliases/keywords and are absent from CALCULUS_TAXONOMY,
+    so they are only recallable if the retriever matches on the compound name
+    itself (not just a verbatim whole-string substring).
+    """
+    chapter = CurriculumNode(
+        textbook_id=textbook.id,
+        node_type="chapter",
+        title="第二章 导数与微分" if "参数方程" in point_name or "导数" in point_name else "第三章 微分中值定理与导数的应用",
+        sort_order=order,
+        review_status="approved",
+    )
+    session.add(chapter)
+    session.flush()
+    parent = CurriculumNode(
+        textbook_id=textbook.id,
+        parent_id=chapter.id,
+        node_type="section",
+        title=parent_title,
+        sort_order=order,
+        review_status="approved",
+    )
+    session.add(parent)
+    session.flush()
+    node = CurriculumNode(
+        textbook_id=textbook.id,
+        parent_id=parent.id,
+        node_type="topic",
+        title=point_name,
+        sort_order=order,
+        review_status="approved",
+    )
+    session.add(node)
+    session.flush()
+    kn = KnowledgeNode(
+        curriculum_node_id=node.id,
+        node_type="concept",
+        name=point_name,
+        normalized_name=normalize_name(point_name),
+        source_type="directory",
+        confidence=1.0,
+        review_status="approved",
+    )
+    session.add(kn)
+    session.flush()
+    return kn
+
+
+def test_three_level_kp_recalled_without_alias_or_keyword(session):
+    """Regression: a fine-grained three-level directory KP with no alias and no
+    keyword must still be recalled when the question mentions a sub-string of
+    its compound name.
+
+    Input question: "参数方程确定函数，要求判断凹凸性"
+    Expected candidates MUST include:
+        2.4.4 参数方程确定函数的二阶导数
+        3.4.2 曲线凹凸性的判定
+    """
+    book = Textbook(name="高等数学（回归）", is_active=True)
+    session.add(book)
+    session.flush()
+    _three_level_directory_kn(
+        session, textbook=book, parent_title="隐函数与参数方程求导",
+        point_name="参数方程确定函数的二阶导数", order=10,
+    )
+    _three_level_directory_kn(
+        session, textbook=book, parent_title="隐函数与参数方程求导",
+        point_name="参数方程确定函数的导数", order=11,
+    )
+    _three_level_directory_kn(
+        session, textbook=book, parent_title="函数的单调性与曲线的凹凸性",
+        point_name="曲线凹凸性的判定", order=30,
+    )
+
+    candidates = generate_knowledge_candidates(
+        session,
+        question_body="参数方程确定函数，要求判断凹凸性",
+        standard_solution="",
+        solution_steps=[],
+        limit=20,
+    )
+    names = {c.name for c in candidates}
+    assert "参数方程确定函数的二阶导数" in names, (
+        f"expected three-level KP recalled, got: {sorted(names)}"
+    )
+    assert "曲线凹凸性的判定" in names, (
+        f"expected three-level KP recalled, got: {sorted(names)}"
+    )

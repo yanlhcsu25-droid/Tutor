@@ -5,7 +5,7 @@
 2. 题目知识点属于第一章子节点 → 筛选第一章返回
 3. 题目属于第二章 → 筛选第一章不返回
 4. 一道题绑定多个第一章知识点 → 结果只出现一次
-5. 一道题跨第一章和第二章 → 两条章节筛选都返回
+5. 一道题跨第一章和第二章 → 仅出现在最靠后章节（第二章）筛选，不出现在第一章
 6. 章节 + 已发布来源 → AND 语义
 7. 切回全部章节 → 恢复原始行为
 """
@@ -176,14 +176,65 @@ def test_chapter_filter_deduplicates_multiple_same_chapter_knowledge(session):
     assert [r.id for r in results] == ["q-11111111-1111-4111-a111-111111111111"]
 
 
-def test_chapter_filter_cross_chapter_question_appears_in_both(session):
+def test_chapter_filter_cross_chapter_question_appears_only_in_latest(session):
+    """跨章题目（第一章 + 第二章）的派生章节为最靠后的第二章，
+    因此只应出现在第二章筛选，绝不应出现在第一章筛选。"""
     _, c1, c2 = _seed_taxonomy(session)
     k1 = _knowledge_for_chapter(session, c1, "函数极限")
     k2 = _knowledge_for_chapter(session, c2, "导数定义")
     _add_question(session, "q-33333333-3333-4333-a333-333333333333", [k1, k2])
 
-    assert [r.id for r in _search(session, chapter_id=c1.id)] == ["q-33333333-3333-4333-a333-333333333333"]
+    assert [r.id for r in _search(session, chapter_id=c1.id)] == []
     assert [r.id for r in _search(session, chapter_id=c2.id)] == ["q-33333333-3333-4333-a333-333333333333"]
+
+
+def test_chapter_filter_cross_ch1_ch3_appears_only_in_ch3(session):
+    """用户场景：一题同时有第一章 + 第三章知识点 → 派生章节为第三章。
+    筛选第一章 → 不能出现；筛选第三章 → 必须出现。"""
+    import uuid
+
+    textbook, c1, _ = _seed_taxonomy(session)
+    c3 = CurriculumNode(
+        id=f"ch3-{uuid.uuid4().hex[:8]}",
+        textbook_id=textbook.id,
+        parent_id=None,
+        node_type="chapter",
+        code="三",
+        title="第三章 微分中值定理",
+        sort_order=30,
+        review_status="approved",
+    )
+    session.add(c3)
+    session.flush()
+    s3 = CurriculumNode(
+        id=f"s3-{uuid.uuid4().hex[:8]}",
+        textbook_id=textbook.id,
+        parent_id=c3.id,
+        node_type="section",
+        title="3.1 洛必达法则",
+        sort_order=31,
+        review_status="approved",
+    )
+    session.add(s3)
+    session.flush()
+    k1 = _knowledge_for_chapter(session, c1, "函数极限")
+    k3 = KnowledgeNode(
+        name=f"洛必达 (test-{s3.id[:8]})",
+        normalized_name=normalize_name(f"洛必达 (test-{s3.id[:8]})"),
+        node_type="concept",
+        curriculum_node_id=s3.id,
+        review_status="approved",
+    )
+    session.add(k3)
+    session.flush()
+    _add_question(session, "q-ch1ch3-1111-4111-a111-111111111111", [k1, k3])
+
+    # 筛选第一章：不能出现
+    assert [r.id for r in _search(session, chapter_id=c1.id)] == []
+    # 筛选第三章：必须出现
+    assert [r.id for r in _search(session, chapter_id=c3.id)] == [
+        "q-ch1ch3-1111-4111-a111-111111111111"
+    ]
 
 
 def test_chapter_filter_combines_with_source_name_and(session):

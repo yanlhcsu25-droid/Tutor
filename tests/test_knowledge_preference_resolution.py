@@ -146,6 +146,72 @@ def test_clarification_propagates_to_tool_result(session):
     assert "极限运算法则" in result.clarification_questions[0]
 
 
+# ---- orphaned KnowledgeNode 与当前 taxonomy 的区分（regression） ----
+
+def test_orphaned_and_valid_same_name_resolves_to_scope_conflict(session):
+    """旧 orphaned KN（curriculum_node_id 指向已删除节点）必须被 resolver 排除，
+    只剩当前有效 KN 参与匹配 → 跨章节报 knowledge_scope_conflict，而非 ambiguous。"""
+    _seed_synthetic_taxonomy(session)
+    # 旧 orphaned 节点：curriculum_node_id 指向不存在的 CurriculumNode。
+    # normalized_name 加后缀以绕过 (node_type, normalized_name) 唯一约束；
+    # resolver 按 normalize_name(name) 匹配，name 仍为“极限运算法则”。
+    session.add(KnowledgeNode(
+        id="kn-law-orphan", node_type="concept", name="极限运算法则",
+        normalized_name="极限运算法则::deleted-cn-id", curriculum_node_id="deleted-cn-id",
+    ))
+    session.flush()
+    scope_ids = _scope_for(session, ["第三章"])
+    names, ids, errors, questions = _knowledge_preferences(
+        session, ["极限运算法则"], scope_ids, ["第三章"]
+    )
+    assert "knowledge_ambiguous" not in errors
+    assert errors == ["knowledge_scope_conflict"]
+    # 若孤儿 KN 未被排除，会与有效 KN 同名 → 误报 knowledge_ambiguous；
+    # 此处得到 knowledge_scope_conflict 证明孤儿已被排除、只匹配到唯一有效 KN。
+
+
+def test_two_valid_same_name_nodes_still_ambiguous(session):
+    """两个当前有效、同名的 KN（分属不同章节）仍应报 knowledge_ambiguous。
+    证明本次修复没有误删 ambiguity 语义。"""
+    _seed_synthetic_taxonomy(session)
+    session.add_all([
+        KnowledgeNode(
+            id="kn-dup-a", node_type="concept", name="同名导数",
+            normalized_name="同名导数::sec1", curriculum_node_id="sec1",
+        ),
+        KnowledgeNode(
+            id="kn-dup-b", node_type="concept", name="同名导数",
+            normalized_name="同名导数::sec3", curriculum_node_id="sec3",
+        ),
+    ])
+    session.flush()
+    # scope 同时覆盖两个章节，二者都在 scope 内 → 无法唯一确定
+    scope_ids = _scope_for(session, ["第一章", "第三章"])
+    names, ids, errors, questions = _knowledge_preferences(
+        session, ["同名导数"], scope_ids, ["第一章", "第三章"]
+    )
+    assert errors == ["knowledge_ambiguous"]
+    assert len(questions) == 1
+
+
+def test_only_orphaned_knowledge_is_unknown(session):
+    """若某名字只有 orphaned KN（无当前有效 KN），不应被当成正常知识点，
+    而应判 knowledge_unknown（孤儿节点已不在当前 taxonomy 内）。"""
+    _seed_synthetic_taxonomy(session)
+    session.add(KnowledgeNode(
+        id="kn-ghost", node_type="concept", name="孤儿子节点",
+        normalized_name="孤儿子节点", curriculum_node_id="ghost-cn-id",
+    ))
+    session.flush()
+    scope_ids = _scope_for(session, ["第三章"])
+    names, ids, errors, questions = _knowledge_preferences(
+        session, ["孤儿子节点"], scope_ids, ["第三章"]
+    )
+    assert names == [] and ids == []
+    assert errors == ["knowledge_unknown"]
+    assert "孤儿子节点" in questions[0]
+
+
 # ---- 真实 calculus_agent.db 回归 ----
 
 def test_real_bad_case_resolver_returns_three_distinct_errors():

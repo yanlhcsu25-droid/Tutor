@@ -71,13 +71,22 @@ def render_paper_pdf(paper: PaperPreviewRead, *, teacher_version: bool) -> bytes
     ]
     current_type = None
     section_index = 0
+    section_number = 0
     for item in paper.items:
         if item.question_type != current_type:
             current_type = item.question_type
             section_index = 0
+            section_number += 1
             story.extend(
                 [
-                    Paragraph(_section_title(paper, current_type), styles["section"]),
+                    Paragraph(
+                        _section_title(
+                            paper,
+                            current_type,
+                            section_number,
+                        ),
+                        styles["section"],
+                    ),
                     Spacer(1, 3 * mm),
                 ]
             )
@@ -85,7 +94,7 @@ def render_paper_pdf(paper: PaperPreviewRead, *, teacher_version: bool) -> bytes
         question_flowables = _question_flowables(item, section_index, styles)
         if teacher_version:
             question_flowables.extend(_teacher_answer_flowables(item, styles))
-        if item.question_type == "解答题" and not teacher_version:
+        if item.question_type in {"计算题", "证明题"} and not teacher_version:
             answer_height = _answer_space_mm(item.score) * mm
             story.extend(
                 [
@@ -175,22 +184,36 @@ def _styles() -> dict[str, ParagraphStyle]:
 def _section_title(paper: PaperPreviewRead, question_type: str) -> str:
     items = [item for item in paper.items if item.question_type == question_type]
     score = sum(item.score for item in items)
-    number = {"选择题": "一", "多选题": "二", "填空题": "三", "解答题": "四"}.get(
-        question_type, "一"
-    )
+    section_types = list(dict.fromkeys(
+        item.question_type for item in paper.items
+    ))
+    section_number = section_types.index(question_type) + 1
+    chinese_numbers = {
+        1: "一", 2: "二", 3: "三", 4: "四", 5: "五",
+        6: "六", 7: "七", 8: "八", 9: "九", 10: "十",
+    }
+    number = chinese_numbers.get(section_number, str(section_number))
     descriptions = {
         "选择题": "每小题给出的选项中，只有一个选项正确。",
         "多选题": "每小题给出的选项中，有多项符合题目要求。",
         "填空题": "请将答案填写在题中横线上。",
-        "解答题": "解答应写出文字说明、证明过程或演算步骤。",
+        "计算题": "解答应写出必要的计算步骤。",
+        "证明题": "证明应写出完整的推理过程。",
     }
-    average = items[0].score if items and all(item.score == items[0].score for item in items) else None
-    per_item = f"，每小题 {_format_score(average)} 分" if average is not None else ""
+    average = (
+        items[0].score
+        if items and all(item.score == items[0].score for item in items)
+        else None
+    )
+    per_item = (
+        f"，每小题 {_format_score(average)} 分"
+        if average is not None else ""
+    )
     return escape(
-        f"{number}、{question_type}（本大题共 {len(items)} 小题{per_item}，共 {_format_score(score)} 分。"
+        f"{number}、{question_type}（本大题共 {len(items)} 小题"
+        f"{per_item}，共 {_format_score(score)} 分。"
         f"{descriptions.get(question_type, '')}）"
     )
-
 
 def _answer_space_mm(score: float) -> float:
     return max(32, min(72, 20 + score * 3))
@@ -209,7 +232,7 @@ def _question_flowables(item, index: int, styles: dict[str, ParagraphStyle]) -> 
     stem_lines = [line for line in lines if not _OPTION_PATTERN.match(line)]
     prefix = (
         f"{index}.（本小题满分 {_format_score(item.score)} 分）"
-        if item.question_type == "解答题"
+        if item.question_type in {"计算题", "证明题"}
         else f"{index}. "
     )
     result = [

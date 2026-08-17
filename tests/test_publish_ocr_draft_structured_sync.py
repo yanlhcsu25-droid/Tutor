@@ -161,7 +161,10 @@ def test_chapter_derivation_keeps_cross_chapter_and_ignores_order(session):
     first = derive_chapter_from_knowledge(session, [nodes[0].id, other_node.id])
     second = derive_chapter_from_knowledge(session, [other_node.id, nodes[0].id])
     assert first == second
-    assert first == "导数与微分；积分学"
+    # Cross-chapter is not an error: the resolver (single source of truth) returns
+    # the LATEST chapter by textbook catalog order
+    # (积分学 sort_order=20 > 导数与微分 sort_order=10). Input order is irrelevant.
+    assert first == "积分学"
 
 
 def test_revision_republish_overwrites_profile_with_human(session):

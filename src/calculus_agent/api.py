@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import delete, exists, func, or_, select
+from sqlalchemy import delete, exists, false, func, or_, select
 from sqlalchemy.orm import Session
 
 from calculus_agent.config import Settings, get_settings
@@ -24,8 +24,11 @@ from calculus_agent.knowledge.curriculum import (
 )
 from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.knowledge.retrieval import retrieve_knowledge
-from calculus_agent.ocr.import_service import derive_chapter_from_knowledge
-from calculus_agent.workbench.chapter_filter import chapter_descendant_knowledge_ids
+from calculus_agent.knowledge.chapter import (
+    resolve_question_chapter,
+    resolve_questions_chapters,
+)
+from calculus_agent.workbench.chapter_filter import chapter_filter_knowledge_id_sets
 from calculus_agent.knowledge.steward import DraftNotFoundError, process_draft
 from calculus_agent.knowledge.classification import (
     confirm_question_knowledge,
@@ -673,7 +676,7 @@ def knowledge_classification_suggestions(
             {
                 "question_id": question.id,
                 "question_text": question.question_text,
-                "question_type": question.question_type,
+                "question_type": canonical_question_type(question.question_type),
                 "suggestions": suggest_question_knowledge(session, question),
             }
             for question in questions
@@ -853,23 +856,44 @@ def search_questions(
         else:
             statement = statement.where(text_match)
     if question_type:
-        statement = statement.where(Question.question_type == question_type)
+        # Canonicalize the filter param so a raw alias (e.g. "proof") still
+        # resolves to its canonical type ("证明题").
+        statement = statement.where(
+            Question.question_type == canonical_question_type(question_type)
+        )
     if chapter_id:
-        descendant_ids = chapter_descendant_knowledge_ids(session, chapter_id)
-        if descendant_ids:
-            statement = statement.where(
-                exists().where(
-                    QuestionKnowledgeLink.question_id == Question.id,
-                    QuestionKnowledgeLink.knowledge_node_id.in_(descendant_ids),
-                )
-            )
-        else:
+        # Filter by the question's *derived* chapter (consistent with the chapter
+        # resolver): a question matches iff it has a KP in `chapter_id` and none in any
+        # later chapter of the same textbook. This keeps a Ch1+Ch3 question in the Ch3
+        # filter only — never the Ch1 filter.
+        id_sets = chapter_filter_knowledge_id_sets(session, chapter_id)
+        if id_sets is None:
             # 无效章节 id：保持「不限制」语义，避免返回空结果造成困惑。
             pass
+        else:
+            include_ids, exclude_ids = id_sets
+            if include_ids:
+                statement = statement.where(
+                    exists().where(
+                        QuestionKnowledgeLink.question_id == Question.id,
+                        QuestionKnowledgeLink.knowledge_node_id.in_(include_ids),
+                    )
+                )
+            else:
+                # 有效章节但不关联任何已审核知识点：无任何题目命中。
+                statement = statement.where(false())
+            if exclude_ids:
+                statement = statement.where(
+                    ~exists().where(
+                        QuestionKnowledgeLink.question_id == Question.id,
+                        QuestionKnowledgeLink.knowledge_node_id.in_(exclude_ids),
+                    )
+                )
     questions = session.scalars(statement.order_by(Question.created_at.desc()).limit(limit)).all()
     question_ids = [question.id for question in questions]
     knowledge_map = _load_knowledge_names(session, question_ids)
     origin_map = _load_question_origins(session, question_ids)
+    chapter_map = resolve_questions_chapters(session, question_ids)
     latest_profiles = {
         item.question_id: item
         for item in list_question_profiles(session, status="approved", source_name=None)
@@ -880,16 +904,19 @@ def search_questions(
         original_number, source_name, source_page = origin_map.get(
             question.id, (None, None, None)
         )
+        chapter = chapter_map[question.id]
         results.append(
             QuestionOptionRead(
                 id=question.id,
                 question_text=question.question_text,
-                question_type=question.question_type,
+                question_type=canonical_question_type(question.question_type),
                 knowledge=knowledge_map.get(question.id, []),
                 original_number=original_number,
                 source_name=source_name,
                 source_page=source_page,
-                chapter=session.get(QuestionDraft, question.draft_id).source_topic,
+                chapter=chapter.chapter_name,
+                chapter_id=chapter.chapter_id,
+                chapter_status=chapter.status,
                 knowledge_match_status=question.knowledge_match_status,
                 difficulty=(profile.difficulty if (profile := latest_profiles.get(question.id)) else None),
                 estimated_time_min=profile.estimated_time_min if profile else None,
@@ -991,7 +1018,6 @@ def update_formal_question(
     draft.question_text = question.question_text
     draft.question_type = request.question_type
     draft.solution_text = request.solution_content or None
-    draft.source_topic = derive_chapter_from_knowledge(session, selected_ids)
     draft.status = "approved"
 
     # 正式题人工修改时直接创建一个 approved 人工画像版本；不改变旧字段兼容性。
@@ -1172,15 +1198,18 @@ def get_question_detail(
     original_number, source_name, source_page = _load_question_origins(
         session, [question.id]
     ).get(question.id, (None, None, None))
+    chapter_resolution = resolve_question_chapter(session, question.id)
     return QuestionDetailRead(
         id=question.id,
         question_text=question.question_text,
-        question_type=question.question_type,
+        question_type=canonical_question_type(question.question_type),
         knowledge=_load_knowledge_names(session, [question.id]).get(question.id, []),
         knowledge_node_ids=_load_knowledge_node_ids(session, question.id),
         solution_content=solution_text or None,
         final_answer=question.final_answer,
-        chapter=session.get(QuestionDraft, question.draft_id).source_topic,
+        chapter=chapter_resolution.chapter_name,
+        chapter_id=chapter_resolution.chapter_id,
+        chapter_status=chapter_resolution.status,
         original_number=original_number,
         source_name=source_name,
         source_page=source_page,
@@ -1798,7 +1827,9 @@ async def upload_doc_and_split(
 # ── 教材目录管理 ──
 
 DIR_CHAPTER_RE = re.compile(r"^第[一二三四五六七八九十\d]+章\s+")
-DIR_SECTION_RE = re.compile(r"^(\d+(?:[.]\d+)*)\s+")
+DIR_SECTION_RE = re.compile(r"^(\d+\.\d+)\s+")            # Section: X.Y
+DIR_KNOWLEDGE_POINT_RE = re.compile(r"^(\d+\.\d+\.\d+)\s+")  # KnowledgePoint: X.Y.Z
+DIR_DEEP_RE = re.compile(r"^(\d+(?:[.]\d+){3,})\s+")      # rejected: X.Y.Z.W+
 
 
 @router.get("/textbooks")
@@ -1867,6 +1898,16 @@ def import_textbook_directory(textbook_id: str, body: dict, session: Session = D
     if not text:
         raise HTTPException(status_code=400, detail="目录文本不能为空")
 
+    # Confirm re-validates from the raw text (never trusts a frontend-supplied tree).
+    strict = bool(body.get("strict"))
+    if strict:
+        preview_errors, _ = _validate_directory_lines(text, strict=True)
+        if preview_errors:
+            raise HTTPException(
+                status_code=400,
+                detail={"valid": False, "errors": preview_errors},
+            )
+
     old_nodes: list[CurriculumNode] = []
     old_knowledge: list[KnowledgeNode] = []
     if body.get("replace"):
@@ -1878,7 +1919,7 @@ def import_textbook_directory(textbook_id: str, body: dict, session: Session = D
             old_knowledge = list(session.scalars(
                 select(KnowledgeNode).where(
                     KnowledgeNode.curriculum_node_id.in_(old_ids),
-                    KnowledgeNode.source_type == "directory",
+                    KnowledgeNode.source_type.in_(["directory", "textbook_directory"]),
                 )
             ).all())
 
@@ -1906,11 +1947,154 @@ def import_textbook_directory(textbook_id: str, body: dict, session: Session = D
     return {"imported_count": len(nodes), "knowledge_count": len(knowledge)}
 
 
+@router.post("/textbooks/{textbook_id}/import/preview")
+def preview_textbook_directory(
+    textbook_id: str, body: dict, session: Session = Depends(get_session)
+) -> dict:
+    """只读预览：解析 + 严格层级校验 + tree/statistics/errors。不写任何数据库。"""
+    book = session.get(Textbook, textbook_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="教材不存在")
+    text = (body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="目录文本不能为空")
+    return _preview_directory(textbook_id, text)
+
+
+def _validate_directory_lines(text: str, *, strict: bool = True) -> tuple[list[dict], dict]:
+    """确定性层级校验。纯函数，不依赖数据库。返回 (errors, statistics)。
+
+    strict=True 时，knowledge point 直接挂在 chapter 下（无 section）视为错误；
+    三级编号知识点（X.Y.Z）的所属小节前缀必须与当前小节（X.Y）一致，否则报
+    knowledge_point_section_mismatch；四级及以上编号（X.Y.Z.W）报
+    unsupported_directory_depth。
+    strict=False 时仅统计，不报错（兼容首导入历史格式）。
+
+    注：章用中文数字（第X章）、小节用阿拉伯数字（X.Y），二者基数不同，本项目
+    暂无可靠的「中文数字→整数」换算，故暂不校验 section_chapter_mismatch。
+    """
+    errors: list[dict] = []
+    stats = {"chapters": 0, "sections": 0, "knowledge_points": 0}
+    current_chapter_code: str | None = None
+    current_section_code: str | None = None
+    current_section_seq = 0
+    seen_chapter_codes: set[str] = set()
+    seen_section_codes: set[str] = set()
+    section_kp_names: dict[int, set[str]] = {}
+    for idx, raw in enumerate(text.splitlines(), start=1):
+        line = raw.strip()
+        if not line:
+            continue
+        chap = DIR_CHAPTER_RE.match(line)
+        kp = DIR_KNOWLEDGE_POINT_RE.match(line)
+        sec = DIR_SECTION_RE.match(line)
+        deep = DIR_DEEP_RE.match(line)
+
+        # 四级及以上编号不支持
+        if deep:
+            errors.append({"line": idx, "code": "unsupported_directory_depth",
+                           "message": f"出现四级及以上编号“{deep.group(1)}”，本系统仅支持 章/小节/知识点 三级目录"})
+            continue
+        if chap:
+            stats["chapters"] += 1
+            num = re.match(r"第([一二三四五六七八九十\d]+)章\s+(.+)", line)
+            code = num.group(1) if num else None
+            if code:
+                if code in seen_chapter_codes:
+                    errors.append({"line": idx, "code": "duplicate_chapter_code",
+                                   "message": f"章编号“{code}”重复"})
+                else:
+                    seen_chapter_codes.add(code)
+            current_chapter_code = code
+            current_section_code = None
+            continue
+        if kp:
+            stats["knowledge_points"] += 1
+            kp_code = kp.group(1)              # "3.1.1"
+            kp_prefix = ".".join(kp_code.split(".")[:-1])  # "3.1"
+            if current_section_code is None:
+                errors.append({"line": idx, "code": "knowledge_point_without_section",
+                               "message": f"知识点“{line}”没有所属小节，无法确定其目录位置"})
+            elif kp_prefix != current_section_code:
+                errors.append({"line": idx, "code": "knowledge_point_section_mismatch",
+                               "message": f"知识点 {kp_code} 的所属小节编号为 {kp_prefix}，但当前小节为 {current_section_code}"})
+            else:
+                names = section_kp_names.setdefault(current_section_seq, set())
+                if line in names:
+                    errors.append({"line": idx, "code": "duplicate_knowledge_point",
+                                   "message": f"同一小节下知识点“{line}”重复"})
+                else:
+                    names.add(line)
+            continue
+        if sec:
+            if current_chapter_code is None:
+                errors.append({"line": idx, "code": "section_without_chapter",
+                               "message": f"小节“{line}”出现在任何章之前，无法确定所属章"})
+            stats["sections"] += 1
+            section_code = sec.group(1)
+            title = line[sec.end():].strip()
+            if not title:
+                errors.append({"line": idx, "code": "empty_section_title",
+                               "message": f"小节“{line}”标题为空"})
+            if section_code in seen_section_codes:
+                errors.append({"line": idx, "code": "duplicate_section_code",
+                               "message": f"小节编号“{section_code}”重复"})
+            else:
+                seen_section_codes.add(section_code)
+            current_section_code = section_code
+            current_section_seq += 1
+            section_kp_names[current_section_seq] = set()
+            continue
+        # 普通非编号知识点行：兼容历史格式
+        if strict and current_section_code is None:
+            errors.append({"line": idx, "code": "knowledge_point_without_section",
+                           "message": f"知识点“{line}”没有所属小节，无法确定其目录位置"})
+        if line:
+            stats["knowledge_points"] += 1
+            if current_section_code is not None:
+                names = section_kp_names.setdefault(current_section_seq, set())
+                if line in names:
+                    errors.append({"line": idx, "code": "duplicate_knowledge_point",
+                                   "message": f"同一小节下知识点“{line}”重复"})
+                else:
+                    names.add(line)
+    return errors, stats
+
+
+def _build_directory_tree(nodes: list[CurriculumNode]) -> list[dict]:
+    node_map = {
+        n.id: {"id": n.id, "code": n.code, "title": n.title, "type": n.node_type,
+               "parent_id": n.parent_id, "children": []}
+        for n in nodes
+    }
+    roots: list[dict] = []
+    for n in nodes:
+        item = node_map[n.id]
+        if n.parent_id and n.parent_id in node_map:
+            node_map[n.parent_id]["children"].append(item)
+        else:
+            roots.append(item)
+    return roots
+
+
+def _preview_directory(textbook_id: str, text: str) -> dict:
+    # Parse without touching the session: node ids are assigned but never flushed.
+    nodes = _parse_directory_text(text, textbook_id)
+    errors, stats = _validate_directory_lines(text, strict=True)
+    return {
+        "valid": not errors,
+        "errors": errors,
+        "statistics": stats,
+        "tree": _build_directory_tree(nodes) if not errors else None,
+    }
+
+
 def _parse_directory_text(text: str, textbook_id: str) -> list[CurriculumNode]:
     from calculus_agent.models import new_id
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     result: list[CurriculumNode] = []
     current_chapter_id: str | None = None
+    current_section_id: str | None = None
     order = 0
 
     for line in lines:
@@ -1935,30 +2119,48 @@ def _parse_directory_text(text: str, textbook_id: str) -> list[CurriculumNode]:
             )
             result.append(node)
             current_chapter_id = chapter_id
+            current_section_id = None
             continue
 
-        # 检查是否是节标题
+        # 三级编号知识点：X.Y.Z（必须在 Section 的 X.Y 之前判定）
+        kp_match = DIR_KNOWLEDGE_POINT_RE.match(line)
+        if kp_match:
+            node_type = "knowledge_point"
+            code = kp_match.group(1)
+            title = line[kp_match.end():].strip()
+            order += 1
+            node = CurriculumNode(
+                id=new_id(), textbook_id=textbook_id, node_type=node_type, code=code,
+                title=title, sort_order=order, source="textbook_import",
+                parent_id=current_section_id or current_chapter_id,
+            )
+            result.append(node)
+            continue
+
+        # 检查是否是节标题：X.Y
         sec_match = DIR_SECTION_RE.match(line)
         if sec_match:
             node_type = "section"
             code = sec_match.group(1)
             title = line[sec_match.end():].strip()
             order += 1
+            section_id = new_id()
             node = CurriculumNode(
-                id=new_id(), textbook_id=textbook_id, node_type=node_type, code=code,
+                id=section_id, textbook_id=textbook_id, node_type=node_type, code=code,
                 title=title, sort_order=order, source="textbook_import",
                 parent_id=current_chapter_id,
             )
             result.append(node)
+            current_section_id = section_id
             continue
 
-        # 普通知识点行
+        # 普通知识点行：挂到最近的节；若无节则退挂到章（兼容历史格式）
         if line:
             order += 1
             node = CurriculumNode(
                 id=new_id(), textbook_id=textbook_id, node_type=node_type, code=code,
                 title=title, sort_order=order, source="textbook_import",
-                parent_id=current_chapter_id,
+                parent_id=current_section_id or current_chapter_id,
             )
             result.append(node)
 

@@ -12,7 +12,7 @@ def test_render_student_and_teacher_pdf():
             PaperItemRead(
                 question_id="q1",
                 question_text="若 x+2=5，求 x。",
-                question_type="解答题",
+                question_type="计算题",
                 score=10,
                 knowledge=["一元一次方程"],
                 final_answer="x=3",

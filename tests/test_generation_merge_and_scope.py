@@ -45,22 +45,22 @@ CONVERSATION_ID = "test-merge"
 SCOPE = ["第三章"]
 TOTAL = 100
 
-# Base plan shared by MERGE-01 and MERGE-02 (mirrors the MOD-02 setup):
-#   选择题 4×5, 填空题 2×5, 计算题 2×5, 多选题 2×20, 证明题 2×10  (total 100)
+# Base plan shared by MERGE-Disposable and MERGE-02 (mirrors the MOD-02 setup):
+#   选择题 4×5, 填空题 2×5, 计算题 2×10, 证明题 2×25  (total 100)
+#   Only the four generatable types are used — `unknown` is NOT a normal
+#   Blueprint section (it means "题型待定，需人工处理"), so it is excluded here.
 BASE_REQUIREMENTS = [
     {"question_type": "选择题", "count": 4, "score_each": 5, "total_score": 20},
     {"question_type": "填空题", "count": 2, "score_each": 5, "total_score": 10},
-    {"question_type": "计算题", "count": 2, "score_each": 5, "total_score": 10},
-    {"question_type": "多选题", "count": 2, "score_each": 20, "total_score": 40},
-    {"question_type": "证明题", "count": 2, "score_each": 10, "total_score": 20},
+    {"question_type": "计算题", "count": 2, "score_each": 10, "total_score": 20},
+    {"question_type": "证明题", "count": 2, "score_each": 25, "total_score": 50},
 ]
 
 # Patches the teacher sends (the real MOD-02 turn):
-#   填空题 -> 4 道; 计算题 -> 每题 10 分; 多选题 -> 每题 10 分
+#   填空题 -> 4 道 (+10); 计算题 -> 每题 5 分 (×2, −10)  -> net total 不变
 PATCHES = [
     QuestionTypePatch(question_type="填空题", count=4),
-    QuestionTypePatch(question_type="计算题", score_each=10),
-    QuestionTypePatch(question_type="多选题", score_each=10),
+    QuestionTypePatch(question_type="计算题", score_each=5),
 ]
 
 
@@ -119,12 +119,11 @@ def _assert_modified_state(final):
 
     # Explicitly modified types.
     assert req["填空题"].count == 4, f"填空题.count = {req['填空题'].count}"
-    assert req["计算题"].score_each == 10, f"计算题.score_each = {req['计算题'].score_each}"
-    assert req["多选题"].score_each == 10, f"多选题.score_each = {req['多选题'].score_each}"
+    assert req["计算题"].score_each == 5, f"计算题.score_each = {req['计算题'].score_each}"
 
     # Untouched types must be preserved exactly.
     assert req["选择题"].count == 4 and req["选择题"].score_each == 5, "选择题 changed"
-    assert req["证明题"].count == 2 and req["证明题"].score_each == 10, "证明题 changed"
+    assert req["证明题"].count == 2 and req["证明题"].score_each == 25, "证明题 changed"
 
     # Scope and total preserved.
     assert request.scope_names == SCOPE, f"scope_names = {request.scope_names}"

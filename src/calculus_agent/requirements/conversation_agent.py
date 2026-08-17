@@ -130,7 +130,7 @@ def apply_paper_patch(
                 sections.pop(question_type, None)
             else:
                 score = current["score_per_question"] if current else (
-                    5 if question_type in {"选择题", "多选题", "填空题"} else 10
+                    5 if question_type in {"选择题", "填空题"} else 10
                 )
                 sections[question_type] = {
                     "question_type": question_type,
