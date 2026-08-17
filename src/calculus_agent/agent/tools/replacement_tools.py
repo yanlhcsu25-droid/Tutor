@@ -149,27 +149,32 @@ def dry_run_replace_question(
         reference_knowledge = set().union(*(knowledge_by_question[qid] for qid in references)) if references else set()
         candidates = [q for q in candidates if not knowledge_by_question[q.id].intersection(reference_knowledge)]
     stats["knowledge_constraints"] = len(candidates)
+
     def overlap(question: Question) -> int:
         return len(knowledge_by_question[question.id] & knowledge_by_question[target.question_id])
 
     if intent.target_difficulty is not None:
         candidates = [q for q in candidates if profiles[q.id] == intent.target_difficulty]
         unavailable = "target_difficulty_candidate_not_found"
+
         def key(question: Question):
             return (-overlap(question), question.id)
     elif intent.difficulty_direction == "easier":
         candidates = [q for q in candidates if profiles[q.id] < current_difficulty]
         unavailable = "no_easier_candidate"
+
         def key(question: Question):
             return (current_difficulty - profiles[question.id], -overlap(question), question.id)
     elif intent.difficulty_direction == "harder":
         candidates = [q for q in candidates if profiles[q.id] > current_difficulty]
         unavailable = "no_harder_candidate"
+
         def key(question: Question):
             return (profiles[question.id] - current_difficulty, -overlap(question), question.id)
     else:
         candidates = [q for q in candidates if profiles[q.id] == current_difficulty]
         unavailable = "same_difficulty_candidate_not_found"
+
         def key(question: Question):
             return (-overlap(question), question.id)
     stats["difficulty_constraint"] = len(candidates)
@@ -179,7 +184,13 @@ def dry_run_replace_question(
     selected = candidates[0]
     current_knowledge = knowledge_by_question[target.question_id]
     selected_knowledge = knowledge_by_question[selected.id]
-    warnings = [] if current_knowledge.intersection(selected_knowledge) else ["knowledge_point_constraint_relaxed"]
+    required_knowledge = set(intent.target_knowledge_node_ids)
+    knowledge_preserved = (
+        required_knowledge.issubset(selected_knowledge)
+        if required_knowledge
+        else bool(current_knowledge.intersection(selected_knowledge))
+    )
+    warnings = [] if knowledge_preserved else ["knowledge_point_constraint_relaxed"]
     current_summary = ReplacementQuestionSummary(question_id=target.question_id, position=target.position, question_type=target.section, score=target.score, difficulty=current_difficulty, knowledge_point_ids=sorted(current_knowledge))
     replacement_summary = ReplacementQuestionSummary(question_id=selected.id, question_type=target.section, score=target.score, difficulty=profiles[selected.id], knowledge_point_ids=sorted(selected_knowledge))
     return ReplacementDryRunResult(
@@ -187,7 +198,7 @@ def dry_run_replace_question(
         candidate_count=len(candidates), candidate_stats=stats, warnings=warnings,
         constraints=ReplacementConstraintCheck(
             scope_preserved=True, question_type_preserved=True, score_preserved=True,
-            knowledge_point_preserved=bool(current_knowledge & selected_knowledge),
+            knowledge_point_preserved=knowledge_preserved,
             difficulty_direction_satisfied=True,
         ), **base,
     )
@@ -220,8 +231,16 @@ def apply_question_replacement(
     replacement_question_id: str,
     difficulty_direction: Literal["easier", "harder", "same"] | None,
     target_difficulty: int | None = None,
+    preserve_knowledge_points: bool = False,
+    required_knowledge_node_ids: list[str] | None = None,
 ) -> ApplyReplacementResult:
-    """Revalidate and persist a one-item child version; never mutate source."""
+    """Revalidate and persist a one-item child version; never mutate source.
+
+    When ``preserve_knowledge_points`` is true, the required IDs are the
+    preview-time confirmation contract.  Confirmation re-reads current DB
+    links and refuses mutation if either the source question or replacement
+    no longer satisfies that contract.
+    """
     base = dict(
         paper_id=paper_id, source_version_id=source_version_id,
         target_position=target_position, new_question_id=replacement_question_id,
@@ -261,6 +280,27 @@ def apply_question_replacement(
         knowledge_by_question[question_id].add(knowledge_id)
     if not knowledge_by_question[replacement.id].intersection(scope_ids):
         return ApplyReplacementResult(ok=False, blocking_errors=["replacement_question_out_of_scope"], **base)
+
+    if preserve_knowledge_points:
+        required_knowledge = set(required_knowledge_node_ids or [])
+        if not required_knowledge:
+            return ApplyReplacementResult(
+                ok=False,
+                blocking_errors=["replacement_knowledge_constraint_unverifiable"],
+                **base,
+            )
+        current_target_knowledge = knowledge_by_question[target.question_id]
+        current_replacement_knowledge = knowledge_by_question[replacement.id]
+        if (
+            not required_knowledge.issubset(current_target_knowledge)
+            or not required_knowledge.issubset(current_replacement_knowledge)
+        ):
+            return ApplyReplacementResult(
+                ok=False,
+                blocking_errors=["replacement_knowledge_constraint_no_longer_valid"],
+                **base,
+            )
+
     profiles = _latest_profiles(session)
     current_difficulty = profiles.get(target.question_id)
     replacement_difficulty = profiles.get(replacement.id)
@@ -277,7 +317,10 @@ def apply_question_replacement(
     if not valid_direction:
         return ApplyReplacementResult(ok=False, blocking_errors=["replacement_difficulty_no_longer_valid"], **base)
     warnings = []
-    if not knowledge_by_question[target.question_id].intersection(knowledge_by_question[replacement.id]):
+    if (
+        not preserve_knowledge_points
+        and not knowledge_by_question[target.question_id].intersection(knowledge_by_question[replacement.id])
+    ):
         warnings.append("knowledge_point_constraint_relaxed")
     try:
         with session.begin_nested():

@@ -35,16 +35,17 @@ def test_student_latex_escapes_prose_and_preserves_math():
     assert "满分：20 分" in result
 
 
-def test_teacher_latex_contains_solution():
+def test_teacher_latex_contains_single_reference_solution():
     result = render_paper_latex(_paper(), teacher_version=True)
     question_position = result.index(r"\ExamQuestion{20}")
-    answer_position = result.index("答案：")
-    assert answer_position > question_position
+    solution_position = result.index("参考解答：")
+    assert solution_position > question_position
     assert "本卷附参考答案与解析" in result
     assert r"\clearpage" not in result
-    assert "解析：" in result
-    assert r"$\frac{1}{2}$" in result
+    assert r"$y=kx+b$" in result
+    assert r"$k=\frac{1}{2}$" in result
     assert "知识点：一次函数" in result
+    assert "暂无独立答案" not in result
 
 
 def test_question_numbers_continue_across_dynamic_sections():
@@ -111,11 +112,17 @@ def test_teacher_needspace_is_not_based_on_student_answer_space():
 
 def test_teacher_solution_prefixes_are_stripped_only_at_step_start():
     paper = _paper()
-    paper.items[0].solution_steps = ["解析：移项得 x=3。", "解: 合并同类项。", "证明：结论成立。", "普通正文。"]
+    paper.items[0].solution_steps = [
+        "解析：移项得 x=3。",
+        "解: 合并同类项。",
+        "证明：结论成立。",
+        "普通正文。",
+    ]
 
     result = render_paper_latex(paper, teacher_version=True)
 
-    assert "\\item 移项得 x=3。" in result
+    assert "\\item 移项得 " in result
+    assert r"\(x=3\)" in result
     assert "\\item 合并同类项。" in result
     assert "\\item 结论成立。" in result
     assert "\\item 普通正文。" in result
@@ -125,12 +132,19 @@ def test_teacher_solution_prefixes_are_stripped_only_at_step_start():
 def test_teacher_sections_are_continuously_numbered_in_rendered_output():
     paper = _paper()
     paper.items = [
-        paper.items[0].model_copy(update={"question_type": question_type, "question_id": question_type})
+        paper.items[0].model_copy(
+            update={"question_type": question_type, "question_id": question_type}
+        )
         for question_type in ("选择题", "填空题", "计算题", "证明题")
     ]
     result = render_paper_latex(paper, teacher_version=True)
 
-    titles = [r"\ExamSection{一}{选择题", r"\ExamSection{二}{填空题", r"\ExamSection{三}{计算题", r"\ExamSection{四}{证明题"]
+    titles = [
+        r"\ExamSection{一}{选择题",
+        r"\ExamSection{二}{填空题",
+        r"\ExamSection{三}{计算题",
+        r"\ExamSection{四}{证明题",
+    ]
     positions = [result.index(title) for title in titles]
     assert positions == sorted(positions)
 
@@ -188,6 +202,80 @@ def test_real_sufficient_necessary_question_keeps_four_subquestions_in_teacher_l
     result = render_paper_latex(paper, teacher_version=True)
 
     assert result.count(r"\ExamSubQuestion{") == 4
-    assert result.count(r"\underline{\hspace{2cm}}") == 6  # 5 body blanks + template definition
+    assert result.count(r"\underline{\hspace{2cm}}") == 6
     assert r"\boldsymbol{x}_{n}" in result
     assert r"\dot{\boldsymbol{x}}" in result
+
+
+def test_legacy_ocr_bare_latex_is_rendered_as_math_not_literal_source():
+    paper = _paper()
+    paper.items[0].solution_steps = [
+        r"""答案：C.
+解
+y = \int_{0}^{t}\sin(t-u)\mathrm{d}u,
+\frac{\mathrm{d}y}{\mathrm{d}x}=\frac{\sin t}{2\mathrm{e}^{-t^{2}}}.
+\begin{array}{rl}f(x)&=f(0)+f^{\prime}(0)x+\frac{f^{\prime\prime}(0)}{2!}x^2\\&=\frac18x^2+o(x^2).\end{array}"""
+    ]
+
+    result = render_paper_latex(paper, teacher_version=True)
+
+    assert "参考解答：" in result
+    assert "暂无独立答案" not in result
+    assert r"\textbackslash{}frac" not in result
+    assert r"\(\frac{\mathrm{d}y}{\mathrm{d}x}=\frac{\sin t}{2\mathrm{e}^{-t^{2}}}.\)" in result
+    assert r"\begin{array}{rl}" in result
+    assert r"f^{\prime}(0)" in result
+
+
+def test_roman_subquestions_are_split_into_separate_teacher_paragraphs():
+    paper = _paper()
+    paper.items[0].question_type = "计算题"
+    paper.items[0].question_text = (
+        r"求下列极限：(I)limx→∞ \frac{x^2-x\sin x}{x^2+x\sin(1/x)} "
+        r"(II)limx→+∞ \left(\frac{a^{1/x}+b^{1/x}+c^{1/x}}{3}\right)^x "
+        r"(III)limx→0 \frac{\ln(\sin^2x+e^x)-x}{\ln(e^{2x}-x^2)-2x} "
+        r"(IV)limx→0 \frac{(1+x)^{3/x}-e^3}{x} "
+        r"(V)limx→0 \frac{e^{\tan x}-e^x}{x^3} "
+        r"(VI)limx→0 \cot x\left(\frac1{\sin x}-\frac1x\right) "
+        r"(VII)limx→0(1-x^2)^{\frac1{1-\sqrt{1-x^2}}} "
+        r"(VIII)limx→0+ x^{\sin x}"
+    )
+
+    result = render_paper_latex(paper, teacher_version=True)
+
+    assert result.count(r"\ExamSubQuestion{") == 8
+    for label in ("I", "II", "III", "IV", "V", "VI", "VII", "VIII"):
+        assert rf"\ExamSubQuestion{{{label}}}" in result
+
+
+def test_legacy_ocr_spacing_artifacts_are_repaired_deterministically():
+    paper = _paper()
+    paper.items[0].solution_steps = [
+        r"\frac{\lef t(1+x\right)}{2}=\sint+\cost,\quad x\toa."
+    ]
+
+    result = render_paper_latex(paper, teacher_version=True)
+
+    assert r"\lef t" not in result
+    assert r"\sint" not in result
+    assert r"\cost" not in result
+    assert r"\toa" not in result
+    assert r"\left" in result
+    assert r"\sin t" in result
+    assert r"\cos t" in result
+    assert r"\to a" in result
+
+
+def test_xlongequal_has_no_external_package_dependency():
+    paper = _paper()
+    paper.items[0].solution_steps = [
+        r"y=\int_0^t\sin(t-u)\,du\xlongequal{t-u=s}\int_0^t\sin s\,ds."
+    ]
+
+    result = render_paper_latex(paper, teacher_version=True)
+
+    assert r"\usepackage{amsmath,amssymb,mathtools}" in result
+    assert r"\usepackage{extarrows}" not in result
+    assert r"\providecommand{\xlongequal}[2][]" in result
+    assert r"\mathrel{\overset{#2}{=}}" in result
+    assert r"\xlongequal{t-u=s}" in result

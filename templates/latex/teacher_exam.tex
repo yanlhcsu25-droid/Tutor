@@ -2,48 +2,80 @@
 \usepackage[UTF8]{ctex}
 \usepackage{geometry}
 \geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+
 \usepackage{enumitem}
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath,amssymb,mathtools}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{xcolor}
 
+% 长公式/长文本排版兜底
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{3em}
+\allowdisplaybreaks
+
+% OCR 历史数据中可能出现 \xlongequal。
+% 不依赖 extarrows；如果已有实现则不覆盖。
+\providecommand{\xlongequal}[2][]{%
+  \mathrel{\overset{#2}{=}}%
+}
+
 \definecolor{slate}{HTML}{64748B}
 
 \newcommand{\ExamSection}[2]{%
   \par\vspace{0.5cm}%
   \noindent\textbf{#1、#2}\par
 }
+
 \newenvironment{ExamQuestions}{%
-  \begin{enumerate}[label=\arabic*.,leftmargin=2em,itemsep=2pt,topsep=4pt]
+  \begin{enumerate}[
+    label=\arabic*.,
+    leftmargin=2em,
+    itemsep=2pt,
+    topsep=4pt
+  ]
 }{%
   \end{enumerate}
 }
+
 \newcommand{\EB}{\underline{\hspace{2cm}}}
+
 \newcommand{\ExamQuestion}[2]{%
   \item #2\hfill\textnormal{（#1分）}
 }
+
 \newcommand{\ExamSubQuestion}[2]{%
-  \par\noindent(#1)~#2\par
+  \par
+  \noindent(#1)~#2
+  \par
 }
+
 \newenvironment{ExamOptions}{%
-  \begin{enumerate}[label=(\Alph*),leftmargin=2.4em,itemsep=0pt,topsep=2pt]
+  \begin{enumerate}[
+    label=(\Alph*),
+    leftmargin=2.4em,
+    itemsep=0pt,
+    topsep=2pt
+  ]
 }{%
   \end{enumerate}
 }
+
 \newenvironment{TeacherAnswer}{%
-  \begin{quote}\small
+  \begin{quote}
+  \small
 }{%
   \end{quote}
 }
 
 \begin{document}
+
 \begin{center}
   \textbf{\zihao{2} %__PAPER_TITLE__%}\\[8pt]
   \zihao{5} %__PAPER_META__%
 \end{center}
+
 \vspace{1em}
 
 %__PAPER_BODY__%

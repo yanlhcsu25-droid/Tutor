@@ -38,6 +38,13 @@ class PendingGenerationStaleError(RuntimeError):
 
 
 class PendingReplacement(BaseModel):
+    """Persisted confirmation contract for one single-question replacement.
+
+    ``required_knowledge_node_ids`` is a preview-time snapshot.  When the
+    teacher explicitly asks to preserve knowledge points, confirmation must
+    revalidate that snapshot against current database state before mutation.
+    """
+
     action: Literal["replace_question"] = "replace_question"
     paper_id: str
     source_version_id: str
@@ -46,6 +53,8 @@ class PendingReplacement(BaseModel):
     replacement_question_id: str
     difficulty_direction: Literal["easier", "harder", "same"] | None = None
     target_difficulty: int | None = Field(default=None, ge=1, le=5)
+    preserve_knowledge_points: bool = False
+    required_knowledge_node_ids: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
 

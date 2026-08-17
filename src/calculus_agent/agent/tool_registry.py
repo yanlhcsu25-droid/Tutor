@@ -130,6 +130,57 @@ def _derive_question_count(request: GeneratePaperInput) -> GeneratePaperInput:
     })
 
 
+def _same_optional_score(left: float | None, right: float | None) -> bool:
+    if left is None or right is None:
+        return left is right
+    return isclose(left, right)
+
+
+def _requirements_match_pending(
+    pending_request: GeneratePaperInput,
+    incoming: list[QuestionTypeRequirement] | None,
+) -> bool:
+    """Return True only when a full requirement list is a deterministic no-op.
+
+    This is deliberately narrow.  While a generation plan is pending, the LLM
+    is required to use question_type_patches for real changes.  However, models
+    sometimes redundantly echo the complete unchanged requirement list while
+    changing an unrelated field such as scope_names or knowledge_preferences.
+    Rejecting that harmless echo blocks the real patch.  Exact no-op lists can
+    be discarded safely; any actual type/count/score difference is still rejected
+    by generation_partial_patch_required and must be expressed as a patch.
+    """
+    if incoming is None:
+        return False
+
+    current_items = pending_request.question_type_requirements or []
+    if len(incoming) != len(current_items):
+        return False
+
+    current: dict[str, QuestionTypeRequirement] = {}
+    for item in current_items:
+        name = canonical_question_type(item.question_type)
+        if name in current:
+            return False
+        current[name] = item
+
+    seen: set[str] = set()
+    for item in incoming:
+        name = canonical_question_type(item.question_type)
+        if name in seen:
+            return False
+        seen.add(name)
+        previous = current.get(name)
+        if previous is None:
+            return False
+        if item.count != previous.count:
+            return False
+        if not _same_optional_score(item.score_each, previous.score_each):
+            return False
+
+    return seen == set(current)
+
+
 def _merge_question_type_patch(base: GeneratePaperInput, patch_values: dict) -> tuple[GeneratePaperInput, set[str], set[str]]:
     """Return merged request, count-changed types, and explicitly score-changed types."""
     current = {item.question_type: item.model_copy() for item in (base.question_type_requirements or [])}
@@ -227,26 +278,35 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             base_request = GeneratePaperInput()
         if pending:
             if "question_type_requirements" in patch.model_fields_set and "question_type_patches" not in patch.model_fields_set:
-                preview = GenerationPlanPreview(
-                    ok=False,
-                    request=pending.request,
-                    total_questions=pending.request.question_count,
-                    total_score=pending.request.total_score,
-                    sections=pending.request.question_type_requirements or [],
-                    blocking_errors=["generation_partial_patch_required"],
-                    clarification_questions=[
-                        "当前已有待确认方案。请只提交教师本轮明确修改的题型字段，并使用 question_type_patches；未提到的题型必须保持不变。"
-                    ],
-                )
-                return ExecutedTool(
-                    payload=preview.model_dump(mode="json"),
-                    status="needs_clarification",
-                    result_fields={
-                        "generation_preview": preview,
-                        "blocking_errors": preview.blocking_errors,
-                        "clarification_questions": preview.clarification_questions,
-                    },
-                )
+                if _requirements_match_pending(
+                    pending.request,
+                    patch.question_type_requirements,
+                ):
+                    # Model echoed the existing complete requirement list while
+                    # changing some other field.  It carries no business delta, so
+                    # discard it and continue with the real patch.
+                    patch_values.pop("question_type_requirements", None)
+                else:
+                    preview = GenerationPlanPreview(
+                        ok=False,
+                        request=pending.request,
+                        total_questions=pending.request.question_count,
+                        total_score=pending.request.total_score,
+                        sections=pending.request.question_type_requirements or [],
+                        blocking_errors=["generation_partial_patch_required"],
+                        clarification_questions=[
+                            "当前已有待确认方案。真实题型变更必须只提交教师本轮明确修改的字段，并使用 question_type_patches；未提到的题型必须保持不变。"
+                        ],
+                    )
+                    return ExecutedTool(
+                        payload=preview.model_dump(mode="json"),
+                        status="needs_clarification",
+                        result_fields={
+                            "generation_preview": preview,
+                            "blocking_errors": preview.blocking_errors,
+                            "clarification_questions": preview.clarification_questions,
+                        },
+                    )
         # Unified deterministic merge — identical logic whether the base came
         # from a pending plan, memory summary, or a fresh default. The LLM never
         # performs the merge; Python always applies question_type_patches here.
@@ -429,11 +489,16 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                 PaperItem.position == values.position,
             ))
             if item is not None:
-                target_knowledge = list(session.scalars(
+                target_knowledge = sorted(set(session.scalars(
                     select(QuestionKnowledgeLink.knowledge_node_id).where(
                         QuestionKnowledgeLink.question_id == item.question_id
                     )
-                ))
+                )))
+                if not target_knowledge:
+                    return _failed(
+                        "current_question_knowledge_missing",
+                        "当前题目没有可验证的知识点标注，无法保证换题后知识点不变。",
+                    )
         intent = ReplacementIntent(
             target_position=values.position,
             difficulty_direction=values.difficulty_direction or "same",
@@ -464,6 +529,8 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             replacement_question_id=result.recommended_question.question_id,
             difficulty_direction=intent.difficulty_direction,
             target_difficulty=intent.target_difficulty,
+            preserve_knowledge_points=values.preserve_knowledge_points,
+            required_knowledge_node_ids=target_knowledge,
             warnings=result.warnings,
         )
         store.set(context.conversation_id, pending)
@@ -486,6 +553,8 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             replacement_question_id=pending.replacement_question_id,
             difficulty_direction=pending.difficulty_direction,
             target_difficulty=pending.target_difficulty,
+            preserve_knowledge_points=pending.preserve_knowledge_points,
+            required_knowledge_node_ids=pending.required_knowledge_node_ids,
         )
         if result.ok:
             store.clear(context.conversation_id)
@@ -583,8 +652,8 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         AgentTool("read_current_paper", "Read the concrete current paper or selected positions. For a request about named question numbers, positions is required and must contain exactly those numbers (for example, 第五题是什么 means positions=[5]); omit positions only for a whole-paper overview. Use before answering factual questions about existing questions. Read-only. If the teacher also requested an operation such as replacement, continue to the appropriate operation tool after reading; do not promise background work.", ReadCurrentPaperInput, read),
         AgentTool("preview_generation_plan", "Create or patch a validated generation plan without selecting questions. When pending exists, use question_type_patches for only the teacher's changed type/count/score fields; Python preserves the authoritative target total and deterministically rebalances unlocked scores in 0.5-point increments. Never change total_score merely to match stale per-type scores. Empty lists explicitly clear a preference. avoid_previous_paper_questions records an unsupported preference only and must be disclosed as unsupported.", GenerationPlanPatch, preview_generation),
         AgentTool("confirm_generation_plan", "Create the paper from the currently pending validated generation plan. Call only after the teacher explicitly accepts the displayed plan. Never call in the same turn that creates or revises a preview.", EmptyInput, confirm_generation),
-        AgentTool("preview_replace_question", "Find a deterministic single-question replacement preview. This never modifies the paper and always requires later confirmation. Do not call it to handle rejection of an existing pending proposal: cancel that proposal first, and only create another preview when the teacher explicitly asks for another candidate. IMPORTANT: when the teacher wants knowledge points unchanged, preserve_knowledge_points must be true; omitting it permits only the paper's normal scope constraints.", PreviewReplacementInput, preview_replacement),
-        AgentTool("confirm_replace_question", "Required state-changing tool when the teacher accepts or confirms the currently pending single-question replacement. Never claim it was applied without calling this tool.", EmptyInput, confirm_replacement),
+        AgentTool("preview_replace_question", "Find a deterministic single-question replacement preview. This never modifies the paper and always requires later confirmation. Do not call it to handle rejection of an existing pending proposal: cancel that proposal first, and only create another preview when the teacher explicitly asks for another candidate. IMPORTANT: when the teacher wants knowledge points unchanged, preserve_knowledge_points must be true; omitting it permits only the paper's normal scope constraints. When true, the preview-time knowledge IDs are persisted as a hard confirmation contract.", PreviewReplacementInput, preview_replacement),
+        AgentTool("confirm_replace_question", "Required state-changing tool when the teacher accepts or confirms the currently pending single-question replacement. Hard constraints captured by the pending preview are revalidated against current database state before mutation. Never claim it was applied without calling this tool.", EmptyInput, confirm_replacement),
         AgentTool("cancel_replace_question", "Required state-changing tool when the teacher rejects, does not want, abandons, or cancels the currently pending single-question replacement. Rejection alone means cancel, not automatically finding another candidate. Never claim it was cancelled without calling this tool.", EmptyInput, cancel_replacement),
         AgentTool("analyze_current_paper", "Analyze difficulty, question-type, and knowledge distributions of the current paper. Read-only.", EmptyInput, analyze),
         AgentTool("preview_adjust_paper", "Create a whole-paper AdjustmentPlan preview. It does not modify the paper and requires confirmation. To delete concrete questions, first read the paper if needed, then pass exact remove_positions. target_total_score is the desired final total; when omitted, Python preserves the current total. After removals, Python deterministically rebalances one remaining question type at 0.5-point granularity or returns clarification. Do not encode deletion only as a negative question_type_changes delta.", PreviewAdjustmentInput, preview_adjustment),
