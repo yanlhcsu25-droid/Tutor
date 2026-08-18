@@ -9,8 +9,10 @@ from calculus_agent.papers.workflow import save_blueprint
 from calculus_agent.schemas import NaturalLanguagePaperRequest, PaperBlueprint, SectionRequirement
 
 
-def test_blueprint_parser_rejects_missing_siliconflow_key():
-    settings = Settings(_env_file=None, siliconflow_api_key=None)
+def test_blueprint_parser_rejects_missing_siliconflow_key(monkeypatch):
+    monkeypatch.delenv("CALCULUS_AGENT_SILICONFLOW_API_KEY", raising=False)
+    monkeypatch.delenv("SILICONFLOW_API_KEY", raising=False)
+    settings = Settings(_env_file=None)
     with pytest.raises(HTTPException) as error:
         _requirement_parser(settings)
     assert error.value.status_code == 503
@@ -80,7 +82,12 @@ def test_conversation_modification_uses_saved_blueprint_as_base(session, monkeyp
     }
 
 
-def test_ambiguous_conversation_returns_clarification_without_model_key(session):
+def test_ambiguous_conversation_returns_clarification_without_model_key(
+    session,
+    monkeypatch,
+):
+    monkeypatch.delenv("CALCULUS_AGENT_SILICONFLOW_API_KEY", raising=False)
+    monkeypatch.delenv("SILICONFLOW_API_KEY", raising=False)
     base = save_blueprint(session, PaperBlueprint(
         total_questions=2,
         total_score=10,
