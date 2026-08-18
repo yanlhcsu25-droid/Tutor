@@ -14,8 +14,10 @@ from calculus_agent.models import (
     Question,
     QuestionDraft,
     QuestionKnowledgeLink,
+    QuestionProfile,
     ValidationReport,
 )
+from calculus_agent.agent.schemas import GenerationConstraints
 from calculus_agent.papers.selector import compose_paper
 from calculus_agent.schemas import (
     BlueprintCreateRead,
@@ -430,6 +432,56 @@ def validate_paper(session: Session, paper_id: str) -> ValidationReportRead:
     for quota in blueprint.knowledge_quotas:
         if knowledge[quota.name] < quota.count:
             violations.append(ConstraintViolationRead(code="KNOWLEDGE_SHORTAGE", field=quota.name, required=quota.count, actual=knowledge[quota.name], question_ids=[], repairable=True, message=f"{quota.name}覆盖不足"))
+
+    metadata = (record.blueprint_json or {}).get("_agent_metadata") or {}
+    generation_values = {
+        key: value
+        for key, value in metadata.items()
+        if key in GenerationConstraints.model_fields
+    }
+    generation_constraints = GenerationConstraints.model_validate(
+        generation_values
+    )
+    if generation_constraints.target_duration_min is not None:
+        missing_profiles = [
+            item.question_id
+            for item in items
+            if item.estimated_time_min is None
+        ]
+        if missing_profiles:
+            violations.append(
+                ConstraintViolationRead(
+                    code="DURATION_PROFILE_MISSING",
+                    field="estimated_duration_min",
+                    required="approved_question_profile",
+                    actual=len(missing_profiles),
+                    question_ids=missing_profiles,
+                    repairable=True,
+                    message="部分题目缺少已审核的预计作答时长",
+                )
+            )
+        else:
+            target = generation_constraints.target_duration_min
+            tolerance = generation_constraints.duration_tolerance_min
+            lower = max(1, target - tolerance)
+            upper = target + tolerance
+            actual_duration = sum(
+                item.estimated_time_min or 0
+                for item in items
+            )
+            if not lower <= actual_duration <= upper:
+                violations.append(
+                    ConstraintViolationRead(
+                        code="DURATION_OUT_OF_RANGE",
+                        field="estimated_duration_min",
+                        required=f"{lower}-{upper}",
+                        actual=actual_duration,
+                        question_ids=[],
+                        repairable=True,
+                        message="试卷预计作答时长超出教学设计允许范围",
+                    )
+                )
+
     ids = [item.question_id for item in items]
     duplicates = [question_id for question_id, count in Counter(ids).items() if count > 1]
     add("DUPLICATE_QUESTION", "question_id", 0, len(duplicates), "试卷包含重复题目", duplicates)
@@ -455,27 +507,95 @@ def validate_paper(session: Session, paper_id: str) -> ValidationReportRead:
     return ValidationReportRead(id=report.id, paper_id=paper.id, passed=report.passed, violations=violations, created_at=report.created_at)
 
 
-def _items(session: Session, paper_id: str) -> list[PaperItemRead]:
-    records = session.scalars(select(PaperItem).where(PaperItem.paper_id == paper_id).order_by(PaperItem.position)).all()
+def _items(
+    session: Session,
+    paper_id: str,
+) -> list[PaperItemRead]:
+    records = session.scalars(
+        select(PaperItem)
+        .where(PaperItem.paper_id == paper_id)
+        .order_by(PaperItem.position)
+    ).all()
+
     result = []
     for item in records:
         question = session.get(Question, item.question_id)
-        knowledge = list(session.scalars(select(KnowledgeNode.name).join(QuestionKnowledgeLink, QuestionKnowledgeLink.knowledge_node_id == KnowledgeNode.id).where(QuestionKnowledgeLink.question_id == question.id)).all())
-        draft = session.get(QuestionDraft, question.draft_id)
-        result.append(PaperItemRead(
-            item_id=item.id,
-            question_id=question.id, question_text=question.question_text,
-            question_type=item.section, score=item.score,
-            knowledge=knowledge, final_answer=question.final_answer,
-            solution_steps=(question.solution_json or {}).get("solution_steps", []),
-            has_image=bool(draft and draft.image_path),
-            locked=item.locked,
-        ))
+        knowledge = list(
+            session.scalars(
+                select(KnowledgeNode.name)
+                .join(
+                    QuestionKnowledgeLink,
+                    QuestionKnowledgeLink.knowledge_node_id
+                    == KnowledgeNode.id,
+                )
+                .where(
+                    QuestionKnowledgeLink.question_id
+                    == question.id
+                )
+            ).all()
+        )
+        draft = session.get(
+            QuestionDraft,
+            question.draft_id,
+        )
+        profile = session.scalar(
+            select(QuestionProfile)
+            .where(
+                QuestionProfile.question_id == question.id,
+                QuestionProfile.profile_status == "approved",
+            )
+            .order_by(
+                QuestionProfile.profile_version.desc()
+            )
+            .limit(1)
+        )
+
+        result.append(
+            PaperItemRead(
+                item_id=item.id,
+                question_id=question.id,
+                question_text=question.question_text,
+                question_type=item.section,
+                score=item.score,
+                knowledge=knowledge,
+                final_answer=question.final_answer,
+                solution_steps=(
+                    question.solution_json or {}
+                ).get("solution_steps", []),
+                has_image=bool(
+                    draft and draft.image_path
+                ),
+                locked=item.locked,
+                difficulty=(
+                    profile.difficulty
+                    if profile is not None else None
+                ),
+                estimated_time_min=(
+                    profile.estimated_time_min
+                    if profile is not None else None
+                ),
+                reasoning_depth=(
+                    profile.reasoning_depth
+                    if profile is not None else None
+                ),
+                calculation_load=(
+                    profile.calculation_load
+                    if profile is not None else None
+                ),
+                knowledge_depth=(
+                    profile.knowledge_depth
+                    if profile is not None else None
+                ),
+                comprehensive_level=(
+                    profile.comprehensive_level
+                    if profile is not None else None
+                ),
+            )
+        )
     return result
 
-
 def _constraint_violations(checks: list[ConstraintCheck]) -> list[ConstraintViolationRead]:
-    codes = {"题目总数": "QUESTION_COUNT_SHORTAGE", "试卷总分": "TOTAL_SCORE_MISMATCH", "指定题目": "REQUIRED_QUESTION_MISSING", "图片题数量": "IMAGE_QUESTION_SHORTAGE"}
+    codes = {"题目总数": "QUESTION_COUNT_SHORTAGE", "试卷总分": "TOTAL_SCORE_MISMATCH", "指定题目": "REQUIRED_QUESTION_MISSING", "图片题数量": "IMAGE_QUESTION_SHORTAGE", "预计时长": "DURATION_OUT_OF_RANGE"}
     result = []
     for check in checks:
         if check.satisfied:
@@ -496,7 +616,20 @@ def _report_read(session: Session, report: ValidationReport) -> ValidationReport
 
 
 def _paper_read(session: Session, paper: Paper, report: ValidationReportRead) -> SavedPaperRead:
-    return SavedPaperRead(paper_id=paper.id, blueprint_id=paper.blueprint_id, root_paper_id=paper.root_paper_id or paper.id, parent_version_id=paper.parent_version_id, version=paper.version, status=paper.status, total_score=paper.total_score, validation_status=paper.validation_status, preview=load_paper_preview(session, paper.id), validation_report=report, created_at=paper.created_at)
+    return SavedPaperRead(
+        paper_id=paper.id,
+        blueprint_id=paper.blueprint_id,
+        root_paper_id=paper.root_paper_id or paper.id,
+        parent_version_id=paper.parent_version_id,
+        teaching_design_version_id=paper.teaching_design_version_id,
+        version=paper.version,
+        status=paper.status,
+        total_score=paper.total_score,
+        validation_status=paper.validation_status,
+        preview=load_paper_preview(session, paper.id),
+        validation_report=report,
+        created_at=paper.created_at,
+    )
 
 
 def _paper_and_records(session: Session, paper_id: str) -> tuple[Paper, list[PaperItem]]:
@@ -524,6 +657,7 @@ def _new_version(session: Session, source: Paper) -> Paper:
         status="validating",
         title=source.title,
         total_score=source.total_score,
+        teaching_design_version_id=source.teaching_design_version_id,
         validation_status="pending",
     )
     session.add(paper)
@@ -560,6 +694,7 @@ def _state_snapshot(session: Session, paper: Paper) -> dict:
     return {
         "paper_id": paper.id,
         "blueprint_id": paper.blueprint_id,
+        "teaching_design_version_id": paper.teaching_design_version_id,
         "title": paper.title,
         "total_score": paper.total_score,
         "items": [

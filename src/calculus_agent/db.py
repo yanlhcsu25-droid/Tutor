@@ -24,6 +24,7 @@ def build_session_factory(database_url: str) -> sessionmaker[Session]:
 @lru_cache
 def create_schema(database_url: str) -> None:
     from calculus_agent import models  # noqa: F401
+    from calculus_agent.teaching_design import models as teaching_design_models  # noqa: F401
 
     engine = build_engine(database_url)
     Base.metadata.create_all(engine)
@@ -39,6 +40,15 @@ def create_schema(database_url: str) -> None:
             connection.exec_driver_sql(
                 "ALTER TABLE paper ADD COLUMN parent_version_id VARCHAR(36) REFERENCES paper(id)"
             )
+        if "teaching_design_version_id" not in paper_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE paper ADD COLUMN teaching_design_version_id VARCHAR(36) "
+                "REFERENCES teaching_design_version(id)"
+            )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_paper_teaching_design_version_id "
+            "ON paper (teaching_design_version_id)"
+        )
 
     # Phase 2C adjustment plan: the table itself is created by metadata;
     # existing local databases need the additive applied-version column.

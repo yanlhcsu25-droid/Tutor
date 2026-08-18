@@ -8,6 +8,7 @@ from importlib.resources import files
 
 _ALLOWED_SKILLS = frozenset({
     "paper_question_operations",
+    "teaching_design",
 })
 
 

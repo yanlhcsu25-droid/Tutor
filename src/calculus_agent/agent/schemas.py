@@ -43,10 +43,47 @@ class GeneratePaperInput(BaseModel):
     total_score: int | None = Field(default=None, ge=1, le=300)
     question_type_requirements: list[QuestionTypeRequirement] | None = None
     knowledge_preferences: list[str] | None = None
+    required_knowledge_names: list[str] | None = None
+    knowledge_priority_weights: dict[str, int] | None = None
     difficulty_level: Literal["easy", "normal", "hard"] | None = None
     difficulty_ratio: dict[str, int] | None = None
     difficulty_preference: str | None = Field(default=None, max_length=500)
     diversity_preference: str | None = Field(default=None, max_length=500)
+    target_duration_min: int | None = Field(default=None, ge=1, le=600)
+    duration_tolerance_min: int | None = Field(default=None, ge=0, le=120)
+    ability_weights: dict[str, int] | None = None
+
+    @model_validator(mode="after")
+    def validate_execution_targets(self) -> "GeneratePaperInput":
+        if (
+            self.duration_tolerance_min is not None
+            and self.target_duration_min is None
+        ):
+            raise ValueError(
+                "duration_tolerance_min requires target_duration_min"
+            )
+        if self.knowledge_priority_weights:
+            if any(
+                value < 1 or value > 5
+                for value in self.knowledge_priority_weights.values()
+            ):
+                raise ValueError(
+                    "knowledge priority weights must be 1..5"
+                )
+        if self.ability_weights:
+            allowed = {
+                "concept_understanding",
+                "calculation",
+                "reasoning",
+                "application",
+            }
+            if set(self.ability_weights) - allowed:
+                raise ValueError("unsupported ability weight key")
+            if any(value < 0 for value in self.ability_weights.values()):
+                raise ValueError("ability weight must be non-negative")
+            if sum(self.ability_weights.values()) != 100:
+                raise ValueError("ability weights must sum to 100")
+        return self
 
 
 class GenerationPlanPatch(GeneratePaperInput):
@@ -79,21 +116,25 @@ class GenerationPlanPreview(BaseModel):
 
 class GenerationConstraints(BaseModel):
     scope: list[str] = Field(default_factory=list)
-    # Hard question-ownership scope.
     scope_chapter_ids: list[str] = Field(default_factory=list)
-    # Legacy/diagnostic taxonomy resolution retained for compatibility.
     scope_node_ids: list[str] = Field(default_factory=list)
-    # Optional hard semantic refinement for section/knowledge-level scope.
-    # Whole-chapter generation leaves this empty.
     scope_knowledge_node_ids: list[str] = Field(default_factory=list)
+
     allowed_difficulty_levels: list[int] = Field(default_factory=list)
     preferred_difficulty_levels: list[int] = Field(default_factory=list)
     fallback_difficulty_levels: list[int] = Field(default_factory=list)
+
     preferred_knowledge_node_ids: list[str] = Field(default_factory=list)
+    knowledge_priority_weights: dict[str, int] = Field(default_factory=dict)
+
+    target_duration_min: int | None = Field(default=None, ge=1, le=600)
+    duration_tolerance_min: int = Field(default=5, ge=0, le=120)
+
+    ability_weights: dict[str, int] = Field(default_factory=dict)
+
     audience: str | None = None
     difficulty_preference_text: str | None = None
     diversity_preference: str | None = None
-
 
 class PaperGenerationRequest(BaseModel):
     blueprint: PaperBlueprint

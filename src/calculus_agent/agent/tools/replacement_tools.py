@@ -12,7 +12,9 @@ from calculus_agent.models import (
     Paper, PaperBlueprintRecord, PaperItem, Question, QuestionDraft,
     PaperOperationHistory, QuestionKnowledgeLink, QuestionProfile,
 )
-from calculus_agent.papers.selector import EXCLUDED_PAPER_SOURCE_NAMES
+from calculus_agent.questions.eligibility import (
+    EXCLUDED_PAPER_SOURCE_NAMES,
+)
 from calculus_agent.papers.workflow import _clone_version, _state_snapshot
 from calculus_agent.question_types import canonical_question_type
 

@@ -36,6 +36,7 @@ from calculus_agent.questions.chapter_assignment import (
     scope_labels_are_whole_chapters,
 )
 from calculus_agent.schemas import (
+    KnowledgeQuota,
     PaperBlueprint,
     SectionRequirement,
     ValidationReportRead,
@@ -370,6 +371,20 @@ def _knowledge_preferences(
     )
 
 
+def _resolved_knowledge_priority_weights(
+    raw: dict[str, int],
+    resolved_names: list[str],
+) -> dict[str, int]:
+    result: dict[str, int] = {}
+    for resolved in resolved_names:
+        normalized = normalize_name(resolved)
+        for source, weight in raw.items():
+            if normalize_name(source) == normalized:
+                result[resolved] = int(weight)
+                break
+    return result
+
+
 def _difficulty(
     level: str | None,
 ) -> tuple[list[int], list[int], list[int]]:
@@ -484,6 +499,43 @@ def build_structured_generation_request(
             knowledge_errors,
             knowledge_questions,
         )
+
+    (
+        required_names,
+        required_ids,
+        required_errors,
+        required_questions,
+    ) = _knowledge_preferences(
+        session,
+        request.required_knowledge_names or [],
+        scope_ids,
+        scopes,
+    )
+
+    if required_errors:
+        return (
+            None,
+            [],
+            required_errors,
+            required_questions,
+        )
+
+    combined_preferred_names = list(
+        dict.fromkeys([*required_names, *preferred_names])
+    )
+    combined_preferred_ids = list(
+        dict.fromkeys([*required_ids, *preferred_ids])
+    )
+    knowledge_quotas = [
+        KnowledgeQuota(name=name, count=1)
+        for name in required_names
+    ]
+    resolved_priority_weights = (
+        _resolved_knowledge_priority_weights(
+            request.knowledge_priority_weights or {},
+            combined_preferred_names,
+        )
+    )
 
     warnings: list[str] = []
     requirements = (
@@ -643,8 +695,9 @@ def build_structured_generation_request(
                     derived_score
                 ),
                 sections=section_values,
+                knowledge_quotas=knowledge_quotas,
                 soft_knowledge_preferences=(
-                    preferred_names
+                    combined_preferred_names
                 ),
                 # New papers receive the actual fresh seed only at execution.
                 seed=None,
@@ -673,8 +726,9 @@ def build_structured_generation_request(
                         ],
                     )
                 ),
+                knowledge_quotas=knowledge_quotas,
                 soft_knowledge_preferences=(
-                    preferred_names
+                    combined_preferred_names
                 ),
                 seed=None,
             )
@@ -724,8 +778,9 @@ def build_structured_generation_request(
         blueprint = (
             built.paper_blueprint.model_copy(
                 update={
+                    "knowledge_quotas": knowledge_quotas,
                     "soft_knowledge_preferences": (
-                        preferred_names
+                        combined_preferred_names
                     ),
                     "title": (
                         f"{scopes[0] if scopes else '高等数学'}"
@@ -785,8 +840,18 @@ def build_structured_generation_request(
         preferred_difficulty_levels=preferred,
         fallback_difficulty_levels=fallback,
         preferred_knowledge_node_ids=(
-            preferred_ids
+            combined_preferred_ids
         ),
+        knowledge_priority_weights=(
+            resolved_priority_weights
+        ),
+        target_duration_min=request.target_duration_min,
+        duration_tolerance_min=(
+            request.duration_tolerance_min
+            if request.duration_tolerance_min is not None
+            else 5
+        ),
+        ability_weights=(request.ability_weights or {}),
         audience=request.audience,
         difficulty_preference_text=(
             request.difficulty_preference

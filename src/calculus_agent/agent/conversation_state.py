@@ -21,6 +21,7 @@ class PendingGeneration(BaseModel):
     request: GeneratePaperInput
     total_score_source: Literal["teacher_explicit", "default_template", "system_rebalanced"] = "default_template"
     locked_score_question_types: list[str] = Field(default_factory=list)
+    teaching_design_version_id: str | None = None
     pending_version: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")

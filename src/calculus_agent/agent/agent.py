@@ -14,6 +14,10 @@ from calculus_agent.config import Settings
 from calculus_agent.models import TeacherAgentRunTrace
 from calculus_agent.orchestration.backend import BailianChatBackend
 from calculus_agent.papers.addressing import QuestionAddress
+from calculus_agent.application.teaching_design_generation import (
+    TeachingDesignPaperGenerationResult,
+)
+from calculus_agent.teaching_design.schemas import TeachingDesignRead
 
 from .conversation_state import (
     DatabaseConversationHistoryStore,
@@ -27,8 +31,17 @@ from .langfuse_tracing import (
     teacher_turn_span,
     tool_observation_span,
 )
+from .identity import DEFAULT_TEACHER_OWNER_KEY
 from .run_tracing import TeacherAgentRunManager
 from .skills import load_skill_bundle
+from .state_snapshot import (
+    active_teaching_design_snapshot,
+    build_runtime_state_snapshot,
+)
+from .tool_adapters.teaching_design import teaching_design_tool_names
+from .tool_adapters.teaching_environment import (
+    environment_inspection_tool_names,
+)
 from .trace_log import AgentTraceRecorder, redact_trace_value
 from .tool_registry import AgentExecutionContext, build_agent_tools
 from .toolkit import Toolkit
@@ -48,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 
 QUESTION_OPERATION_SKILL = "paper_question_operations"
+TEACHING_DESIGN_SKILL = "teaching_design"
 
 
 CLARIFICATION_BLOCKING_ERRORS: frozenset[str] = frozenset({
@@ -76,6 +90,8 @@ CLARIFICATION_BLOCKING_ERRORS: frozenset[str] = frozenset({
     "no_pending_generation",
     "no_pending_action",
     "no_pending_adjustment",
+    "curriculum_scope_unresolved",
+    "question_bank_scope_unresolved",
 })
 
 PENDING_PRESERVATION_ERRORS: frozenset[str] = frozenset({
@@ -107,6 +123,11 @@ class TeacherAgentResult(BaseModel):
     adjustment: ConfirmAdjustmentResult | None = None
     paper_read: ReadCurrentPaperResult | None = None
     generation_preview: GenerationPlanPreview | None = None
+    teaching_design: TeachingDesignRead | None = None
+    teaching_design_candidates: list[TeachingDesignRead] = Field(
+        default_factory=list
+    )
+    teaching_design_generation: TeachingDesignPaperGenerationResult | None = None
 
 
 class _PaperGroundingDecision(BaseModel):
@@ -130,7 +151,7 @@ _SYSTEM_PROMPT = """你是 Teacher Agent。
 
 工具负责确定性业务执行。你不得绕过工具直接修改数据库，不得编造 Paper、Question、KnowledgeNode 或版本 ID，不得把工具失败说成成功。Tool 返回约束失败时，应根据 Observation 向教师解释；必要时可以调用其他相关工具，但不能擅自放宽教师约束。
 
-所有新组卷请求必须先调用 preview_generation_plan 展示方案。教师没有明确说明的题型、题量和分值必须省略，由 Python 使用现有默认模板；禁止自行编造。预览后必须等待教师明确确认，下一轮才能调用 confirm_generation_plan。confirm 返回的 ok=true 只表示草稿已成功创建；必须继续检查 validation_report：passed=false 时明确说明审核未通过及具体违规，不得宣称试卷已校验通过或可直接下载使用。
+兼容模式下的直接组卷请求仍先调用 preview_generation_plan 展示方案；但当 teaching_design Skill 判断教师表达的是“怎么教、怎么考、讲义怎么组织”的高层教学任务时，必须走 Environment-Aware TeachingDesign 生命周期：先 inspect_curriculum，再 inspect_question_bank 的 aggregate Observation，必要时最多进行有限 drill-down，最后才能 create_teaching_design。不得用 preview_generation_plan 绕过尚未确认的教学设计，也不得凭模型常识编造题库供给。环境调查必须真实影响设计决策；不要为了形式重复查询。教师没有明确说明的执行级题型、题量和分值不得由 LLM 编造。旧 generation preview 仍要求后续明确确认；TeachingDesign 的确认规则由 teaching_design Skill 和确定性 Service 单独约束。
 
 Working Memory 只用于理解当前任务、上一轮追问和上一份试卷引用。已有 pending generation 时，preview_generation_plan 的参数必须是“教师本轮相对当前 pending 的 patch”，Python 会与完整 pending request 合并；不要重复猜测或删掉教师此前已确认字段。已有 pending generation 时禁止使用 question_type_requirements：即使教师在本轮重新列出了完整题型和分值，也必须只把相对当前 pending 真正发生变化的题型转换成 question_type_patches；与 pending 相同的题型不要发送。修改 scope_names、knowledge_preferences、audience、difficulty 等非题型字段时，只传教师本轮明确改变的对应字段，未提到字段交给 Python 保留。已有 pending generation 不需要先取消再重建；当前没有 cancel_generation_plan 工具，不得编造“先取消旧方案”的流程。“不要与上一套重复”当前只会被记录为 unsupported preference，必须明确说明当前 Tool 尚不能保证排重，绝不能声称已经避免重复。
 
@@ -532,6 +553,7 @@ def run_teacher_agent(
     user_message: str,
     *,
     conversation_id: str | None = None,
+    owner_key: str = DEFAULT_TEACHER_OWNER_KEY,
     paper_id: str | None = None,
     version_id: str | None = None,
     state_store: PendingReplacementStore | None = None,
@@ -575,7 +597,12 @@ def run_teacher_agent(
             run_manager.finalize(
                 status=result.status,
                 final_response=result.message,
-                state_after=_working_memory_snapshot(store, conversation_id),
+                state_after=build_runtime_state_snapshot(
+                    session,
+                    store=store,
+                    owner_key=owner_key,
+                    conversation_id=conversation_id,
+                ),
                 paper_id=context.paper_id if context is not None else paper_id,
                 error=error,
             )
@@ -617,6 +644,9 @@ def run_teacher_agent(
             paper_id=paper_id,
             version_id=version_id,
             state_store=store if isinstance(store, DatabasePendingReplacementStore) else store,
+            owner_key=owner_key,
+            run_id=run_id,
+            user_message=message,
         )
         tools = build_agent_tools(context)
         toolkit = Toolkit(tools.values())
@@ -632,6 +662,17 @@ def run_teacher_agent(
             else None
         )
         has_current_paper = bool(version_id or paper_id)
+        active_teaching_design = active_teaching_design_snapshot(
+            session,
+            owner_key=owner_key,
+            conversation_id=conversation_id,
+        )
+        design_definition_names = teaching_design_tool_names(
+            active_teaching_design
+        )
+        environment_definition_names = (
+            environment_inspection_tool_names()
+        )
 
         if pending:
             # Existing single-question replacement pending:
@@ -658,10 +699,14 @@ def run_teacher_agent(
                 "confirm_adjust_paper",
             ]
         elif not has_current_paper:
-            # No current paper exists, so question-level and version tools
-            # are not actionable. Start with generation preview only.
+            # T1.1 is additive: preserve legacy direct generation while
+            # exposing the new TeachingDesign business path. The legacy path
+            # is removed only after the confirmed-design generation bridge is
+            # complete and evaluated.
             definition_names = [
                 "preview_generation_plan",
+                *environment_definition_names,
+                *design_definition_names,
             ]
         else:
             # A current paper exists and there is no pending transaction.
@@ -684,7 +729,12 @@ def run_teacher_agent(
             working_memory.model_dump(mode="json") if working_memory else None
         )
         run_manager.set_state_before(
-            working_memory.model_dump(mode="json") if working_memory else None
+            build_runtime_state_snapshot(
+                session,
+                store=store,
+                owner_key=owner_key,
+                conversation_id=conversation_id,
+            )
         )
         dynamic_context = {
             "current_paper": {
@@ -699,6 +749,7 @@ def run_teacher_agent(
                 if pending_adjustment else None
             ),
             "working_memory": working_memory.model_dump(mode="json") if working_memory else None,
+            "active_teaching_design": active_teaching_design,
             "deterministic_hints": {
                 "question_addresses": [
                     address.model_dump(mode="json")
@@ -717,10 +768,25 @@ def run_teacher_agent(
                 and not pending_generation
             )
         )
+        teaching_design_skill_active = not bool(
+            pending or pending_adjustment or pending_generation
+        )
 
         system_parts = [
             _SYSTEM_PROMPT.strip(),
         ]
+
+        if teaching_design_skill_active:
+            system_parts.extend([
+                (
+                    "以下 active_skill 是 TeachingDesign 业务契约。"
+                    "当教师表达的是高层教学任务、修改教学设计、确认设计或恢复历史设计时，"
+                    "必须遵守该 Skill；不得把聊天记录当作设计业务事实。"
+                ),
+                load_skill_bundle(
+                    TEACHING_DESIGN_SKILL
+                ),
+            ])
 
         if question_operation_skill_active:
             system_parts.extend([
@@ -759,7 +825,16 @@ def run_teacher_agent(
         turn_status: Literal["completed", "needs_clarification", "waiting_confirmation", "failed"] = "completed"
         current_stage = "init"
         trace_calls: list[dict[str, Any]] = []
-        pending_state_at_turn_start = bool(pending or pending_adjustment or pending_generation)
+        teaching_design_pending_at_turn_start = bool(
+            active_teaching_design
+            and active_teaching_design.get("status") == "awaiting_confirmation"
+        )
+        pending_state_at_turn_start = bool(
+            pending
+            or pending_adjustment
+            or pending_generation
+            or teaching_design_pending_at_turn_start
+        )
         pending_state_rechecked = False
         pending_adjustment_rechecked = False
         paper_state_at_turn_start = bool(version_id or paper_id)
@@ -787,11 +862,11 @@ def run_teacher_agent(
         try:
             for _round in range(max_tool_rounds + 1):
                 current_stage = "llm_call"
-                active_skills = (
-                    [QUESTION_OPERATION_SKILL]
-                    if question_operation_skill_active
-                    else []
-                )
+                active_skills = []
+                if teaching_design_skill_active:
+                    active_skills.append(TEACHING_DESIGN_SKILL)
+                if question_operation_skill_active:
+                    active_skills.append(QUESTION_OPERATION_SKILL)
                 model_span = run_manager.add_span(
                     "model_call", "llm_completion",
                     parent_span_id=agent_span.span_id if agent_span is not None else None,
@@ -885,22 +960,33 @@ def run_teacher_agent(
                         result_values["blocking_errors"].append("pending_adjustment_not_updated")
                         break
                     if pending_state_at_turn_start and not trace_calls and not pending_state_rechecked:
-                        pending_guard = (
-                            "你正在处理一个已经存在的组卷方案。教师明确接受当前方案时必须调用 "
-                            "confirm_generation_plan；教师提出修改时必须调用 preview_generation_plan。"
-                            "此时 preview_generation_plan 是 PATCH-only：只提交教师本轮相对当前 pending "
-                            "真正改变的字段；禁止 question_type_requirements，题型数量/分值变更只能使用 "
-                            "question_type_patches。修改章节或知识点时不要重发题型、题量和分值。"
-                            "不需要也不得编造取消旧 generation plan 的步骤。未经 Tool Observation "
-                            "不得声称方案已经修改或已经组卷。"
-                            if pending_generation else
-                            "你正在处理一个已经存在的单题换题 pending 事务。忽略更早对话中的建议，"
-                            "只根据教师当前这条原始消息和最新 pending 状态行动。"
-                            "教师接受方案时调用 confirm_replace_question；拒绝、不要或放弃方案时调用 "
-                            "cancel_replace_question；需要查看原卷时调用 read_current_paper。"
-                            "如果只是询问方案，可以直接回答。不得生成新 preview，也不得在没有 Tool "
-                            "Observation 时声称状态已改变。"
-                        )
+                        if pending_generation:
+                            pending_guard = (
+                                "你正在处理一个已经存在的组卷方案。教师明确接受当前方案时必须调用 "
+                                "confirm_generation_plan；教师提出修改时必须调用 preview_generation_plan。"
+                                "此时 preview_generation_plan 是 PATCH-only：只提交教师本轮相对当前 pending "
+                                "真正改变的字段；禁止 question_type_requirements，题型数量/分值变更只能使用 "
+                                "question_type_patches。修改章节或知识点时不要重发题型、题量和分值。"
+                                "不需要也不得编造取消旧 generation plan 的步骤。未经 Tool Observation "
+                                "不得声称方案已经修改或已经组卷。"
+                            )
+                        elif pending:
+                            pending_guard = (
+                                "你正在处理一个已经存在的单题换题 pending 事务。忽略更早对话中的建议，"
+                                "只根据教师当前这条原始消息和最新 pending 状态行动。"
+                                "教师接受方案时调用 confirm_replace_question；拒绝、不要或放弃方案时调用 "
+                                "cancel_replace_question；需要查看原卷时调用 read_current_paper。"
+                                "如果只是询问方案，可以直接回答。不得生成新 preview，也不得在没有 Tool "
+                                "Observation 时声称状态已改变。"
+                            )
+                        else:
+                            pending_guard = (
+                                "当前存在 awaiting_confirmation 的 TeachingDesign。"
+                                "教师明确接受当前设计时必须调用 confirm_teaching_design；"
+                                "教师提出教学目标、重点、顺序、讲义或测评策略修改时必须调用 "
+                                "revise_teaching_design 创建新版本。"
+                                "不得只回复自然语言就声称设计已确认或已修改。"
+                            )
                         messages = [
                             {"role": "system", "content": pending_guard},
                             {
@@ -1076,6 +1162,12 @@ def run_teacher_agent(
                         input={"arguments": redact_trace_value(arguments)},
                     )
                     memory_before_tool = _working_memory_snapshot(store, conversation_id)
+                    runtime_state_before_tool = build_runtime_state_snapshot(
+                        session,
+                        store=store,
+                        owner_key=owner_key,
+                        conversation_id=conversation_id,
+                    )
                     generation_patch_retry_needed = False
                     if tool is None:
                         execution_payload = {
@@ -1133,13 +1225,30 @@ def run_teacher_agent(
                                 generation_patch_retry_needed = True
                         if name == "read_current_paper":
                             paper_observation_version_id = observed_version_id
+                        if (
+                            name in {
+                                "create_teaching_design",
+                                "revise_teaching_design",
+                            }
+                            and execution_payload.get("ok")
+                        ):
+                            # Hard runtime confirmation boundary: after proposing
+                            # a new design version, the same teacher turn cannot
+                            # auto-confirm it even if the model tries to continue.
+                            definitions = []
                     memory_after_tool = _working_memory_snapshot(store, conversation_id)
+                    runtime_state_after_tool = build_runtime_state_snapshot(
+                        session,
+                        store=store,
+                        owner_key=owner_key,
+                        conversation_id=conversation_id,
+                    )
                     run_manager.add_span(
                         "state_transition", f"{name}_state_change",
                         parent_span_id=tool_span.span_id if tool_span is not None else None,
                         status="success",
-                        input={"before": redact_trace_value(memory_before_tool)},
-                        output={"after": redact_trace_value(memory_after_tool)},
+                        input={"before": redact_trace_value(runtime_state_before_tool)},
+                        output={"after": redact_trace_value(runtime_state_after_tool)},
                         ended_at=datetime.now(UTC),
                     )
                     trace_entry = {
@@ -1214,10 +1323,20 @@ def run_teacher_agent(
         pending_query_possible = bool(store and conversation_id)
         pending_action_in_store = False
         if pending_query_possible:
+            active_design_after_turn = active_teaching_design_snapshot(
+                session,
+                owner_key=owner_key,
+                conversation_id=conversation_id,
+            )
             pending_action_in_store = bool(
                 store.get(conversation_id)
                 or (store.get_adjustment(conversation_id) if hasattr(store, "get_adjustment") else None)
                 or (store.get_generation(conversation_id) if hasattr(store, "get_generation") else None)
+                or (
+                    active_design_after_turn
+                    and active_design_after_turn.get("status")
+                    == "awaiting_confirmation"
+                )
             )
         if turn_error is not None:
             pass

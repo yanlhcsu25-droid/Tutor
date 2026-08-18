@@ -131,6 +131,19 @@ class AgentExecutionContext:
     version_id: str | None
     state_store: DatabasePendingReplacementStore | None
     expected_pending_generation_version: int | None = None
+    owner_key: str = "local_teacher"
+    run_id: str | None = None
+    user_message: str = ""
+
+    # Ephemeral current-turn evidence ledger. Durable provenance is stored
+    # in TeachingDesign.evidence_refs + TeacherAgentRunTrace Tool Observations.
+    observed_evidence: dict[str, dict[str, Any]] = field(
+        default_factory=dict
+    )
+    inspection_state: dict[str, Any] = field(
+        default_factory=dict
+    )
+    inspection_call_count: int = 0
 
 
 @dataclass
@@ -486,6 +499,22 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         AgentTool("redo_paper", "Redo the latest undone version-chain operation on the current paper.", EmptyInput, lambda raw: version_operation("redo")),
         AgentTool("restore_paper_version", "Restore the current paper to a specified numbered version.", RestoreVersionInput, lambda raw: version_operation("restore", RestoreVersionInput.model_validate(raw).target_version)),
     ]
+
+    # Cross-domain read tools and TeachingDesign write tools stay in
+    # thin adapters instead of growing tool_registry.py further.
+    from .tool_adapters.teaching_environment import (
+        build_environment_inspection_tools,
+    )
+    from .tool_adapters.teaching_design import (
+        build_teaching_design_tools,
+    )
+
+    tools.extend(
+        build_environment_inspection_tools(context)
+    )
+    tools.extend(
+        build_teaching_design_tools(context)
+    )
     return {tool.name: tool for tool in tools}
 
 

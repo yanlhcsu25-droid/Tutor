@@ -245,6 +245,11 @@ class Paper(Base):
     status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
     title: Mapped[str] = mapped_column(String(255))
     total_score: Mapped[int] = mapped_column(Integer)
+    teaching_design_version_id: Mapped[str | None] = mapped_column(
+        ForeignKey("teaching_design_version.id"),
+        nullable=True,
+        index=True,
+    )
     validation_status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True

@@ -15,6 +15,7 @@ from typing import Protocol
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from calculus_agent.models import Paper
 from calculus_agent.question_types import canonical_question_type
 
 from ..conversation_state import PendingGeneration, PendingGenerationStaleError
@@ -265,6 +266,7 @@ class GenerationService:
     store: GenerationStateStore | None
     conversation_id: str | None
     expected_pending_generation_version: int | None = None
+    teaching_design_version_id: str | None = None
 
     def _pending(self) -> PendingGeneration | None:
         if self.store is None or not self.conversation_id:
@@ -447,6 +449,13 @@ class GenerationService:
                         )
                         | changed_score_types
                     ),
+                    teaching_design_version_id=(
+                        self.teaching_design_version_id
+                        if self.teaching_design_version_id is not None
+                        else pending.teaching_design_version_id
+                        if pending
+                        else None
+                    ),
                 ),
                 expected_version=self.expected_pending_generation_version,
             )
@@ -504,6 +513,17 @@ class GenerationService:
             and self.store is not None
             and self.conversation_id
         ):
+            if (
+                pending.teaching_design_version_id is not None
+                and result.paper_id is not None
+            ):
+                paper = self.session.get(Paper, str(result.paper_id))
+                if paper is not None:
+                    paper.teaching_design_version_id = (
+                        pending.teaching_design_version_id
+                    )
+                    self.session.flush()
+
             self.store.clear_generation(self.conversation_id)
             memory = self.store.get_memory(self.conversation_id)
             memory.active_task = {
@@ -513,6 +533,9 @@ class GenerationService:
             memory.last_completed_paper = {
                 "paper_id": str(result.paper_id),
                 "version_id": str(result.version_id),
+                "teaching_design_version_id": (
+                    pending.teaching_design_version_id
+                ),
                 **pending.request.model_dump(mode="json"),
             }
             memory.generation_summary = {}

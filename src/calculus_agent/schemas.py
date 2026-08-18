@@ -339,6 +339,7 @@ class SavedPaperRead(BaseModel):
     blueprint_id: str
     root_paper_id: str
     parent_version_id: str | None
+    teaching_design_version_id: str | None = None
     version: int
     status: Literal["draft", "validating", "passed", "failed"]
     total_score: int
@@ -370,6 +371,13 @@ class PaperItemRead(BaseModel):
     source_page: int | None = None
     chapter: str | None = None
     review_status: str = "approved"
+
+    difficulty: int | None = None
+    estimated_time_min: int | None = None
+    reasoning_depth: int | None = None
+    calculation_load: int | None = None
+    knowledge_depth: int | None = None
+    comprehensive_level: int | None = None
 
 
 class PaperItemUpdate(BaseModel):
