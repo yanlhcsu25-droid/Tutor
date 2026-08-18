@@ -22,6 +22,14 @@ from calculus_agent.agent.agent import (
     build_teacher_agent_backend,
     run_teacher_agent,
 )
+from calculus_agent.agent.conversation_state import (
+    DatabasePendingReplacementStore,
+    PendingGeneration,
+)
+from calculus_agent.agent.schemas import (
+    AgentWorkingMemory,
+    GeneratePaperInput,
+)
 from calculus_agent.config import get_settings
 
 from tests.conftest import create_isolated_test_session
@@ -31,6 +39,8 @@ from tests.evals.case_loader import (
     load_eval_suite,
 )
 from tests.evals.curriculum_fixture import seed_eval_curriculum
+from tests.evals.fixtures.context import EvalFixtureContext
+from tests.evals.fixtures.paper import seed_current_paper
 from tests.evals.graders.constraint_grader import grade_constraints
 from tests.evals.graders.score_grader import grade_score
 from tests.evals.graders.state_grader import grade_state
@@ -590,68 +600,103 @@ def normalize_generation_plan(
     return normalized
 
 
+def _generation_store(session):
+    return DatabasePendingReplacementStore(session)
+
+
+def _project_pending_generation(
+    *,
+    store: DatabasePendingReplacementStore,
+    conversation_id: str,
+    pending: PendingGeneration,
+) -> None:
+    memory = AgentWorkingMemory(
+        active_task={
+            "type": "generation",
+            "status": "awaiting_confirmation",
+        },
+        generation_summary=pending.request.model_dump(mode="json"),
+        last_clarification=None,
+        last_completed_paper=None,
+        unsupported_preferences=[],
+    )
+    store.set_memory(conversation_id, memory)
+
+
+def _persist_pending_generation(
+    *,
+    session,
+    conversation_id: str,
+    pending: PendingGeneration,
+) -> PendingGeneration:
+    store = _generation_store(session)
+    stored = store.set_generation(
+        conversation_id,
+        pending,
+    )
+    _project_pending_generation(
+        store=store,
+        conversation_id=conversation_id,
+        pending=stored,
+    )
+    return stored
+
+
+def _pending_generation_from_fixture(
+    payload: dict[str, Any],
+) -> PendingGeneration:
+    fixture = dict(payload)
+    fixture.pop("complete", None)
+
+    if "request" in fixture:
+        return PendingGeneration.model_validate(fixture)
+
+    request_payload = {
+        key: value
+        for key, value in fixture.items()
+        if key in GeneratePaperInput.model_fields
+    }
+    request = GeneratePaperInput.model_validate(
+        normalize_generation_plan(request_payload)
+    )
+
+    return PendingGeneration(
+        request=request,
+        total_score_source=fixture.get(
+            "total_score_source",
+            (
+                "teacher_explicit"
+                if request.total_score is not None
+                else "default_template"
+            ),
+        ),
+        locked_score_question_types=list(
+            fixture.get("locked_score_question_types") or []
+        ),
+    )
+
+
 def seed_generation_plan(
     *,
     session,
     conversation_id: str,
     plan: dict[str, Any],
 ) -> None:
-    """
-    generation_plan 是“测试前已经存在的组卷方案”。
+    generation = normalize_generation_plan(plan)
 
-    这里直接写 Working Memory。
-    不生成 synthetic user turn，不调用 LLM。
-    """
-
-    memory_cls = find_model_class(
-        "AgentWorkingMemoryRecord",
-        "AgentWorkingMemory",
-    )
-
-    if memory_cls is None:
-        raise RuntimeError(
-            "找不到 AgentWorkingMemoryRecord / "
-            "AgentWorkingMemory，无法建立 generation_plan fixture。"
-        )
-
-    generation = normalize_generation_plan(
-        plan
-    )
-
-    memory = {
-        "active_task": {
-            "type": "generation",
-            "status": "awaiting_confirmation",
-        },
-        "generation_summary": generation,
-        "last_clarification": None,
-        "last_completed_paper": None,
-        "unsupported_preferences": [],
-    }
-
-    upsert_payload_record(
+    _persist_pending_generation(
         session=session,
-        model_class=memory_cls,
         conversation_id=conversation_id,
-        payload=memory,
+        pending=PendingGeneration(
+            request=GeneratePaperInput.model_validate(generation),
+            total_score_source=(
+                "teacher_explicit"
+                if plan.get("total_score") is not None
+                else "default_template"
+            ),
+            locked_score_question_types=[],
+        ),
     )
-
-    # 如果项目存在独立 pending ORM，则同步写入。
-    # 没有独立 pending ORM 时不伪造；Working Memory 仍作为
-    # MOD 类 case 的确定性 baseline。
-    pending_cls = find_model_class(
-        "PendingGenerationRecord",
-        "AgentPendingGenerationRecord",
-        "PendingGeneration",
-    )
-
-    if pending_cls is not None:
-        upsert_payload_record(
-            session=session,
-            model_class=pending_cls,
-            conversation_id=conversation_id,
-            payload=generation,
-        )
 
 
 # ============================================================
@@ -663,29 +708,20 @@ def load_pending_generation(
     session,
     conversation_id: str,
 ) -> dict[str, Any] | None:
-
-    cls = find_model_class(
-        "PendingGenerationRecord",
-        "AgentPendingGenerationRecord",
-        "PendingGeneration",
+    pending = _generation_store(session).get_generation(
+        conversation_id
     )
-
-    if cls is None:
+    if pending is None:
         return None
 
-    row = latest_row_for_conversation(
-        session,
-        cls,
-        conversation_id,
-    )
-
-    if row is None:
-        return None
-
-    record = row_to_dict(row)
-    payload = extract_record_payload(record)
-
-    return payload or None
+    return {
+        **pending.request.model_dump(mode="json"),
+        "total_score_source": pending.total_score_source,
+        "locked_score_question_types": list(
+            pending.locked_score_question_types
+        ),
+        "pending_version": pending.pending_version,
+    }
 
 
 def seed_pending_generation(
@@ -694,24 +730,10 @@ def seed_pending_generation(
     conversation_id: str,
     payload: dict[str, Any],
 ) -> None:
-    cls = find_model_class(
-        "PendingGenerationRecord",
-        "AgentPendingGenerationRecord",
-        "PendingGeneration",
-    )
-
-    if cls is None:
-        raise RuntimeError(
-            "setup.pending_generation 需要真实 pending ORM，"
-            "但 Runner 未找到 PendingGenerationRecord / "
-            "AgentPendingGenerationRecord / PendingGeneration。"
-        )
-
-    upsert_payload_record(
+    _persist_pending_generation(
         session=session,
-        model_class=cls,
         conversation_id=conversation_id,
-        payload=payload,
+        pending=_pending_generation_from_fixture(payload),
     )
 
 
@@ -719,29 +741,10 @@ def load_pending_replacement(
     session,
     conversation_id: str,
 ) -> dict[str, Any] | None:
-
-    cls = find_model_class(
-        "PendingReplacementRecord",
-        "AgentPendingReplacementRecord",
-        "PendingReplacement",
+    pending = DatabasePendingReplacementStore(session).get(
+        conversation_id
     )
-
-    if cls is None:
-        return None
-
-    row = latest_row_for_conversation(
-        session,
-        cls,
-        conversation_id,
-    )
-
-    if row is None:
-        return None
-
-    record = row_to_dict(row)
-    payload = extract_record_payload(record)
-
-    return payload or None
+    return pending.model_dump(mode="json") if pending else None
 
 
 def seed_pending_replacement(
@@ -779,6 +782,7 @@ SUPPORTED_SETUP_KEYS = {
     "generation_plan",
     "pending_generation",
     "pending_replacement",
+    "current_paper",
 }
 
 
@@ -787,20 +791,12 @@ def apply_case_setup(
     session,
     conversation_id: str,
     case: EvalCase,
-) -> None:
-    """
-    核心原则：
-    setup 是 fixture，不是用户对话。
-
-    因此：
-    setup -> Python / DB
-    turns -> Agent / LLM
-    """
-
+) -> EvalFixtureContext:
     setup = case.setup or {}
+    fixture_context = EvalFixtureContext()
 
     if not setup:
-        return
+        return fixture_context
 
     unsupported = (
         set(setup.keys())
@@ -813,6 +809,24 @@ def apply_case_setup(
             f"{sorted(unsupported)}。"
             "不要把它们转换成 synthetic user turn；"
             "应为对应业务状态补确定性 fixture builder。"
+        )
+
+    current_paper = setup.get(
+        "current_paper"
+    )
+
+    if current_paper is not None:
+        if not isinstance(
+            current_paper,
+            dict,
+        ):
+            raise ValueError(
+                f"{case.id}.setup.current_paper 必须是 object"
+            )
+
+        fixture_context = seed_current_paper(
+            session,
+            current_paper,
         )
 
     generation_plan = setup.get(
@@ -874,6 +888,8 @@ def apply_case_setup(
 
     session.commit()
     session.expire_all()
+
+    return fixture_context
 
 
 # ============================================================
@@ -1190,7 +1206,7 @@ def run_case(
         # 1. fixture 先确定性落地
         # ----------------------------------------------------
 
-        apply_case_setup(
+        fixture_context = apply_case_setup(
             session=session,
             conversation_id=conversation_id,
             case=case,
@@ -1268,6 +1284,8 @@ def run_case(
                 conversation_id=(
                     conversation_id
                 ),
+                paper_id=fixture_context.paper_id,
+                version_id=fixture_context.version_id,
                 backend=backend,
             )
 
