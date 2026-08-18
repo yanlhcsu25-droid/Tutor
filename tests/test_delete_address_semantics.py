@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-import calculus_agent.agent.tool_registry as tool_registry
+import calculus_agent.agent.services.adjustment as adjustment_service
 from calculus_agent.agent.tool_registry import (
     AgentExecutionContext,
     PreviewAdjustmentInput,
@@ -170,7 +170,7 @@ def test_delete_address_resolves_to_current_global_position(
         )
 
     monkeypatch.setattr(
-        tool_registry,
+        adjustment_service,
         "preview_adjust_paper",
         fake_preview_adjust_paper,
     )

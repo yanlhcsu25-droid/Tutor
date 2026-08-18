@@ -4,25 +4,25 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, model_validator
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from calculus_agent.models import AdjustmentPlanRecord
-from calculus_agent.papers.addressing import QuestionAddress, resolve_section_item
+from calculus_agent.papers.addressing import QuestionAddress
 from .conversation_state import DatabasePendingReplacementStore
 from .schemas import GenerationPlanPatch
 from .tools.add_tools import AddQuestionPreview, preview_add_question
 from .tools.analysis_tools import (
     KnowledgePreference,
     analyze_paper,
-    confirm_adjust_paper,
-    preview_adjust_paper,
 )
 from .tools.read_tools import ReadCurrentPaperInput, read_current_paper
 from .services.generation import GenerationService, NoPendingGenerationError
 from .services.replacement import (
     ReplacementService,
     ReplacementServiceError,
+)
+from .services.adjustment import (
+    AdjustmentService,
+    AdjustmentServiceError,
 )
 from .tools.version_tools import run_version_operation
 from .version_parser import VersionOperationIntent
@@ -330,6 +330,12 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             "completed",
         )
 
+    adjustment_service = AdjustmentService(
+        session=session,
+        store=store,
+        conversation_id=context.conversation_id,
+    )
+
     def preview_add(raw: BaseModel) -> ExecutedTool:
         values = PreviewAddQuestionInput.model_validate(raw)
         if not (context.version_id or context.paper_id):
@@ -338,17 +344,20 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                 "当前还没有可新增题目的试卷。",
             )
 
-        if store and context.conversation_id:
-            if store.get_adjustment(context.conversation_id):
-                return _failed(
-                    "pending_adjustment_exists",
-                    "当前已有待确认的试卷调整方案；必须先确认或处理该方案，不能静默覆盖。",
-                )
-            if store.get(context.conversation_id) is not None:
-                return _failed(
-                    "pending_replacement_exists",
-                    "当前已有待确认换题方案；必须先确认或取消，不能静默覆盖。",
-                )
+        if adjustment_service.has_pending():
+            return _failed(
+                "pending_adjustment_exists",
+                "当前已有待确认的试卷调整方案；必须先确认或处理该方案，不能静默覆盖。",
+            )
+        if (
+            store
+            and context.conversation_id
+            and store.get(context.conversation_id) is not None
+        ):
+            return _failed(
+                "pending_replacement_exists",
+                "当前已有待确认换题方案；必须先确认或取消，不能静默覆盖。",
+            )
 
         result = preview_add_question(
             session,
@@ -357,16 +366,8 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             score=values.score,
         )
 
-        if (
-            result.ok
-            and result.plan
-            and store
-            and context.conversation_id
-        ):
-            store.set_adjustment(
-                context.conversation_id,
-                result.plan.plan_id,
-            )
+        if result.ok and result.plan:
+            adjustment_service.track_plan(result.plan.plan_id)
 
         status = (
             "waiting_confirmation"
@@ -388,83 +389,55 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
 
     def preview_adjustment(raw: BaseModel) -> ExecutedTool:
         values = PreviewAdjustmentInput.model_validate(raw)
-        if not (context.version_id or context.paper_id):
-            return _failed("no_current_paper", "当前还没有可调整的试卷。")
-        remove_positions = list(values.remove_positions)
+        try:
+            result = adjustment_service.preview(
+                paper_id=context.version_id or context.paper_id,
+                knowledge_preferences=values.knowledge_preferences,
+                question_type_changes=values.question_type_changes,
+                remove_addresses=values.remove_addresses,
+                remove_positions=values.remove_positions,
+                target_total_score=values.target_total_score,
+            )
+        except AdjustmentServiceError as exc:
+            return _failed(exc.code, exc.message)
 
-        if values.remove_addresses:
-            resolved_positions: list[int] = []
-            for address in values.remove_addresses:
-                item = resolve_section_item(
-                    session,
-                    paper_id=context.version_id or context.paper_id,
-                    section_type=address.section_type,
-                    section_order=address.section_order,
-                )
-                if item is None:
-                    return _failed(
-                        "question_address_not_found",
-                        (
-                            f"当前试卷没有{address.section_type}"
-                            f"第{address.section_order}题。"
-                        ),
-                    )
-                resolved_positions.append(item.position)
-            remove_positions = resolved_positions
-
-        pending_plan_id = (
-            store.get_adjustment(context.conversation_id)
-            if store and context.conversation_id else None
+        status = (
+            "waiting_confirmation"
+            if result.ok
+            else "needs_clarification"
+            if result.clarification_questions
+            else "failed"
         )
-        if (
-            pending_plan_id
-            and not remove_positions
-            and not values.remove_addresses
-            and values.target_total_score is not None
-        ):
-            pending_plan = session.get(AdjustmentPlanRecord, pending_plan_id)
-            if pending_plan is not None:
-                remove_positions = [
-                    operation["position"]
-                    for operation in pending_plan.operations_json
-                    if operation.get("type") == "remove_question"
-                ]
-        result = preview_adjust_paper(
-            session,
-            paper_id=context.version_id or context.paper_id,
-            knowledge_preferences=values.knowledge_preferences,
-            question_type_changes=values.question_type_changes,
-            remove_positions=remove_positions,
-            target_total_score=values.target_total_score,
-        )
-        if result.ok and result.plan and store and context.conversation_id:
-            store.set_adjustment(context.conversation_id, result.plan.plan_id)
         return ExecutedTool(
             result.model_dump(mode="json"),
-            "waiting_confirmation" if result.ok else "needs_clarification" if result.clarification_questions else "failed",
-            {"adjustment_preview": result, "warnings": result.warnings, "blocking_errors": result.blocking_errors, "clarification_questions": result.clarification_questions},
+            status,
+            {
+                "adjustment_preview": result,
+                "warnings": result.warnings,
+                "blocking_errors": result.blocking_errors,
+                "clarification_questions": result.clarification_questions,
+            },
         )
 
     def confirm_adjustment(_raw: BaseModel) -> ExecutedTool:
-        plan_id = store.get_adjustment(context.conversation_id) if store and context.conversation_id else None
-        if not plan_id:
-            return _failed("no_pending_adjustment", "当前没有等待确认的整卷调整方案。")
-        if not context.paper_id or not context.version_id:
-            return _failed("no_current_paper", "当前还没有可调整的试卷。")
-        result = confirm_adjust_paper(
-            session,
-            plan_id=plan_id,
-            paper_id=context.paper_id,
-            current_version_id=context.version_id,
-        )
+        try:
+            result = adjustment_service.confirm(
+                paper_id=context.paper_id,
+                version_id=context.version_id,
+            )
+        except AdjustmentServiceError as exc:
+            return _failed(exc.code, exc.message)
+
         if result.ok:
-            store.clear_adjustment(context.conversation_id)
             context.paper_id = result.new_version_id
             context.version_id = result.new_version_id
         return ExecutedTool(
             result.model_dump(mode="json"),
             "completed" if result.ok else "failed",
-            {"adjustment": result, "blocking_errors": result.blocking_errors},
+            {
+                "adjustment": result,
+                "blocking_errors": result.blocking_errors,
+            },
         )
 
     def version_operation(action: Literal["undo", "redo", "restore"], target: int | None = None) -> ExecutedTool:
