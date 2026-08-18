@@ -5,6 +5,10 @@ from ortools.sat.python import cp_model
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from calculus_agent.generation_diagnosis.schemas import (
+    SelectionEvidence,
+    SolverStatus,
+)
 from calculus_agent.models import KnowledgeNode, Question, QuestionDraft, QuestionKnowledgeLink, QuestionProfile
 from calculus_agent.question_types import (
     ALLOWED_QUESTION_TYPES,
@@ -22,6 +26,16 @@ from calculus_agent.questions.eligibility import (
 def compose_paper(
     session: Session, blueprint: PaperBlueprint | PaperGenerationRequest
 ) -> PaperPreviewRead:
+    preview, _ = compose_paper_with_evidence(session, blueprint)
+    return preview
+
+
+def compose_paper_with_evidence(
+    session: Session,
+    blueprint: PaperBlueprint | PaperGenerationRequest,
+) -> tuple[PaperPreviewRead, SelectionEvidence]:
+    """Compose a paper and retain deterministic evidence from the same candidate pool."""
+
     constraints = None
     if isinstance(blueprint, PaperGenerationRequest):
         constraints = blueprint.constraints
@@ -38,23 +52,75 @@ def compose_paper(
         0 if preferred.intersection(row[1]) else 1,
         _seed_key(blueprint.seed, row[0].id), row[0].id,
     ))
+
     rows_by_id = {row[0].id: row for row in rows}
-    required_ids = list(dict.fromkeys([*blueprint.locked_question_ids, *blueprint.manual_question_ids]))
-    missing_required = [question_id for question_id in required_ids if question_id not in rows_by_id]
-    required = [rows_by_id[question_id] for question_id in required_ids if question_id in rows_by_id]
-    selected = None if missing_required else _search(rows, required, blueprint, constraints)
+    required_ids = list(dict.fromkeys([
+        *blueprint.locked_question_ids,
+        *blueprint.manual_question_ids,
+    ]))
+    missing_required = [
+        question_id
+        for question_id in required_ids
+        if question_id not in rows_by_id
+    ]
+    required = [
+        rows_by_id[question_id]
+        for question_id in required_ids
+        if question_id in rows_by_id
+    ]
+    eligible = [
+        row
+        for row in rows
+        if _knowledge_allowed(row, blueprint)
+    ]
+
+    if missing_required:
+        selected = None
+        solver_status: SolverStatus = "precheck_failed"
+    else:
+        selected, solver_status = _search_with_status(
+            rows,
+            required,
+            blueprint,
+            constraints,
+        )
+
+    evidence = _build_selection_evidence(
+        rows=rows,
+        eligible=eligible,
+        missing_required=missing_required,
+        solver_status=solver_status,
+    )
+
     if selected is None:
-        # A diagnostic preview may contain eligible supply, but is always marked infeasible.
-        eligible = [row for row in rows if _knowledge_allowed(row, blueprint)]
+        # Preserve the existing diagnostic-preview behavior. The preview is
+        # useful for humans/validation, but supply diagnosis uses `evidence`
+        # above rather than reverse-engineering preview items or warning text.
         selected, seen = [], set()
         for row in [*required, *eligible]:
-            if row[0].id not in seen and len(selected) < blueprint.total_questions:
+            if (
+                row[0].id not in seen
+                and len(selected) < blueprint.total_questions
+            ):
                 selected.append(row)
                 seen.add(row[0].id)
+
     if blueprint.question_order:
-        order = {question_id: index for index, question_id in enumerate(blueprint.question_order)}
-        original = {row[0].id: index for index, row in enumerate(selected)}
-        selected.sort(key=lambda row: (order.get(row[0].id, len(order)), original[row[0].id]))
+        order = {
+            question_id: index
+            for index, question_id in enumerate(blueprint.question_order)
+        }
+        original = {
+            row[0].id: index
+            for index, row in enumerate(selected)
+        }
+        selected.sort(
+            key=lambda row: (
+                order.get(row[0].id, len(order)),
+                original[row[0].id],
+            )
+        )
+
     scores = _section_scores(selected, blueprint)
     items = [
         _item(
@@ -75,15 +141,30 @@ def compose_paper(
             profile,
         ), score in zip(selected, scores)
     ]
-    checks = _checks(blueprint, items, missing_required, constraints)
-    warnings = [f"未满足约束：{check.name}" for check in checks if not check.satisfied]
-    available_knowledge = {name for row in rows for name in row[1]}
+
+    checks = _checks(
+        blueprint,
+        items,
+        missing_required,
+        constraints,
+    )
+    warnings = [
+        f"未满足约束：{check.name}"
+        for check in checks
+        if not check.satisfied
+    ]
+    available_knowledge = {
+        name
+        for row in rows
+        for name in row[1]
+    }
     warnings.extend(
         f"目标知识点“{name}”关联不足，将使用相近或未标注题目补足。"
         for name in blueprint.soft_knowledge_preferences
         if name not in available_knowledge
     )
-    return PaperPreviewRead(
+
+    preview = PaperPreviewRead(
         title=blueprint.title,
         total_score=sum(item.score for item in items),
         items=items,
@@ -91,7 +172,40 @@ def compose_paper(
         warnings=warnings,
         feasible=all(check.satisfied for check in checks),
     )
+    return preview, evidence
 
+
+def _build_selection_evidence(
+    *,
+    rows,
+    eligible,
+    missing_required: list[str],
+    solver_status: SolverStatus,
+) -> SelectionEvidence:
+    """Build supply facts from selector rows, never from diagnostic preview items."""
+
+    type_supply = Counter(
+        canonical_question_type(row[0].question_type)
+        for row in eligible
+        if canonical_question_type(row[0].question_type)
+        in PAPER_QUESTION_TYPES
+    )
+
+    knowledge_supply: Counter[str] = Counter()
+    for row in eligible:
+        # One question contributes at most one unit of supply to one knowledge
+        # name even if bad source data contains duplicate links.
+        knowledge_supply.update(set(row[1]))
+
+    return SelectionEvidence(
+        candidate_count=len(rows),
+        eligible_count=len(eligible),
+        type_supply=dict(type_supply),
+        knowledge_supply=dict(knowledge_supply),
+        image_supply=sum(bool(row[2]) for row in eligible),
+        missing_required_question_ids=list(missing_required),
+        solver_status=solver_status,
+    )
 
 def _candidates(
     session: Session,
@@ -305,7 +419,19 @@ def _soft_objective_score(
     return score
 
 
-def _search(
+def _solver_status_name(status: int) -> SolverStatus:
+    if status == cp_model.OPTIMAL:
+        return "optimal"
+    if status == cp_model.FEASIBLE:
+        return "feasible"
+    if status == cp_model.INFEASIBLE:
+        return "infeasible"
+    if status == cp_model.MODEL_INVALID:
+        return "model_invalid"
+    return "unknown"
+
+
+def _search_with_status(
     rows,
     required,
     blueprint: PaperBlueprint,
@@ -316,7 +442,7 @@ def _search(
         _knowledge_allowed(row, blueprint)
         for row in required
     ):
-        return None
+        return None, "precheck_failed"
 
     eligible = [
         row for row in rows
@@ -337,7 +463,7 @@ def _search(
     for question_id in required_ids:
         variable = by_id.get(question_id)
         if variable is None:
-            return None
+            return None, "precheck_failed"
         model.add(variable == 1)
 
     for question_type, count in blueprint.question_type_counts.items():
@@ -386,7 +512,7 @@ def _search(
         and constraints.target_duration_min is not None
     ):
         if any(row[5] is None for row in eligible):
-            return None
+            return None, "precheck_failed"
         target = constraints.target_duration_min
         tolerance = constraints.duration_tolerance_min
         lower = max(1, target - tolerance)
@@ -421,8 +547,10 @@ def _search(
     solver.parameters.num_search_workers = 1
     solver.parameters.random_seed = blueprint.seed
     status = solver.solve(model)
+    solver_status = _solver_status_name(status)
+
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return None
+        return None, solver_status
 
     chosen = [
         row
@@ -458,7 +586,23 @@ def _search(
             seeded_order[row[0].id],
         )
     )
-    return chosen
+    return chosen, solver_status
+
+
+def _search(
+    rows,
+    required,
+    blueprint: PaperBlueprint,
+    constraints: GenerationConstraints | None = None,
+):
+    """Backward-compatible selector helper; diagnostics use _search_with_status."""
+    selected, _ = _search_with_status(
+        rows,
+        required,
+        blueprint,
+        constraints,
+    )
+    return selected
 
 def _section_scores(selected, blueprint: PaperBlueprint) -> list[int]:
     if blueprint.sections:
