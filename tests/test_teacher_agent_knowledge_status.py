@@ -7,7 +7,6 @@
 """
 
 import json
-from pathlib import Path
 
 from sqlalchemy import select
 
@@ -15,6 +14,7 @@ from calculus_agent.agent.agent import run_teacher_agent
 from calculus_agent.agent.conversation_state import DatabasePendingReplacementStore, PendingGeneration
 from calculus_agent.agent.schemas import GeneratePaperInput
 from calculus_agent.db import build_session_factory
+from tests.integration_db import configured_integration_db_path
 from calculus_agent.models import CurriculumNode, KnowledgeNode, TeacherAgentRunTrace
 
 
@@ -181,10 +181,7 @@ def test_agent_orphan_knowledge_yields_needs_clarification(session):
 # Agent Case 4: 原始 bad case 直连真实 calculus_agent.db
 # ---------------------------------------------------------------------------
 def test_agent_real_bad_case_yields_needs_clarification():
-    real_db = Path(__file__).resolve().parents[1] / "calculus_agent.db"
-    if not real_db.exists():
-        import pytest
-        pytest.skip("真实 calculus_agent.db 不存在，跳过真实数据 Agent 回归测试")
+    real_db = configured_integration_db_path()
     session = build_session_factory(f"sqlite:///{real_db}")()
     backend = SequenceBackend(
         _preview_call(["第三章"], ["函数极限", "极限运算法则", "无穷小"]),

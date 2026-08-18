@@ -981,17 +981,21 @@ def _execute_generation_request(
     )
 
     result_warnings = list(warnings)
-
     if not validation_report.passed:
         result_warnings.append(
             "paper_validation_failed"
         )
 
     return GeneratePaperToolResult(
-        ok=True,
+        ok=validation_report.passed,
         paper_id=persisted.paper_id,
         version_id=persisted.version_id,
         warnings=result_warnings,
+        blocking_errors=(
+            []
+            if validation_report.passed
+            else ["paper_validation_failed"]
+        ),
         summary=PaperSummary(
             total_questions=len(
                 preview.items
@@ -1003,12 +1007,8 @@ def _execute_generation_request(
                 type_counts
             ),
         ),
-        validation_status=(
-            validation_status
-        ),
-        validation_report=(
-            validation_report
-        ),
+        validation_status=validation_status,
+        validation_report=validation_report,
     )
 
 

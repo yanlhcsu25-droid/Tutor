@@ -41,6 +41,11 @@ class Textbook(Base):
     edition: Mapped[str | None] = mapped_column(String(120), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=False)
+    directory_revision: Mapped[int] = mapped_column(
+        Integer,
+        default=1,
+        nullable=False,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

@@ -2005,6 +2005,9 @@ def import_textbook_directory(textbook_id: str, body: dict, session: Session = D
             reverse=True,
         ):
             session.delete(node)
+        # First import remains revision 1. Only a successful replacement of an
+        # existing directory advances the deterministic directory revision.
+        book.directory_revision += 1
         session.flush()
     return {"imported_count": len(nodes), "knowledge_count": len(knowledge)}
 

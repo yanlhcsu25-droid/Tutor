@@ -24,10 +24,28 @@ def build_session_factory(database_url: str) -> sessionmaker[Session]:
 @lru_cache
 def create_schema(database_url: str) -> None:
     from calculus_agent import models  # noqa: F401
+    from calculus_agent.curriculum_context import models as curriculum_context_models  # noqa: F401
     from calculus_agent.teaching_design import models as teaching_design_models  # noqa: F401
 
     engine = build_engine(database_url)
     Base.metadata.create_all(engine)
+
+    # T4-1.5: textbook directory versioning. Existing databases are migrated
+    # additively; all historical textbooks start at revision 1.
+    textbook_columns = {
+        item["name"]
+        for item in inspect(engine).get_columns("textbook")
+    }
+    with engine.begin() as connection:
+        if "directory_revision" not in textbook_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE textbook "
+                "ADD COLUMN directory_revision INTEGER NOT NULL DEFAULT 1"
+            )
+        connection.exec_driver_sql(
+            "UPDATE textbook SET directory_revision = 1 "
+            "WHERE directory_revision IS NULL"
+        )
 
     # paper 表迁移
     paper_columns = {item["name"] for item in inspect(engine).get_columns("paper")}

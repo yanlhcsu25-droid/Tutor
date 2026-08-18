@@ -20,12 +20,11 @@ Or against a specific db:
 
 from __future__ import annotations
 
-import os
 import pytest
-from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from tests.integration_db import configured_integration_db_path
 
 from calculus_agent.agent.blueprint_adapter import (
     PaperBlueprint,
@@ -35,26 +34,13 @@ from calculus_agent.agent.blueprint_adapter import (
 )
 from calculus_agent.agent.tools.paper_tools import _scope_node_ids
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DB = PROJECT_ROOT / "calculus_agent.db"
-
-# SCOPE-01 is a *local-DB integration* test: it intentionally reads the real
-# `calculus_agent.db` to confirm the resolver matches production data. It must
-# NOT be treated as a CI unit test against the isolated eval DB. Skip it when
-# the real DB is absent so CI does not produce misleading failures.
-_DB_FOR_TEST = os.environ.get("CALCULUS_AGENT_SCOPE_TEST_DB") or str(DEFAULT_DB)
+# SCOPE-01 is a local-DB integration test. Execution is explicitly opt-in:
+# an accidental repository calculus_agent.db must never activate it.
 pytestmark = pytest.mark.integration
-if not os.path.exists(_DB_FOR_TEST):
-    pytestmark = [
-        pytest.mark.integration,
-        pytest.mark.skip(reason="SCOPE-01 is a local-DB integration test; real calculus_agent.db not present"),
-    ]
 
 
 def _make_session() -> Session:
-    db_path = os.environ.get("CALCULUS_AGENT_SCOPE_TEST_DB") or str(DEFAULT_DB)
-    if not os.path.isabs(db_path):
-        db_path = str(PROJECT_ROOT / db_path)
+    db_path = configured_integration_db_path()
     url = f"sqlite:///{db_path}"
     factory = sessionmaker(bind=create_engine(url, connect_args={"check_same_thread": False}))
     return factory()

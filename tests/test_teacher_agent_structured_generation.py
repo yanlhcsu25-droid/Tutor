@@ -202,7 +202,8 @@ def test_complex_structured_input_reaches_real_draft_executor(session):
         )
     session.flush()
     result = generate_paper_from_input(session, _complex_input())
-    assert result.ok
+    assert result.ok is False
+    assert "paper_validation_failed" in result.blocking_errors
     assert result.summary.total_questions == 10
     assert result.summary.total_score == 100
     assert result.summary.question_type_counts == {

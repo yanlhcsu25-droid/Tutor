@@ -7,7 +7,6 @@
   必须报 knowledge_scope_uncertain，避免"默认任意章节合法"的边界错误。
 """
 
-from pathlib import Path
 
 from calculus_agent.agent.tools.paper_tools import (
     _knowledge_preferences,
@@ -16,6 +15,7 @@ from calculus_agent.agent.tools.paper_tools import (
 )
 from calculus_agent.agent.schemas import GeneratePaperInput
 from calculus_agent.db import build_session_factory
+from tests.integration_db import configured_integration_db_path
 from calculus_agent.models import CurriculumNode, KnowledgeNode
 
 
@@ -222,10 +222,7 @@ def test_real_bad_case_resolver_returns_three_distinct_errors():
       - 极限运算法则: concept，curriculum_node_id 属于第一章 → knowledge_scope_conflict
       - 无穷小     : 无匹配 → knowledge_unknown
     """
-    real_db = Path(__file__).resolve().parents[1] / "calculus_agent.db"
-    if not real_db.exists():
-        import pytest
-        pytest.skip("真实 calculus_agent.db 不存在，跳过真实数据回归测试")
+    real_db = configured_integration_db_path()
     session = build_session_factory(f"sqlite:///{real_db}")()
     scope_ids, scope_errors = _scope_node_ids(session, ["第三章"])
     assert not scope_errors
@@ -249,10 +246,7 @@ def test_real_bad_case_resolver_returns_three_distinct_errors():
 
 def test_real_db_first_chapter_is_in_scope():
     """第一章 + 极限运算法则 必须在真实 taxonomy 下解析为 resolved（避免硬编码）。"""
-    real_db = Path(__file__).resolve().parents[1] / "calculus_agent.db"
-    if not real_db.exists():
-        import pytest
-        pytest.skip("真实 calculus_agent.db 不存在，跳过真实数据回归测试")
+    real_db = configured_integration_db_path()
     session = build_session_factory(f"sqlite:///{real_db}")()
     scope_ids, _ = _scope_node_ids(session, ["第一章"])
     names, ids, errors, questions = _knowledge_preferences(

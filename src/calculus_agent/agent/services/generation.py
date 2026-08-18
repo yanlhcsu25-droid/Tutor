@@ -509,21 +509,21 @@ class GenerationService:
         )
 
         if (
+            pending.teaching_design_version_id is not None
+            and result.paper_id is not None
+        ):
+            paper = self.session.get(Paper, str(result.paper_id))
+            if paper is not None:
+                paper.teaching_design_version_id = (
+                    pending.teaching_design_version_id
+                )
+                self.session.flush()
+
+        if (
             result.ok
             and self.store is not None
             and self.conversation_id
         ):
-            if (
-                pending.teaching_design_version_id is not None
-                and result.paper_id is not None
-            ):
-                paper = self.session.get(Paper, str(result.paper_id))
-                if paper is not None:
-                    paper.teaching_design_version_id = (
-                        pending.teaching_design_version_id
-                    )
-                    self.session.flush()
-
             self.store.clear_generation(self.conversation_id)
             memory = self.store.get_memory(self.conversation_id)
             memory.active_task = {

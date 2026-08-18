@@ -198,7 +198,7 @@ class TeachingDesignPaperGenerationService:
                 projection=projection,
                 generation_preview=preview,
                 paper=paper,
-                requires_design_revision=True,
+                requires_design_revision=False,
                 advisory_constraints=list(
                     projection.advisory_constraints
                 ),
