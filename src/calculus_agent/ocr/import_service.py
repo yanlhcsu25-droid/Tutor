@@ -16,6 +16,12 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from calculus_agent.questions.chapter_assignment import (
+    chapter_display_name,
+    derive_default_chapter_from_knowledge,
+    question_chapter_display,
+)
+
 from calculus_agent.models import (
     CurriculumNode,
     KnowledgeNode,
@@ -93,6 +99,9 @@ def publish_ocr_draft(
     # ## 知识点 / ## 难度 section 反解（那些 section 已从 OCR 模板中移除）。
     knowledge_ids = [item for item in (draft.knowledge_points_json or []) if item][:3]
     difficulty_level = draft.difficulty_level  # 1~5 或 None
+    default_chapter = derive_default_chapter_from_knowledge(
+        session, knowledge_ids
+    )
 
     # 去重检查
     existing = session.scalar(
@@ -123,9 +132,9 @@ def publish_ocr_draft(
         language="zh-CN",
         grade=grade,
         question_type=question_type,
-        # 章节优先由全部知识点的教材目录层级反推；
-        # 仅当没有结构化知识点时（历史草稿）才回退到 Markdown 章节文本。
-        source_topic=derive_chapter_from_knowledge(session, knowledge_ids) or parts.get("章节"),
+        # Compatibility display mirror. Authoritative scope is stored on
+        # Question.curriculum_chapter_id.
+        source_topic=chapter_display_name(default_chapter) or parts.get("章节"),
         question_text=question_content,
         reference_answers_json=[],
         answer_types_json=[],
@@ -149,7 +158,24 @@ def publish_ocr_draft(
     # instead of creating a second formal question for the same exercise.
     question = session.get(Question, draft.formal_question_id) if draft.formal_question_id else None
     if question is None:
-        question = Question(draft_id=question_draft.id, question_text=question_content, grade=grade, question_type=question_type, final_answer=None, solution_json={"solution_steps": [solution_content] if solution_content else []}, verification_status="ai_verified" if publish_source == "ai_auto" else "manual_verified", review_status="approved")
+        question = Question(
+            draft_id=question_draft.id,
+            curriculum_chapter_id=(
+                default_chapter.id if default_chapter else None
+            ),
+            question_text=question_content,
+            grade=grade,
+            question_type=question_type,
+            final_answer=None,
+            solution_json={
+                "solution_steps": [solution_content] if solution_content else []
+            },
+            verification_status=(
+                "ai_verified" if publish_source == "ai_auto"
+                else "manual_verified"
+            ),
+            review_status="approved",
+        )
         session.add(question)
         session.flush()
     else:
@@ -158,6 +184,12 @@ def publish_ocr_draft(
         question.question_type = question_type
         question.solution_json = {"solution_steps": [solution_content] if solution_content else []}
         question.review_status = "approved"
+        # Revision preserves a teacher-confirmed owner chapter.
+        if (
+            question.curriculum_chapter_id is None
+            and default_chapter is not None
+        ):
+            question.curriculum_chapter_id = default_chapter.id
 
     published_at = datetime.now(UTC)
     question.publish_source = publish_source
@@ -293,7 +325,8 @@ def apply_ai_published_profile_review(
         reason="AI 自动发布后的教师画像复核",
         reviewed_at=reviewed_at,
     ))
-    bank_draft.source_topic = derive_chapter_from_knowledge(session, knowledge_ids)
+    # Knowledge review never reassigns owning chapter.
+    bank_draft.source_topic = question_chapter_display(session, question)
     question.knowledge_match_status = "current"
 
     audit = dict(draft.ai_review_json or {})

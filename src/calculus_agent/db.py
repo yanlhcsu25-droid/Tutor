@@ -189,6 +189,15 @@ def create_schema(database_url: str) -> None:
             connection.exec_driver_sql(
                 "ALTER TABLE question ADD COLUMN updated_at DATETIME"
             )
+        if "curriculum_chapter_id" not in question_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE question ADD COLUMN curriculum_chapter_id VARCHAR(36) "
+                "REFERENCES curriculum_node(id)"
+            )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_question_curriculum_chapter_id "
+            "ON question (curriculum_chapter_id)"
+        )
         connection.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS ix_question_is_active ON question (is_active)"
         )
@@ -203,6 +212,15 @@ def create_schema(database_url: str) -> None:
             "CREATE INDEX IF NOT EXISTS ix_question_quality_sample_required "
             "ON question (quality_sample_required)"
         )
+
+    # Backfill only previously-unassigned questions. Existing explicit chapter
+    # ownership is never overwritten.
+    from calculus_agent.questions.chapter_assignment import (
+        backfill_question_chapter_assignments,
+    )
+
+    with Session(engine) as migration_session, migration_session.begin():
+        backfill_question_chapter_assignments(migration_session)
 
     # Teacher Agent 运行 trace：失败错误明细（阶段 / 类型 / 文案），用于可观测性。
     # create_all 不会为既有表加列，这里做幂等 ALTER。

@@ -115,9 +115,15 @@ def dry_run_replace_question(
         return ReplacementDryRunResult(ok=False, blocking_errors=["no_harder_candidate"], **base)
     record = session.get(PaperBlueprintRecord, version.blueprint_id)
     metadata = (record.blueprint_json if record else {}).get("_agent_metadata", {})
-    scope_ids = metadata.get("scope_node_ids", [])
-    if not scope_ids:
-        return ReplacementDryRunResult(ok=False, blocking_errors=["invalid_scope"], **base)
+    scope_chapter_ids = set(metadata.get("scope_chapter_ids", []))
+    scope_knowledge_node_ids = set(
+        metadata.get("scope_knowledge_node_ids", [])
+    )
+    legacy_scope_ids = set(metadata.get("scope_node_ids", []))
+    if not scope_chapter_ids and not legacy_scope_ids:
+        return ReplacementDryRunResult(
+            ok=False, blocking_errors=["invalid_scope"], **base
+        )
     knowledge_by_question: dict[str, set[str]] = defaultdict(set)
     for question_id, knowledge_id in session.execute(select(QuestionKnowledgeLink.question_id, QuestionKnowledgeLink.knowledge_node_id)):
         knowledge_by_question[question_id].add(knowledge_id)
@@ -136,7 +142,24 @@ def dry_run_replace_question(
         if canonical_question_type(question.question_type) == target.section
     ]
     stats["same_canonical_question_type"] = len(candidates)
-    candidates = [q for q in candidates if knowledge_by_question[q.id].intersection(scope_ids)]
+    if scope_chapter_ids:
+        candidates = [
+            q for q in candidates
+            if q.curriculum_chapter_id in scope_chapter_ids
+        ]
+        if scope_knowledge_node_ids:
+            candidates = [
+                q for q in candidates
+                if knowledge_by_question[q.id].intersection(
+                    scope_knowledge_node_ids
+                )
+            ]
+    else:
+        # Compatibility for paper versions created before chapter metadata.
+        candidates = [
+            q for q in candidates
+            if knowledge_by_question[q.id].intersection(legacy_scope_ids)
+        ]
     stats["in_scope"] = len(candidates)
     candidates = [q for q in candidates if q.id not in {item.question_id for item in items}]
     stats["not_already_in_paper"] = len(candidates)

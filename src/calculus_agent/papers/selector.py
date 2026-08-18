@@ -31,6 +31,12 @@ def compose_paper(
     if isinstance(blueprint, PaperGenerationRequest):
         constraints = blueprint.constraints
         blueprint = blueprint.blueprint
+
+    # Production generation injects a fresh seed before entering selector.
+    # Direct selector calls such as tests/previews use a deterministic fallback.
+    if blueprint.seed is None:
+        blueprint = blueprint.model_copy(update={"seed": 42})
+
     rows = _candidates(session, blueprint, constraints)
     preferred = set(blueprint.soft_knowledge_preferences)
     rows.sort(key=lambda row: (
@@ -93,12 +99,20 @@ def _candidates(
     )
     if blueprint.excluded_question_ids:
         statement = statement.where(Question.id.not_in(blueprint.excluded_question_ids))
-    if constraints and constraints.scope_node_ids:
+    # Whole-chapter scope uses authoritative question ownership.
+    if constraints and constraints.scope_chapter_ids:
+        statement = statement.where(
+            Question.curriculum_chapter_id.in_(constraints.scope_chapter_ids)
+        )
+    # Section/knowledge-level scope may add a semantic refinement.
+    if constraints and constraints.scope_knowledge_node_ids:
         statement = statement.join(
             QuestionKnowledgeLink,
             QuestionKnowledgeLink.question_id == Question.id,
         ).where(
-            QuestionKnowledgeLink.knowledge_node_id.in_(constraints.scope_node_ids)
+            QuestionKnowledgeLink.knowledge_node_id.in_(
+                constraints.scope_knowledge_node_ids
+            )
         ).distinct()
     if constraints and constraints.allowed_difficulty_levels:
         latest = (

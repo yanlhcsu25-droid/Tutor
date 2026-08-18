@@ -79,7 +79,13 @@ class GenerationPlanPreview(BaseModel):
 
 class GenerationConstraints(BaseModel):
     scope: list[str] = Field(default_factory=list)
+    # Hard question-ownership scope.
+    scope_chapter_ids: list[str] = Field(default_factory=list)
+    # Legacy/diagnostic taxonomy resolution retained for compatibility.
     scope_node_ids: list[str] = Field(default_factory=list)
+    # Optional hard semantic refinement for section/knowledge-level scope.
+    # Whole-chapter generation leaves this empty.
+    scope_knowledge_node_ids: list[str] = Field(default_factory=list)
     allowed_difficulty_levels: list[int] = Field(default_factory=list)
     preferred_difficulty_levels: list[int] = Field(default_factory=list)
     fallback_difficulty_levels: list[int] = Field(default_factory=list)

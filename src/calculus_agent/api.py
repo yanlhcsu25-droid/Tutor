@@ -4,6 +4,7 @@ import re
 from datetime import UTC, datetime
 
 from calculus_agent.question_types import ALLOWED_QUESTION_TYPES, canonical_question_type
+from calculus_agent.questions.chapter_assignment import chapter_display_name
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -1199,6 +1200,14 @@ def get_question_detail(
         session, [question.id]
     ).get(question.id, (None, None, None))
     chapter_resolution = resolve_question_chapter(session, question.id)
+    # Authoritative chapter projection: never derive chapter_id from
+    # knowledge points. Knowledge may span chapters.
+    owner_chapter_id = question.curriculum_chapter_id
+    owner_chapter = (
+        session.get(CurriculumNode, owner_chapter_id)
+        if owner_chapter_id
+        else None
+    )
     return QuestionDetailRead(
         id=question.id,
         question_text=question.question_text,
@@ -1207,8 +1216,8 @@ def get_question_detail(
         knowledge_node_ids=_load_knowledge_node_ids(session, question.id),
         solution_content=solution_text or None,
         final_answer=question.final_answer,
-        chapter=chapter_resolution.chapter_name,
-        chapter_id=chapter_resolution.chapter_id,
+        chapter=chapter_display_name(owner_chapter),
+        chapter_id=owner_chapter_id,
         chapter_status=chapter_resolution.status,
         original_number=original_number,
         source_name=source_name,

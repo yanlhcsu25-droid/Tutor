@@ -36,3 +36,4 @@ teacher_agent_p0_numbering_patch.py
 phase*_patch_*.py
 fix_delete_preview_reindex.py
 diagnose_candidates.py
+.teacher_agent_backups/

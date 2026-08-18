@@ -117,6 +117,11 @@ class Question(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     draft_id: Mapped[str] = mapped_column(ForeignKey("question_draft.id"), unique=True, index=True)
+    # Authoritative owning chapter. Knowledge points are independent semantic
+    # tags and may legitimately span earlier/later chapters.
+    curriculum_chapter_id: Mapped[str | None] = mapped_column(
+        ForeignKey("curriculum_node.id"), nullable=True, index=True
+    )
     question_text: Mapped[str] = mapped_column(Text)
     grade: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     question_type: Mapped[str] = mapped_column(String(40), default="计算题", index=True)

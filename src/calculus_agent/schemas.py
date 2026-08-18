@@ -164,7 +164,7 @@ class PaperBlueprint(BaseModel):
     excluded_question_ids: list[str] = Field(default_factory=list)
     question_order: list[str] = Field(default_factory=list)
     score_overrides: dict[str, float] = Field(default_factory=dict)
-    seed: int = 42
+    seed: int | None = None
 
     @model_validator(mode="before")
     @classmethod

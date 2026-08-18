@@ -7,6 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from calculus_agent.models import CurriculumNode, KnowledgeNode
+from calculus_agent.questions.chapter_assignment import (
+    resolve_scope_chapter_ids,
+    scope_labels_are_whole_chapters,
+)
 from calculus_agent.schemas import PaperBlueprint, SectionRequirement
 
 from .schemas import (
@@ -216,5 +220,21 @@ def resolve_generation_scope(
     ).all())
     if not knowledge_ids:
         return None, ["invalid_scope"]
-    constraints = request.constraints.model_copy(update={"scope_node_ids": knowledge_ids})
+    scope_chapter_ids = resolve_scope_chapter_ids(
+        session,
+        request.constraints.scope,
+        knowledge_ids,
+    )
+    if not scope_chapter_ids:
+        return None, ["invalid_scope"]
+    constraints = request.constraints.model_copy(update={
+        "scope_node_ids": knowledge_ids,
+        "scope_chapter_ids": scope_chapter_ids,
+        "scope_knowledge_node_ids": (
+            [] if scope_labels_are_whole_chapters(
+                session, request.constraints.scope
+            )
+            else knowledge_ids
+        ),
+    })
     return request.model_copy(update={"constraints": constraints}), []

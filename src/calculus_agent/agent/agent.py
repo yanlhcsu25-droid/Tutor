@@ -28,6 +28,7 @@ from .langfuse_tracing import (
     tool_observation_span,
 )
 from .run_tracing import TeacherAgentRunManager
+from .skills import load_skill_bundle
 from .trace_log import AgentTraceRecorder, redact_trace_value
 from .tool_registry import AgentExecutionContext, build_agent_tools, execute_tool
 from .schemas import GenerationPlanPreview
@@ -43,6 +44,9 @@ from .tools.replacement_tools import ApplyReplacementResult, ReplacementDryRunRe
 from .tools.version_tools import VersionOperationResult
 
 logger = logging.getLogger(__name__)
+
+
+QUESTION_OPERATION_SKILL = "paper_question_operations"
 
 
 CLARIFICATION_BLOCKING_ERRORS: frozenset[str] = frozenset({
@@ -121,7 +125,7 @@ _SYSTEM_PROMPT = """你是 Teacher Agent。
 
 你必须自主判断当前问题是否需要工具、调用哪个工具、是否需要连续调用多个工具，以及获得工具结果后下一步做什么。不要要求用户使用固定指令格式。
 
-普通聊天、能力介绍和不依赖系统事实的解释，直接用自然语言回答，不调用工具。回答依赖当前试卷、题目、题库或版本的真实状态时，不要猜测，主动调用对应读取工具。教师明确说“选择题第N题、填空题第N题、计算题第N题或证明题第N题”时，read_current_paper 必须使用 addresses={section_type, section_order}，不得把题型内编号误当成全卷 position；只有教师明确说“全卷第N题”时才使用 legacy positions。教师只说“第N题”且没有明确题型时必须追问题型。只有整卷概览问题才省略 addresses 和 positions。你可以连续调用多个工具完成一个用户目标。
+普通聊天、能力介绍和不依赖系统事实的解释，直接用自然语言回答，不调用工具。回答依赖当前试卷、题目、题库或版本的真实状态时，不要猜测，主动调用对应读取工具。教师引用具体题目时，应按自然语言语义解析题型内地址，不要求固定说成“填空题第N题”。例如“第三题这道填空题”“填空那里第三题”只要语义能够唯一确定为填空题第3题，就应解析为 addresses={section_type:"填空题", section_order:3}。不得把题型内编号误当成全卷 position；只有教师明确说“全卷第N题”时才使用 legacy positions。只有当教师确实只给出“第N题”且当前可靠上下文无法唯一确定题型时，才追问题型。不要因为 Python 没匹配到固定文本格式就判定有歧义。只有整卷概览问题才省略 addresses 和 positions。你可以连续调用多个工具完成一个用户目标。
 
 工具负责确定性业务执行。你不得绕过工具直接修改数据库，不得编造 Paper、Question、KnowledgeNode 或版本 ID，不得把工具失败说成成功。Tool 返回约束失败时，应根据 Observation 向教师解释；必要时可以调用其他相关工具，但不能擅自放宽教师约束。
 
@@ -139,7 +143,7 @@ Working Memory 只用于理解当前任务、上一轮追问和上一份试卷�
 
 教师表示不接受、不要或放弃当前 pending 方案时，含义是取消该方案，不是自动再生成一个候选。只有教师明确要求“再找一个、换个候选”时，才可以先取消当前 pending，再调用 preview_replace_question 生成新方案；不得用新 preview 静默覆盖旧 pending。
 
-教师要求换题时“知识点不变、别动知识点、保持考点”属于硬约束，调用 preview_replace_question 必须显式传 preserve_knowledge_points=true。不得把仅部分重合的知识点描述成完全保持。
+preserve_knowledge_points 是显式 opt-in 硬约束。只有教师明确说“知识点不变、别动知识点、保持考点、保持原知识点”等同义要求时，调用 preview_replace_question 才允许传 preserve_knowledge_points=true。教师仅说“超纲、这题不合适、换一道、换简单一点”等，不代表要求保持原知识点，此时不得自行把 preserve_knowledge_points 设为 true。不得把仅部分重合的知识点描述成完全保持。
 
 如果用户要求先读取再换题、撤销后再处理、或读取后解释，可以按需要连续调用多个工具。读取 Tool 只是获取事实；如果教师同一请求还要求调整、替换或分析，读取后必须在本轮继续调用完成该目标所需的 Tool。
 
@@ -243,12 +247,14 @@ def _paper_grounding_messages(
                 "版本刚变化时，旧版本读取结果一律无效。"
                 "本步骤没有工具，不要尝试回答 Paper 事实。"
                 "需要 Paper 事实时只返回 JSON。当前试卷按题型分别编号。"
-                "若教师说“填空题第2题、选择题第1题、证明题第1题”等题型内编号，"
-                "返回 paper_observation_required=true 且 requested_positions=[]；"
-                "执行层会从教师原始消息中确定性解析 section address。"
+                "题型和题号可以按自然语序出现，不要求固定格式；"
+                "例如“第三题这道填空题”仍可唯一表示填空题第3题。"
+                "只要当前原始消息在语义上能够唯一确定题型内题号，"
+                "就返回 paper_observation_required=true 且 requested_positions=[]；"
+                "执行层若有高置信地址 hint 会使用它，否则可先读取当前 Paper 再继续语义判断。"
                 "只有教师明确说“全卷第N题”时才把 N 放入 requested_positions。"
-                "若教师只说“第N题”而没有题型，也没有明确说全卷，则不要猜，"
-                "返回 paper_observation_required=false，并在 answer 中追问题型。"
+                "只有确实只有“第N题”且原始消息与可靠上下文都无法确定题型时才追问题型；"
+                "不要因为固定正则未命中就判定有歧义。"
                 "整卷问题返回 requested_positions:[]。"
                 "如果请求完全不依赖当前 Paper（例如问候、能力介绍、通用知识解释），"
                 "只返回一个 JSON 对象，格式必须严格为："
@@ -322,18 +328,25 @@ def _paper_read_messages(
     ]
 
 
-_QUESTION_NUMBER_TOKEN = r"(?P<number>\d+|[一二三四五六七八九十]+)"
+_QUESTION_NUMBER_VALUE = r"\d+|[一二三四五六七八九十]+"
 _SECTION_QUESTION_PATTERN = re.compile(
     rf"(?P<section>选择题|多选题|填空题|计算题|证明题)\s*"
-    rf"第\s*{_QUESTION_NUMBER_TOKEN}\s*题"
+    rf"第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*题"
+)
+_REVERSED_SECTION_QUESTION_PATTERN = re.compile(
+    rf"第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*题"
+    rf"[^。！？,，；;]{{0,12}}?"
+    rf"(?P<section>选择题|多选题|填空题|计算题|证明题)"
 )
 _GLOBAL_QUESTION_PATTERN = re.compile(
-    rf"(?:全卷|全卷的)\s*第\s*{_QUESTION_NUMBER_TOKEN}\s*题"
-)
-_BARE_QUESTION_PATTERN = re.compile(
-    rf"第\s*{_QUESTION_NUMBER_TOKEN}\s*题"
+    rf"(?:全卷|全卷的)\s*第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*题"
 )
 _CHINESE_DIGITS = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+
+_PRESERVE_KNOWLEDGE_POINTS_PATTERN = re.compile(
+    r"(?:知识点|考点).{0,6}(?:不变|别变|不要变|保持|保留)"
+    r"|(?:保持|保留).{0,6}(?:原)?(?:知识点|考点)"
+)
 
 
 def _question_position(value: str) -> int | None:
@@ -350,24 +363,33 @@ def _question_position(value: str) -> int | None:
 
 
 def _explicit_question_addresses(message: str) -> list[QuestionAddress]:
-    """Extract explicit teacher-facing section-local addresses deterministically."""
+    """Extract only high-confidence section-local address hints.
+
+    This parser is a positive fast path, not a semantic gate. If it cannot
+    understand a teacher's wording, the original message still goes to the
+    LLM + active Skill for semantic resolution.
+    """
     addresses: list[QuestionAddress] = []
     seen: set[tuple[str, int]] = set()
 
-    for match in _SECTION_QUESTION_PATTERN.finditer(message):
-        section_order = _question_position(match.group("number"))
-        if not section_order:
-            continue
+    for pattern in (
+        _SECTION_QUESTION_PATTERN,
+        _REVERSED_SECTION_QUESTION_PATTERN,
+    ):
+        for match in pattern.finditer(message):
+            section_order = _question_position(match.group("number"))
+            if not section_order:
+                continue
 
-        address = QuestionAddress(
-            section_type=match.group("section"),
-            section_order=section_order,
-        )
-        key = (address.section_type, address.section_order)
+            address = QuestionAddress(
+                section_type=match.group("section"),
+                section_order=section_order,
+            )
+            key = (address.section_type, address.section_order)
 
-        if key not in seen:
-            addresses.append(address)
-            seen.add(key)
+            if key not in seen:
+                addresses.append(address)
+                seen.add(key)
 
     return addresses
 
@@ -384,13 +406,62 @@ def _explicit_question_positions(message: str) -> list[int]:
     return positions
 
 
-def _has_ambiguous_bare_question_reference(message: str) -> bool:
-    """Return True only for 第N题 without an explicit section or 全卷 prefix."""
-    if _explicit_question_addresses(message):
-        return False
-    if _explicit_question_positions(message):
-        return False
-    return _BARE_QUESTION_PATTERN.search(message) is not None
+def _explicit_preserve_knowledge_points_requested(message: str) -> bool:
+    """Return True only for an explicit teacher request to preserve KP/考点."""
+    return _PRESERVE_KNOWLEDGE_POINTS_PATTERN.search(message) is not None
+
+
+def _apply_question_reference_hints(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    addresses: list[QuestionAddress],
+    positions: list[int],
+) -> dict[str, Any]:
+    """Fill only missing reference fields from deterministic positive hints.
+
+    Never overwrite a model-provided address/position and never infer semantic
+    intent (READ/REMOVE/REPLACE) from keywords.
+    """
+    updated = dict(arguments)
+
+    if tool_name == "read_current_paper":
+        if not updated.get("addresses") and not updated.get("positions"):
+            if addresses:
+                updated["addresses"] = [
+                    address.model_dump(mode="json")
+                    for address in addresses
+                ]
+            elif positions:
+                updated["positions"] = list(positions)
+
+    elif tool_name == "preview_replace_question":
+        if updated.get("address") is None and updated.get("position") is None:
+            if len(addresses) == 1:
+                updated["address"] = addresses[0].model_dump(mode="json")
+            elif len(positions) == 1:
+                updated["position"] = positions[0]
+
+    return updated
+
+
+def _apply_explicit_opt_in_guards(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    message: str,
+) -> dict[str, Any]:
+    """Guard hard candidate constraints that require explicit teacher opt-in."""
+    updated = dict(arguments)
+
+    if (
+        tool_name == "preview_replace_question"
+        and updated.get("preserve_knowledge_points") is True
+        and not _explicit_preserve_knowledge_points_requested(message)
+    ):
+        updated["preserve_knowledge_points"] = False
+
+    return updated
 
 
 def _parse_paper_grounding_decision(content: str) -> _PaperGroundingDecision | None:
@@ -517,7 +588,6 @@ def run_teacher_agent(
 
         explicit_question_addresses = _explicit_question_addresses(message)
         explicit_question_positions = _explicit_question_positions(message)
-        ambiguous_bare_question = _has_ambiguous_bare_question_reference(message)
         history_store = DatabaseConversationHistoryStore(session) if conversation_id else None
         recent_messages: list[dict[str, str]] = []
         if history_store and conversation_id:
@@ -530,27 +600,6 @@ def run_teacher_agent(
                     message="无法读取会话上下文。",
                     blocking_errors=["conversation_context_error"],
                 ))
-        if (version_id or paper_id) and ambiguous_bare_question:
-            result = TeacherAgentResult(
-                status="needs_clarification",
-                message=(
-                    "当前试卷按题型分别编号。请明确题型，"
-                    "例如“选择题第2题”“填空题第2题”或“证明题第2题”。"
-                ),
-                clarification_questions=[
-                    "请明确题型和题型内编号。"
-                ],
-                blocking_errors=[
-                    "section_question_reference_ambiguous"
-                ],
-            )
-            _persist_final_message(
-                history_store,
-                conversation_id,
-                result.message,
-            )
-            return finish(result)
-
         if backend is None:
             result = TeacherAgentResult(
                 status="failed",
@@ -580,14 +629,44 @@ def run_teacher_agent(
             if store and conversation_id and hasattr(store, "get_generation")
             else None
         )
+        has_current_paper = bool(version_id or paper_id)
+
         if pending:
+            # Existing single-question replacement pending:
+            # only allow its lifecycle plus optional current-paper read.
             definition_names = [
                 "confirm_replace_question",
                 "cancel_replace_question",
                 "read_current_paper",
             ]
+        elif pending_generation:
+            # Existing generation plan:
+            # only allow patching/re-previewing or confirming that plan.
+            definition_names = [
+                "preview_generation_plan",
+                "confirm_generation_plan",
+            ]
+        elif pending_adjustment:
+            # Existing whole-paper adjustment:
+            # keep only tools that can inspect, update, or confirm that plan.
+            definition_names = [
+                "read_current_paper",
+                "preview_adjust_paper",
+                "preview_add_question",
+                "confirm_adjust_paper",
+            ]
+        elif not has_current_paper:
+            # No current paper exists, so question-level and version tools
+            # are not actionable. Start with generation preview only.
+            definition_names = [
+                "preview_generation_plan",
+            ]
         else:
+            # A current paper exists and there is no pending transaction.
+            # Keep the current tool surface for now; capability-based
+            # narrowing can be added later if traces show it is necessary.
             definition_names = list(tools)
+
         definitions = [
             _tool_definition_for_context(
                 tools[name],
@@ -618,9 +697,47 @@ def run_teacher_agent(
                 if pending_adjustment else None
             ),
             "working_memory": working_memory.model_dump(mode="json") if working_memory else None,
+            "deterministic_hints": {
+                "question_addresses": [
+                    address.model_dump(mode="json")
+                    for address in explicit_question_addresses
+                ],
+                "global_positions": explicit_question_positions,
+            },
         }
         serialized_context = json.dumps(dynamic_context, ensure_ascii=False)
-        system_content = _SYSTEM_PROMPT + "\n\n当前工作区上下文：" + serialized_context
+
+        question_operation_skill_active = bool(
+            pending
+            or pending_adjustment
+            or (
+                has_current_paper
+                and not pending_generation
+            )
+        )
+
+        system_parts = [
+            _SYSTEM_PROMPT.strip(),
+        ]
+
+        if question_operation_skill_active:
+            system_parts.extend([
+                (
+                    "以下 active_skill 是当前 Teacher Agent 的题目操作业务契约。"
+                    "涉及当前试卷中具体题目的查看、新增、删除、替换、调整、"
+                    "确认或取消时，必须遵守该 Skill。"
+                ),
+                load_skill_bundle(
+                    QUESTION_OPERATION_SKILL
+                ),
+            ])
+
+        system_parts.append(
+            "当前工作区上下文：" + serialized_context
+        )
+
+        system_content = "\n\n".join(system_parts)
+
         current_user_content = (
             message
             + "\n\n<current_workspace_state>"
@@ -668,10 +785,19 @@ def run_teacher_agent(
         try:
             for _round in range(max_tool_rounds + 1):
                 current_stage = "llm_call"
+                active_skills = (
+                    [QUESTION_OPERATION_SKILL]
+                    if question_operation_skill_active
+                    else []
+                )
                 model_span = run_manager.add_span(
                     "model_call", "llm_completion",
                     parent_span_id=agent_span.span_id if agent_span is not None else None,
-                    input={"n_messages": len(messages), "n_definitions": len(definitions)},
+                    input={
+                        "n_messages": len(messages),
+                        "n_definitions": len(definitions),
+                        "active_skills": active_skills,
+                    },
                 )
                 with llm_generation_span(backend, messages, definitions) as _lf_llm:
                     try:
@@ -926,45 +1052,17 @@ def run_teacher_agent(
                     call_id = call["id"]
                     current_stage = "tool_arguments_parse"
                     name, arguments = _tool_arguments(call)
-                    if name == "read_current_paper":
-                        if explicit_question_addresses:
-                            arguments = {
-                                "addresses": [
-                                    address.model_dump(mode="json")
-                                    for address in explicit_question_addresses
-                                ]
-                            }
-                        elif explicit_question_positions:
-                            arguments = {
-                                "positions": explicit_question_positions
-                            }
-                    elif (
-                        name == "preview_replace_question"
-                        and explicit_question_addresses
-                        and len(explicit_question_addresses) == 1
-                    ):
-                        arguments = {
-                            key: value
-                            for key, value in arguments.items()
-                            if key not in {"address", "position"}
-                        }
-                        arguments["address"] = explicit_question_addresses[0].model_dump(
-                            mode="json"
-                        )
-                    elif (
-                        name == "preview_adjust_paper"
-                        and explicit_question_addresses
-                        and re.search(r"删除|删掉|去掉|移除", message)
-                    ):
-                        arguments = {
-                            key: value
-                            for key, value in arguments.items()
-                            if key not in {"remove_addresses", "remove_positions"}
-                        }
-                        arguments["remove_addresses"] = [
-                            address.model_dump(mode="json")
-                            for address in explicit_question_addresses
-                        ]
+                    arguments = _apply_question_reference_hints(
+                        tool_name=name,
+                        arguments=arguments,
+                        addresses=explicit_question_addresses,
+                        positions=explicit_question_positions,
+                    )
+                    arguments = _apply_explicit_opt_in_guards(
+                        tool_name=name,
+                        arguments=arguments,
+                        message=message,
+                    )
                     tool = tools.get(name)
                     tool_span = run_manager.add_span(
                         "tool_call", name,

@@ -123,7 +123,31 @@ def _scope_ids(session: Session, version: Paper) -> set[str]:
     return set((record.blueprint_json if record else {}).get("_agent_metadata", {}).get("scope_node_ids", []))
 
 
-def _build_type_operations(session: Session, *, items: list[PaperItem], profiles: dict[str, int], knowledge: dict[str, set[str]], scope_ids: set[str], changes: dict[str, int]) -> tuple[list[AdjustmentOperation], list[str]]:
+def _question_in_version_scope(
+    session: Session,
+    version: Paper,
+    question: Question,
+    knowledge_ids: set[str],
+) -> bool:
+    record = session.get(PaperBlueprintRecord, version.blueprint_id)
+    metadata = (
+        (record.blueprint_json if record else {})
+        .get("_agent_metadata", {})
+    )
+    chapter_ids = set(metadata.get("scope_chapter_ids", []))
+    refinement_ids = set(metadata.get("scope_knowledge_node_ids", []))
+    legacy_ids = set(metadata.get("scope_node_ids", []))
+
+    if chapter_ids:
+        if question.curriculum_chapter_id not in chapter_ids:
+            return False
+        if refinement_ids and not knowledge_ids.intersection(refinement_ids):
+            return False
+        return True
+    return bool(knowledge_ids.intersection(legacy_ids))
+
+
+def _build_type_operations(session: Session, *, version: Paper, items: list[PaperItem], profiles: dict[str, int], knowledge: dict[str, set[str]], scope_ids: set[str], changes: dict[str, int]) -> tuple[list[AdjustmentOperation], list[str]]:
     errors: list[str] = []
     if sum(changes.values()) != 0:
         return [], ["question_count_change_not_balanced"]
@@ -147,7 +171,7 @@ def _build_type_operations(session: Session, *, items: list[PaperItem], profiles
             except StopIteration:
                 errors.append("question_type_change_not_balanced")
                 break
-            matches = [question for question in candidates if question.id not in occupied and canonical_question_type(question.question_type) == target_type and knowledge[question.id].intersection(scope_ids)]
+            matches = [question for question in candidates if question.id not in occupied and canonical_question_type(question.question_type) == target_type and _question_in_version_scope(session, version, question, knowledge[question.id])]
             if not matches:
                 operation.status = "blocked"
                 errors.append("replacement_candidate_not_found")
@@ -339,7 +363,9 @@ def validate_adjustment_operations(
             and replacement.knowledge_match_status == "current"
         ) or replacement.id not in profiles:
             errors.append("replacement_question_unavailable")
-        elif not knowledge[replacement.id].intersection(scope_ids):
+        elif not _question_in_version_scope(
+            session, version, replacement, knowledge[replacement.id]
+        ):
             errors.append("replacement_question_out_of_scope")
 
     return list(dict.fromkeys(errors))
@@ -365,7 +391,7 @@ def preview_adjust_paper(session: Session, *, paper_id: str, knowledge_preferenc
                 target_total_score=target_total_score,
             )
     else:
-        operations, errors = _build_type_operations(session, items=items, profiles=profiles, knowledge=knowledge, scope_ids=_scope_ids(session, version), changes=changes)
+        operations, errors = _build_type_operations(session, version=version, items=items, profiles=profiles, knowledge=knowledge, scope_ids=_scope_ids(session, version), changes=changes)
     question_types = dict(session.execute(select(Question.id, Question.question_type)).all())
     planned_items = _after_items(items, operations, question_types)
     after = _summary(planned_items, profiles, knowledge, names)
