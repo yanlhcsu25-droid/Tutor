@@ -2,6 +2,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from calculus_agent.knowledge.steward import require_approved_nodes
+from calculus_agent.questions.chapter_assignment import (
+    sync_question_chapter_ownership,
+)
 from calculus_agent.models import KnowledgeNode, Question, QuestionDraft, QuestionKnowledgeLink
 from calculus_agent.schemas import DraftApproveRequest, KnowledgeNodeRead, QuestionRead
 
@@ -71,6 +74,7 @@ def approve_draft(session: Session, draft_id: str, request: DraftApproveRequest)
             )
     draft.status = "approved"
     session.flush()
+    sync_question_chapter_ownership(session, question.id)
     return get_question(session, question.id)
 
 

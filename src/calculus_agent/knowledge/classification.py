@@ -13,6 +13,9 @@ from sqlalchemy.orm import Session
 
 from calculus_agent.config import get_settings
 from calculus_agent.knowledge.normalization import normalize_name, terms
+from calculus_agent.questions.chapter_assignment import (
+    sync_question_chapter_ownership,
+)
 from calculus_agent.models import (
     CurriculumNode,
     KnowledgeAlias,
@@ -732,3 +735,4 @@ def confirm_question_knowledge(
             relation_type="related",
         ))
     session.flush()
+    sync_question_chapter_ownership(session, question_id)

@@ -158,7 +158,7 @@ def test_default_cross_chapter_assignment_chooses_later_chapter(session):
     assert selected.id == chapter3.id
 
 
-def test_manual_chapter_assignment_survives_knowledge_change(session):
+def test_knowledge_change_recomputes_materialized_chapter(session):
     chapter1, chapter3, kp1, kp3 = _seed_curriculum(session)
     question, draft = _question(
         session, qid="33333333-3333-4333-8333-333333333333",
@@ -169,14 +169,14 @@ def test_manual_chapter_assignment_survives_knowledge_change(session):
         FormalQuestionUpdateRequest(
             question_text="第三章题", solution_content="解答",
             final_answer=None, question_type="计算题",
-            chapter_id=chapter3.id, chapter="第三章",
+            chapter="ignored-by-server",
             knowledge_node_ids=[kp1.id], difficulty=3,
         ),
         session,
     )
-    assert question.curriculum_chapter_id == chapter3.id
-    assert result.chapter_id == chapter3.id
-    assert result.chapter is not None and "第三章" in result.chapter
+    assert question.curriculum_chapter_id == chapter1.id
+    assert result.chapter_id == chapter1.id
+    assert result.chapter is not None and "第一章" in result.chapter
 
 
 def test_question_bank_chapter_filter_uses_ownership(session):

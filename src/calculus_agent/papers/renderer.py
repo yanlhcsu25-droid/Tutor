@@ -83,7 +83,6 @@ def render_paper_pdf(paper: PaperPreviewRead, *, teacher_version: bool) -> bytes
                         _section_title(
                             paper,
                             current_type,
-                            section_number,
                         ),
                         styles["section"],
                     ),

@@ -29,6 +29,9 @@ from calculus_agent.models import (
     Textbook,
 )
 from calculus_agent.papers.selector import _candidates
+from calculus_agent.questions.chapter_assignment import (
+    sync_question_chapter_ownership,
+)
 from calculus_agent.schemas import PaperBlueprint
 
 
@@ -94,6 +97,7 @@ def _make_question(session, kn_ids: list[str]) -> Question:
             evidence_json=[{"source": "test"}],
         ))
     session.flush()
+    sync_question_chapter_ownership(session, q.id)
     return q
 
 
@@ -109,6 +113,7 @@ def test_chapter_one_candidate_pool_excludes_cross_chapter_question(session) -> 
 
     constraints = GenerationConstraints(
         scope=["第一章"],
+        scope_chapter_ids=[chapters["ch1"].id],
         scope_node_ids=[kns["ch1"].id],
     )
     blueprint = PaperBlueprint(

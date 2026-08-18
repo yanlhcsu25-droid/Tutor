@@ -35,9 +35,9 @@ def test_latex_student_numbers_restart_per_section():
         _item("计算题", "E", 10),
     ])
     latex = render_paper_latex(paper, teacher_version=False)
-    assert latex.count(r"\\question{1}") == 3
-    assert latex.count(r"\\question{2}") == 2
-    assert r"\\question{3}" not in latex
+    assert latex.count(r"\question{1}") == 3
+    assert latex.count(r"\question{2}") == 2
+    assert r"\question{3}" not in latex
 
 
 def test_latex_section_titles_follow_actual_appearance():

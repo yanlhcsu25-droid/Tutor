@@ -1,7 +1,6 @@
 from calculus_agent.agent.agent import (
     _explicit_question_addresses,
     _explicit_question_positions,
-    _has_ambiguous_bare_question_reference,
     _paper_read_messages,
 )
 from calculus_agent.papers.addressing import QuestionAddress
@@ -18,6 +17,17 @@ def test_extract_section_local_question_address():
     ]
 
 
+def test_reversed_natural_section_address_is_supported():
+    assert _explicit_question_addresses(
+        "第三题这道填空题是什么"
+    ) == [
+        QuestionAddress(
+            section_type="填空题",
+            section_order=3,
+        )
+    ]
+
+
 def test_section_local_number_is_not_legacy_global_position():
     assert _explicit_question_positions(
         "请告诉我填空题第2题是什么"
@@ -30,18 +40,14 @@ def test_explicit_whole_paper_position_remains_supported():
     ) == [2]
 
 
-def test_bare_question_number_is_ambiguous():
-    assert _has_ambiguous_bare_question_reference(
+def test_bare_question_number_is_not_forced_to_global_position():
+    assert _explicit_question_addresses(
         "请告诉我第2题是什么"
-    ) is True
+    ) == []
 
-    assert _has_ambiguous_bare_question_reference(
-        "请告诉我填空题第2题是什么"
-    ) is False
-
-    assert _has_ambiguous_bare_question_reference(
-        "请告诉我全卷第2题是什么"
-    ) is False
+    assert _explicit_question_positions(
+        "请告诉我第2题是什么"
+    ) == []
 
 
 def test_paper_read_prompt_uses_section_address():

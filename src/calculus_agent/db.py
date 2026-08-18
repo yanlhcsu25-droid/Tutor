@@ -213,14 +213,15 @@ def create_schema(database_url: str) -> None:
             "ON question (quality_sample_required)"
         )
 
-    # Backfill only previously-unassigned questions. Existing explicit chapter
-    # ownership is never overwritten.
+    # Phase 3.5: reconcile stale/materialized chapter ownership from current
+    # knowledge + taxonomy. At the current local dataset size this full scan is
+    # cheap; a versioned one-time migration can replace it at larger scale.
     from calculus_agent.questions.chapter_assignment import (
-        backfill_question_chapter_assignments,
+        reconcile_question_chapter_assignments,
     )
 
     with Session(engine) as migration_session, migration_session.begin():
-        backfill_question_chapter_assignments(migration_session)
+        reconcile_question_chapter_assignments(migration_session)
 
     # Teacher Agent 运行 trace：失败错误明细（阶段 / 类型 / 文案），用于可观测性。
     # create_all 不会为既有表加列，这里做幂等 ALTER。

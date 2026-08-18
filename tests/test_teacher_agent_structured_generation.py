@@ -3,6 +3,9 @@ from unittest.mock import patch
 from calculus_agent.agent.agent import run_teacher_agent
 from calculus_agent.agent.conversation_state import DatabasePendingReplacementStore
 from calculus_agent.agent.schemas import GeneratePaperInput, QuestionTypeRequirement
+from calculus_agent.questions.chapter_assignment import (
+    sync_question_chapter_ownership,
+)
 from calculus_agent.agent.tools.paper_tools import (
     GeneratePaperToolResult,
     PaperSummary,
@@ -131,6 +134,8 @@ def _candidate(
             reason="structured generation test",
         ),
     ])
+    session.flush()
+    sync_question_chapter_ownership(session, question.id)
 
 
 def _complex_input(**updates) -> GeneratePaperInput:

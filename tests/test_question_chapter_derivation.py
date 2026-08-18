@@ -1,14 +1,8 @@
-"""Phase 1.1 — question chapter is deterministically derived from knowledge points.
+"""Question chapter derivation + materialized ownership regression.
 
-Source of truth: Question -> QuestionKnowledgeLink -> KnowledgeNode
--> CurriculumNode taxonomy -> Chapter.
-
-Rule under test: the question's chapter is the LATEST chapter (by textbook
-catalog order, CurriculumNode.sort_order) among all chapters that the
-question's knowledge points belong to. Cross-chapter is NOT an error.
-
-These tests do NOT modify chapter fields; they only change knowledge links
-and assert the chapter is re-derived on read.
+Knowledge links + taxonomy deterministically derive the owner chapter; that
+result is materialized on Question.curriculum_chapter_id and synchronized
+whenever knowledge links are written.
 """
 import uuid
 
@@ -23,6 +17,9 @@ from calculus_agent.api import (
 from calculus_agent.knowledge.chapter import (
     resolve_question_chapter,
     resolve_questions_chapters,
+)
+from calculus_agent.questions.chapter_assignment import (
+    sync_question_chapter_ownership,
 )
 from calculus_agent.models import (
     CurriculumNode,
@@ -160,6 +157,7 @@ def _make_question(session, kn_ids, source_topic=None, with_origin=False):
             evidence_json=[{"source": "test"}],
         ))
     session.flush()
+    sync_question_chapter_ownership(session, question.id)
     return question, draft
 
 

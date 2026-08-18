@@ -158,12 +158,18 @@ def test_tool_call_arguments_and_result_unchanged(session, monkeypatch):
 
     backend.complete = two_step_complete
 
-    # Spy execute_tool by patching the reference imported in agent.py.
-    import calculus_agent.agent.agent as agent_module
-    real_execute_tool = agent_module.execute_tool
-    spy = _ToolSpy()
-    spy.real_execute_tool = real_execute_tool
-    monkeypatch.setattr(agent_module, "execute_tool", spy)
+    # Spy the new Phase 4A execution boundary. Tracing must not alter the
+    # arguments passed through Toolkit.execute or the returned observation.
+    from calculus_agent.agent.toolkit import Toolkit
+
+    calls = []
+    real_execute = Toolkit.execute
+
+    def spy_execute(self, name, arguments):
+        calls.append((name, arguments))
+        return real_execute(self, name, arguments)
+
+    monkeypatch.setattr(Toolkit, "execute", spy_execute)
 
     result = run_teacher_agent(
         session,
@@ -174,8 +180,8 @@ def test_tool_call_arguments_and_result_unchanged(session, monkeypatch):
     # Whether the tool returns ok or needs_clarification, the key invariant
     # here is that the tool layer saw exactly the arguments the LLM emitted,
     # which is what the Langfuse tool observation must mirror.
-    assert len(spy.calls) == 1
-    tool_name, arguments = spy.calls[0]
+    assert len(calls) == 1
+    tool_name, arguments = calls[0]
     assert tool_name == "preview_generation_plan"
     assert arguments["paper_type"] == "chapter_exercise"
     assert arguments["scope_names"] == ["函数与极限"]

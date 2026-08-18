@@ -116,16 +116,14 @@ def test_unbalanced_adjustment_plan_is_blocked(session):
     assert "question_count_change_not_balanced" in preview.blocking_errors
 
 
-def test_remove_question_preserves_current_total_by_deterministic_rebalance(session):
+def test_remove_question_reduces_total_when_no_total_score_is_requested(session):
     paper, *_ = _seed(session)
     preview = preview_adjust_paper(session, paper_id=paper.id, remove_positions=[2])
     assert preview.ok
-    assert preview.requested_total_score == 10
+    assert preview.requested_total_score is None
     assert preview.plan.after_summary.question_count == 1
-    assert preview.plan.after_summary.score_total == 10
-    assert [operation.type for operation in preview.plan.operations] == ["remove_question", "change_score"]
-    assert preview.plan.operations[1].score_before == 5
-    assert preview.plan.operations[1].score_after == 10
+    assert preview.plan.after_summary.score_total == 5
+    assert [operation.type for operation in preview.plan.operations] == ["remove_question"]
 
 
 def test_remove_question_and_change_total_apply_as_one_atomic_version(session):
@@ -238,10 +236,11 @@ def test_pending_removal_plan_merges_later_total_score_patch(session):
         paper_id=paper.id, version_id=paper.id,
         backend=_Backend(
             _tool("preview_adjust_paper", {"remove_positions": [2]}),
-            _final("删除第二题并保持原总分，等待确认。"),
+            _final("删除第二题，等待确认。"),
         ),
     )
-    assert first.adjustment_preview.plan.after_summary.score_total == 10
+    assert first.adjustment_preview.requested_total_score is None
+    assert first.adjustment_preview.plan.after_summary.score_total == 5
     revised = run_teacher_agent(
         session, "总分改成8分", conversation_id="adjust-patch",
         paper_id=paper.id, version_id=paper.id,

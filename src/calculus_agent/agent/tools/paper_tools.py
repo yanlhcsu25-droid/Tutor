@@ -21,6 +21,7 @@ from calculus_agent.agent.schemas import (
     RequirementBlueprint,
     RequirementPreferences,
 )
+from calculus_agent.knowledge.classification import current_taxonomy_knowledge_nodes
 from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.models import CurriculumNode, KnowledgeAlias, KnowledgeNode
 from calculus_agent.papers.selector import compose_paper
@@ -195,11 +196,14 @@ def _knowledge_preferences(
     under the same chapter. They represent one concept and are collapsed before
     ambiguity is evaluated.
     """
-    nodes = list(session.scalars(select(KnowledgeNode)))
+    nodes = current_taxonomy_knowledge_nodes(session)
     aliases = list(session.scalars(select(KnowledgeAlias)))
+    valid_node_ids = {node.id for node in nodes}
 
     alias_nodes: dict[str, set[str]] = {}
     for alias in aliases:
+        if alias.node_id not in valid_node_ids:
+            continue
         alias_nodes.setdefault(
             alias.normalized_alias,
             set(),

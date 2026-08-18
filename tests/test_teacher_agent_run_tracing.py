@@ -284,10 +284,12 @@ def test_model_unavailable_early_return_still_traced(session):
 
 
 def test_tool_exception_records_error_span(session, monkeypatch):
-    def boom(tool, arguments):  # signature matches execute_tool(tool, arguments)
+    from calculus_agent.agent.toolkit import Toolkit
+
+    def boom(self, name, arguments):
         raise RuntimeError("kaboom-db")
 
-    monkeypatch.setattr("calculus_agent.agent.agent.execute_tool", boom)
+    monkeypatch.setattr(Toolkit, "execute", boom)
     paper = _paper(session)
     backend = SequenceBackend(
         tool_call("read_current_paper", {"positions": [3]}),

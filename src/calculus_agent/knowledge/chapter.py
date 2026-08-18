@@ -33,6 +33,7 @@ from sqlalchemy.orm import Session
 from calculus_agent.models import CurriculumNode, KnowledgeNode, QuestionKnowledgeLink
 
 ChapterStatus = Literal["ok", "missing", "unresolvable"]
+_CHAPTER_KNOWLEDGE_NODE_TYPES = ("concept", "knowledge_point")
 
 
 @dataclass(frozen=True)
@@ -147,8 +148,14 @@ def resolve_chapter_from_knowledge_ids(
 def resolve_question_chapter(session: Session, question_id: str) -> ChapterResolution:
     """Resolve the chapter for one question from its current knowledge links."""
     link_ids = list(session.scalars(
-        select(QuestionKnowledgeLink.knowledge_node_id).where(
-            QuestionKnowledgeLink.question_id == question_id
+        select(QuestionKnowledgeLink.knowledge_node_id)
+        .join(
+            KnowledgeNode,
+            KnowledgeNode.id == QuestionKnowledgeLink.knowledge_node_id,
+        )
+        .where(
+            QuestionKnowledgeLink.question_id == question_id,
+            KnowledgeNode.node_type.in_(_CHAPTER_KNOWLEDGE_NODE_TYPES),
         )
     ).all())
     return resolve_chapter_from_knowledge_ids(session, link_ids)
@@ -171,7 +178,15 @@ def resolve_questions_chapters(
         select(
             QuestionKnowledgeLink.question_id,
             QuestionKnowledgeLink.knowledge_node_id,
-        ).where(QuestionKnowledgeLink.question_id.in_(question_ids))
+        )
+        .join(
+            KnowledgeNode,
+            KnowledgeNode.id == QuestionKnowledgeLink.knowledge_node_id,
+        )
+        .where(
+            QuestionKnowledgeLink.question_id.in_(question_ids),
+            KnowledgeNode.node_type.in_(_CHAPTER_KNOWLEDGE_NODE_TYPES),
+        )
     ).all())
 
     by_question: dict[str, list[str]] = {}

@@ -4,7 +4,10 @@ import re
 from datetime import UTC, datetime
 
 from calculus_agent.question_types import ALLOWED_QUESTION_TYPES, canonical_question_type
-from calculus_agent.questions.chapter_assignment import chapter_display_name
+from calculus_agent.questions.chapter_assignment import (
+    chapter_display_name,
+    sync_question_chapter_ownership,
+)
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -863,38 +866,42 @@ def search_questions(
             Question.question_type == canonical_question_type(question_type)
         )
     if chapter_id:
-        # Filter by the question's *derived* chapter (consistent with the chapter
-        # resolver): a question matches iff it has a KP in `chapter_id` and none in any
-        # later chapter of the same textbook. This keeps a Ch1+Ch3 question in the Ch3
-        # filter only — never the Ch1 filter.
-        id_sets = chapter_filter_knowledge_id_sets(session, chapter_id)
-        if id_sets is None:
-            # 无效章节 id：保持「不限制」语义，避免返回空结果造成困惑。
-            pass
-        else:
-            include_ids, exclude_ids = id_sets
-            if include_ids:
-                statement = statement.where(
-                    exists().where(
-                        QuestionKnowledgeLink.question_id == Question.id,
-                        QuestionKnowledgeLink.knowledge_node_id.in_(include_ids),
-                    )
-                )
-            else:
-                # 有效章节但不关联任何已审核知识点：无任何题目命中。
-                statement = statement.where(false())
-            if exclude_ids:
-                statement = statement.where(
-                    ~exists().where(
-                        QuestionKnowledgeLink.question_id == Question.id,
-                        QuestionKnowledgeLink.knowledge_node_id.in_(exclude_ids),
-                    )
-                )
+        # chapter_id is already a stable DB identifier. If it resolves to an
+        # approved chapter, filter directly by materialized ownership.
+        chapter = session.get(CurriculumNode, chapter_id)
+        if (
+            chapter is not None
+            and chapter.node_type == "chapter"
+            and chapter.review_status == "approved"
+        ):
+            statement = statement.where(
+                Question.curriculum_chapter_id == chapter.id
+            )
+        # Preserve existing invalid-id behavior: unknown id means no filter.
     questions = session.scalars(statement.order_by(Question.created_at.desc()).limit(limit)).all()
     question_ids = [question.id for question in questions]
     knowledge_map = _load_knowledge_names(session, question_ids)
     origin_map = _load_question_origins(session, question_ids)
-    chapter_map = resolve_questions_chapters(session, question_ids)
+    unowned_ids = [
+        question.id
+        for question in questions
+        if question.curriculum_chapter_id is None
+    ]
+    unowned_status = resolve_questions_chapters(session, unowned_ids)
+    owner_ids = {
+        question.curriculum_chapter_id
+        for question in questions
+        if question.curriculum_chapter_id
+    }
+    owner_chapters = {
+        chapter.id: chapter
+        for chapter in (
+            session.scalars(
+                select(CurriculumNode).where(CurriculumNode.id.in_(owner_ids))
+            ).all()
+            if owner_ids else []
+        )
+    }
     latest_profiles = {
         item.question_id: item
         for item in list_question_profiles(session, status="approved", source_name=None)
@@ -905,7 +912,18 @@ def search_questions(
         original_number, source_name, source_page = origin_map.get(
             question.id, (None, None, None)
         )
-        chapter = chapter_map[question.id]
+        owner_chapter = owner_chapters.get(question.curriculum_chapter_id)
+        if owner_chapter is not None:
+            chapter_name = chapter_display_name(owner_chapter)
+            resolved_chapter_id = owner_chapter.id
+            chapter_status = "ok"
+        else:
+            unresolved = unowned_status.get(question.id)
+            chapter_name = None
+            resolved_chapter_id = None
+            chapter_status = (
+                unresolved.status if unresolved is not None else "unresolvable"
+            )
         results.append(
             QuestionOptionRead(
                 id=question.id,
@@ -915,9 +933,9 @@ def search_questions(
                 original_number=original_number,
                 source_name=source_name,
                 source_page=source_page,
-                chapter=chapter.chapter_name,
-                chapter_id=chapter.chapter_id,
-                chapter_status=chapter.status,
+                chapter=chapter_name,
+                chapter_id=resolved_chapter_id,
+                chapter_status=chapter_status,
                 knowledge_match_status=question.knowledge_match_status,
                 difficulty=(profile.difficulty if (profile := latest_profiles.get(question.id)) else None),
                 estimated_time_min=profile.estimated_time_min if profile else None,
@@ -1076,6 +1094,8 @@ def update_formal_question(
                 }],
             ))
         question.knowledge_match_status = "current" if selected_ids else "unmatched"
+        session.flush()
+        sync_question_chapter_ownership(session, question.id)
     elif content_changed:
         question.knowledge_match_status = "stale"
 

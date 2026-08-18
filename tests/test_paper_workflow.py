@@ -126,10 +126,21 @@ def test_paper_edits_create_persistent_versions(session):
     assert locked.version == 3
     assert locked.preview.items[0].locked is True
 
-    reversed_ids = [item.item_id for item in reversed(locked.preview.items)]
-    reordered = reorder_paper_items(session, locked.paper_id, reversed_ids)
+    # P0 business contract: reorder only within a question-type section.
+    # Swap the first two same-section items and preserve later sections.
+    reordered_ids = [
+        locked.preview.items[1].item_id,
+        locked.preview.items[0].item_id,
+        *[item.item_id for item in locked.preview.items[2:]],
+    ]
+    expected_question_ids = [
+        locked.preview.items[1].question_id,
+        locked.preview.items[0].question_id,
+        *[item.question_id for item in locked.preview.items[2:]],
+    ]
+    reordered = reorder_paper_items(session, locked.paper_id, reordered_ids)
     assert reordered.version == 4
-    assert [item.question_id for item in reordered.preview.items] == [item.question_id for item in reversed(locked.preview.items)]
+    assert [item.question_id for item in reordered.preview.items] == expected_question_ids
 
     rescored = update_paper_item(session, reordered.paper_id, reordered.preview.items[0].item_id, score=1)
     assert rescored.version == 5

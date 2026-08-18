@@ -48,7 +48,7 @@ def test_teacher_latex_contains_single_reference_solution():
     assert "暂无独立答案" not in result
 
 
-def test_question_numbers_continue_across_dynamic_sections():
+def test_question_numbers_restart_across_dynamic_sections():
     paper = _paper()
     paper.items.insert(
         0,
@@ -66,7 +66,8 @@ def test_question_numbers_continue_across_dynamic_sections():
     assert r"\section*{一、选择题" in result
     assert r"\section*{二、计算题" in result
     assert r"\question{1}{5}" in result
-    assert r"\question{2}{20}" in result
+    assert r"\question{1}{20}" in result
+    assert r"\question{2}{20}" not in result
 
 
 def test_calculation_and_proof_get_subjective_answer_space():

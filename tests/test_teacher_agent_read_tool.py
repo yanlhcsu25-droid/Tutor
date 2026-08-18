@@ -160,7 +160,7 @@ def test_agent_executes_llm_read_for_specific_question(session, message, positio
     assert result.paper_read.questions[0].position == position
 
 
-def test_explicit_question_read_is_narrowed_when_model_omits_positions(session):
+def test_explicit_whole_paper_question_read_is_narrowed_when_model_omits_positions(session):
     paper = _seed_paper(session)
     backend = _Backend(
         _tool("read_current_paper"),
@@ -169,7 +169,7 @@ def test_explicit_question_read_is_narrowed_when_model_omits_positions(session):
 
     result = run_teacher_agent(
         session,
-        "第五题是什么？",
+        "全卷第五题是什么？",
         conversation_id="read-position-guard",
         paper_id=paper.id,
         version_id=paper.id,
@@ -273,9 +273,15 @@ def test_tool_description_keeps_read_analyze_and_replace_separate():
     tools = build_agent_tools(AgentExecutionContext(
         session=None, conversation_id=None, paper_id=None, version_id=None, state_store=None
     ))
-    assert "factual questions" in tools["read_current_paper"].description
-    assert "Analyze difficulty" in tools["analyze_current_paper"].description
-    assert "requires later confirmation" in tools["preview_replace_question"].description
+    read_description = tools["read_current_paper"].description
+    analysis_description = tools["analyze_current_paper"].description
+    replacement_description = tools["preview_replace_question"].description
+
+    assert "Read the concrete current paper" in read_description
+    assert "Read-only" in read_description
+    assert "Analyze difficulty" in analysis_description
+    assert "requires later confirmation" in replacement_description
+    assert "Analyze difficulty" not in read_description
 
 
 def test_existing_analysis_and_replacement_actions_are_not_shadowed(session):

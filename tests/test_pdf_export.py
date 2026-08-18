@@ -1,3 +1,5 @@
+import pytest
+
 from calculus_agent.papers import pdf_export
 from calculus_agent.schemas import PaperItemRead, PaperPreviewRead
 
@@ -38,14 +40,20 @@ def test_pdf_export_uses_available_latex_engine(monkeypatch):
     assert result.warning is None
 
 
-def test_pdf_export_falls_back_after_compiler_failure(monkeypatch):
-    monkeypatch.setattr(pdf_export, "_find_engine", lambda _: ("xelatex", "/bin/xelatex"))
+def test_pdf_export_does_not_hide_compiler_failure(monkeypatch):
+    monkeypatch.setattr(
+        pdf_export,
+        "_find_engine",
+        lambda _: ("xelatex", "/bin/xelatex"),
+    )
 
     def fail(*args, **kwargs):
         raise RuntimeError("formula compilation failed")
 
     monkeypatch.setattr(pdf_export, "_compile_latex", fail)
-    result = pdf_export.export_paper_pdf(_paper(), teacher_version=False)
-    assert result.content.startswith(b"%PDF")
-    assert result.renderer == "reportlab"
-    assert "formula compilation failed" in (result.warning or "")
+
+    with pytest.raises(RuntimeError, match="formula compilation failed"):
+        pdf_export.export_paper_pdf(
+            _paper(),
+            teacher_version=False,
+        )

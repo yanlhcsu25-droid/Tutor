@@ -117,8 +117,8 @@ class Question(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     draft_id: Mapped[str] = mapped_column(ForeignKey("question_draft.id"), unique=True, index=True)
-    # Authoritative owning chapter. Knowledge points are independent semantic
-    # tags and may legitimately span earlier/later chapters.
+    # Materialized owning chapter derived from current semantic knowledge
+    # links + curriculum taxonomy. Knowledge-write services keep it synchronized.
     curriculum_chapter_id: Mapped[str | None] = mapped_column(
         ForeignKey("curriculum_node.id"), nullable=True, index=True
     )

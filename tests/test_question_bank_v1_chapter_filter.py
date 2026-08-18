@@ -13,6 +13,9 @@ from __future__ import annotations
 
 from calculus_agent.api import import_textbook_directory, search_questions
 from calculus_agent.knowledge.normalization import normalize_name
+from calculus_agent.questions.chapter_assignment import (
+    sync_question_chapter_ownership,
+)
 from calculus_agent.models import (
     CurriculumNode,
     KnowledgeNode,
@@ -121,6 +124,9 @@ def _add_question(
             relation_type="primary" if idx == 0 else "secondary",
         ))
     session.flush()
+    # Tests insert QuestionKnowledgeLink rows directly, bypassing production
+    # services. Materialize the same ownership those services synchronize.
+    sync_question_chapter_ownership(session, question.id)
     return question
 
 

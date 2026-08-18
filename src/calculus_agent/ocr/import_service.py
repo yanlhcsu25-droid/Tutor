@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from calculus_agent.questions.chapter_assignment import (
     chapter_display_name,
     derive_default_chapter_from_knowledge,
-    question_chapter_display,
+    sync_question_chapter_ownership,
 )
 
 from calculus_agent.models import (
@@ -325,8 +325,8 @@ def apply_ai_published_profile_review(
         reason="AI 自动发布后的教师画像复核",
         reviewed_at=reviewed_at,
     ))
-    # Knowledge review never reassigns owning chapter.
-    bank_draft.source_topic = question_chapter_display(session, question)
+    # _sync_knowledge_links already recomputed formal ownership.
+    # source_topic remains provenance metadata and is not rewritten here.
     question.knowledge_match_status = "current"
 
     audit = dict(draft.ai_review_json or {})
@@ -344,22 +344,24 @@ def _sync_knowledge_links(
     source: str = "manual",
     confidence: float = 1.0,
 ) -> None:
-    """覆盖式同步 QuestionKnowledgeLink：删除旧关联，按结构化 knowledge_id 重建。
-
-    所有知识点都是等价关联；relation_type 仅作为历史 schema 的兼容字段。
-    只链接库中真实存在的 KnowledgeNode，避免脏 id 造成外键错误。
-    """
+    """覆盖知识点关联，并在同一事务内同步正式章节归属。"""
     session.execute(
-        delete(QuestionKnowledgeLink).where(QuestionKnowledgeLink.question_id == question.id)
+        delete(QuestionKnowledgeLink).where(
+            QuestionKnowledgeLink.question_id == question.id
+        )
     )
-    if not knowledge_ids:
-        return
-    nodes = {
-        item.id: item
-        for item in session.scalars(
-            select(KnowledgeNode).where(KnowledgeNode.id.in_(knowledge_ids))
-        ).all()
-    }
+    nodes = (
+        {
+            item.id: item
+            for item in session.scalars(
+                select(KnowledgeNode).where(
+                    KnowledgeNode.id.in_(knowledge_ids)
+                )
+            ).all()
+        }
+        if knowledge_ids
+        else {}
+    )
     for node_id in dict.fromkeys(knowledge_ids):
         if nodes.get(node_id) is None:
             continue
@@ -381,6 +383,8 @@ def _sync_knowledge_links(
                 ),
             }],
         ))
+    session.flush()
+    sync_question_chapter_ownership(session, question.id)
 
 
 def _sync_publish_profile(

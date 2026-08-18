@@ -1,10 +1,12 @@
-"""Authoritative question -> chapter assignment helpers.
+"""Deterministic question -> chapter ownership helpers.
 
 Business contract:
-- Question.curriculum_chapter_id is the source of truth for chapter scope.
-- Knowledge points may span chapters and never overwrite an existing chapter.
-- When no explicit assignment exists, default to the latest chapter among the
-  confirmed knowledge points.
+- Current knowledge links + curriculum taxonomy determine chapter ownership.
+- Cross-chapter questions belong to the latest chapter in textbook order.
+- Question.curriculum_chapter_id is the materialized ownership used by filters
+  and generation; every knowledge write must synchronize it transactionally.
+- Broken taxonomy, cross-textbook knowledge, or otherwise unresolvable
+  knowledge produces no owning chapter rather than a guessed chapter.
 """
 
 from __future__ import annotations
@@ -15,12 +17,15 @@ from collections.abc import Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from calculus_agent.knowledge.chapter import (
+    ChapterResolution,
+    resolve_chapter_from_knowledge_ids,
+)
 from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.models import (
     CurriculumNode,
     KnowledgeNode,
     Question,
-    QuestionDraft,
     QuestionKnowledgeLink,
     Textbook,
 )
@@ -193,9 +198,56 @@ def chapters_for_knowledge_ids(
 def derive_default_chapter_from_knowledge(
     session: Session, knowledge_ids: Iterable[str]
 ) -> CurriculumNode | None:
-    """Default ownership: later chapter wins when knowledge spans chapters."""
-    chapters = chapters_for_knowledge_ids(session, knowledge_ids)
-    return chapters[-1] if chapters else None
+    """Return the deterministic owner chapter for explicit semantic knowledge."""
+    resolution = resolve_chapter_from_knowledge_ids(
+        session,
+        list(dict.fromkeys(item for item in knowledge_ids if item)),
+    )
+    if resolution.status != "ok" or resolution.chapter_id is None:
+        return None
+    return session.get(CurriculumNode, resolution.chapter_id)
+
+
+def sync_question_chapter_ownership(
+    session: Session,
+    question_id: str,
+) -> ChapterResolution:
+    """Synchronize materialized ownership from current semantic knowledge links."""
+    question = session.get(Question, question_id)
+    if question is None:
+        raise LookupError(f"Question not found: {question_id}")
+
+    knowledge_ids = list(session.scalars(
+        select(QuestionKnowledgeLink.knowledge_node_id)
+        .join(
+            KnowledgeNode,
+            KnowledgeNode.id == QuestionKnowledgeLink.knowledge_node_id,
+        )
+        .where(
+            QuestionKnowledgeLink.question_id == question_id,
+            KnowledgeNode.node_type.in_(("concept", "knowledge_point")),
+        )
+    ).all())
+
+    resolution = resolve_chapter_from_knowledge_ids(session, knowledge_ids)
+    question.curriculum_chapter_id = (
+        resolution.chapter_id if resolution.status == "ok" else None
+    )
+    session.flush()
+    return resolution
+
+
+def reconcile_question_chapter_assignments(session: Session) -> int:
+    """Recompute materialized ownership for all questions, idempotently."""
+    updated = 0
+    questions = list(session.scalars(select(Question)).all())
+    for question in questions:
+        before = question.curriculum_chapter_id
+        sync_question_chapter_ownership(session, question.id)
+        if question.curriculum_chapter_id != before:
+            updated += 1
+    session.flush()
+    return updated
 
 
 def question_chapter_display(session: Session, question: Question) -> str | None:
@@ -244,35 +296,15 @@ def resolve_scope_chapter_ids(
 
 
 def backfill_question_chapter_assignments(session: Session) -> int:
-    """Idempotently backfill only questions with no owning chapter."""
+    """Compatibility helper: fill currently-unowned questions from taxonomy."""
     updated = 0
-    questions = list(
-        session.scalars(
-            select(Question).where(Question.curriculum_chapter_id.is_(None))
-        ).all()
-    )
+    questions = list(session.scalars(
+        select(Question).where(Question.curriculum_chapter_id.is_(None))
+    ).all())
     for question in questions:
-        draft = session.get(QuestionDraft, question.draft_id)
-        chapter = resolve_chapter_reference(
-            session,
-            label=(draft.source_topic if draft is not None else None),
-        )
-        if chapter is None:
-            knowledge_ids = list(
-                session.scalars(
-                    select(QuestionKnowledgeLink.knowledge_node_id).where(
-                        QuestionKnowledgeLink.question_id == question.id
-                    )
-                ).all()
-            )
-            chapter = derive_default_chapter_from_knowledge(
-                session, knowledge_ids
-            )
-        if chapter is None:
-            continue
-        question.curriculum_chapter_id = chapter.id
-        if draft is not None:
-            draft.source_topic = chapter_display_name(chapter)
-        updated += 1
+        before = question.curriculum_chapter_id
+        sync_question_chapter_ownership(session, question.id)
+        if before != question.curriculum_chapter_id:
+            updated += 1
     session.flush()
     return updated

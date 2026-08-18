@@ -30,7 +30,8 @@ from .langfuse_tracing import (
 from .run_tracing import TeacherAgentRunManager
 from .skills import load_skill_bundle
 from .trace_log import AgentTraceRecorder, redact_trace_value
-from .tool_registry import AgentExecutionContext, build_agent_tools, execute_tool
+from .tool_registry import AgentExecutionContext, build_agent_tools
+from .toolkit import Toolkit
 from .schemas import GenerationPlanPreview
 from .tools.add_tools import AddQuestionPreview
 from .tools.analysis_tools import (
@@ -618,6 +619,7 @@ def run_teacher_agent(
             state_store=store if isinstance(store, DatabasePendingReplacementStore) else store,
         )
         tools = build_agent_tools(context)
+        toolkit = Toolkit(tools.values())
         pending = store.get(conversation_id) if store and conversation_id else None
         pending_adjustment = (
             store.get_adjustment(conversation_id)
@@ -667,13 +669,13 @@ def run_teacher_agent(
             # narrowing can be added later if traces show it is necessary.
             definition_names = list(tools)
 
-        definitions = [
-            _tool_definition_for_context(
-                tools[name],
+        definitions = toolkit.schemas(
+            names=definition_names,
+            transform=lambda tool: _tool_definition_for_context(
+                tool,
                 pending_generation=bool(pending_generation),
-            )
-            for name in definition_names
-        ]
+            ),
+        )
         working_memory = (
             store.get_memory(conversation_id)
             if store and conversation_id and hasattr(store, "get_memory") else None
@@ -864,10 +866,14 @@ def run_teacher_agent(
                                 ),
                             },
                         ])
-                        definitions = [
-                            tools[name].definition()
-                            for name in ("read_current_paper", "preview_adjust_paper", "preview_add_question", "confirm_adjust_paper")
-                        ]
+                        definitions = toolkit.schemas(
+                            names=[
+                                "read_current_paper",
+                                "preview_adjust_paper",
+                                "preview_add_question",
+                                "confirm_adjust_paper",
+                            ]
+                        )
                         pending_adjustment_rechecked = True
                         continue
                     if pending_adjustment and not adjustment_observed and pending_adjustment_rechecked:
@@ -974,7 +980,7 @@ def run_teacher_agent(
                                         ensure_ascii=False,
                                     ),
                                 )
-                                definitions = [tools["read_current_paper"].definition()]
+                                definitions = toolkit.schemas(names=["read_current_paper"])
                                 paper_read_required = True
                                 continue
                             independent_answer = decision.answer.strip()
@@ -1018,7 +1024,7 @@ def run_teacher_agent(
                                 ),
                                 retry=True,
                             )
-                            definitions = [tools["read_current_paper"].definition()]
+                            definitions = toolkit.schemas(names=["read_current_paper"])
                             paper_read_call_retried = True
                             continue
                         final_text = (
@@ -1089,7 +1095,7 @@ def run_teacher_agent(
                         current_stage = "tool_execution"
                         with tool_observation_span(name, arguments) as _lf_tool:
                             try:
-                                execution = execute_tool(tool, arguments)
+                                execution = toolkit.execute(name, arguments)
                             except Exception as exc:
                                 _langfuse_update(_lf_tool, level="ERROR", status_message=str(exc))
                                 run_manager.update_span(
@@ -1180,12 +1186,13 @@ def run_teacher_agent(
                                 "重复追问已经明确的信息。</generation_patch_guard>"
                             ),
                         })
-                        definitions = [
-                            _tool_definition_for_context(
-                                tools["preview_generation_plan"],
+                        definitions = toolkit.schemas(
+                            names=["preview_generation_plan"],
+                            transform=lambda tool: _tool_definition_for_context(
+                                tool,
                                 pending_generation=True,
-                            )
-                        ]
+                            ),
+                        )
                         generation_patch_retried = True
             else:
                 raise RuntimeError("agent_tool_round_limit")
