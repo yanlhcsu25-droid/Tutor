@@ -1,5 +1,6 @@
 """Adapt requirement-level intent to the existing executable PaperBlueprint."""
 
+from math import isclose
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -23,7 +24,18 @@ from .schemas import (
 def _scope_number(value: str) -> str:
     if value.isdigit():
         return value
-    digits = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+    digits = {
+        "一": 1,
+        "二": 2,
+        "三": 3,
+        "四": 4,
+        "五": 5,
+        "六": 6,
+        "七": 7,
+        "八": 8,
+        "九": 9,
+        "十": 10,
+    }
     if value in digits:
         return str(digits[value])
     return value
@@ -42,6 +54,15 @@ CHAPTER_TEST_TEMPLATE = (
     ("计算题", 4, 15),
 )
 
+# Keep the same deterministic priority used by GenerationService:
+# prefer changing high-weight subjective/calculation sections first.
+_SCORE_REBALANCE_PRIORITY = (
+    "计算题",
+    "证明题",
+    "填空题",
+    "选择题",
+)
+
 
 class BlueprintBuildResult(BaseModel):
     ok: bool
@@ -53,7 +74,9 @@ class BlueprintBuildResult(BaseModel):
     blocking_errors: list[str] = Field(default_factory=list)
 
 
-def _sections(template: tuple[tuple[str, int, int], ...]) -> list[SectionRequirement]:
+def _sections(
+    template: tuple[tuple[str, int, int], ...],
+) -> list[SectionRequirement]:
     return [
         SectionRequirement(
             question_type=question_type,
@@ -65,7 +88,69 @@ def _sections(template: tuple[tuple[str, int, int], ...]) -> list[SectionRequire
     ]
 
 
-def build_paper_blueprint(requirement: RequirementBlueprint) -> BlueprintBuildResult:
+def _rebalance_sections_to_total(
+    sections: list[SectionRequirement],
+    *,
+    target_total_score: int,
+) -> list[SectionRequirement] | None:
+    """Deterministically rebalance a default section template to a target total.
+
+    The question counts stay unchanged.  Exactly one section's per-question
+    score is adjusted, using the same priority and 0.5-point granularity as the
+    pending-generation rebalance path.
+
+    Returning ``None`` means the requested total cannot be represented safely
+    by the current default section structure without guessing.
+    """
+    current_total = sum(section.total_score for section in sections)
+    difference = target_total_score - current_total
+
+    if isclose(difference, 0):
+        return [section.model_copy() for section in sections]
+
+    ordered = sorted(
+        enumerate(sections),
+        key=lambda pair: (
+            _SCORE_REBALANCE_PRIORITY.index(pair[1].question_type)
+            if pair[1].question_type in _SCORE_REBALANCE_PRIORITY
+            else len(_SCORE_REBALANCE_PRIORITY),
+            pair[0],
+        ),
+    )
+
+    for index, section in ordered:
+        new_score_each = section.score_per_question + difference / section.count
+
+        # Production scoring uses 0.5-point granularity and all scores must stay
+        # positive.
+        if new_score_each <= 0:
+            continue
+        if not isclose(new_score_each * 2, round(new_score_each * 2)):
+            continue
+
+        new_score_each = round(new_score_each * 2) / 2
+        new_total = section.count * new_score_each
+
+        balanced = [item.model_copy() for item in sections]
+        balanced[index] = section.model_copy(
+            update={
+                "score_per_question": new_score_each,
+                "total_score": new_total,
+            }
+        )
+
+        if isclose(
+            sum(item.total_score for item in balanced),
+            target_total_score,
+        ):
+            return balanced
+
+    return None
+
+
+def build_paper_blueprint(
+    requirement: RequirementBlueprint,
+) -> BlueprintBuildResult:
     """Build a validated executable blueprint without selecting questions.
 
     Scope and difficulty are reported explicitly because the current
@@ -80,16 +165,41 @@ def build_paper_blueprint(requirement: RequirementBlueprint) -> BlueprintBuildRe
         errors = []
         if requirement.paper_type == "midterm" and not requirement.scope:
             errors.append("missing_exam_scope")
-        if requirement.paper_type == "final" and not requirement.preferences.difficulty_ratio:
+        if (
+            requirement.paper_type == "final"
+            and not requirement.preferences.difficulty_ratio
+        ):
             errors.append("missing_difficulty_ratio")
-        return BlueprintBuildResult(ok=False, blocking_errors=errors or ["needs_clarification"], **base)
+        return BlueprintBuildResult(
+            ok=False,
+            blocking_errors=errors or ["needs_clarification"],
+            **base,
+        )
 
     if requirement.paper_type == "midterm" and not requirement.scope:
-        return BlueprintBuildResult(ok=False, blocking_errors=["missing_exam_scope"], **base)
-    if requirement.paper_type == "final" and not requirement.preferences.difficulty_ratio:
-        return BlueprintBuildResult(ok=False, blocking_errors=["missing_difficulty_ratio"], **base)
-    if not requirement.scope and requirement.paper_type in {"chapter_test", "homework"}:
-        return BlueprintBuildResult(ok=False, blocking_errors=["invalid_scope"], **base)
+        return BlueprintBuildResult(
+            ok=False,
+            blocking_errors=["missing_exam_scope"],
+            **base,
+        )
+    if (
+        requirement.paper_type == "final"
+        and not requirement.preferences.difficulty_ratio
+    ):
+        return BlueprintBuildResult(
+            ok=False,
+            blocking_errors=["missing_difficulty_ratio"],
+            **base,
+        )
+    if (
+        not requirement.scope
+        and requirement.paper_type in {"chapter_test", "homework"}
+    ):
+        return BlueprintBuildResult(
+            ok=False,
+            blocking_errors=["invalid_scope"],
+            **base,
+        )
 
     warnings: list[str] = []
     if requirement.preferences.more_question_types:
@@ -102,13 +212,33 @@ def build_paper_blueprint(requirement: RequirementBlueprint) -> BlueprintBuildRe
     if requirement.paper_type == "homework":
         # Existing PaperBlueprint requires a positive integer total_score.
         # Homework has no requested score, so use 10 points per default item.
-        sections = _sections((("计算题", 3, 10), ("证明题", 2, 10)))
+        sections = _sections(
+            (
+                ("计算题", 3, 10),
+                ("证明题", 2, 10),
+            )
+        )
         total_score = requirement.total_score or 50
     else:
         sections = _sections(CHAPTER_TEST_TEMPLATE)
         total_score = requirement.total_score or 100
-        if total_score != 100:
-            warnings.append("custom_total_score_uses_existing_question_structure")
+
+    default_total = sum(section.total_score for section in sections)
+    if not isclose(default_total, total_score):
+        balanced_sections = _rebalance_sections_to_total(
+            sections,
+            target_total_score=total_score,
+        )
+        if balanced_sections is None:
+            return BlueprintBuildResult(
+                ok=False,
+                warnings=warnings,
+                blocking_errors=["score_rebalance_ambiguous"],
+                **base,
+            )
+
+        sections = balanced_sections
+        warnings.append("custom_total_score_uses_existing_question_structure")
 
     try:
         blueprint = PaperBlueprint(
@@ -117,12 +247,25 @@ def build_paper_blueprint(requirement: RequirementBlueprint) -> BlueprintBuildRe
             total_score=total_score,
             sections=sections,
         )
-    except ValueError as exc:
-        return BlueprintBuildResult(ok=False, blocking_errors=["invalid_paper_blueprint"], **base)
-    return BlueprintBuildResult(ok=True, paper_blueprint=blueprint, warnings=warnings, **base)
+    except ValueError:
+        return BlueprintBuildResult(
+            ok=False,
+            warnings=warnings,
+            blocking_errors=["invalid_paper_blueprint"],
+            **base,
+        )
+
+    return BlueprintBuildResult(
+        ok=True,
+        paper_blueprint=blueprint,
+        warnings=warnings,
+        **base,
+    )
 
 
-def dry_run_requirement(requirement: RequirementBlueprint) -> BlueprintBuildResult:
+def dry_run_requirement(
+    requirement: RequirementBlueprint,
+) -> BlueprintBuildResult:
     """Named dry-run alias; this never calls the paper selector."""
     return build_paper_blueprint(requirement)
 
@@ -137,7 +280,11 @@ def build_generation_request(
     an explicit fallback, and is resolved against QuestionProfile at query time.
     """
     if not blueprint_result.ok or blueprint_result.paper_blueprint is None:
-        return None, list(blueprint_result.warnings), list(blueprint_result.blocking_errors)
+        return (
+            None,
+            list(blueprint_result.warnings),
+            list(blueprint_result.blocking_errors),
+        )
     difficulty = {
         "easy": ([1, 2, 3], [1, 2], [3]),
         "normal": ([2, 3, 4], [3], [2, 4]),
@@ -151,12 +298,24 @@ def build_generation_request(
     )
     warnings = list(blueprint_result.warnings)
     # Scope is now consumed by candidate filtering; this warning is obsolete.
-    warnings = [item for item in warnings if item != "scope_not_enforced_by_existing_paper_blueprint"]
-    return PaperGenerationRequest(blueprint=blueprint_result.paper_blueprint, constraints=constraints), warnings, []
+    warnings = [
+        item
+        for item in warnings
+        if item != "scope_not_enforced_by_existing_paper_blueprint"
+    ]
+    return (
+        PaperGenerationRequest(
+            blueprint=blueprint_result.paper_blueprint,
+            constraints=constraints,
+        ),
+        warnings,
+        [],
+    )
 
 
 def resolve_generation_scope(
-    session: Session, request: PaperGenerationRequest
+    session: Session,
+    request: PaperGenerationRequest,
 ) -> tuple[PaperGenerationRequest | None, list[str]]:
     """Resolve human scope labels through the persisted curriculum tree.
 
@@ -166,60 +325,115 @@ def resolve_generation_scope(
     """
     if not request.constraints.scope:
         return request, []
+
     nodes = list(session.scalars(select(CurriculumNode)).all())
     by_id = {node.id: node for node in nodes}
     selected: set[str] = set()
+
     for label in request.constraints.scope:
         parts = label.replace(" ", "")
-        chapter_match = __import__("re").fullmatch(r"第([一二三四五六七八九十百0-9]+)章", parts)
-        section_match = __import__("re").fullmatch(
-            r"第([一二三四五六七八九十百0-9]+)章第([一二三四五六七八九十百0-9]+)节", parts
+        chapter_match = __import__("re").fullmatch(
+            r"第([一二三四五六七八九十百0-9]+)章",
+            parts,
         )
-        section_only = __import__("re").fullmatch(r"第([一二三四五六七八九十百0-9]+)节", parts)
+        section_match = __import__("re").fullmatch(
+            r"第([一二三四五六七八九十百0-9]+)章"
+            r"第([一二三四五六七八九十百0-9]+)节",
+            parts,
+        )
+        section_only = __import__("re").fullmatch(
+            r"第([一二三四五六七八九十百0-9]+)节",
+            parts,
+        )
+
         if not (chapter_match or section_match or section_only):
             return None, ["invalid_scope"]
-        number = _scope_number((chapter_match or section_match or section_only).group(1))
+
+        number = _scope_number(
+            (chapter_match or section_match or section_only).group(1)
+        )
         chapter_candidates = [
-            node for node in nodes
-            if node.node_type == "chapter" and _same_scope_code(node.code, number)
+            node
+            for node in nodes
+            if node.node_type == "chapter"
+            and _same_scope_code(node.code, number)
         ]
+
         if section_only:
             section_candidates = [
-                node for node in nodes
-                if node.node_type == "section" and _same_scope_code(node.code, number)
+                node
+                for node in nodes
+                if node.node_type == "section"
+                and _same_scope_code(node.code, number)
             ]
             if len(section_candidates) != 1:
-                return None, ["ambiguous_scope" if section_candidates else "invalid_scope"]
-            chapter_candidates = [by_id.get(section_candidates[0].parent_id)]
+                return None, [
+                    "ambiguous_scope" if section_candidates else "invalid_scope"
+                ]
+            chapter_candidates = [
+                by_id.get(section_candidates[0].parent_id)
+            ]
             section_targets = section_candidates
+
         elif section_match:
             section_number = _scope_number(section_match.group(2))
             if len(chapter_candidates) != 1:
-                return None, ["ambiguous_scope" if chapter_candidates else "invalid_scope"]
+                return None, [
+                    "ambiguous_scope" if chapter_candidates else "invalid_scope"
+                ]
             section_targets = [
-                node for node in nodes
-                if node.node_type == "section" and node.parent_id == chapter_candidates[0].id
+                node
+                for node in nodes
+                if node.node_type == "section"
+                and node.parent_id == chapter_candidates[0].id
                 and _same_scope_code(node.code, section_number)
             ]
             if len(section_targets) != 1:
-                return None, ["ambiguous_scope" if section_targets else "invalid_scope"]
+                return None, [
+                    "ambiguous_scope" if section_targets else "invalid_scope"
+                ]
         else:
             section_targets = []
-        chapter_candidates = [node for node in chapter_candidates if node is not None]
+
+        chapter_candidates = [
+            node for node in chapter_candidates if node is not None
+        ]
         if len(chapter_candidates) != 1:
-            return None, ["ambiguous_scope" if chapter_candidates else "invalid_scope"]
-        roots = chapter_candidates if not section_targets else section_targets
+            return None, [
+                "ambiguous_scope" if chapter_candidates else "invalid_scope"
+            ]
+
+        roots = (
+            chapter_candidates
+            if not section_targets
+            else section_targets
+        )
         pending = [node.id for node in roots]
+
         while pending:
             current = pending.pop()
             selected.add(current)
-            children = [node.id for node in nodes if node.parent_id == current]
-            pending.extend(child for child in children if child not in selected)
-    knowledge_ids = list(session.scalars(
-        select(KnowledgeNode.id).where(KnowledgeNode.curriculum_node_id.in_(selected))
-    ).all())
+            children = [
+                node.id
+                for node in nodes
+                if node.parent_id == current
+            ]
+            pending.extend(
+                child
+                for child in children
+                if child not in selected
+            )
+
+    knowledge_ids = list(
+        session.scalars(
+            select(KnowledgeNode.id).where(
+                KnowledgeNode.curriculum_node_id.in_(selected)
+            )
+        ).all()
+    )
     if not knowledge_ids:
         return None, ["invalid_scope"]
+
     scope_chapter_ids = resolve_scope_chapter_ids(
         session,
         request.constraints.scope,
@@ -227,14 +441,23 @@ def resolve_generation_scope(
     )
     if not scope_chapter_ids:
         return None, ["invalid_scope"]
-    constraints = request.constraints.model_copy(update={
-        "scope_node_ids": knowledge_ids,
-        "scope_chapter_ids": scope_chapter_ids,
-        "scope_knowledge_node_ids": (
-            [] if scope_labels_are_whole_chapters(
-                session, request.constraints.scope
-            )
-            else knowledge_ids
-        ),
-    })
-    return request.model_copy(update={"constraints": constraints}), []
+
+    constraints = request.constraints.model_copy(
+        update={
+            "scope_node_ids": knowledge_ids,
+            "scope_chapter_ids": scope_chapter_ids,
+            "scope_knowledge_node_ids": (
+                []
+                if scope_labels_are_whole_chapters(
+                    session,
+                    request.constraints.scope,
+                )
+                else knowledge_ids
+            ),
+        }
+    )
+
+    return (
+        request.model_copy(update={"constraints": constraints}),
+        [],
+    )
