@@ -1,7 +1,6 @@
 """Tool registry and deterministic executors for the autonomous Teacher Agent."""
 
 from dataclasses import dataclass, field
-from math import isclose
 from typing import Any, Callable, Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -10,10 +9,8 @@ from sqlalchemy.orm import Session
 
 from calculus_agent.models import AdjustmentPlanRecord, PaperItem, QuestionKnowledgeLink
 from calculus_agent.papers.addressing import QuestionAddress, resolve_section_item
-from calculus_agent.question_types import canonical_question_type
-
-from .conversation_state import DatabasePendingReplacementStore, PendingGeneration, PendingReplacement
-from .schemas import AgentWorkingMemory, GenerationPlanPatch, GenerationPlanPreview, GeneratePaperInput, QuestionTypeRequirement, ReplacementIntent
+from .conversation_state import DatabasePendingReplacementStore, PendingReplacement
+from .schemas import GenerationPlanPatch, ReplacementIntent
 from .tools.add_tools import AddQuestionPreview, preview_add_question
 from .tools.analysis_tools import (
     KnowledgePreference,
@@ -21,8 +18,8 @@ from .tools.analysis_tools import (
     confirm_adjust_paper,
     preview_adjust_paper,
 )
-from .tools.paper_tools import build_structured_generation_request, generate_paper_from_input
 from .tools.read_tools import ReadCurrentPaperInput, read_current_paper
+from .services.generation import GenerationService, NoPendingGenerationError
 from .tools.replacement_tools import apply_question_replacement, dry_run_replace_question
 from .tools.version_tools import run_version_operation
 from .version_parser import VersionOperationIntent
@@ -166,343 +163,58 @@ def _failed(code: str, message: str) -> ExecutedTool:
     )
 
 
-def _normalized_generation_request(request: GeneratePaperInput, generation_request) -> GeneratePaperInput:
-    blueprint = generation_request.blueprint
-    return request.model_copy(update={
-        "question_count": blueprint.total_questions,
-        "total_score": int(blueprint.total_score),
-        "question_type_requirements": [
-            QuestionTypeRequirement(
-                question_type=section.question_type,
-                count=section.count,
-                score_each=section.score_per_question,
-                total_score=section.total_score,
-            )
-            for section in blueprint.sections
-        ] if blueprint.sections else [
-            QuestionTypeRequirement(question_type=name, count=count)
-            for name, count in blueprint.question_type_counts.items()
-        ],
-    })
-
-
-def _derive_question_count(request: GeneratePaperInput) -> GeneratePaperInput:
-    """Make complete per-type counts the only source for pending question_count."""
-    requirements = request.question_type_requirements or []
-    if not requirements:
-        return request
-    return request.model_copy(update={
-        "question_count": sum(item.count for item in requirements),
-    })
-
-
-def _same_optional_score(left: float | None, right: float | None) -> bool:
-    if left is None or right is None:
-        return left is right
-    return isclose(left, right)
-
-
-def _requirements_match_pending(
-    pending_request: GeneratePaperInput,
-    incoming: list[QuestionTypeRequirement] | None,
-) -> bool:
-    """Return True only when a full requirement list is a deterministic no-op.
-
-    This is deliberately narrow.  While a generation plan is pending, the LLM
-    is required to use question_type_patches for real changes.  However, models
-    sometimes redundantly echo the complete unchanged requirement list while
-    changing an unrelated field such as scope_names or knowledge_preferences.
-    Rejecting that harmless echo blocks the real patch.  Exact no-op lists can
-    be discarded safely; any actual type/count/score difference is still rejected
-    by generation_partial_patch_required and must be expressed as a patch.
-    """
-    if incoming is None:
-        return False
-
-    current_items = pending_request.question_type_requirements or []
-    if len(incoming) != len(current_items):
-        return False
-
-    current: dict[str, QuestionTypeRequirement] = {}
-    for item in current_items:
-        name = canonical_question_type(item.question_type)
-        if name in current:
-            return False
-        current[name] = item
-
-    seen: set[str] = set()
-    for item in incoming:
-        name = canonical_question_type(item.question_type)
-        if name in seen:
-            return False
-        seen.add(name)
-        previous = current.get(name)
-        if previous is None:
-            return False
-        if item.count != previous.count:
-            return False
-        if not _same_optional_score(item.score_each, previous.score_each):
-            return False
-
-    return seen == set(current)
-
-
-def _merge_question_type_patch(base: GeneratePaperInput, patch_values: dict) -> tuple[GeneratePaperInput, set[str], set[str]]:
-    """Return merged request, count-changed types, and explicitly score-changed types."""
-    current = {item.question_type: item.model_copy() for item in (base.question_type_requirements or [])}
-    incoming = patch_values.pop("question_type_patches", None)
-    explicit_partial_patch = incoming is not None
-    if incoming is None and "question_type_requirements" in patch_values:
-        incoming = patch_values.pop("question_type_requirements") or []
-    changed_counts: set[str] = set()
-    changed_scores: set[str] = set()
-    for raw in incoming or []:
-        values = raw.model_dump(exclude_unset=True) if isinstance(raw, BaseModel) else dict(raw)
-        name = canonical_question_type(values["question_type"])
-        values["question_type"] = name
-        previous = current.get(name)
-        if previous is None:
-            current[name] = QuestionTypeRequirement.model_validate(values)
-            changed_counts.add(name)
-            if values.get("score_each") is not None:
-                changed_scores.add(name)
-            continue
-        updates = {}
-        if "count" in values and values["count"] != previous.count:
-            updates["count"] = values["count"]
-            changed_counts.add(name)
-        if "score_each" in values and values["score_each"] is not None:
-            if explicit_partial_patch or not isclose(values["score_each"], previous.score_each or 0):
-                changed_scores.add(name)
-            if not isclose(values["score_each"], previous.score_each or 0):
-                updates["score_each"] = values["score_each"]
-        if updates:
-            updates["total_score"] = updates.get("count", previous.count) * updates.get("score_each", previous.score_each)
-            current[name] = previous.model_copy(update=updates)
-    merged = _derive_question_count(base.model_copy(update={
-        **patch_values,
-        "question_type_requirements": list(current.values()),
-    }))
-    return merged, changed_counts, changed_scores
-
-
-def _rebalance_scores(request: GeneratePaperInput, *, locked_types: set[str], changed_count_types: set[str]) -> tuple[GeneratePaperInput | None, str | None]:
-    requirements = [item.model_copy() for item in (request.question_type_requirements or [])]
-    if not requirements or request.total_score is None or any(item.score_each is None for item in requirements):
-        return request, None
-    current_total = sum(item.count * item.score_each for item in requirements)
-    difference = request.total_score - current_total
-    if isclose(difference, 0):
-        normalized = [item.model_copy(update={"total_score": item.count * item.score_each}) for item in requirements]
-        return request.model_copy(update={
-            "question_type_requirements": normalized,
-            "question_count": sum(item.count for item in normalized),
-        }), None
-    preferred = ["计算题", "证明题", "填空题", "选择题"]
-    candidates = sorted(
-        (item for item in requirements if item.question_type not in locked_types and item.question_type not in changed_count_types),
-        key=lambda item: preferred.index(item.question_type) if item.question_type in preferred else len(preferred),
-    )
-    for item in candidates:
-        new_score = item.score_each + difference / item.count
-        if new_score > 0 and isclose(new_score * 2, round(new_score * 2)):
-            balanced = [
-                entry.model_copy(update={
-                    "score_each": new_score,
-                    "total_score": entry.count * new_score,
-                }) if entry.question_type == item.question_type else entry.model_copy(update={"total_score": entry.count * entry.score_each})
-                for entry in requirements
-            ]
-            return request.model_copy(update={"question_type_requirements": balanced, "question_count": sum(entry.count for entry in balanced)}), None
-    return None, "当前题型数量无法按0.5分粒度自动平衡到目标总分，请明确希望调整哪一类题目的每题分值。"
-
-
 def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
     session = context.session
     store = context.state_store
 
-    def preview_generation(raw: BaseModel) -> ExecutedTool:
-        patch = GenerationPlanPatch.model_validate(raw)
-        patch_values = patch.model_dump(exclude_unset=True)
-        unsupported = patch_values.pop("avoid_previous_paper_questions", None)
-        pending = store.get_generation(context.conversation_id) if store and context.conversation_id else None
-        memory = store.get_memory(context.conversation_id) if store and context.conversation_id and hasattr(store, "get_memory") else AgentWorkingMemory()
-        # Source-of-truth base precedence:
-        #   1) current pending generation request
-        #   2) Working Memory generation summary
-        #   3) code-defined new base from last completed paper
-        #   4) empty new base
-        if pending:
-            base_request = pending.request
-        elif memory.generation_summary:
-            base_request = GeneratePaperInput.model_validate(memory.generation_summary)
-        elif patch_values.get("paper_type") is None and memory.last_completed_paper:
-            base_request = GeneratePaperInput.model_validate({
-                k: v for k, v in memory.last_completed_paper.items() if k in GeneratePaperInput.model_fields
-            })
-        else:
-            base_request = GeneratePaperInput()
-        if pending:
-            if "question_type_requirements" in patch.model_fields_set and "question_type_patches" not in patch.model_fields_set:
-                if _requirements_match_pending(
-                    pending.request,
-                    patch.question_type_requirements,
-                ):
-                    # Model echoed the existing complete requirement list while
-                    # changing some other field.  It carries no business delta, so
-                    # discard it and continue with the real patch.
-                    patch_values.pop("question_type_requirements", None)
-                else:
-                    preview = GenerationPlanPreview(
-                        ok=False,
-                        request=pending.request,
-                        total_questions=pending.request.question_count,
-                        total_score=pending.request.total_score,
-                        sections=pending.request.question_type_requirements or [],
-                        blocking_errors=["generation_partial_patch_required"],
-                        clarification_questions=[
-                            "当前已有待确认方案。真实题型变更必须只提交教师本轮明确修改的字段，并使用 question_type_patches；未提到的题型必须保持不变。"
-                        ],
-                    )
-                    return ExecutedTool(
-                        payload=preview.model_dump(mode="json"),
-                        status="needs_clarification",
-                        result_fields={
-                            "generation_preview": preview,
-                            "blocking_errors": preview.blocking_errors,
-                            "clarification_questions": preview.clarification_questions,
-                        },
-                    )
-        # Unified deterministic merge — identical logic whether the base came
-        # from a pending plan, memory summary, or a fresh default. The LLM never
-        # performs the merge; Python always applies question_type_patches here.
-        request, changed_count_types, changed_score_types = _merge_question_type_patch(
-            base_request, patch_values
-        )
+    generation_service = GenerationService(
+        session=session,
+        store=store,
+        conversation_id=context.conversation_id,
+        expected_pending_generation_version=(
+            context.expected_pending_generation_version
+        ),
+    )
 
-        # Rebalance only when a plan was already pending (preserve existing behavior).
-        if pending:
-            locked_types = set(pending.locked_score_question_types) | changed_score_types
-            balanced, balance_question = _rebalance_scores(
-                request,
-                locked_types=locked_types,
-                changed_count_types=changed_count_types,
-            )
-            if balanced is None:
-                preview = GenerationPlanPreview(
-                    ok=False,
-                    request=request,
-                    total_score=request.total_score,
-                    sections=request.question_type_requirements or [],
-                    blocking_errors=["score_rebalance_ambiguous"],
-                    clarification_questions=[balance_question],
-                )
-                if store and context.conversation_id and hasattr(store, "get_memory"):
-                    memory.last_clarification = {
-                        "missing_fields": ["score_rebalance_ambiguous"],
-                        "questions": [balance_question],
-                    }
-                    store.set_memory(context.conversation_id, memory)
-                return ExecutedTool(
-                    payload=preview.model_dump(mode="json"),
-                    status="needs_clarification",
-                    result_fields={
-                        "generation_preview": preview,
-                        "blocking_errors": preview.blocking_errors,
-                        "clarification_questions": preview.clarification_questions,
-                    },
-                )
-            request = balanced
-        generation_request, warnings, errors, questions = build_structured_generation_request(
-            session, request
+    def preview_generation(raw: BaseModel) -> ExecutedTool:
+        preview = generation_service.preview(
+            GenerationPlanPatch.model_validate(raw)
         )
-        if generation_request is not None:
-            request = _normalized_generation_request(request, generation_request)
-        preview = GenerationPlanPreview(
-            ok=generation_request is not None,
-            request=request,
-            title=generation_request.blueprint.title if generation_request else None,
-            total_questions=generation_request.blueprint.total_questions if generation_request else None,
-            total_score=generation_request.blueprint.total_score if generation_request else None,
-            sections=[
-                QuestionTypeRequirement(
-                    question_type=section.question_type,
-                    count=section.count,
-                    score_each=section.score_per_question,
-                    total_score=section.total_score,
-                )
-                for section in (generation_request.blueprint.sections if generation_request else [])
-            ] if generation_request and generation_request.blueprint.sections else [
-                QuestionTypeRequirement(question_type=question_type, count=count)
-                for question_type, count in (
-                    generation_request.blueprint.question_type_counts.items()
-                    if generation_request else []
-                )
-            ],
-            warnings=warnings,
-            blocking_errors=errors,
-            clarification_questions=questions,
-        )
-        if preview.ok and store and context.conversation_id:
-            saved_pending = store.set_generation(context.conversation_id, PendingGeneration(
-                request=request,
-                total_score_source=(
-                    "teacher_explicit" if "total_score" in patch.model_fields_set
-                    else pending.total_score_source if pending else "default_template"
-                ),
-                locked_score_question_types=sorted(
-                    (set(pending.locked_score_question_types) if pending else set()) | changed_score_types
-                ),
-            ), expected_version=context.expected_pending_generation_version)
-            preview = preview.model_copy(update={
-                "request": saved_pending.request,
-                "pending_version": saved_pending.pending_version,
-            })
-        if store and context.conversation_id and hasattr(store, "get_memory"):
-            memory = store.get_memory(context.conversation_id)
-            memory.active_task = {"type": "generation", "status": "awaiting_confirmation" if preview.ok else "drafting"}
-            memory.generation_summary = request.model_dump(mode="json")
-            memory.last_clarification = ({"missing_fields": errors, "questions": questions} if questions else None)
-            if unsupported:
-                memory.unsupported_preferences = [{
-                    "type": "avoid_previous_paper_questions", "source": "teacher_stated",
-                    "status": "unsupported",
-                    "reference_paper_id": (memory.last_completed_paper or {}).get("paper_id"),
-                }]
-                warnings = [*warnings, "avoid_previous_paper_questions_unsupported"]
-                preview.warnings = warnings
-            store.set_memory(context.conversation_id, memory)
         return ExecutedTool(
             payload=preview.model_dump(mode="json"),
-            status="waiting_confirmation" if preview.ok else "needs_clarification",
+            status=(
+                "waiting_confirmation"
+                if preview.ok
+                else "needs_clarification"
+            ),
             result_fields={
                 "generation_preview": preview,
-                "warnings": warnings,
-                "blocking_errors": errors,
-                "clarification_questions": questions,
+                "warnings": preview.warnings,
+                "blocking_errors": preview.blocking_errors,
+                "clarification_questions": preview.clarification_questions,
             },
         )
 
     def confirm_generation(_raw: BaseModel) -> ExecutedTool:
-        pending = store.get_generation(context.conversation_id) if store and context.conversation_id else None
-        if pending is None:
-            return _failed("no_pending_generation", "当前没有等待确认的组卷方案。")
-        result = generate_paper_from_input(session, pending.request)
-        status = "completed" if result.ok else "needs_clarification" if result.needs_clarification else "failed"
+        try:
+            result = generation_service.confirm()
+        except NoPendingGenerationError:
+            return _failed(
+                "no_pending_generation",
+                "当前没有等待确认的组卷方案。",
+            )
+
+        status = (
+            "completed"
+            if result.ok
+            else "needs_clarification"
+            if result.needs_clarification
+            else "failed"
+        )
         if result.ok:
             context.paper_id = str(result.paper_id)
             context.version_id = str(result.version_id)
-            store.clear_generation(context.conversation_id)
-            if hasattr(store, "get_memory"):
-                memory = store.get_memory(context.conversation_id)
-                memory.active_task = {"type": "generation", "status": "completed"}
-                memory.last_completed_paper = {
-                    "paper_id": str(result.paper_id), "version_id": str(result.version_id),
-                    **pending.request.model_dump(mode="json"),
-                }
-                memory.generation_summary = {}
-                memory.last_clarification = None
-                store.set_memory(context.conversation_id, memory)
+
         return ExecutedTool(
             payload=result.model_dump(mode="json"),
             status=status,

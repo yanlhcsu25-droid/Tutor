@@ -74,7 +74,10 @@ from calculus_agent.agent.schemas import (
     GenerationPlanPreview,
     QuestionTypePatch,
 )
-from calculus_agent.agent.tool_registry import AgentExecutionContext, build_agent_tools
+from calculus_agent.agent.services.generation import (
+    GenerationService,
+    NoPendingGenerationError,
+)
 from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult
 from calculus_agent.agent.trace_log import (
     list_agent_trace_sessions,
@@ -351,33 +354,42 @@ def get_teacher_agent_session(
     )
 
 
-def _pending_generation_context(session: Session, conversation_id: str) -> AgentExecutionContext:
-    return AgentExecutionContext(
+def _pending_generation_service(
+    session: Session,
+    conversation_id: str,
+    *,
+    expected_version: int | None = None,
+) -> GenerationService:
+    return GenerationService(
         session=session,
+        store=DatabasePendingReplacementStore(session),
         conversation_id=conversation_id,
-        paper_id=None,
-        version_id=None,
-        state_store=DatabasePendingReplacementStore(session),
+        expected_pending_generation_version=expected_version,
     )
 
 
 def _assert_current_pending_version(
-    context: AgentExecutionContext, expected_version: int
+    service: GenerationService,
+    expected_version: int,
 ) -> None:
-    pending = context.state_store.get_generation(context.conversation_id)
-    if pending is None:
+    try:
+        service.assert_pending_version(expected_version)
+    except NoPendingGenerationError as exc:
         raise HTTPException(
             status_code=409,
             detail={"code": "no_pending_generation"},
-        )
-    if pending.pending_version != expected_version:
+        ) from exc
+    except PendingGenerationStaleError as exc:
+        pending = service.store.get_generation(service.conversation_id)
         raise HTTPException(
             status_code=409,
             detail={
                 "code": "stale_pending_plan",
-                "current_version": pending.pending_version,
+                "current_version": (
+                    pending.pending_version if pending is not None else None
+                ),
             },
-        )
+        ) from exc
 
 
 @router.post(
@@ -389,23 +401,29 @@ def update_pending_generation_from_card(
     session: Session = Depends(get_session),
 ) -> PendingGenerationCardPatchResponse:
     """Apply a card patch through the same deterministic preview pipeline as chat."""
-    context = _pending_generation_context(session, request.conversation_id)
-    _assert_current_pending_version(context, request.expected_version)
-    context.expected_pending_generation_version = request.expected_version
+    service = _pending_generation_service(
+        session,
+        request.conversation_id,
+        expected_version=request.expected_version,
+    )
+    _assert_current_pending_version(service, request.expected_version)
     try:
-        execution = build_agent_tools(context)["preview_generation_plan"].execute(
-            GenerationPlanPatch(question_type_patches=request.question_type_patches)
+        preview = service.preview(
+            GenerationPlanPatch(
+                question_type_patches=request.question_type_patches
+            )
         )
     except PendingGenerationStaleError as exc:
         raise HTTPException(
             status_code=409,
             detail={"code": "stale_pending_plan"},
         ) from exc
-    preview = execution.result_fields.get("generation_preview")
-    if not isinstance(preview, GenerationPlanPreview):
-        raise HTTPException(status_code=422, detail=execution.payload)
     return PendingGenerationCardPatchResponse(
-        status=execution.status,
+        status=(
+            "waiting_confirmation"
+            if preview.ok
+            else "needs_clarification"
+        ),
         generation_preview=preview,
     )
 
@@ -419,13 +437,28 @@ def confirm_pending_generation_from_card(
     session: Session = Depends(get_session),
 ) -> PendingGenerationConfirmResponse:
     """Execute the persisted pending plan without an LLM or client-supplied plan."""
-    context = _pending_generation_context(session, request.conversation_id)
-    _assert_current_pending_version(context, request.expected_version)
-    execution = build_agent_tools(context)["confirm_generation_plan"].execute({})
-    paper = execution.result_fields.get("paper")
-    if not isinstance(paper, GeneratePaperToolResult):
-        raise HTTPException(status_code=422, detail=execution.payload)
-    return PendingGenerationConfirmResponse(status=execution.status, paper=paper)
+    service = _pending_generation_service(
+        session,
+        request.conversation_id,
+        expected_version=request.expected_version,
+    )
+    _assert_current_pending_version(service, request.expected_version)
+    try:
+        paper = service.confirm()
+    except NoPendingGenerationError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "no_pending_generation"},
+        ) from exc
+
+    status = (
+        "completed"
+        if paper.ok
+        else "needs_clarification"
+        if paper.needs_clarification
+        else "failed"
+    )
+    return PendingGenerationConfirmResponse(status=status, paper=paper)
 
 
 @router.get("/admin/agent-traces/sessions")

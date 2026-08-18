@@ -198,7 +198,7 @@ def test_pending_confirm_01_executes_the_persisted_pending_plan(session):
         summary=PaperSummary(total_questions=12, total_score=100),
     )
 
-    with patch("calculus_agent.agent.tool_registry.generate_paper_from_input", return_value=result) as generate:
+    with patch("calculus_agent.agent.services.generation.generate_paper_from_input", return_value=result) as generate:
         response = api.confirm_pending_generation_from_card(
             api.PendingGenerationConfirmRequest(
                 conversation_id=conversation_id,

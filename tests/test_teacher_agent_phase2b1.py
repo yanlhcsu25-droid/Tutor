@@ -29,7 +29,7 @@ def test_clarification_never_persists_paper(session):
         blocking_errors=["missing_exam_scope"],
         clarification_questions=["请确认期中考试范围。"],
     )
-    with patch("calculus_agent.agent.tool_registry.generate_paper_from_input", return_value=tool_result):
+    with patch("calculus_agent.agent.services.generation.generate_paper_from_input", return_value=tool_result):
         result = run_teacher_agent(
             session,
             "帮我出一套期中考试",
@@ -47,7 +47,7 @@ def test_final_clarification_remains_structured(session):
         blocking_errors=["missing_difficulty_ratio"],
         clarification_questions=["请确认期末难度占比。"],
     )
-    with patch("calculus_agent.agent.tool_registry.generate_paper_from_input", return_value=tool_result):
+    with patch("calculus_agent.agent.services.generation.generate_paper_from_input", return_value=tool_result):
         result = run_teacher_agent(
             session,
             "帮我出一套期末考试",
@@ -59,7 +59,7 @@ def test_final_clarification_remains_structured(session):
 
 def test_tool_failure_becomes_structured_agent_failure(session):
     tool_result = GeneratePaperToolResult(ok=False, blocking_errors=["scope_not_found"])
-    with patch("calculus_agent.agent.tool_registry.generate_paper_from_input", return_value=tool_result):
+    with patch("calculus_agent.agent.services.generation.generate_paper_from_input", return_value=tool_result):
         result = run_teacher_agent(
             session,
             "帮我出一套第一章测试卷",
@@ -80,8 +80,8 @@ def test_confirmed_generation_becomes_completed(session):
         summary=PaperSummary(total_questions=10, total_score=100, question_type_counts={"选择题": 4}),
     )
     with (
-        patch("calculus_agent.agent.tool_registry.build_structured_generation_request") as build,
-        patch("calculus_agent.agent.tool_registry.generate_paper_from_input", return_value=tool_result),
+        patch("calculus_agent.agent.services.generation.build_structured_generation_request") as build,
+        patch("calculus_agent.agent.services.generation.generate_paper_from_input", return_value=tool_result),
     ):
         from calculus_agent.schemas import PaperBlueprint
         from calculus_agent.agent.schemas import PaperGenerationRequest

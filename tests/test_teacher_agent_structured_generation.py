@@ -313,7 +313,7 @@ def test_llm_generation_request_creates_preview_without_composing(session):
     _scope(session)
     arguments = '{"paper_type":"chapter_test","scope_names":["第一章"]}'
     backend = _Backend(_tool(arguments), _final())
-    with patch("calculus_agent.agent.tool_registry.generate_paper_from_input") as tool:
+    with patch("calculus_agent.agent.services.generation.generate_paper_from_input") as tool:
         result = run_teacher_agent(session, "来套第一章练习", backend=backend)
     assert result.status == "waiting_confirmation"
     assert result.generation_preview and result.generation_preview.total_score == 100
@@ -341,7 +341,7 @@ def test_multiturn_generation_preview_then_confirmation(session):
         summary=PaperSummary(total_questions=5, total_score=50),
     )
     with (
-        patch("calculus_agent.agent.tool_registry.generate_paper_from_input", return_value=success) as tool,
+        patch("calculus_agent.agent.services.generation.generate_paper_from_input", return_value=success) as tool,
     ):
         second = run_teacher_agent(
             session,
