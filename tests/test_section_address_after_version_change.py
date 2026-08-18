@@ -1,6 +1,6 @@
 from sqlalchemy import select
 
-import calculus_agent.agent.tool_registry as tool_registry
+import calculus_agent.agent.services.replacement as replacement_service
 from calculus_agent.agent.tool_registry import (
     AgentExecutionContext,
     build_agent_tools,
@@ -195,7 +195,7 @@ def test_section_address_rebinds_to_current_version_after_delete(
         )
 
     monkeypatch.setattr(
-        tool_registry,
+        replacement_service,
         "dry_run_replace_question",
         fake_dry_run_replace_question,
     )

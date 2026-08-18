@@ -7,10 +7,10 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from calculus_agent.models import AdjustmentPlanRecord, PaperItem, QuestionKnowledgeLink
+from calculus_agent.models import AdjustmentPlanRecord
 from calculus_agent.papers.addressing import QuestionAddress, resolve_section_item
-from .conversation_state import DatabasePendingReplacementStore, PendingReplacement
-from .schemas import GenerationPlanPatch, ReplacementIntent
+from .conversation_state import DatabasePendingReplacementStore
+from .schemas import GenerationPlanPatch
 from .tools.add_tools import AddQuestionPreview, preview_add_question
 from .tools.analysis_tools import (
     KnowledgePreference,
@@ -20,7 +20,10 @@ from .tools.analysis_tools import (
 )
 from .tools.read_tools import ReadCurrentPaperInput, read_current_paper
 from .services.generation import GenerationService, NoPendingGenerationError
-from .tools.replacement_tools import apply_question_replacement, dry_run_replace_question
+from .services.replacement import (
+    ReplacementService,
+    ReplacementServiceError,
+)
 from .tools.version_tools import run_version_operation
 from .version_parser import VersionOperationIntent
 
@@ -251,125 +254,81 @@ def build_agent_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             result_fields={"analysis": result, "blocking_errors": result.blocking_errors},
         )
 
+    replacement_service = ReplacementService(
+        session=session,
+        store=store,
+        conversation_id=context.conversation_id,
+    )
+
     def preview_replacement(raw: BaseModel) -> ExecutedTool:
         values = PreviewReplacementInput.model_validate(raw)
-        if not context.paper_id or not context.version_id:
-            return _failed("no_current_paper", "当前还没有可修改的试卷。")
-        if store and context.conversation_id and store.get(context.conversation_id) is not None:
-            return _failed(
-                "pending_replacement_exists",
-                "当前已有待确认换题方案；必须先确认或取消，不能用新预览静默覆盖。",
+        try:
+            outcome = replacement_service.preview(
+                paper_id=context.paper_id,
+                version_id=context.version_id,
+                address=values.address,
+                position=values.position,
+                difficulty_direction=values.difficulty_direction,
+                target_difficulty=values.target_difficulty,
+                preserve_knowledge_points=values.preserve_knowledge_points,
+                avoid_similarity_with_question_numbers=(
+                    values.avoid_similarity_with_question_numbers
+                ),
             )
+        except ReplacementServiceError as exc:
+            return _failed(exc.code, exc.message)
 
-        if values.address is not None:
-            target_item = resolve_section_item(
-                session,
-                paper_id=context.version_id,
-                section_type=values.address.section_type,
-                section_order=values.address.section_order,
-            )
-            if target_item is None:
-                return _failed(
-                    "question_address_not_found",
-                    f"当前试卷没有{values.address.section_type}第{values.address.section_order}题。",
-                )
-            target_position = target_item.position
-        else:
-            target_position = values.position
-
-        if target_position is None:
-            return _failed("invalid_replacement_target", "没有可解析的换题目标。")
-
-        target_knowledge: list[str] = []
-        if values.preserve_knowledge_points:
-            item = session.scalar(select(PaperItem).where(
-                PaperItem.paper_id == context.version_id,
-                PaperItem.position == target_position,
-            ))
-            if item is not None:
-                target_knowledge = sorted(set(session.scalars(
-                    select(QuestionKnowledgeLink.knowledge_node_id).where(
-                        QuestionKnowledgeLink.question_id == item.question_id
-                    )
-                )))
-                if not target_knowledge:
-                    return _failed(
-                        "current_question_knowledge_missing",
-                        "当前题目没有可验证的知识点标注，无法保证换题后知识点不变。",
-                    )
-        intent = ReplacementIntent(
-            target_position=target_position,
-            difficulty_direction=values.difficulty_direction or "same",
-            target_difficulty=values.target_difficulty,
-            target_knowledge_node_ids=target_knowledge,
-            avoid_similarity_with_question_numbers=values.avoid_similarity_with_question_numbers,
-        )
-        result = dry_run_replace_question(
-            session,
-            paper_id=context.paper_id,
-            version_id=context.version_id,
-            intent=intent,
-        )
+        result = outcome.result
         fields = {
             "replacement_preview": result,
             "warnings": result.warnings,
             "blocking_errors": result.blocking_errors,
         }
         if not result.ok:
-            return ExecutedTool(result.model_dump(mode="json"), "failed", fields)
-        if store is None or not context.conversation_id:
-            return _failed("missing_conversation_context", "无法保存待确认的换题方案。")
-        pending = PendingReplacement(
-            paper_id=context.paper_id,
-            source_version_id=context.version_id,
-            target_position=target_position,
-            old_question_id=result.current_question.question_id,
-            replacement_question_id=result.recommended_question.question_id,
-            difficulty_direction=intent.difficulty_direction,
-            target_difficulty=intent.target_difficulty,
-            preserve_knowledge_points=values.preserve_knowledge_points,
-            required_knowledge_node_ids=target_knowledge,
-            warnings=result.warnings,
-        )
-        store.set(context.conversation_id, pending)
-        fields["pending_action"] = pending
+            return ExecutedTool(
+                result.model_dump(mode="json"),
+                "failed",
+                fields,
+            )
+
+        fields["pending_action"] = outcome.pending_action
         return ExecutedTool(
-            {**result.model_dump(mode="json"), "confirmation_required": True},
+            {
+                **result.model_dump(mode="json"),
+                "confirmation_required": True,
+            },
             "waiting_confirmation",
             fields,
         )
 
     def confirm_replacement(_raw: BaseModel) -> ExecutedTool:
-        pending = store.get(context.conversation_id) if store and context.conversation_id else None
-        if pending is None:
-            return _failed("no_pending_action", "当前没有等待确认的单题替换方案。")
-        result = apply_question_replacement(
-            session,
-            paper_id=pending.paper_id,
-            source_version_id=pending.source_version_id,
-            target_position=pending.target_position,
-            replacement_question_id=pending.replacement_question_id,
-            difficulty_direction=pending.difficulty_direction,
-            target_difficulty=pending.target_difficulty,
-            preserve_knowledge_points=pending.preserve_knowledge_points,
-            required_knowledge_node_ids=pending.required_knowledge_node_ids,
-        )
+        try:
+            result = replacement_service.confirm()
+        except ReplacementServiceError as exc:
+            return _failed(exc.code, exc.message)
+
         if result.ok:
-            store.clear(context.conversation_id)
             context.paper_id = result.new_version_id
             context.version_id = result.new_version_id
         return ExecutedTool(
             result.model_dump(mode="json"),
             "completed" if result.ok else "failed",
-            {"replacement": result, "warnings": result.warnings, "blocking_errors": result.blocking_errors},
+            {
+                "replacement": result,
+                "warnings": result.warnings,
+                "blocking_errors": result.blocking_errors,
+            },
         )
 
     def cancel_replacement(_raw: BaseModel) -> ExecutedTool:
-        pending = store.get(context.conversation_id) if store and context.conversation_id else None
-        if pending is None:
-            return _failed("no_pending_action", "当前没有等待取消的单题替换方案。")
-        store.clear(context.conversation_id)
-        return ExecutedTool({"ok": True, "cancelled": True}, "completed")
+        try:
+            replacement_service.cancel()
+        except ReplacementServiceError as exc:
+            return _failed(exc.code, exc.message)
+        return ExecutedTool(
+            {"ok": True, "cancelled": True},
+            "completed",
+        )
 
     def preview_add(raw: BaseModel) -> ExecutedTool:
         values = PreviewAddQuestionInput.model_validate(raw)
