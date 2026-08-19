@@ -308,18 +308,36 @@ class GenerationService:
             raise PendingGenerationStaleError("stale_pending_plan")
         return pending
 
-    def preview(self, raw_patch: GenerationPlanPatch | BaseModel | dict) -> GenerationPlanPreview:
+    def preview(
+        self,
+        raw_patch: GenerationPlanPatch | BaseModel | dict,
+        *,
+        replace_existing_pending: bool = False,
+    ) -> GenerationPlanPreview:
         patch = GenerationPlanPatch.model_validate(raw_patch)
         patch_values = patch.model_dump(exclude_unset=True)
         unsupported = patch_values.pop("avoid_previous_paper_questions", None)
 
-        pending = self._pending()
+        existing_pending = self._pending()
         memory = self._memory()
 
-        # Preserve the existing Phase 3 precedence exactly.
-        if pending:
-            base_request = pending.request
-        elif memory.generation_summary:
+        # A new top-level task must compile independently from an unrelated
+        # existing pending generation. We intentionally do NOT clear the old
+        # pending here: if the new preview fails validation, the old pending
+        # remains intact. A successful preview atomically overwrites it below.
+        merge_pending = (
+            None
+            if replace_existing_pending
+            else existing_pending
+        )
+
+        # Preserve the existing Phase 3 precedence for normal PATCH flows.
+        if merge_pending:
+            base_request = merge_pending.request
+        elif (
+            not replace_existing_pending
+            and memory.generation_summary
+        ):
             base_request = GeneratePaperInput.model_validate(
                 memory.generation_summary
             )
@@ -335,23 +353,23 @@ class GenerationService:
         else:
             base_request = GeneratePaperInput()
 
-        if pending:
+        if merge_pending:
             if (
                 "question_type_requirements" in patch.model_fields_set
                 and "question_type_patches" not in patch.model_fields_set
             ):
                 if _requirements_match_pending(
-                    pending.request,
+                    merge_pending.request,
                     patch.question_type_requirements,
                 ):
                     patch_values.pop("question_type_requirements", None)
                 else:
                     return GenerationPlanPreview(
                         ok=False,
-                        request=pending.request,
-                        total_questions=pending.request.question_count,
-                        total_score=pending.request.total_score,
-                        sections=pending.request.question_type_requirements or [],
+                        request=merge_pending.request,
+                        total_questions=merge_pending.request.question_count,
+                        total_score=merge_pending.request.total_score,
+                        sections=merge_pending.request.question_type_requirements or [],
                         blocking_errors=["generation_partial_patch_required"],
                         clarification_questions=[
                             "当前已有待确认方案。真实题型变更必须只提交教师本轮明确修改的字段，并使用 question_type_patches；未提到的题型必须保持不变。"
@@ -362,17 +380,17 @@ class GenerationService:
             _merge_question_type_patch(base_request, patch_values)
         )
 
-        if pending:
+        if merge_pending:
             effective_teacher_explicit = (
                 "total_score" in patch.model_fields_set
-                or pending.total_score_source == "teacher_explicit"
+                or merge_pending.total_score_source == "teacher_explicit"
             )
             if effective_teacher_explicit:
                 # Rule A: the teacher explicitly owns the target total score
                 # (stated this round or in a previous round that has not been
                 # cancelled). Keep it and rebalance deterministically.
                 locked_types = (
-                    set(pending.locked_score_question_types)
+                    set(merge_pending.locked_score_question_types)
                     | changed_score_types
                 )
                 balanced, balance_question = _rebalance_scores(
@@ -473,14 +491,14 @@ class GenerationService:
                     total_score_source=(
                         "teacher_explicit"
                         if "total_score" in patch.model_fields_set
-                        else pending.total_score_source
-                        if pending
+                        else merge_pending.total_score_source
+                        if merge_pending
                         else "default_template"
                     ),
                     locked_score_question_types=sorted(
                         (
-                            set(pending.locked_score_question_types)
-                            if pending
+                            set(merge_pending.locked_score_question_types)
+                            if merge_pending
                             else set()
                         )
                         | changed_score_types
@@ -488,8 +506,8 @@ class GenerationService:
                     teaching_design_version_id=(
                         self.teaching_design_version_id
                         if self.teaching_design_version_id is not None
-                        else pending.teaching_design_version_id
-                        if pending
+                        else merge_pending.teaching_design_version_id
+                        if merge_pending
                         else None
                     ),
                 ),

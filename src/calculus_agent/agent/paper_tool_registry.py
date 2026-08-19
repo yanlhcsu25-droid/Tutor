@@ -1,4 +1,4 @@
-"""Stable eight-tool surface for paper generation, reading, changes, and versions."""
+"""Stable paper tool surface for generation, reinforcement, reading, changes, and versions."""
 
 from __future__ import annotations
 
@@ -12,9 +12,10 @@ from .paper_change_service import (
     PaperChangeService,
     PaperChangeServiceError,
 )
-from .schemas import GenerationPlanPatch
+from .schemas import GenerationPlanPatch, PrepareReinforcementPlanInput
 from .services.adjustment import AdjustmentService, AdjustmentServiceError
 from .services.generation import GenerationService, NoPendingGenerationError
+from .services.reinforcement import ReinforcementError, ReinforcementService
 from .services.replacement import ReplacementService, ReplacementServiceError
 from .tool_registry import AgentExecutionContext, AgentTool, EmptyInput, ExecutedTool
 from .tools.analysis_tools import analyze_paper
@@ -27,6 +28,7 @@ PAPER_TOOL_NAMES: tuple[str, ...] = (
     "read_paper",
     "analyze_paper",
     "prepare_generation_plan",
+    "prepare_reinforcement_plan",
     "confirm_generation",
     "preview_paper_changes",
     "confirm_paper_changes",
@@ -66,6 +68,10 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         store=store,
         conversation_id=context.conversation_id,
         expected_pending_generation_version=context.expected_pending_generation_version,
+    )
+    reinforcement_service = ReinforcementService(
+        session=session,
+        generation_service=generation_service,
     )
     adjustment_service = AdjustmentService(
         session=session,
@@ -122,6 +128,39 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             result_fields={
                 "generation_preview": preview,
                 "warnings": preview.warnings,
+                "blocking_errors": preview.blocking_errors,
+                "clarification_questions": preview.clarification_questions,
+            },
+        )
+
+    def prepare_reinforcement(raw: BaseModel) -> ExecutedTool:
+        current_paper_id = context.version_id or context.paper_id
+        if not current_paper_id:
+            return _failed(
+                "no_current_paper",
+                "当前没有可操作的试卷版本，无法根据错题生成巩固卷。",
+            )
+        input_model = PrepareReinforcementPlanInput.model_validate(raw)
+        try:
+            result = reinforcement_service.prepare(
+                current_paper_id,
+                input_model.items,
+            )
+        except ReinforcementError as exc:
+            return _failed(exc.code, exc.message)
+
+        preview = result.preview
+        return ExecutedTool(
+            payload={
+                "ok": preview.ok,
+                "reinforcement_context": result.context.model_dump(mode="json"),
+                "generation_preview": preview.model_dump(mode="json"),
+            },
+            status="waiting_confirmation" if preview.ok else "needs_clarification",
+            result_fields={
+                "reinforcement_context": result.context,
+                "generation_preview": preview,
+                "warnings": [*preview.warnings, *result.context.warnings],
                 "blocking_errors": preview.blocking_errors,
                 "clarification_questions": preview.clarification_questions,
             },
@@ -367,6 +406,12 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             "Create or patch a validated plan for a NEW paper without selecting or mutating questions. This is the generation preview boundary.",
             GenerationPlanPatch,
             prepare_generation,
+        ),
+        AgentTool(
+            "prepare_reinforcement_plan",
+            "Prepare a new reinforcement paper generation plan from wrong-question feedback on the current concrete Paper version. Python resolves the referenced PaperItems and derives knowledge priorities deterministically. This tool creates/updates the existing pending generation preview but does NOT create a Paper. Use confirm_generation only after explicit teacher confirmation.",
+            PrepareReinforcementPlanInput,
+            prepare_reinforcement,
         ),
         AgentTool(
             "confirm_generation",

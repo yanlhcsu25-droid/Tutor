@@ -4,6 +4,7 @@ from calculus_agent.agent.agent import run_teacher_agent
 from calculus_agent.agent.conversation_state import DatabasePendingReplacementStore
 from calculus_agent.agent.schemas import GeneratePaperInput, QuestionTypeRequirement
 from calculus_agent.questions.chapter_assignment import (
+    chapter_display_name,
     sync_question_chapter_ownership,
 )
 from calculus_agent.agent.tools.paper_tools import (
@@ -76,6 +77,7 @@ def _scope(session):
         ),
     ])
     session.flush()
+    return chapter
 
 
 def _candidate(
@@ -299,6 +301,30 @@ def test_scope_and_knowledge_names_resolve_to_database_facts(session):
     ]
 
 
+def test_generation_accepts_curriculum_display_scope_contract(session):
+    """A curriculum-inspection display label must be valid generation input.
+
+    This locks the real integration contract that failed in manual acceptance:
+    inspect_curriculum emits chapter_display_name(...), and the same string is
+    then reused by inspect_question_bank / prepare_generation_plan.
+    """
+    chapter = _scope(session)
+    display_scope = chapter_display_name(chapter)
+    assert display_scope
+
+    request, _, errors, questions = build_structured_generation_request(
+        session,
+        _complex_input(scope_names=[display_scope]),
+    )
+
+    assert errors == []
+    assert questions == []
+    assert request is not None
+    assert set(request.constraints.scope_node_ids) == {
+        "structured-limit", "structured-law", "structured-small",
+    }
+
+
 def test_missing_knowledge_name_returns_structured_error(session):
     _scope(session)
     request, _, errors, questions = build_structured_generation_request(
@@ -428,7 +454,10 @@ def test_direct_generation_forces_blueprint_card_after_env_inspection(session):
         _tool('{"scope_names":["第一章"]}', "inspect_question_bank"),
         _final("建议方案：选择题4道、填空题2道、计算题4道，请确认。"),
         _tool('{"paper_type":"chapter_test","scope_names":["第一章"]}', "prepare_generation_plan"),
-        _final("方案已生成，请确认或调整。"),
+        _final(
+            "组卷设计意图：本套试卷以函数极限基础为主线，重点检查学生对核心方法的掌握情况；"
+            "具体题型与分值请在下方蓝图中调整。"
+        ),
     )
     with patch("calculus_agent.agent.services.generation.generate_paper_from_input") as gen:
         result = run_teacher_agent(
@@ -442,7 +471,10 @@ def test_direct_generation_forces_blueprint_card_after_env_inspection(session):
     assert result.generation_preview.total_score == 100
     assert pending is not None
     assert pending.request.scope_names == ["第一章"]
-    assert result.message == "组卷方案已准备好，可直接在下方蓝图中调整，确认后生成试卷。"
+    assert result.message == (
+        "组卷设计意图：本套试卷以函数极限基础为主线，重点检查学生对核心方法的掌握情况；"
+        "具体题型与分值请在下方蓝图中调整。"
+    )
 
     # Subsequent turn: a single confirm executes generation.
     confirm_backend = _Backend(_tool('{}', "confirm_generation"), _final("已生成。"))
@@ -459,6 +491,62 @@ def test_direct_generation_forces_blueprint_card_after_env_inspection(session):
     assert second.status == "completed"
     gen.assert_called_once()
     assert gen.call_args.args[1].scope_names == ["第一章"]
+
+
+
+def test_new_generation_does_not_expose_new_teaching_design_tools(session):
+    # Fresh generation requests must not regain the retired TeachingDesign entrypoint.
+    _scope(session)
+
+    class _RecordingBackend(_Backend):
+        def __init__(self, *responses):
+            super().__init__(*responses)
+            self.tool_name_sets = []
+
+        def complete(self, messages, tools):
+            self.tool_name_sets.append({
+                item["function"]["name"]
+                for item in tools
+                if isinstance(item, dict)
+                and isinstance(item.get("function"), dict)
+                and item["function"].get("name")
+            })
+            return super().complete(messages, tools)
+
+    backend = _RecordingBackend(
+        _tool(
+            '{"paper_type":"chapter_test","scope_names":["第一章"]}',
+            "prepare_generation_plan",
+        ),
+        _final(
+            "组卷设计意图：本套试卷用于检查第一章核心知识的掌握情况，"
+            "具体题型与分值请在下方蓝图中调整。"
+        ),
+    )
+
+    with patch("calculus_agent.agent.services.generation.generate_paper_from_input") as gen:
+        result = run_teacher_agent(
+            session,
+            "学生函数极限基础还可以，但是等价无穷小掌握不好，给他出一套第一章巩固卷。",
+            conversation_id="no-new-teaching-design-tools",
+            backend=backend,
+        )
+
+    gen.assert_not_called()
+    assert result.status == "waiting_confirmation"
+    assert result.generation_preview is not None
+    assert result.message.startswith("组卷设计意图：")
+
+    forbidden = {
+        "create_teaching_design",
+        "search_teaching_design_history",
+        "activate_teaching_design",
+    }
+    assert backend.tool_name_sets
+    assert all(
+        forbidden.isdisjoint(names)
+        for names in backend.tool_name_sets
+    )
 
 
 def test_teacher_explicit_total_score_rebalanced_on_count_change(session):

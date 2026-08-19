@@ -152,11 +152,19 @@ _SYSTEM_PROMPT = """你是 Teacher Agent。
 
 新建试卷使用 `prepare_generation_plan`。它只准备和校验组卷方案，不创建试卷。教师明确确认当前 pending generation 后，才调用 `confirm_generation`。
 
-明确的新建试卷请求属于 direct generation，不要绕去 TeachingDesign。先按需真实调查 curriculum / question bank（`inspect_curriculum`、`inspect_question_bank`），然后必须在同一轮继续调用 `prepare_generation_plan` 生成可编辑蓝图卡片；不得只返回自然语言建议方案就结束。蓝图卡片本身就是预览：教师可在卡片内修改、用自然语言补充，或点击确认生成；只有“确认生成”调用 `confirm_generation`。`prepare_generation_plan` 成功后，聊天正文只做简短提示，不要再次展开题型数量、每题分值、总分等蓝图明细，避免和卡片重复。
+明确的新建试卷请求属于 direct generation，不要绕去 TeachingDesign。先按需真实调查 curriculum / question bank（`inspect_curriculum`、`inspect_question_bank`），然后必须在同一轮继续调用 `prepare_generation_plan` 生成可编辑蓝图卡片；不得只返回自然语言建议方案就结束。蓝图卡片本身就是预览：教师可在卡片内修改、用自然语言补充，或点击确认生成；只有“确认生成”调用 `confirm_generation`。`prepare_generation_plan` 成功后，聊天正文必须先给教师一个简短的“组卷设计意图”，然后由 GenerationPlanPreview 卡片展示可编辑蓝图。“组卷设计意图”只解释：本套试卷主要针对什么知识或能力、为什么把这些内容作为重点、本次测评希望验证学生哪方面的掌握情况；如果教师提供了学生薄弱点，还要说明当前方案如何针对该薄弱点。设计意图必须基于教师本轮原始要求和真实 Tool Observation，不得编造题库供给、知识点归属或已经执行的组卷结果。聊天正文不要重复卡片中的具体题型数量、每题分值、总分等结构化明细。设计意图只是给教师看的语义解释，不是 Generation Constraint 的 source of truth。
 
 已有 pending generation 时，`prepare_generation_plan` 是 PATCH-only：只提交教师本轮真正改变的字段。题型数量或分值变化使用 `question_type_patches`；禁止重发完整 `question_type_requirements`。Python 会从 pending source of truth 合并未修改字段并确定性重平衡。
 
 教师明确表示“算了、不出了、不要这个方案”时调用 `discard_pending_plan`。它只清除未提交计划，不修改已有试卷。普通修改 pending generation 不需要先 discard。
+
+## 错题反馈与巩固卷
+
+当教师是在反馈当前已生成试卷中的错题，并希望据此继续强化、再出一套、出巩固卷、针对错题练习时，使用 `prepare_reinforcement_plan`。题目引用必须遵循当前 Paper addressing 规则：“选择题第2题”使用 section_type + section_order；只有明确说“全卷第N题”才使用 position；无法唯一定位时必须澄清。
+
+不要根据题目文本自行判断知识点、章节或 reinforcement weight。这些必须来自 `prepare_reinforcement_plan` 的 Tool Observation。`prepare_reinforcement_plan` 只准备新的 GenerationPlanPreview，不创建 Paper。教师明确确认后继续使用 `confirm_generation`。不要为错题反馈新增第二套 confirmation lifecycle，也不要把它解释成高层 TeachingDesign。
+
+Tool 成功后，根据 reinforcement_context 简短说明：哪些知识点成为下一套卷子的强化重点，以及这些重点来自哪些错题 evidence。不要把错题描述成已经证明学生“不会”某知识点，也不要重复蓝图卡中的题型数量、分值、总分。
 
 ## 当前试卷
 
@@ -187,9 +195,10 @@ _SYSTEM_PROMPT = """你是 Teacher Agent。
 
 版本链统一使用 `operate_paper_version(action=undo|redo|restore)`；restore 必须提供 target_version。
 
-## TeachingDesign
+## TeachingDesign 兼容边界
 
-教师表达“怎么教、怎么考、重点是什么、讲义如何组织”等高层教学任务时，走 Environment-Aware TeachingDesign 生命周期：先真实调查 curriculum / question bank，再创建或修改 TeachingDesign。不得用组卷 Tool 绕过尚未确认的教学设计，也不得凭模型常识编造题库供给。
+新的教学讨论或新建试卷请求不再主动创建 TeachingDesign。普通“怎么教、重点是什么”等教学方法讨论可以直接自然语言回答；明确的新建试卷请求继续走 `prepare_generation_plan`。
+只有当前会话已经存在历史未完成的 TeachingDesign（draft / awaiting_confirmation）时，才允许继续读取、修改或确认该旧设计，直到其生命周期结束。不得为新的请求创建新的 TeachingDesign。
 
 ## 执行原则
 
@@ -788,8 +797,23 @@ def run_teacher_agent(
             owner_key=owner_key,
             conversation_id=conversation_id,
         )
-        design_definition_names = teaching_design_tool_names(
+        legacy_teaching_design_active = bool(
             active_teaching_design
+            and active_teaching_design.get("status")
+            in {"draft", "awaiting_confirmation"}
+        )
+        design_definition_names = (
+            [
+                name
+                for name in teaching_design_tool_names(active_teaching_design)
+                if name in {
+                    "read_active_teaching_design",
+                    "revise_teaching_design",
+                    "confirm_teaching_design",
+                }
+            ]
+            if legacy_teaching_design_active
+            else []
         )
         environment_definition_names = (
             environment_inspection_tool_names()
@@ -814,6 +838,28 @@ def run_teacher_agent(
             definition_names = list(PAPER_TOOL_NAMES)
         else:
             definition_names = list(tools)
+
+        # TeachingDesign is legacy compatibility only.
+        # New requests must never expose TeachingDesign creation/history tools.
+        teaching_design_tool_names_all = {
+            "read_active_teaching_design",
+            "create_teaching_design",
+            "revise_teaching_design",
+            "confirm_teaching_design",
+            "search_teaching_design_history",
+            "activate_teaching_design",
+        }
+        definition_names = [
+            name
+            for name in definition_names
+            if (
+                name not in teaching_design_tool_names_all
+                or (
+                    legacy_teaching_design_active
+                    and name in design_definition_names
+                )
+            )
+        ]
 
         definition_names = list(dict.fromkeys(
             name for name in definition_names if name in tools
@@ -876,9 +922,7 @@ def run_teacher_agent(
             or pending
             or pending_adjustment
         )
-        teaching_design_skill_active = not bool(
-            pending or pending_adjustment or pending_generation
-        )
+        teaching_design_skill_active = legacy_teaching_design_active
 
         system_parts = [
             _SYSTEM_PROMPT.strip(),
@@ -887,9 +931,10 @@ def run_teacher_agent(
         if teaching_design_skill_active:
             system_parts.extend([
                 (
-                    "以下 active_skill 是 TeachingDesign 业务契约。"
-                    "当教师表达的是高层教学任务、修改教学设计、确认设计或恢复历史设计时，"
-                    "必须遵守该 Skill；不得把聊天记录当作设计业务事实。"
+                    "当前会话存在历史未完成 TeachingDesign。"
+                    "以下 active_skill 仅用于继续读取、修改或确认这个既有设计，"
+                    "直到其生命周期结束；不得为新的教学讨论或新建试卷请求创建新的 TeachingDesign。"
+                    "不得把聊天记录当作设计业务事实。"
                 ),
                 load_skill_bundle(
                     TEACHING_DESIGN_SKILL
@@ -1152,6 +1197,10 @@ def run_teacher_agent(
                             call["tool_name"] in design_definition_names
                             for call in trace_calls
                         )
+                        and not any(
+                            call["tool_name"] in teaching_design_tool_names_all
+                            for call in trace_calls
+                        )
                     ):
                         messages.extend([
                             {"role": "assistant", "content": content.strip()},
@@ -1162,8 +1211,10 @@ def run_teacher_agent(
                                     "环境调查已经完成。请重新依据教师本轮原始请求判断下一步，"
                                     "不要因为调用过 inspect_curriculum / inspect_question_bank 就默认教师要组卷。"
                                     "如果教师明确要新建/生成试卷，必须在同一轮调用 prepare_generation_plan，"
-                                    "生成可编辑 GenerationPlanPreview；蓝图卡片就是唯一预览，之后只需一次确认生成。"
-                                    "如果教师表达的是高层教学设计目标，继续使用对应 TeachingDesign Tool。"
+                                    "生成可编辑 GenerationPlanPreview；Tool 成功后先用聊天正文给出简短的组卷设计意图，"
+                                    "再由蓝图卡片展示可编辑结构，之后只需一次确认生成。"
+                                    "如果教师只是讨论教学方法、讲课重点或复习建议，直接自然语言回答，"
+                                    "不要创建 TeachingDesign，也不要创建 PendingGeneration。"
                                     "如果教师只是查询课程或题库事实，直接基于已有 Tool Observation 回答，"
                                     "严禁创建 PendingGeneration。"
                                     "</post_inspection_intent_recheck>"
@@ -1526,15 +1577,13 @@ def run_teacher_agent(
         elif pending_query_possible and turn_status == "waiting_confirmation":
             turn_status = "completed"
 
-        generation_preview = result_values.get("generation_preview")
-        if (
-            generation_preview is not None
-            and getattr(generation_preview, "ok", False)
-            and turn_status == "waiting_confirmation"
-        ):
-            final_text = (
-                "组卷方案已准备好，可直接在下方蓝图中调整，确认后生成试卷。"
-            )
+        # A successful generation preview already caused one post-Tool LLM
+        # response. Preserve that model-authored response so it can explain the
+        # generation design intent. GenerationPlanPreview remains the structured,
+        # executable source of truth shown by the editable blueprint card.
+        #
+        # Do not deterministically overwrite final_text here: doing so would erase
+        # the semantic rationale while adding no business-state safety.
 
         if "avoid_previous_paper_questions_unsupported" in result_values["warnings"]:
             final_text = (

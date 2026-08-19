@@ -112,7 +112,28 @@ def _seed_curriculum(session):
     session.flush()
 
 
-def test_real_conversation_create_revise_confirm_is_versioned_and_traceable(
+def test_fresh_request_does_not_expose_teaching_design_creation(session):
+    # TeachingDesign is legacy-only: a fresh request must never resurrect
+    # create/search/activate TeachingDesign tools, even for a teaching task.
+    conversation_id = "fresh-request"
+    _seed_curriculum(session)
+    backend = ScriptedBackend([_text("我先了解下你的需求。")])
+    run_teacher_agent(
+        session,
+        "第一到第三章做一次90分钟期中复习，中等偏难。",
+        conversation_id=conversation_id,
+        backend=backend,
+    )
+    surface = _tool_names(backend.requests[0])
+    assert "prepare_generation_plan" in surface
+    assert "inspect_curriculum" in surface
+    assert "inspect_question_bank" in surface
+    assert "create_teaching_design" not in surface
+    assert "search_teaching_design_history" not in surface
+    assert "activate_teaching_design" not in surface
+
+
+def test_real_conversation_revise_confirm_legacy_design_is_versioned_and_traceable(
     session,
     monkeypatch,
 ):
@@ -149,62 +170,17 @@ def test_real_conversation_create_revise_confirm_is_versioned_and_traceable(
         FakePaperGenerationService,
     )
 
-    create_backend = ScriptedBackend([
-        _call(
-            "inspect_curriculum",
-            {
-                "scope_names": [
-                    "第一章",
-                    "第二章",
-                    "第三章",
-                ]
-            },
-        ),
-        _call(
-            "inspect_question_bank",
-            {
-                "scope_names": [
-                    "第一章",
-                    "第二章",
-                    "第三章",
-                ],
-                "detail_level": "aggregate",
-            },
-        ),
-        _call(
-            "create_teaching_design",
-            {"content": _design_content()},
-        ),
-        _text("我已经基于当前课程与题库环境形成第一版教学设计，请你确认或继续修改。"),
-    ])
-    created_result = run_teacher_agent(
-        session,
-        "第一到第三章做一次90分钟期中复习，中等偏难。",
+    # TeachingDesign is legacy-only: fresh requests no longer create a new
+    # design. Seed an awaiting-confirmation design to exercise the remaining
+    # legacy lifecycle (revise -> confirm).
+    service = TeachingDesignService(session)
+    seeded = service.create(
+        owner_key="local_teacher",
         conversation_id=conversation_id,
-        backend=create_backend,
+        content=_design_content(),
+        run_id="seed-create",
+        source_user_message="第一到第三章做一次90分钟期中复习，中等偏难。",
     )
-
-    assert created_result.status == "waiting_confirmation"
-    assert created_result.teaching_design is not None
-    assert created_result.teaching_design.version == 1
-    assert created_result.teaching_design.status == "awaiting_confirmation"
-    assert created_result.teaching_design.created_by_run_id == created_result.run_id
-    assert {
-        item.kind
-        for item in created_result.teaching_design.content.evidence_refs
-    } == {
-        "curriculum_scope",
-        "question_bank_aggregate",
-    }
-
-    first_surface = _tool_names(create_backend.requests[0])
-    assert "inspect_curriculum" in first_surface
-    assert "inspect_question_bank" in first_surface
-    assert "create_teaching_design" in first_surface
-
-    # After create succeeds, runtime removes write tools for the rest of this
-    # teacher turn so the model cannot auto-confirm its own proposal.
-    assert create_backend.requests[3][1] == []
 
     revise_backend = ScriptedBackend([
         _call(
@@ -233,19 +209,13 @@ def test_real_conversation_create_revise_confirm_is_versioned_and_traceable(
     assert revised_result.teaching_design.version == 2
     assert (
         revised_result.teaching_design.parent_version_id
-        == created_result.teaching_design.version_id
+        == seeded.version_id
     )
     assert revised_result.teaching_design.created_by_run_id == revised_result.run_id
     assert "revise_teaching_design" in _tool_names(revise_backend.requests[0])
     assert "confirm_teaching_design" in _tool_names(revise_backend.requests[0])
+    assert "create_teaching_design" not in _tool_names(revise_backend.requests[0])
     assert revise_backend.requests[1][1] == []
-
-    # No scope change: existing evidence remains valid and no mandatory re-scan
-    # is introduced for a simple priority edit.
-    assert (
-        revised_result.teaching_design.content.evidence_refs
-        == created_result.teaching_design.content.evidence_refs
-    )
 
     confirm_backend = ScriptedBackend([
         _call("confirm_teaching_design", {}),
@@ -271,7 +241,6 @@ def test_real_conversation_create_revise_confirm_is_versioned_and_traceable(
         == confirmed_result.run_id
     )
 
-    service = TeachingDesignService(session)
     active = service.get_active(
         owner_key="local_teacher",
         conversation_id=conversation_id,
@@ -280,7 +249,7 @@ def test_real_conversation_create_revise_confirm_is_versioned_and_traceable(
     assert active.version_id == confirmed_result.teaching_design.version_id
     assert active.status == "confirmed"
 
-    v1 = service.get(created_result.teaching_design.version_id)
+    v1 = service.get(seeded.version_id)
     assert v1.status == "superseded"
     assert v1.superseded_by_version_id == active.version_id
 
@@ -294,17 +263,8 @@ def test_real_conversation_create_revise_confirm_is_versioned_and_traceable(
         ).all()
     )
     assert [trace.run_id for trace in traces] == [
-        created_result.run_id,
         revised_result.run_id,
         confirmed_result.run_id,
     ]
-    assert [
-        item["tool_name"]
-        for item in traces[0].tool_calls_json
-    ] == [
-        "inspect_curriculum",
-        "inspect_question_bank",
-        "create_teaching_design",
-    ]
-    assert traces[1].tool_calls_json[0]["tool_name"] == "revise_teaching_design"
-    assert traces[2].tool_calls_json[0]["tool_name"] == "confirm_teaching_design"
+    assert traces[0].tool_calls_json[0]["tool_name"] == "revise_teaching_design"
+    assert traces[1].tool_calls_json[0]["tool_name"] == "confirm_teaching_design"

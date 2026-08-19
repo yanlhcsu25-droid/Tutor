@@ -8,6 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from calculus_agent.papers.addressing import QuestionAddress
 from calculus_agent.schemas import PaperBlueprint
 
 
@@ -91,6 +92,42 @@ class GenerationPlanPatch(GeneratePaperInput):
     avoid_previous_paper_questions: bool | None = Field(
         default=None, description="Teacher preference only; currently unsupported by generation."
     )
+
+
+class FeedbackItemInput(BaseModel):
+    """One teacher-reported wrong item against the current concrete Paper version.
+
+    Exactly one of ``address`` (section-local) or ``position`` (whole-paper)
+    must be supplied. ``teacher_note`` is raw observation text only and never
+    feeds reinforcement weight in V1.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    address: QuestionAddress | None = None
+    position: int | None = Field(default=None, ge=1)
+    teacher_note: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def address_or_position_exclusive(self) -> "FeedbackItemInput":
+        if (self.address is None) == (self.position is None):
+            raise ValueError(
+                "必须且只能提供 address（题型内题号）或 position（全卷题号）之一。"
+            )
+        return self
+
+
+class PrepareReinforcementPlanInput(BaseModel):
+    """Tool arguments for ``prepare_reinforcement_plan``.
+
+    The model must NOT supply any database id (paper_id, question_id,
+    knowledge_node_id, weight, …); Python resolves everything from the real
+    current Paper version.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[FeedbackItemInput] = Field(min_length=1, max_length=100)
 
 
 class AgentWorkingMemory(BaseModel):
