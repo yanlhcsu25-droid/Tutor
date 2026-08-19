@@ -86,8 +86,11 @@ def _question(session, number: int, difficulty: int, knowledge_id: str) -> Quest
         draft_id=draft.id,
         question_text=draft.question_text,
         question_type="计算题",
+        solution_json={"solution_steps": [f"测试解析{number}"]},
         verification_status="verified",
         review_status="approved",
+        is_active=True,
+        knowledge_match_status="current",
     )
     session.add(question)
     session.flush()
@@ -114,7 +117,6 @@ def _question(session, number: int, difficulty: int, knowledge_id: str) -> Quest
     ])
     return question
 
-
 def _paper(session) -> Paper:
     node = KnowledgeNode(
         id="tracing-k",
@@ -132,7 +134,12 @@ def _paper(session) -> Paper:
         id="tracing-bp",
         title="追踪测试卷",
         status="draft",
-        blueprint_json={"_agent_metadata": {"scope_node_ids": [node.id]}},
+        blueprint_json={
+            "total_questions": 3,
+            "total_score": 30,
+            "question_type_counts": {"计算题": 3},
+            "_agent_metadata": {"scope_node_ids": [node.id]},
+        },
     )
     paper = Paper(
         id="tracing-paper",
@@ -157,10 +164,6 @@ def _paper(session) -> Paper:
         ))
     session.flush()
     return paper
-
-
-# ── invariant helpers ──
-
 
 def _get_run(session, run_id: str) -> TeacherAgentRunTrace:
     run = session.scalar(
@@ -292,7 +295,7 @@ def test_tool_exception_records_error_span(session, monkeypatch):
     monkeypatch.setattr(Toolkit, "execute", boom)
     paper = _paper(session)
     backend = SequenceBackend(
-        tool_call("read_current_paper", {"positions": [3]}),
+        tool_call("read_paper", {"positions": [3]}),
         final("done"),
     )
     result = run_teacher_agent(
@@ -343,10 +346,16 @@ def test_multi_turn_same_conversation_distinct_run_ids(session):
 def test_tool_using_turn_produces_full_span_tree(session):
     paper = _paper(session)
     backend = SequenceBackend(
-        tool_call("read_current_paper", {"positions": [3]}, call_id="read-3"),
+        tool_call("read_paper", {"positions": [3]}, call_id="read-3"),
         tool_call(
-            "preview_replace_question",
-            {"position": 3, "difficulty_direction": "easier"},
+            "preview_paper_changes",
+            {
+                "operations": [{
+                    "type": "replace_question",
+                    "target": {"section_type": "计算题", "section_order": 3},
+                    "difficulty_direction": "easier",
+                }]
+            },
             call_id="replace-3",
         ),
         final("已找到第3题更简单的替代题，请确认。"),
@@ -357,28 +366,24 @@ def test_tool_using_turn_produces_full_span_tree(session):
     )
     assert result.status == "waiting_confirmation"
     assert result.run_id is not None
-    run, spans = assert_run_invariants(session, result.run_id, expect_status="waiting_confirmation")
+    run, spans = assert_run_invariants(
+        session, result.run_id, expect_status="waiting_confirmation"
+    )
 
     types = [s.span_type for s in spans]
     assert types.count("model_call") >= 1
-    assert types.count("tool_call") == 2  # read_current_paper + preview_replace_question
-    # A pending action was created -> working memory changed -> state_transition.
+    assert types.count("tool_call") == 2
     assert types.count("state_transition") >= 1
 
     tool_spans = [s for s in spans if s.span_type == "tool_call"]
     for s in tool_spans:
-        assert s.status == "success"  # business success path
-        assert s.parent_span_id is not None  # linked under the run
+        assert s.status == "success"
+        assert s.parent_span_id is not None
 
-    # The state_transition span must hang off a tool_call span in the same run.
     tool_ids = {s.span_id for s in tool_spans}
     for s in spans:
         if s.span_type == "state_transition":
             assert s.parent_span_id in tool_ids
-
-
-# ── 8. GET endpoints are queryable (local trace is source of truth) ──
-
 
 def _client(session) -> TestClient:
     app = FastAPI()
@@ -393,7 +398,7 @@ def test_get_run_by_run_id_and_list_by_conversation(session):
         session, "第3题是什么？", conversation_id="t-get",
         paper_id=paper.id, version_id=paper.id,
         backend=SequenceBackend(
-            tool_call("read_current_paper", {"positions": [3]}),
+            tool_call("read_paper", {"positions": [3]}),
             final("第3题是“追踪测试题干3”。"),
         ),
     )

@@ -144,7 +144,7 @@ def test_read_specific_question_returns_real_content_options_and_metadata(sessio
 def test_agent_executes_llm_read_for_specific_question(session, message, position, expected):
     paper = _seed_paper(session)
     backend = _Backend(
-        _tool("read_current_paper", f'{{"positions":[{position}]}}'),
+        _tool("read_paper", f'{{"positions":[{position}]}}'),
         _final(f"读取完成：{expected}"),
     )
     result = run_teacher_agent(
@@ -163,7 +163,7 @@ def test_agent_executes_llm_read_for_specific_question(session, message, positio
 def test_explicit_whole_paper_question_read_is_narrowed_when_model_omits_positions(session):
     paper = _seed_paper(session)
     backend = _Backend(
-        _tool("read_current_paper"),
+        _tool("read_paper"),
         _final("第五题已读取。"),
     )
 
@@ -190,7 +190,7 @@ def test_explicit_whole_paper_question_read_is_narrowed_when_model_omits_positio
 @pytest.mark.parametrize("message", ["给我看看现在这套卷", "这套卷一共多少题？"])
 def test_agent_reads_bounded_whole_paper_overview(session, message):
     paper = _seed_paper(session)
-    backend = _Backend(_tool("read_current_paper"), _final("当前试卷共5题。"))
+    backend = _Backend(_tool("read_paper"), _final("当前试卷共5题。"))
     result = run_teacher_agent(
         session,
         message,
@@ -208,7 +208,7 @@ def test_agent_reads_bounded_whole_paper_overview(session, message):
 
 def test_read_without_current_paper_fails_without_generation(session):
     backend = _Backend(
-        _tool("read_current_paper", '{"positions":[1]}'),
+        _tool("read_paper", '{"positions":[1]}'),
         _final("当前还没有可查看的试卷。"),
     )
     result = run_teacher_agent(
@@ -245,7 +245,7 @@ def test_read_is_read_only_and_trace_contains_validated_arguments(session):
     versions_before = session.scalar(select(func.count()).select_from(Paper))
     items_before = session.scalar(select(func.count()).select_from(PaperItem))
     backend = _Backend(
-        _tool("read_current_paper", '{"positions":[1]}'),
+        _tool("read_paper", '{"positions":[1]}'),
         _final("第1题读取完成。"),
     )
     result = run_teacher_agent(
@@ -262,7 +262,7 @@ def test_read_is_read_only_and_trace_contains_validated_arguments(session):
         )
     ))
     assert result.status == "completed"
-    assert traces[0].tool_calls_json[0]["tool_name"] == "read_current_paper"
+    assert traces[0].tool_calls_json[0]["tool_name"] == "read_paper"
     assert traces[0].tool_calls_json[0]["arguments"]["positions"] == [1]
     assert session.scalar(select(func.count()).select_from(Paper)) == versions_before
     assert session.scalar(select(func.count()).select_from(PaperItem)) == items_before
@@ -273,38 +273,55 @@ def test_tool_description_keeps_read_analyze_and_replace_separate():
     tools = build_agent_tools(AgentExecutionContext(
         session=None, conversation_id=None, paper_id=None, version_id=None, state_store=None
     ))
-    read_description = tools["read_current_paper"].description
-    analysis_description = tools["analyze_current_paper"].description
-    replacement_description = tools["preview_replace_question"].description
+    read_description = tools["read_paper"].description
+    analysis_description = tools["analyze_paper"].description
+    replacement_description = tools["preview_paper_changes"].description
 
     assert "Read the concrete current paper" in read_description
     assert "Read-only" in read_description
-    assert "Analyze difficulty" in analysis_description
-    assert "requires later confirmation" in replacement_description
-    assert "Analyze difficulty" not in read_description
+    assert "Deterministically analyze" in analysis_description
+    assert "Preview one coherent change plan" in replacement_description
+    assert "never mutates Paper state" in replacement_description
+    assert "Deterministically analyze" not in read_description
 
-
-def test_existing_analysis_and_replacement_actions_are_not_shadowed(session):
+def test_existing_analysis_and_paper_change_actions_are_not_shadowed(session):
     paper = _seed_paper(session)
+
     analysis = run_teacher_agent(
         session,
         "分析一下这张卷",
         paper_id=paper.id,
         version_id=paper.id,
-        backend=_Backend(_tool("analyze_current_paper"), _final("分析完成。")),
+        backend=_Backend(
+            _tool("analyze_paper"),
+            _final("分析完成。"),
+        ),
     )
     assert analysis.analysis is not None
-    replacement_backend = _Backend(
-        _tool("preview_replace_question", '{"position":1,"difficulty_direction":"same"}'),
-        _final("替换预览完成。"),
-    )
-    replacement = run_teacher_agent(
+
+    change = run_teacher_agent(
         session,
-        "第一题换一道",
-        conversation_id="read-replace-boundary",
+        "选择题第1题改成3分",
+        conversation_id="read-change-boundary",
         paper_id=paper.id,
         version_id=paper.id,
-        backend=replacement_backend,
+        backend=_Backend(
+            _tool(
+                "preview_paper_changes",
+                """{"operations":[{
+                    "type":"change_question_score",
+                    "target":{
+                        "section_type":"选择题",
+                        "section_order":1
+                    },
+                    "score":3
+                }]}"""
+            ),
+            _final("修改预览完成。"),
+        ),
     )
-    assert replacement.paper_read is None
-    assert replacement.status in {"waiting_confirmation", "failed"}
+
+    assert change.paper_read is None
+    assert change.adjustment_preview is not None
+    assert change.adjustment_preview.ok
+    assert change.status == "waiting_confirmation"

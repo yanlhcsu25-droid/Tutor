@@ -1,12 +1,11 @@
 from sqlalchemy import select
 
-import calculus_agent.agent.services.replacement as replacement_service
+from calculus_agent.agent.paper_change_service import PaperChangeService
 from calculus_agent.agent.tool_registry import (
     AgentExecutionContext,
     build_agent_tools,
     execute_tool,
 )
-from calculus_agent.agent.tools.replacement_tools import ReplacementDryRunResult
 from calculus_agent.models import (
     Paper,
     PaperBlueprintRecord,
@@ -64,20 +63,7 @@ def _items(session, paper_id: str) -> list[PaperItem]:
     )
 
 
-def test_section_address_rebinds_to_current_version_after_delete(
-    session,
-    monkeypatch,
-):
-    """
-    Regression contract:
-
-        v1 choices: A, B, C, D
-        delete B
-        v2 choices: A, C, D
-
-    Then "选择题第2题" on v2 MUST resolve to C, not stale B.
-    """
-
+def test_section_address_rebinds_to_current_version_after_delete(session, monkeypatch):
     blueprint = PaperBlueprintRecord(
         title="section address regression",
         blueprint_json={},
@@ -100,38 +86,26 @@ def test_section_address_rebinds_to_current_version_after_delete(
     session.flush()
 
     questions = {
-        label: _question(
-            session,
-            source_item_id=label,
-            text=label,
-            question_type="选择题",
-        )
+        label: _question(session, source_item_id=label, text=label, question_type="选择题")
         for label in ("A", "B", "C", "D")
     }
-
     for position, label in enumerate(("A", "B", "C", "D"), start=1):
-        session.add(
-            PaperItem(
-                paper_id=v1.id,
-                question_id=questions[label].id,
-                section="选择题",
-                position=position,
-                score=5,
-                locked=False,
-            )
-        )
+        session.add(PaperItem(
+            paper_id=v1.id,
+            question_id=questions[label].id,
+            section="选择题",
+            position=position,
+            score=5,
+            locked=False,
+        ))
     session.flush()
 
     old_second = resolve_section_item_from_items(
-        _items(session, v1.id),
-        section_type="选择题",
-        section_order=2,
+        _items(session, v1.id), section_type="选择题", section_order=2
     )
     assert old_second is not None
     assert old_second.question_id == questions["B"].id
 
-    # Simulate the child version after deleting B.
-    # Global positions are reindexed in the new version.
     v2 = Paper(
         blueprint_id=blueprint.id,
         root_paper_id=v1.id,
@@ -144,24 +118,19 @@ def test_section_address_rebinds_to_current_version_after_delete(
     )
     session.add(v2)
     session.flush()
-
     for position, label in enumerate(("A", "C", "D"), start=1):
-        session.add(
-            PaperItem(
-                paper_id=v2.id,
-                question_id=questions[label].id,
-                section="选择题",
-                position=position,
-                score=5,
-                locked=False,
-            )
-        )
+        session.add(PaperItem(
+            paper_id=v2.id,
+            question_id=questions[label].id,
+            section="选择题",
+            position=position,
+            score=5,
+            locked=False,
+        ))
     session.flush()
 
     new_second = resolve_section_item_from_items(
-        _items(session, v2.id),
-        section_type="选择题",
-        section_order=2,
+        _items(session, v2.id), section_type="选择题", section_order=2
     )
     assert new_second is not None
     assert new_second.question_id == questions["C"].id
@@ -169,36 +138,16 @@ def test_section_address_rebinds_to_current_version_after_delete(
 
     observed: dict[str, object] = {}
 
-    def fake_dry_run_replace_question(
-        db_session,
-        *,
-        paper_id: str,
-        version_id: str,
-        intent,
+    def fake_select_replacement(
+        self, *, version, items_by_position, position, change,
+        candidates, profiles, knowledge, occupied,
     ):
-        target = db_session.scalar(
-            select(PaperItem).where(
-                PaperItem.paper_id == version_id,
-                PaperItem.position == intent.target_position,
-            )
-        )
-        observed["version_id"] = version_id
-        observed["target_position"] = intent.target_position
-        observed["question_id"] = target.question_id if target else None
+        observed["version_id"] = version.id
+        observed["target_position"] = position
+        observed["question_id"] = items_by_position[position].question_id
+        return None, "sentinel_stop_after_resolution", []
 
-        return ReplacementDryRunResult(
-            ok=False,
-            paper_id=paper_id,
-            version_id=version_id,
-            target_position=intent.target_position,
-            blocking_errors=["sentinel_stop_after_resolution"],
-        )
-
-    monkeypatch.setattr(
-        replacement_service,
-        "dry_run_replace_question",
-        fake_dry_run_replace_question,
-    )
+    monkeypatch.setattr(PaperChangeService, "_select_replacement", fake_select_replacement)
 
     context = AgentExecutionContext(
         session=session,
@@ -208,26 +157,20 @@ def test_section_address_rebinds_to_current_version_after_delete(
         state_store=None,
     )
     tools = build_agent_tools(context)
-
     result = execute_tool(
-        tools["preview_replace_question"],
+        tools["preview_paper_changes"],
         {
-            "address": {
-                "section_type": "选择题",
-                "section_order": 2,
-            },
-            "difficulty_direction": "same",
+            "operations": [{
+                "type": "replace_question",
+                "target": {"section_type": "选择题", "section_order": 2},
+                "difficulty_direction": "same",
+            }]
         },
     )
 
-    # The fake engine intentionally stops after the Tool boundary resolved the address.
-    assert result.payload["blocking_errors"] == [
-        "sentinel_stop_after_resolution"
-    ]
-
-    # Critical assertion: replacement is bound to the CURRENT version,
-    # and therefore hits C rather than deleted/stale B.
+    assert "sentinel_stop_after_resolution" in result.payload["blocking_errors"]
     assert observed["version_id"] == v2.id
     assert observed["target_position"] == 2
     assert observed["question_id"] == questions["C"].id
     assert observed["question_id"] != questions["B"].id
+

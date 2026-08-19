@@ -1,43 +1,81 @@
 import pytest
 from pydantic import ValidationError
 
-from calculus_agent.agent.tool_registry import PreviewReplacementInput
-from calculus_agent.papers.addressing import QuestionAddress
+from calculus_agent.agent.paper_change_service import (
+    PaperChangeRequest,
+    ReplaceQuestionChange,
+)
 
 
-def test_preview_replacement_accepts_section_address():
-    request = PreviewReplacementInput(
-        address=QuestionAddress(section_type="填空题", section_order=2),
-        difficulty_direction="easier",
+def test_replace_question_accepts_section_address():
+    request = PaperChangeRequest(
+        operations=[
+            {
+                "type": "replace_question",
+                "target": {
+                    "section_type": "填空题",
+                    "section_order": 2,
+                },
+                "difficulty_direction": "easier",
+            }
+        ]
     )
-    assert request.address is not None
-    assert request.address.section_type == "填空题"
-    assert request.address.section_order == 2
-    assert request.position is None
+
+    operation = request.operations[0]
+
+    assert isinstance(operation, ReplaceQuestionChange)
+    assert operation.target.section_type == "填空题"
+    assert operation.target.section_order == 2
+    assert operation.difficulty_direction == "easier"
 
 
-def test_preview_replacement_keeps_legacy_internal_position():
-    request = PreviewReplacementInput(position=4, difficulty_direction="harder")
-    assert request.position == 4
-    assert request.address is None
-
-
-def test_preview_replacement_rejects_mixed_address_modes():
+def test_replace_question_rejects_legacy_internal_position():
     with pytest.raises(ValidationError):
-        PreviewReplacementInput(
-            address=QuestionAddress(section_type="填空题", section_order=2),
-            position=4,
-            difficulty_direction="easier",
+        PaperChangeRequest(
+            operations=[
+                {
+                    "type": "replace_question",
+                    "position": 4,
+                    "difficulty_direction": "harder",
+                }
+            ]
         )
 
 
-def test_preview_replacement_requires_one_target():
+def test_replace_question_rejects_mixed_address_modes():
     with pytest.raises(ValidationError):
-        PreviewReplacementInput(difficulty_direction="easier")
+        PaperChangeRequest(
+            operations=[
+                {
+                    "type": "replace_question",
+                    "target": {
+                        "section_type": "填空题",
+                        "section_order": 2,
+                    },
+                    "position": 4,
+                    "difficulty_direction": "easier",
+                }
+            ]
+        )
 
 
-def test_preview_replacement_schema_marks_position_as_legacy():
-    schema = PreviewReplacementInput.model_json_schema()
-    assert "address" in schema["properties"]
-    assert "position" in schema["properties"]
-    assert "Legacy internal global" in schema["properties"]["position"]["description"]
+def test_replace_question_requires_target():
+    with pytest.raises(ValidationError):
+        PaperChangeRequest(
+            operations=[
+                {
+                    "type": "replace_question",
+                    "difficulty_direction": "easier",
+                }
+            ]
+        )
+
+
+def test_replace_question_schema_exposes_only_teacher_facing_target():
+    schema = ReplaceQuestionChange.model_json_schema()
+    properties = schema["properties"]
+
+    assert "target" in properties
+    assert "position" not in properties
+    assert "difficulty_direction" in properties
+    assert "preserve_knowledge_points" in properties

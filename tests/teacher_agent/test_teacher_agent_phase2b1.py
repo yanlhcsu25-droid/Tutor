@@ -10,7 +10,7 @@ class _Backend:
     def complete(self, messages, tools): return self.responses.pop(0)
 
 
-def _generate(arguments, name="preview_generation_plan"):
+def _generate(arguments, name="prepare_generation_plan"):
     return {"message": {"tool_calls": [{
         "id": "generate",
         "type": "function",
@@ -99,7 +99,7 @@ def test_confirmed_generation_becomes_completed(session):
             session,
             "确认组卷",
             conversation_id="confirmed-generation",
-            backend=_Backend(_generate({}, "confirm_generation_plan"), _final("已完成组卷。")),
+            backend=_Backend(_generate({}, "confirm_generation"), _final("已完成组卷。")),
         )
     assert preview.status == "waiting_confirmation"
     assert result.status == "completed"

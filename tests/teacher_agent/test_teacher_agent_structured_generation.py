@@ -31,7 +31,7 @@ class _Backend:
         return self.responses.pop(0)
 
 
-def _tool(arguments: str, name: str = "preview_generation_plan") -> dict:
+def _tool(arguments: str, name: str = "prepare_generation_plan") -> dict:
     return {
         "message": {
             "tool_calls": [{"id": "generate-call", "type": "function", "function": {"name": name, "arguments": arguments}}]
@@ -334,7 +334,7 @@ def test_multiturn_generation_preview_then_confirmation(session):
     )
     assert first.status == "waiting_confirmation"
     backend = _Backend(
-        _tool('{}', "confirm_generation_plan"),
+        _tool('{}', "confirm_generation"),
         _final(),
     )
     success = GeneratePaperToolResult(

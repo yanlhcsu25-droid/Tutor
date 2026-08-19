@@ -389,9 +389,22 @@ _GLOBAL_QUESTION_PATTERN = re.compile(
 )
 _CHINESE_DIGITS = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 
+_KNOWLEDGE_CONSTRAINT_TARGET = r"(?:知识点|考点)"
+_KNOWLEDGE_PRESERVE_ACTION = (
+    r"(?:保持|保留|不变|别变|不要变|"
+    r"不动|别动|不要动|"
+    r"不改|别改|不要改|"
+    r"不调整|别调整|不要调整)"
+)
+_KNOWLEDGE_CONSTRAINT_GAP = r"[^。！？,，；;]{0,6}"
+
 _PRESERVE_KNOWLEDGE_POINTS_PATTERN = re.compile(
-    r"(?:知识点|考点).{0,6}(?:不变|别变|不要变|保持|保留)"
-    r"|(?:保持|保留).{0,6}(?:原)?(?:知识点|考点)"
+    rf"{_KNOWLEDGE_CONSTRAINT_TARGET}"
+    rf"{_KNOWLEDGE_CONSTRAINT_GAP}"
+    rf"{_KNOWLEDGE_PRESERVE_ACTION}"
+    rf"|{_KNOWLEDGE_PRESERVE_ACTION}"
+    rf"{_KNOWLEDGE_CONSTRAINT_GAP}"
+    rf"(?:原)?{_KNOWLEDGE_CONSTRAINT_TARGET}"
 )
 
 

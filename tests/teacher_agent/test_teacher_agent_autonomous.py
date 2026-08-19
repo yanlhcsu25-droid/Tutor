@@ -62,8 +62,11 @@ def _question(session, number: int, difficulty: int, knowledge_id: str) -> Quest
         draft_id=draft.id,
         question_text=draft.question_text,
         question_type="计算题",
+        solution_json={"solution_steps": [f"测试解析{number}"]},
         verification_status="verified",
         review_status="approved",
+        is_active=True,
+        knowledge_match_status="current",
     )
     session.add(question)
     session.flush()
@@ -90,7 +93,6 @@ def _question(session, number: int, difficulty: int, knowledge_id: str) -> Quest
     ])
     return question
 
-
 def _paper(session) -> Paper:
     node = KnowledgeNode(
         id="autonomous-k",
@@ -108,7 +110,12 @@ def _paper(session) -> Paper:
         id="autonomous-bp",
         title="自主测试卷",
         status="draft",
-        blueprint_json={"_agent_metadata": {"scope_node_ids": [node.id]}},
+        blueprint_json={
+            "total_questions": 3,
+            "total_score": 30,
+            "question_type_counts": {"计算题": 3},
+            "_agent_metadata": {"scope_node_ids": [node.id]},
+        },
     )
     paper = Paper(
         id="autonomous-paper",
@@ -133,7 +140,6 @@ def _paper(session) -> Paper:
         ))
     session.flush()
     return paper
-
 
 def test_normal_chat_returns_text_without_tool_call(session):
     backend = SequenceBackend(final("你好，需要我帮你组卷、查看试卷，还是调整题目？"))
@@ -235,7 +241,7 @@ def test_normal_chat_accepts_fenced_validated_grounding_decision(session):
 def test_agent_reads_real_question_then_answers_from_observation(session):
     paper = _paper(session)
     backend = SequenceBackend(
-        tool_call("read_current_paper", {"positions": [3]}),
+        tool_call("read_paper", {"positions": [3]}),
         final("第3题是“自主 Agent 真实题干3”，是一道10分的计算题。"),
     )
     result = run_teacher_agent(
@@ -262,10 +268,16 @@ def test_agent_reads_real_question_then_answers_from_observation(session):
 def test_natural_replacement_reads_then_previews_and_waits_for_confirmation(session):
     paper = _paper(session)
     backend = SequenceBackend(
-        tool_call("read_current_paper", {"positions": [3]}, call_id="read-3"),
+        tool_call("read_paper", {"positions": [3]}, call_id="read-3"),
         tool_call(
-            "preview_replace_question",
-            {"position": 3, "difficulty_direction": "easier"},
+            "preview_paper_changes",
+            {
+                "operations": [{
+                    "type": "replace_question",
+                    "target": {"section_type": "计算题", "section_order": 3},
+                    "difficulty_direction": "easier",
+                }]
+            },
             call_id="replace-3",
         ),
         final("已找到第3题更简单的替代题，知识范围和题型符合要求。请确认后再替换。"),
@@ -275,20 +287,27 @@ def test_natural_replacement_reads_then_previews_and_waits_for_confirmation(sess
         paper_id=paper.id, version_id=paper.id, backend=backend,
     )
     assert result.status == "waiting_confirmation"
-    assert result.replacement_preview.ok
-    assert result.pending_action.target_position == 3
+    assert result.adjustment_preview and result.adjustment_preview.ok
+    assert result.adjustment_preview.plan.operations[0].position == 3
+    assert DatabasePendingReplacementStore(session).get_adjustment("replace") is not None
     assert [call["tool_name"] for call in session.scalar(select(TeacherAgentRunTrace).where(
         TeacherAgentRunTrace.conversation_id == "replace"
-    )).tool_calls_json] == ["read_current_paper", "preview_replace_question"]
-
+    )).tool_calls_json] == ["read_paper", "preview_paper_changes"]
 
 def test_non_fixed_wording_preserves_knowledge_without_intent_patterns(session):
     paper = _paper(session)
     backend = SequenceBackend(
-        tool_call("read_current_paper", {"positions": [3]}, call_id="read-natural"),
+        tool_call("read_paper", {"positions": [3]}, call_id="read-natural"),
         tool_call(
-            "preview_replace_question",
-            {"position": 3, "difficulty_direction": "easier", "preserve_knowledge_points": True},
+            "preview_paper_changes",
+            {
+                "operations": [{
+                    "type": "replace_question",
+                    "target": {"section_type": "计算题", "section_order": 3},
+                    "difficulty_direction": "easier",
+                    "preserve_knowledge_points": True,
+                }]
+            },
             call_id="replace-natural",
         ),
         final("找到一道更温和且保持原知识点的候选题，请确认。"),
@@ -298,22 +317,27 @@ def test_non_fixed_wording_preserves_knowledge_without_intent_patterns(session):
         conversation_id="natural", paper_id=paper.id, version_id=paper.id, backend=backend,
     )
     assert result.status == "waiting_confirmation"
-    assert result.replacement_preview.constraints.knowledge_point_preserved
-    preview_schema = next(
-        definition["function"]["parameters"]
-        for definition in backend.calls[0][1]
-        if definition["function"]["name"] == "preview_replace_question"
-    )
-    assert "Hard constraint" in preview_schema["properties"]["preserve_knowledge_points"]["description"]
-
+    assert result.adjustment_preview and result.adjustment_preview.ok
+    trace = session.scalar(select(TeacherAgentRunTrace).where(
+        TeacherAgentRunTrace.conversation_id == "natural"
+    ))
+    replace_call = trace.tool_calls_json[-1]
+    assert replace_call["tool_name"] == "preview_paper_changes"
+    assert replace_call["arguments"]["operations"][0]["preserve_knowledge_points"] is True
 
 def test_multi_tool_read_then_replacement_preview(session):
     paper = _paper(session)
     backend = SequenceBackend(
-        tool_call("read_current_paper", {"positions": [3]}, call_id="multi-read"),
+        tool_call("read_paper", {"positions": [3]}, call_id="multi-read"),
         tool_call(
-            "preview_replace_question",
-            {"position": 3, "difficulty_direction": "easier"},
+            "preview_paper_changes",
+            {
+                "operations": [{
+                    "type": "replace_question",
+                    "target": {"section_type": "计算题", "section_order": 3},
+                    "difficulty_direction": "easier",
+                }]
+            },
             call_id="multi-preview",
         ),
         final("第3题当前难度为4；已找到更简单的候选题，等待你确认。"),
@@ -324,13 +348,12 @@ def test_multi_tool_read_then_replacement_preview(session):
     )
     assert result.status == "waiting_confirmation"
     assert len(backend.calls) == 3
-    assert result.paper_read and result.replacement_preview
-
+    assert result.paper_read and result.adjustment_preview
 
 def test_whole_paper_read_then_llm_summary(session):
     paper = _paper(session)
     backend = SequenceBackend(
-        tool_call("read_current_paper"),
+        tool_call("read_paper"),
         final("当前试卷共3道计算题，每题10分，总分30分。"),
     )
     result = run_teacher_agent(
@@ -350,7 +373,7 @@ def test_total_score_answer_is_grounded_by_whole_paper_observation(session):
             "paper_observation_required": True,
             "answer": "",
         }, ensure_ascii=False)),
-        tool_call("read_current_paper", call_id="score-read"),
+        tool_call("read_paper", call_id="score-read"),
         final(json.dumps({
             "paper_observation_required": False,
             "answer": "当前试卷总分是30分。",
@@ -380,8 +403,14 @@ def test_pending_state_is_rechecked_when_model_only_claims_cancellation(session)
         version_id=paper.id,
         backend=SequenceBackend(
             tool_call(
-                "preview_replace_question",
-                {"position": 3, "difficulty_direction": "easier"},
+                "preview_paper_changes",
+                {
+                    "operations": [{
+                        "type": "replace_question",
+                        "target": {"section_type": "计算题", "section_order": 3},
+                        "difficulty_direction": "easier",
+                    }]
+                },
             ),
             final("已找到方案，请确认。"),
         ),
@@ -390,7 +419,7 @@ def test_pending_state_is_rechecked_when_model_only_claims_cancellation(session)
 
     backend = SequenceBackend(
         final("好的，已经取消。"),
-        tool_call("cancel_replace_question", call_id="cancel-after-recheck"),
+        tool_call("discard_pending_plan", call_id="discard-after-recheck"),
         final("换题方案已取消。"),
     )
     cancelled = run_teacher_agent(
@@ -403,22 +432,17 @@ def test_pending_state_is_rechecked_when_model_only_claims_cancellation(session)
     )
     assert cancelled.status == "completed"
     assert len(backend.calls) == 3
-    pending_tool_names = [
-        item["function"]["name"] for item in backend.calls[0][1]
-    ]
-    assert pending_tool_names == [
-        "confirm_replace_question",
-        "cancel_replace_question",
-        "read_current_paper",
-    ]
-    assert [item["role"] for item in backend.calls[1][0][:2]] == ["system", "user"]
-    assert "忽略更早对话" in backend.calls[1][0][0]["content"]
-    assert backend.calls[1][0][1]["content"].startswith("这个方案取消掉\n")
-    assert session.scalar(select(TeacherAgentRunTrace).where(
+    pending_tool_names = [item["function"]["name"] for item in backend.calls[0][1]]
+    assert "discard_pending_plan" in pending_tool_names
+    assert "confirm_paper_changes" in pending_tool_names
+    assert "preview_paper_changes" in pending_tool_names
+    assert "read_paper" in pending_tool_names
+    assert DatabasePendingReplacementStore(session).get_adjustment(conversation_id) is None
+    trace = session.scalar(select(TeacherAgentRunTrace).where(
         TeacherAgentRunTrace.conversation_id == conversation_id,
         TeacherAgentRunTrace.user_message == "这个方案取消掉",
-    )).tool_calls_json[0]["tool_name"] == "cancel_replace_question"
-
+    ))
+    assert trace.tool_calls_json[0]["tool_name"] == "discard_pending_plan"
 
 def test_pending_state_claim_is_rejected_when_recheck_still_calls_no_tool(session):
     paper = _paper(session)
@@ -431,8 +455,14 @@ def test_pending_state_claim_is_rejected_when_recheck_still_calls_no_tool(sessio
         version_id=paper.id,
         backend=SequenceBackend(
             tool_call(
-                "preview_replace_question",
-                {"position": 3, "difficulty_direction": "easier"},
+                "preview_paper_changes",
+                {
+                    "operations": [{
+                        "type": "replace_question",
+                        "target": {"section_type": "计算题", "section_order": 3},
+                        "difficulty_direction": "easier",
+                    }]
+                },
             ),
             final("已找到方案，请确认。"),
         ),
@@ -445,21 +475,18 @@ def test_pending_state_claim_is_rejected_when_recheck_still_calls_no_tool(sessio
         conversation_id=conversation_id,
         paper_id=paper.id,
         version_id=paper.id,
-        backend=SequenceBackend(
-            final("已经取消。"),
-            final("已经取消。"),
-        ),
+        backend=SequenceBackend(final("已经取消。"), final("已经取消。")),
     )
     assert result.status == "waiting_confirmation"
     assert "仍未改变" in result.message
     assert "已取消" not in result.message
-
+    assert DatabasePendingReplacementStore(session).get_adjustment(conversation_id) is not None
 
 def test_leaked_tool_protocol_is_retried_instead_of_shown_as_answer(session):
     paper = _paper(session)
     backend = SequenceBackend(
-        final("我猜第五题是导数题。</think><tool_call>read_current_paper</tool_call>"),
-        tool_call("read_current_paper", {"positions": [5]}, call_id="retry-read"),
+        final("我猜第五题是导数题。</think><tool_call>read_paper</tool_call>"),
+        tool_call("read_paper", {"positions": [5]}, call_id="retry-read"),
         final("当前试卷只有3题，没有第5题。"),
     )
     result = run_teacher_agent(
@@ -488,7 +515,7 @@ def test_paper_fact_claim_without_tool_is_rechecked(session):
             "paper_observation_required": True,
             "answer": "",
         }, ensure_ascii=False)),
-        tool_call("read_current_paper", {"positions": [2]}, call_id="fact-recheck"),
+        tool_call("read_paper", {"positions": [2]}, call_id="fact-recheck"),
         final("第2题是“自主 Agent 真实题干2”。"),
     )
     result = run_teacher_agent(
@@ -544,8 +571,14 @@ def test_paper_observation_is_invalidated_after_version_change(session):
         version_id=paper.id,
         backend=SequenceBackend(
             tool_call(
-                "preview_replace_question",
-                {"position": 3, "difficulty_direction": "easier"},
+                "preview_paper_changes",
+                {
+                    "operations": [{
+                        "type": "replace_question",
+                        "target": {"section_type": "计算题", "section_order": 3},
+                        "difficulty_direction": "easier",
+                    }]
+                },
             ),
             final("已找到方案，请确认。"),
         ),
@@ -553,14 +586,11 @@ def test_paper_observation_is_invalidated_after_version_change(session):
     assert preview.status == "waiting_confirmation"
 
     backend = SequenceBackend(
-        tool_call("read_current_paper", {"positions": [3]}, call_id="read-old-version"),
-        tool_call("confirm_replace_question", call_id="confirm-version-change"),
+        tool_call("read_paper", {"positions": [3]}, call_id="read-old-version"),
+        tool_call("confirm_paper_changes", call_id="confirm-version-change"),
         final("替换后第3题仍是旧版本题干3。"),
-        final(json.dumps({
-            "paper_observation_required": True,
-            "answer": "",
-        }, ensure_ascii=False)),
-        tool_call("read_current_paper", {"positions": [3]}, call_id="read-new-version"),
+        final(json.dumps({"paper_observation_required": True, "answer": ""}, ensure_ascii=False)),
+        tool_call("read_paper", {"positions": [3]}, call_id="read-new-version"),
         final("替换后第3题是“自主 Agent 真实题干4”。"),
     )
     result = run_teacher_agent(
@@ -572,7 +602,7 @@ def test_paper_observation_is_invalidated_after_version_change(session):
         backend=backend,
     )
     assert result.status == "completed"
-    assert result.replacement.ok
+    assert result.adjustment and result.adjustment.ok
     assert result.message == "替换后第3题是“自主 Agent 真实题干4”。"
     trace = session.scalar(select(TeacherAgentRunTrace).where(
         TeacherAgentRunTrace.conversation_id == conversation_id,
@@ -581,16 +611,16 @@ def test_paper_observation_is_invalidated_after_version_change(session):
     observations = [
         call["paper_observation"]
         for call in trace.tool_calls_json
-        if call["tool_name"] == "read_current_paper"
+        if call["tool_name"] == "read_paper"
     ]
     assert observations[0]["version_id"] == paper.id
-    assert observations[1]["version_id"] == result.replacement.new_version_id
+    assert observations[1]["version_id"] == result.adjustment.new_version_id
     assert observations[0]["version_id"] != observations[1]["version_id"]
 
-
-def test_existing_pending_replacement_cannot_be_silently_overwritten(session):
+def test_existing_pending_paper_change_can_be_explicitly_discarded(session):
     paper = _paper(session)
-    conversation_id = "pending-no-overwrite"
+    conversation_id = "pending-explicit-discard"
+
     first = run_teacher_agent(
         session,
         "第三题简单一点",
@@ -599,13 +629,21 @@ def test_existing_pending_replacement_cannot_be_silently_overwritten(session):
         version_id=paper.id,
         backend=SequenceBackend(
             tool_call(
-                "preview_replace_question",
-                {"position": 3, "difficulty_direction": "easier"},
+                "preview_paper_changes",
+                {
+                    "operations": [{
+                        "type": "replace_question",
+                        "target": {"section_type": "计算题", "section_order": 3},
+                        "difficulty_direction": "easier",
+                    }]
+                },
             ),
             final("已有待确认方案。"),
         ),
     )
-    original_replacement_id = first.pending_action.replacement_question_id
+    assert first.status == "waiting_confirmation"
+    store = DatabasePendingReplacementStore(session)
+    assert store.get_adjustment(conversation_id) is not None
 
     second = run_teacher_agent(
         session,
@@ -614,17 +652,17 @@ def test_existing_pending_replacement_cannot_be_silently_overwritten(session):
         paper_id=paper.id,
         version_id=paper.id,
         backend=SequenceBackend(
-            tool_call("preview_replace_question", {"position": 3}),
-            final("不能覆盖当前方案。"),
+            tool_call("discard_pending_plan"),
+            final("已放弃当前未提交方案。"),
         ),
     )
-    assert second.status == "waiting_confirmation"
-    assert second.blocking_errors == ["pending_replacement_exists"]
-    assert second.pending_action is None
-    assert session.scalar(select(TeacherAgentRunTrace).where(
+    assert second.status == "completed"
+    assert store.get_adjustment(conversation_id) is None
+
+    trace = session.scalar(select(TeacherAgentRunTrace).where(
         TeacherAgentRunTrace.conversation_id == conversation_id,
         TeacherAgentRunTrace.user_message == "这个方案不要了",
-    )).tool_calls_json[0]["result"]["code"] == "pending_replacement_exists"
-    assert DatabasePendingReplacementStore(session).get(
-        conversation_id
-    ).replacement_question_id == original_replacement_id
+    ))
+    assert trace.tool_calls_json[0]["tool_name"] == "discard_pending_plan"
+    assert trace.tool_calls_json[0]["result"]["paper_unchanged"] is True
+

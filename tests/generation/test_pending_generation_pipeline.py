@@ -30,7 +30,7 @@ class _Backend:
         return self.responses.pop(0)
 
 
-def _tool(arguments: str, name: str = "preview_generation_plan") -> dict:
+def _tool(arguments: str, name: str = "prepare_generation_plan") -> dict:
     return {"message": {"tool_calls": [{
         "id": "pending-generation", "type": "function",
         "function": {"name": name, "arguments": arguments},

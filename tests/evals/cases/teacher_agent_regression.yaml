@@ -496,8 +496,8 @@ cases:
       active_task_types:
         - generation
       tools:
-        - preview_generation_plan
-        - generate_paper
+        - prepare_generation_plan
+        - confirm_generation
     graders:
       - type: tool_rule
       - type: semantic

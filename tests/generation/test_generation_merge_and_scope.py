@@ -78,7 +78,7 @@ def _by_type(request) -> dict:
 
 
 def _run_merge(session: Session, *, seed_pending: bool):
-    """Exercise preview_generation_plan with the shared base + patches."""
+    """Exercise prepare_generation_plan with the shared base + patches."""
     store = DatabasePendingReplacementStore(session)
     conversation_id = CONVERSATION_ID
     if seed_pending:
@@ -100,7 +100,7 @@ def _run_merge(session: Session, *, seed_pending: bool):
         version_id=None,
         state_store=store,
     )
-    tool = build_agent_tools(context)["preview_generation_plan"]
+    tool = build_agent_tools(context)["prepare_generation_plan"]
     patch = GenerationPlanPatch(
         question_type_patches=PATCHES,
         scope_names=list(SCOPE),

@@ -73,7 +73,7 @@ def _seed(session) -> None:
 
 def _preview_call(scope_names, knowledge_preferences, paper_type="chapter_exercise"):
     return _tool_call(
-        "preview_generation_plan",
+        "prepare_generation_plan",
         {
             "paper_type": paper_type,
             "scope_names": scope_names,

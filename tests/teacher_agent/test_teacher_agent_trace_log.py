@@ -38,7 +38,7 @@ def test_trace_records_real_tool_order_memory_and_final_response(session, tmp_pa
         "帮我出一套题",
         conversation_id="trace-conversation",
         backend=_Backend(
-            _tool("preview_generation_plan"),
+            _tool("prepare_generation_plan"),
             _final("请先确认组卷范围。"),
         ),
         trace_recorder=AgentTraceRecorder(directory),
@@ -53,7 +53,7 @@ def test_trace_records_real_tool_order_memory_and_final_response(session, tmp_pa
     assert trace["duration_ms"] >= 0
     assert trace["memory_before"]["active_task"] == {}
     assert [item["tool_name"] for item in trace["tool_calls"]] == [
-        "preview_generation_plan"
+        "prepare_generation_plan"
     ]
     tool = trace["tool_calls"][0]
     assert tool["arguments"] == {}
@@ -119,8 +119,8 @@ def test_trace_keeps_multiple_tool_calls_in_execution_order(session, tmp_path):
         conversation_id="multiple-tools",
         backend=_Backend(
             {"message": {"tool_calls": [
-                {"id": "first", "function": {"name": "preview_generation_plan", "arguments": "{}"}},
-                {"id": "second", "function": {"name": "read_current_paper", "arguments": "{}"}},
+                {"id": "first", "function": {"name": "prepare_generation_plan", "arguments": "{}"}},
+                {"id": "second", "function": {"name": "read_paper", "arguments": "{}"}},
             ]}},
             _final("已处理。"),
         ),
@@ -130,8 +130,8 @@ def test_trace_keeps_multiple_tool_calls_in_execution_order(session, tmp_path):
     assert result.status == "needs_clarification"
     calls = read_agent_traces(directory)[0]["tool_calls"]
     assert [(item["sequence"], item["tool_name"]) for item in calls] == [
-        (1, "preview_generation_plan"),
-        (2, "read_current_paper"),
+        (1, "prepare_generation_plan"),
+        (2, "read_paper"),
     ]
     assert calls[1]["memory_before"] == calls[0]["memory_after"]
 

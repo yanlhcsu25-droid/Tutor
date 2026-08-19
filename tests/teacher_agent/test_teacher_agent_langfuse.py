@@ -132,7 +132,7 @@ def test_tool_call_arguments_and_result_unchanged(session, monkeypatch):
     """Tool execution path: arguments in, payload out, unchanged by tracing."""
     monkeypatch.setattr(langfuse_tracing, "safe_get_client", lambda: None)
 
-    # Seed the simplest possible curriculum so preview_generation_plan
+    # Seed the simplest possible curriculum so prepare_generation_plan
     # returns a valid waiting_confirmation payload.
     from calculus_agent.models import CurriculumNode
     chapter = CurriculumNode(id="ch1", node_type="chapter", code="一",
@@ -141,7 +141,7 @@ def test_tool_call_arguments_and_result_unchanged(session, monkeypatch):
     session.flush()
 
     backend = _CallCountBackend(_tool_call(
-        "preview_generation_plan",
+        "prepare_generation_plan",
         {"paper_type": "chapter_exercise", "scope_names": ["函数与极限"],
          "knowledge_preferences": []},
     ))
@@ -182,7 +182,7 @@ def test_tool_call_arguments_and_result_unchanged(session, monkeypatch):
     # which is what the Langfuse tool observation must mirror.
     assert len(calls) == 1
     tool_name, arguments = calls[0]
-    assert tool_name == "preview_generation_plan"
+    assert tool_name == "prepare_generation_plan"
     assert arguments["paper_type"] == "chapter_exercise"
     assert arguments["scope_names"] == ["函数与极限"]
     # And the Agent still terminated normally (no leaked exception).
