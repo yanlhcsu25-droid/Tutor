@@ -3,7 +3,7 @@ import json
 import pytest
 
 from calculus_agent.agent.agent import run_teacher_agent
-from calculus_agent.agent.tool_registry import PreviewAdjustmentInput
+from calculus_agent.agent.paper_change_service import PaperChangeRequest
 from calculus_agent.agent.schemas import ReplacementIntent
 from calculus_agent.agent.tools.analysis_tools import confirm_adjust_paper, preview_adjust_paper, validate_adjustment_plan_freshness
 from calculus_agent.agent.tools.replacement_tools import dry_run_replace_question, replacement_requires_target_knowledge
@@ -200,11 +200,16 @@ def test_confirm_stale_or_failed_plan_never_writes_partial_version(session):
 
 def test_agent_pending_adjustment_requires_explicit_confirm(session):
     paper, *_ = _seed(session)
-    no_pending = run_teacher_agent(session, "确认", conversation_id="adjust", paper_id=paper.id, version_id=paper.id, backend=_Backend(_tool("confirm_adjust_paper"), _final("没有待确认方案。")))
-    assert no_pending.blocking_errors == ["no_pending_adjustment"]
-    preview = run_teacher_agent(session, "选择题少一道，多一道计算题", conversation_id="adjust", paper_id=paper.id, version_id=paper.id, backend=_Backend(_tool("preview_adjust_paper", {"question_type_changes": {"选择题": -1, "计算题": 1}}), _final("方案待确认。")))
+    no_pending = run_teacher_agent(session, "确认", conversation_id="adjust", paper_id=paper.id, version_id=paper.id, backend=_Backend(_tool("confirm_paper_changes"), _final("没有待确认方案。")))
+    assert no_pending.blocking_errors == ["no_pending_action"]
+    preview = run_teacher_agent(session, "选择题少一道，多一道计算题", conversation_id="adjust", paper_id=paper.id, version_id=paper.id, backend=_Backend(_tool("preview_paper_changes", {
+            "operations": [{
+                "type": "change_question_type_distribution",
+                "changes": {"选择题": -1, "计算题": 1},
+            }]
+        }), _final("方案待确认。")))
     assert preview.status == "waiting_confirmation" and preview.adjustment_preview.plan.status == "pending"
-    confirmed = run_teacher_agent(session, "按这个方案改", conversation_id="adjust", paper_id=paper.id, version_id=paper.id, backend=_Backend(_tool("confirm_adjust_paper"), _final("已应用。")))
+    confirmed = run_teacher_agent(session, "按这个方案改", conversation_id="adjust", paper_id=paper.id, version_id=paper.id, backend=_Backend(_tool("confirm_paper_changes"), _final("已应用。")))
     assert confirmed.status == "completed" and confirmed.adjustment.new_version_id
 
 
@@ -214,7 +219,13 @@ def test_agent_adjustment_tool_accepts_removal_and_target_total(session):
         session, "删除第二题，总分改成8分", conversation_id="adjust-remove",
         paper_id=paper.id, version_id=paper.id,
         backend=_Backend(
-            _tool("preview_adjust_paper", {"remove_positions": [2], "target_total_score": 8}),
+            _tool("preview_paper_changes", {
+                "operations": [{
+                    "type": "remove_question",
+                    "target": {"section_type": "选择题", "section_order": 2},
+                }],
+                "target_total_score": 8,
+            }),
             _final("方案待确认。"),
         ),
     )
@@ -223,10 +234,15 @@ def test_agent_adjustment_tool_accepts_removal_and_target_total(session):
     assert preview.adjustment_preview.plan.after_summary.score_total == 8
 
 
-def test_adjustment_input_accepts_total_score_compatibility_alias_and_rejects_unknown_fields():
-    assert PreviewAdjustmentInput.model_validate({"total_score": 80}).target_total_score == 80
+def test_paper_change_request_is_strict_and_uses_target_total_score():
+    request = PaperChangeRequest.model_validate({"target_total_score": 80})
+    assert request.target_total_score == 80
+
     with pytest.raises(Exception):
-        PreviewAdjustmentInput.model_validate({"unexpected": True})
+        PaperChangeRequest.model_validate({"total_score": 80})
+
+    with pytest.raises(Exception):
+        PaperChangeRequest.model_validate({"unexpected": True})
 
 
 def test_pending_removal_plan_merges_later_total_score_patch(session):
@@ -235,31 +251,38 @@ def test_pending_removal_plan_merges_later_total_score_patch(session):
         session, "删除第二题", conversation_id="adjust-patch",
         paper_id=paper.id, version_id=paper.id,
         backend=_Backend(
-            _tool("preview_adjust_paper", {"remove_positions": [2]}),
+            _tool("preview_paper_changes", {
+                "operations": [{
+                    "type": "remove_question",
+                    "target": {"section_type": "选择题", "section_order": 2},
+                }]
+            }),
             _final("删除第二题，等待确认。"),
         ),
     )
-    assert first.adjustment_preview.requested_total_score is None
     assert first.adjustment_preview.plan.after_summary.score_total == 5
     revised = run_teacher_agent(
         session, "总分改成8分", conversation_id="adjust-patch",
         paper_id=paper.id, version_id=paper.id,
         backend=_Backend(
-            _tool("read_current_paper"),
+            _tool("read_paper"),
             _final("请确认改成8分。"),
-            _tool("preview_adjust_paper", {"target_total_score": 8}),
+            _tool("preview_paper_changes", {"target_total_score": 8}),
             _final("删除第二题且总分8分的新方案等待确认。"),
         ),
     )
     assert revised.status == "waiting_confirmation"
-    assert revised.adjustment_preview.requested_remove_positions == [2]
+    assert any(
+        operation.type == "remove_question" and operation.position == 2
+        for operation in revised.adjustment_preview.plan.operations
+    )
     assert revised.adjustment_preview.plan.after_summary.question_count == 1
     assert revised.adjustment_preview.plan.after_summary.score_total == 8
     confirmed = run_teacher_agent(
         session, "是的", conversation_id="adjust-patch",
         paper_id=paper.id, version_id=paper.id,
         backend=_Backend(
-            _tool("confirm_adjust_paper"),
+            _tool("confirm_paper_changes"),
             _final("已应用。"),
         ),
     )
@@ -270,26 +293,43 @@ def test_pending_removal_plan_merges_later_total_score_patch(session):
 
 def test_pending_adjustment_cannot_be_verbally_updated_without_new_preview(session):
     paper, *_ = _seed(session)
-    run_teacher_agent(
-        session, "删除第二题", conversation_id="adjust-guard",
-        paper_id=paper.id, version_id=paper.id,
+    first = run_teacher_agent(
+        session,
+        "删除第二题",
+        conversation_id="adjust-guard",
+        paper_id=paper.id,
+        version_id=paper.id,
         backend=_Backend(
-            _tool("preview_adjust_paper", {"remove_positions": [2]}),
+            _tool("preview_paper_changes", {
+                "operations": [{
+                    "type": "remove_question",
+                    "target": {"section_type": "选择题", "section_order": 2},
+                }]
+            }),
             _final("等待确认。"),
         ),
     )
+    original_plan_id = first.adjustment_preview.plan.plan_id
+
     result = run_teacher_agent(
-        session, "总分改成8分", conversation_id="adjust-guard",
-        paper_id=paper.id, version_id=paper.id,
+        session,
+        "总分改成8分",
+        conversation_id="adjust-guard",
+        paper_id=paper.id,
+        version_id=paper.id,
         backend=_Backend(
-            _tool("read_current_paper"),
+            _tool("read_paper"),
             _final("请确认改成8分。"),
             _final("已经改好了，请确认。"),
         ),
     )
-    assert result.status == "needs_clarification"
-    assert "pending_adjustment_not_updated" in result.blocking_errors
-    assert "不会确认旧方案" in result.message
+
+    assert result.status == "waiting_confirmation"
+    assert result.adjustment_preview is None
+
+    from calculus_agent.agent.conversation_state import DatabasePendingReplacementStore
+    store = DatabasePendingReplacementStore(session)
+    assert store.get_adjustment("adjust-guard") == original_plan_id
 
 
 def test_model_unavailable_does_not_activate_hardcoded_intent_routing(session):

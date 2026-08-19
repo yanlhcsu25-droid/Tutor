@@ -1,7 +1,6 @@
 """Read-only paper analysis and persisted, non-executable adjustment plans."""
 
 from collections import Counter, defaultdict
-import logging
 from datetime import datetime
 from typing import Literal
 
@@ -12,8 +11,6 @@ from sqlalchemy.orm import Session
 from calculus_agent.models import AdjustmentPlanRecord, KnowledgeNode, Paper, PaperBlueprintRecord, PaperItem, PaperOperationHistory, Question, QuestionKnowledgeLink, QuestionProfile
 from calculus_agent.papers.workflow import _clone_version, _state_snapshot, validate_paper
 from calculus_agent.question_types import canonical_question_type
-
-logger = logging.getLogger(__name__)
 
 
 class PaperSummary(BaseModel):
@@ -683,16 +680,7 @@ def confirm_adjust_paper(
             plan.applied_version_id = child.id
             session.flush()
 
-    except Exception as exc:
-        logger.exception(
-            "confirm_adjust_paper persistence failed",
-            extra={
-                "plan_id": plan_id,
-                "paper_id": paper_id,
-                "current_version_id": current_version_id,
-                "exception_type": type(exc).__name__,
-            },
-        )
+    except Exception:
         session.refresh(plan)
         plan.status = "failed"
         plan.blocking_errors_json = ["adjustment_persistence_failed"]

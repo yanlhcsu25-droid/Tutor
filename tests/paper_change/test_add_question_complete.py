@@ -7,10 +7,10 @@ import calculus_agent.agent.tools.analysis_tools as analysis_tools
 import calculus_agent.papers.workflow as workflow
 from calculus_agent.agent.tool_registry import (
     AgentExecutionContext,
-    PreviewAddQuestionInput,
     build_agent_tools,
     execute_tool,
 )
+from calculus_agent.agent.paper_change_service import PaperChangeRequest
 from calculus_agent.agent.tools.add_tools import preview_add_question
 from calculus_agent.agent.tools.analysis_tools import confirm_adjust_paper
 from calculus_agent.agent.tools.version_tools import run_version_operation
@@ -385,8 +385,18 @@ def test_add_undo_redo_restore_preserve_section_addresses(session, monkeypatch):
 
 def test_add_tool_contract(session):
     paper, _node, _questions, _x = _make_paper(session)
-    request = PreviewAddQuestionInput(question_type="填空题")
-    assert request.score is None
+
+    request = PaperChangeRequest.model_validate({
+        "operations": [
+            {
+                "type": "add_questions",
+                "question_type": "填空题",
+            }
+        ]
+    })
+    operation = request.operations[0]
+    assert operation.count == 1
+    assert operation.score is None
 
     context = AgentExecutionContext(
         session=session,
@@ -396,19 +406,36 @@ def test_add_tool_contract(session):
         state_store=None,
     )
     tools = build_agent_tools(context)
-    assert "preview_add_question" in tools
+    assert "preview_paper_changes" in tools
 
     result = execute_tool(
-        tools["preview_add_question"],
-        {"question_type": "填空题"},
+        tools["preview_paper_changes"],
+        {
+            "operations": [
+                {
+                    "type": "add_questions",
+                    "question_type": "填空题",
+                }
+            ]
+        },
     )
-    assert result.payload["question_type"] == "填空题"
+    assert result.status == "waiting_confirmation"
+    assert result.payload["ok"] is True
+    assert any(
+        operation["type"] == "add_question"
+        for operation in result.payload["plan"]["operations"]
+    )
 
 
 def test_add_tool_rejects_unknown_fields():
     with pytest.raises(Exception):
-        PreviewAddQuestionInput(
-            question_type="填空题",
-            score=5,
-            position=99,
-        )
+        PaperChangeRequest.model_validate({
+            "operations": [
+                {
+                    "type": "add_questions",
+                    "question_type": "填空题",
+                    "score": 5,
+                    "position": 99,
+                }
+            ]
+        })

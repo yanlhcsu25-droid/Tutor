@@ -890,7 +890,6 @@ def run_teacher_agent(
             or teaching_design_pending_at_turn_start
         )
         pending_state_rechecked = False
-        pending_paper_change_rechecked = False
         paper_state_at_turn_start = bool(version_id or paper_id)
         paper_version_at_turn_start = context.version_id or context.paper_id
         paper_grounding_rechecked = False
@@ -976,53 +975,6 @@ def run_teacher_agent(
                         ])
                         malformed_response_retried = True
                         continue
-
-                    paper_change_lifecycle_observed = any(
-                        call["tool_name"] in {
-                            "preview_paper_changes",
-                            "confirm_paper_changes",
-                            "discard_pending_plan",
-                            "operate_paper_version",
-                        }
-                        for call in trace_calls
-                    )
-                    if (
-                        pending_adjustment
-                        and trace_calls
-                        and not paper_change_lifecycle_observed
-                        and not pending_paper_change_rechecked
-                    ):
-                        messages.extend([
-                            {"role": "assistant", "content": content.strip()},
-                            {
-                                "role": "user",
-                                "content": (
-                                    "<pending_paper_change_guard>"
-                                    "当前存在待确认的 paper-change plan。"
-                                    "重新判断教师本轮原始请求："
-                                    "如果教师在修改当前方案，必须调用 preview_paper_changes；"
-                                    "如果明确确认，调用 confirm_paper_changes；"
-                                    "如果明确放弃，调用 discard_pending_plan；"
-                                    "如果只是读取或询问事实，可以直接回答。"
-                                    "read_paper / analyze_paper Observation 只能证明读取成功，"
-                                    "不能证明 pending 已修改、确认或取消。"
-                                    "没有对应生命周期 Tool Observation 时，不得声称业务状态已经改变。"
-                                    "</pending_paper_change_guard>"
-                                ),
-                            },
-                        ])
-                        definitions = toolkit.schemas(
-                            names=[
-                                "read_paper",
-                                "analyze_paper",
-                                "preview_paper_changes",
-                                "confirm_paper_changes",
-                                "discard_pending_plan",
-                            ]
-                        )
-                        pending_paper_change_rechecked = True
-                        continue
-
                     if pending_state_at_turn_start and not trace_calls and not pending_state_rechecked:
                         if pending_generation:
                             pending_guard = (

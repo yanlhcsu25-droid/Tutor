@@ -1,13 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
-import calculus_agent.agent.services.adjustment as adjustment_service
 from calculus_agent.agent.tool_registry import (
     AgentExecutionContext,
-    PreviewAdjustmentInput,
     build_agent_tools,
     execute_tool,
 )
+from calculus_agent.agent.paper_change_service import PaperChangeRequest
 from calculus_agent.agent.tools.analysis_tools import (
     PaperAdjustmentPreview,
     _build_removal_operations,
@@ -65,17 +64,20 @@ def test_explicit_target_total_keeps_rebalance_behavior():
     assert any(op.type == "change_score" for op in operations)
 
 
-def test_adjustment_input_rejects_mixed_remove_address_modes():
+def test_paper_change_request_rejects_legacy_remove_positions():
     with pytest.raises(ValidationError):
-        PreviewAdjustmentInput(
-            remove_addresses=[
-                QuestionAddress(
-                    section_type="填空题",
-                    section_order=2,
-                )
+        PaperChangeRequest.model_validate({
+            "operations": [
+                {
+                    "type": "remove_question",
+                    "target": {
+                        "section_type": "填空题",
+                        "section_order": 2,
+                    },
+                }
             ],
-            remove_positions=[4],
-        )
+            "remove_positions": [4],
+        })
 
 
 def _create_question(session, sid: str, text: str, qtype: str) -> Question:
@@ -149,32 +151,6 @@ def test_delete_address_resolves_to_current_global_position(
         )
     session.flush()
 
-    observed = {}
-
-    def fake_preview_adjust_paper(
-        db_session,
-        *,
-        paper_id,
-        knowledge_preferences=None,
-        question_type_changes=None,
-        remove_positions=None,
-        target_total_score=None,
-    ):
-        observed["paper_id"] = paper_id
-        observed["remove_positions"] = list(remove_positions or [])
-        observed["target_total_score"] = target_total_score
-        return PaperAdjustmentPreview(
-            ok=False,
-            paper_id=paper_id,
-            blocking_errors=["sentinel_stop_after_resolution"],
-        )
-
-    monkeypatch.setattr(
-        adjustment_service,
-        "preview_adjust_paper",
-        fake_preview_adjust_paper,
-    )
-
     context = AgentExecutionContext(
         session=session,
         conversation_id=None,
@@ -185,25 +161,52 @@ def test_delete_address_resolves_to_current_global_position(
     tools = build_agent_tools(context)
 
     result = execute_tool(
-        tools["preview_adjust_paper"],
+        tools["preview_paper_changes"],
         {
-            "remove_addresses": [
+            "operations": [
                 {
-                    "section_type": "填空题",
-                    "section_order": 2,
+                    "type": "remove_question",
+                    "target": {
+                        "section_type": "填空题",
+                        "section_order": 2,
+                    },
                 }
             ]
         },
     )
 
-    assert result.payload["blocking_errors"] == [
-        "sentinel_stop_after_resolution"
-    ]
-    assert observed["remove_positions"] == [4]
-    assert observed["target_total_score"] is None
+    assert result.status == "waiting_confirmation"
+    assert result.payload["ok"] is True
+    operation = result.payload["plan"]["operations"][0]
+    assert operation["type"] == "remove_question"
+    assert operation["position"] == 4
+    assert result.payload["plan"]["after_summary"]["score_total"] == 15
 
 
-def test_delete_schema_documents_natural_score_drop():
-    schema = PreviewAdjustmentInput.model_json_schema()
-    description = schema["properties"]["target_total_score"]["description"]
-    assert "scores disappear naturally" in description
+def test_delete_request_keeps_target_total_optional():
+    request = PaperChangeRequest.model_validate({
+        "operations": [
+            {
+                "type": "remove_question",
+                "target": {
+                    "section_type": "填空题",
+                    "section_order": 2,
+                },
+            }
+        ]
+    })
+    assert request.target_total_score is None
+
+    explicit = PaperChangeRequest.model_validate({
+        "operations": [
+            {
+                "type": "remove_question",
+                "target": {
+                    "section_type": "填空题",
+                    "section_order": 2,
+                },
+            }
+        ],
+        "target_total_score": 20,
+    })
+    assert explicit.target_total_score == 20

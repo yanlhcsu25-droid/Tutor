@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 import calculus_agent.agent.tools.analysis_tools as analysis_tools
 import calculus_agent.papers.workflow as workflow
-from calculus_agent.agent.tool_registry import AgentExecutionContext, PreviewAddQuestionInput, build_agent_tools
+from calculus_agent.agent.tool_registry import AgentExecutionContext, build_agent_tools
 from calculus_agent.agent.tools.add_tools import preview_add_question
 from calculus_agent.agent.tools.analysis_tools import confirm_adjust_paper
 from calculus_agent.agent.tools.version_tools import run_version_operation
@@ -174,10 +174,14 @@ def test_add_undo(session, monkeypatch):
 def test_add_tool_exists_and_schema_is_strict(session):
     paper, _node, _x = _fixture(session)
     tools = build_agent_tools(AgentExecutionContext(
-        session=session, conversation_id=None, paper_id=paper.id,
-        version_id=paper.id, state_store=None,
+        session=session,
+        conversation_id=None,
+        paper_id=paper.id,
+        version_id=paper.id,
+        state_store=None,
     ))
-    assert "preview_add_question" in tools
-    schema = PreviewAddQuestionInput.model_json_schema()
+
+    assert "preview_paper_changes" in tools
+    schema = tools["preview_paper_changes"].input_model.model_json_schema()
     assert schema.get("additionalProperties") is False
-    assert set(schema["properties"]) == {"question_type", "score"}
+    assert set(schema["properties"]) == {"operations", "target_total_score"}

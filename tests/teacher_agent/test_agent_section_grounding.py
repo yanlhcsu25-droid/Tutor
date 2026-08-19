@@ -64,5 +64,5 @@ def test_paper_read_prompt_uses_section_address():
 
     system = messages[0]["content"]
 
-    assert "read_current_paper(addresses=" in system
+    assert "read_paper(addresses=" in system
     assert "不得转换成全卷 position" in system

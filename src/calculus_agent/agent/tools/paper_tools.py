@@ -21,10 +21,15 @@ from calculus_agent.agent.schemas import (
     RequirementBlueprint,
     RequirementPreferences,
 )
+from calculus_agent.generation_diagnosis import (
+    GenerationDiagnosis,
+    diagnose_generation_failure,
+)
 from calculus_agent.knowledge.classification import current_taxonomy_knowledge_nodes
 from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.models import CurriculumNode, KnowledgeAlias, KnowledgeNode
 from calculus_agent.papers.selector import compose_paper
+from calculus_agent.papers.selector import compose_paper_with_evidence
 from calculus_agent.papers.persistence import create_paper_draft
 from calculus_agent.papers.workflow import validate_paper
 from calculus_agent.question_types import (
@@ -65,6 +70,7 @@ class GeneratePaperToolResult(BaseModel):
     summary: PaperSummary | None = None
     validation_status: Literal["passed", "failed"] | None = None
     validation_report: ValidationReportRead | None = None
+    diagnosis: GenerationDiagnosis | None = None
 
 
 def _scope_node_ids(
@@ -917,7 +923,7 @@ def _execute_generation_request(
         request
     )
 
-    preview = compose_paper(
+    preview, selection_evidence = compose_paper_with_evidence(
         session,
         request,
     )
@@ -932,6 +938,12 @@ def _execute_generation_request(
         for warning in preview.warnings
     ]
 
+    selection_diagnosis = diagnose_generation_failure(
+        blueprint=request.blueprint,
+        evidence=selection_evidence,
+        preview=preview,
+    )
+
     if not preview.feasible:
         return GeneratePaperToolResult(
             ok=False,
@@ -943,7 +955,8 @@ def _execute_generation_request(
                 "insufficient_candidates",
                 *unsatisfied,
             ],
-        )
+        
+            diagnosis=selection_diagnosis,)
 
     persisted = create_paper_draft(
         session,
@@ -969,6 +982,17 @@ def _execute_generation_request(
     validation_report = validate_paper(
         session,
         str(persisted.paper_id),
+    )
+
+    validation_diagnosis = (
+        diagnose_generation_failure(
+            blueprint=request.blueprint,
+            evidence=selection_evidence,
+            preview=preview,
+            validation_report=validation_report,
+        )
+        if not validation_report.passed
+        else None
     )
 
     validation_status: Literal[
@@ -1009,7 +1033,8 @@ def _execute_generation_request(
         ),
         validation_status=validation_status,
         validation_report=validation_report,
-    )
+    
+        diagnosis=validation_diagnosis,)
 
 
 def generate_paper_from_input(

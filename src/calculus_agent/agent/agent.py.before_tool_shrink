@@ -44,8 +44,6 @@ from .tool_adapters.teaching_environment import (
 )
 from .trace_log import AgentTraceRecorder, redact_trace_value
 from .tool_registry import AgentExecutionContext, build_agent_tools
-from .paper_change_service import PaperChangePreview
-from .paper_tool_registry import PAPER_TOOL_NAMES
 from .toolkit import Toolkit
 from .schemas import GenerationPlanPreview
 from .tools.add_tools import AddQuestionPreview
@@ -86,6 +84,7 @@ CLARIFICATION_BLOCKING_ERRORS: frozenset[str] = frozenset({
     "score_rebalance_ambiguous",
     "add_question_score_required",
     "add_question_score_ambiguous",
+    "pending_adjustment_not_updated",
     "paper_observation_required",
     "no_current_paper",
     "no_pending_generation",
@@ -99,7 +98,6 @@ PENDING_PRESERVATION_ERRORS: frozenset[str] = frozenset({
     "pending_replacement_exists",
     "pending_generation_exists",
     "pending_adjustment_exists",
-    "legacy_pending_replacement_exists",
 })
 
 
@@ -121,7 +119,7 @@ class TeacherAgentResult(BaseModel):
     replacement_preview: ReplacementDryRunResult | None = None
     analysis: PaperAnalysisResult | None = None
     add_preview: AddQuestionPreview | None = None
-    adjustment_preview: PaperAdjustmentPreview | PaperChangePreview | None = None
+    adjustment_preview: PaperAdjustmentPreview | None = None
     adjustment: ConfirmAdjustmentResult | None = None
     paper_read: ReadCurrentPaperResult | None = None
     generation_preview: GenerationPlanPreview | None = None
@@ -144,56 +142,34 @@ class _PaperGroundingDecision(BaseModel):
 
 _SYSTEM_PROMPT = """你是 Teacher Agent。
 
-你的职责是理解教师自然语言，并通过系统提供的 Tool 完成真实业务操作。数据库 / Tool Observation 是业务事实来源；Conversation History 和 Working Memory 只用于语言理解、指代和任务连续性。
+你的任务是通过自然语言帮助教师完成组卷、查看试卷、调整题目、解释试卷以及管理试卷版本。
+你拥有一组工具，可以读取或修改系统中的真实数据。
 
-不要绕过 Tool 修改数据库，不要编造 Paper、Question、KnowledgeNode、Version ID、分值、难度、知识点或执行结果。Tool 失败不能描述成成功；Preview 不能描述成已经应用。
+你必须自主判断当前问题是否需要工具、调用哪个工具、是否需要连续调用多个工具，以及获得工具结果后下一步做什么。不要要求用户使用固定指令格式。
 
-## 新建试卷
+普通聊天、能力介绍和不依赖系统事实的解释，直接用自然语言回答，不调用工具。回答依赖当前试卷、题目、题库或版本的真实状态时，不要猜测，主动调用对应读取工具。教师引用具体题目时，应按自然语言语义解析题型内地址，不要求固定说成“填空题第N题”。例如“第三题这道填空题”“填空那里第三题”只要语义能够唯一确定为填空题第3题，就应解析为 addresses={section_type:"填空题", section_order:3}。不得把题型内编号误当成全卷 position；只有教师明确说“全卷第N题”时才使用 legacy positions。只有当教师确实只给出“第N题”且当前可靠上下文无法唯一确定题型时，才追问题型。不要因为 Python 没匹配到固定文本格式就判定有歧义。只有整卷概览问题才省略 addresses 和 positions。你可以连续调用多个工具完成一个用户目标。
 
-新建试卷使用 `prepare_generation_plan`。它只准备和校验组卷方案，不创建试卷。教师明确确认当前 pending generation 后，才调用 `confirm_generation`。
+工具负责确定性业务执行。你不得绕过工具直接修改数据库，不得编造 Paper、Question、KnowledgeNode 或版本 ID，不得把工具失败说成成功。Tool 返回约束失败时，应根据 Observation 向教师解释；必要时可以调用其他相关工具，但不能擅自放宽教师约束。
 
-已有 pending generation 时，`prepare_generation_plan` 是 PATCH-only：只提交教师本轮真正改变的字段。题型数量或分值变化使用 `question_type_patches`；禁止重发完整 `question_type_requirements`。Python 会从 pending source of truth 合并未修改字段并确定性重平衡。
+兼容模式下的直接组卷请求仍先调用 preview_generation_plan 展示方案；但当 teaching_design Skill 判断教师表达的是“怎么教、怎么考、讲义怎么组织”的高层教学任务时，必须走 Environment-Aware TeachingDesign 生命周期：先 inspect_curriculum，再 inspect_question_bank 的 aggregate Observation，必要时最多进行有限 drill-down，最后才能 create_teaching_design。不得用 preview_generation_plan 绕过尚未确认的教学设计，也不得凭模型常识编造题库供给。环境调查必须真实影响设计决策；不要为了形式重复查询。教师没有明确说明的执行级题型、题量和分值不得由 LLM 编造。旧 generation preview 仍要求后续明确确认；TeachingDesign 的确认规则由 teaching_design Skill 和确定性 Service 单独约束。
 
-教师明确表示“算了、不出了、不要这个方案”时调用 `discard_pending_plan`。它只清除未提交计划，不修改已有试卷。普通修改 pending generation 不需要先 discard。
+Working Memory 只用于理解当前任务、上一轮追问和上一份试卷引用。已有 pending generation 时，preview_generation_plan 的参数必须是“教师本轮相对当前 pending 的 patch”，Python 会与完整 pending request 合并；不要重复猜测或删掉教师此前已确认字段。已有 pending generation 时禁止使用 question_type_requirements：即使教师在本轮重新列出了完整题型和分值，也必须只把相对当前 pending 真正发生变化的题型转换成 question_type_patches；与 pending 相同的题型不要发送。修改 scope_names、knowledge_preferences、audience、difficulty 等非题型字段时，只传教师本轮明确改变的对应字段，未提到字段交给 Python 保留。已有 pending generation 不需要先取消再重建；当前没有 cancel_generation_plan 工具，不得编造“先取消旧方案”的流程。“不要与上一套重复”当前只会被记录为 unsupported preference，必须明确说明当前 Tool 尚不能保证排重，绝不能声称已经避免重复。
 
-## 当前试卷
+教师只修改某个题型的数量或分值时，使用 question_type_patches 只表达变更字段。pending 中的目标总分会保留，Python 会按0.5分粒度尝试确定性平衡；不得自行把100分改成85分。Tool 返回 score_rebalance_ambiguous 时，按其 clarification 追问，不得自行凑分。
 
-读取当前试卷事实使用 `read_paper`；整卷确定性分析使用 `analyze_paper`。
+单题换题和整卷调整都先生成 preview，必须等教师明确确认后才能调用对应 confirm 工具。不要在同一轮预览后替教师自行确认。单题换题引用“选择题第N题、填空题第N题、计算题第N题、证明题第N题”时，preview_replace_question 必须使用 address，不得把题型内编号当成全卷 position。删除具体题目时必须使用 remove_addresses。教师只说“删除填空题第2题”而没有要求保持总分时，不得自行填写 target_total_score；删除题目的分值应自然从总分中扣除。只有教师明确说“总分保持100分”或指定新的总分时才传 target_total_score。
 
-教师可见题号默认是题型内编号，例如“填空题第2题”，应使用 `QuestionAddress(section_type, section_order)`。不得把题型内编号误当成全卷 position。只有教师明确说“全卷第N题”时才使用 legacy positions 读取；如果随后要修改该题，先通过 `read_paper` 得到其题型内地址，再创建修改计划。
+新增题目必须先调用 preview_add_question，并等待教师下一轮明确确认后再调用 confirm_adjust_paper。教师说“加一道填空题”时只传 question_type，由 Python 从当前 scope 内确定性选择 approved/active/current 且未在当前试卷中的题；不得自行指定 question_id 或 position。教师说“加一道5分填空题”时传 score=5。没有显式分值时由 Python 从当前同题型统一分值推导；Tool 返回 add_question_score_required 或 add_question_score_ambiguous 时必须追问，禁止自行猜分。新增题进入对应题型 section 末尾。
 
-已有试卷的所有写操作统一使用 `preview_paper_changes`。它可以在一个 request 中表达多个 operation：
-- `replace_question`
-- `remove_question`
-- `add_questions`
-- `change_question_score`
-- `change_question_type_distribution`
+当前工作区上下文中的 pending 是业务状态事实，优先于聊天中的口头描述。教师接受或拒绝 pending 单题换题时，必须分别调用 confirm_replace_question 或 cancel_replace_question；教师接受 pending 整卷调整时必须调用 confirm_adjust_paper。没有对应 Tool Observation 时，绝不能声称已经确认、取消或应用。
 
-`preview_paper_changes` 只生成一个整体修改计划，不修改 Paper。教师明确确认这个 pending paper-change plan 后，才调用 `confirm_paper_changes`。禁止在同一轮刚生成 preview 后替教师自动确认。
+教师表示不接受、不要或放弃当前 pending 方案时，含义是取消该方案，不是自动再生成一个候选。只有教师明确要求“再找一个、换个候选”时，才可以先取消当前 pending，再调用 preview_replace_question 生成新方案；不得用新 preview 静默覆盖旧 pending。
 
-如果教师是在修改已有 pending paper-change plan，继续调用 `preview_paper_changes`，由 Python 从同一 base version 合并 / 重编译；不要自行在聊天里维护 merge 结果。
+preserve_knowledge_points 是显式 opt-in 硬约束。只有教师明确说“知识点不变、别动知识点、保持考点、保持原知识点”等同义要求时，调用 preview_replace_question 才允许传 preserve_knowledge_points=true。教师仅说“超纲、这题不合适、换一道、换简单一点”等，不代表要求保持原知识点，此时不得自行把 preserve_knowledge_points 设为 true。不得把仅部分重合的知识点描述成完全保持。
 
-如果教师明确确认旧 pending，同时又提出新的额外修改，例如“刚才删除就按这个，再把第一题换掉”，应先 `confirm_paper_changes` 应用已确认方案，再基于新版本调用 `preview_paper_changes` 生成新的待确认方案。不要把尚未确认的新要求偷偷并入已经被教师确认的旧方案。
+如果用户要求先读取再换题、撤销后再处理、或读取后解释，可以按需要连续调用多个工具。读取 Tool 只是获取事实；如果教师同一请求还要求调整、替换或分析，读取后必须在本轮继续调用完成该目标所需的 Tool。
 
-教师明确放弃任何未提交的 generation / paper-change 方案时调用 `discard_pending_plan`。该 Tool 不回滚 Paper，不恢复版本，只清 Pending。
-
-删除题目且教师没有要求保持总分时，不要填写 `target_total_score`；删除分值自然从总分中消失。只有教师明确说“总分保持100分”或指定新总分时才传 `target_total_score`，由 Python 负责确定性重平衡。
-
-`preserve_knowledge_points` 是显式 opt-in 硬约束。只有教师明确要求“知识点不变 / 保持考点 / 保留原知识点”等时，`replace_question` operation 才允许设置 true。教师只说“换一道、超纲、简单一点”不代表保持原知识点。
-
-新增题目只表达题型、数量和教师明确指定的分值；不得由 LLM 指定 Question ID。候选选择、去重、scope、难度与分值校验全部交给 Python。
-
-版本链统一使用 `operate_paper_version(action=undo|redo|restore)`；restore 必须提供 target_version。
-
-## TeachingDesign
-
-教师表达“怎么教、怎么考、重点是什么、讲义如何组织”等高层教学任务时，走 Environment-Aware TeachingDesign 生命周期：先真实调查 curriculum / question bank，再创建或修改 TeachingDesign。不得用组卷 Tool 绕过尚未确认的教学设计，也不得凭模型常识编造题库供给。
-
-## 执行原则
-
-一个教师请求可以连续调用多个 Tool。Pending 是未完成业务状态，不是限制 Agent 能力的权限开关。只要当前请求需要，可以在同一轮读取、确认旧计划、再为新要求创建 preview。
-
-你没有后台异步任务能力。不得回复“正在处理、稍后完成”后停止；必须在当前 Agent Loop 中推进到完成、明确阻塞、需要教师补充，或需要教师确认。"""
+你没有后台异步任务能力。禁止回复“正在寻找、请稍等、稍后完成”后停止。必须在当前 Agent Loop 中继续执行，直到得到 preview、明确的业务阻塞、需要教师确认/补充，或目标已经完成，再给出清晰的中文回复。"""
 
 
 def build_teacher_agent_backend(settings: Settings) -> ChatBackend | None:
@@ -246,7 +222,7 @@ def _tool_definition_for_context(tool: Any, *, pending_generation: bool) -> dict
     final safety net if a model still emits the forbidden field.
     """
     definition = tool.definition()
-    if not pending_generation or tool.name != "prepare_generation_plan":
+    if not pending_generation or tool.name != "preview_generation_plan":
         return definition
 
     function = definition.get("function") or {}
@@ -340,23 +316,23 @@ def _paper_read_messages(
         ]
         scope_instruction = (
             f"教师明确指定题型内地址 {payload}；必须调用 "
-            f"read_paper(addresses={payload})，不得转换成全卷 position。"
+            f"read_current_paper(addresses={payload})，不得转换成全卷 position。"
         )
     elif requested_positions:
         scope_instruction = (
             f"教师明确指定全卷内部题号 {requested_positions}；必须调用 "
-            f"read_paper(positions={requested_positions})。"
+            f"read_current_paper(positions={requested_positions})。"
         )
     else:
         scope_instruction = (
-            "教师询问整卷情况；调用 read_paper 时省略 addresses 和 positions。"
+            "教师询问整卷情况；调用 read_current_paper 时省略 addresses 和 positions。"
         )
     return [
         {
             "role": "system",
             "content": (
                 "教师当前请求已经通过事实核验，确认依赖当前 Paper。"
-                "必须立即调用 read_paper 获取当前版本事实。"
+                "必须立即调用 read_current_paper 获取当前版本事实。"
                 + scope_instruction
                 + "不得凭聊天历史回答，不得在没有 Tool Observation 时输出事实。"
                 + ("上一条没有调用读取工具，这次必须调用。" if retry else "")
@@ -464,14 +440,14 @@ def _apply_question_reference_hints(
     addresses: list[QuestionAddress],
     positions: list[int],
 ) -> dict[str, Any]:
-    """Fill only missing references from deterministic positive hints.
+    """Fill only missing reference fields from deterministic positive hints.
 
-    Hints never decide semantic intent. For paper changes, only a single
-    unresolved target may be filled from a single high-confidence address.
+    Never overwrite a model-provided address/position and never infer semantic
+    intent (READ/REMOVE/REPLACE) from keywords.
     """
     updated = dict(arguments)
 
-    if tool_name == "read_paper":
+    if tool_name == "read_current_paper":
         if not updated.get("addresses") and not updated.get("positions"):
             if addresses:
                 updated["addresses"] = [
@@ -480,37 +456,14 @@ def _apply_question_reference_hints(
                 ]
             elif positions:
                 updated["positions"] = list(positions)
-        return updated
 
-    if tool_name != "preview_paper_changes" or len(addresses) != 1:
-        return updated
+    elif tool_name == "preview_replace_question":
+        if updated.get("address") is None and updated.get("position") is None:
+            if len(addresses) == 1:
+                updated["address"] = addresses[0].model_dump(mode="json")
+            elif len(positions) == 1:
+                updated["position"] = positions[0]
 
-    raw_operations = updated.get("operations")
-    if not isinstance(raw_operations, list):
-        return updated
-
-    operations = [
-        dict(operation) if isinstance(operation, dict) else operation
-        for operation in raw_operations
-    ]
-    target_types = {
-        "replace_question",
-        "remove_question",
-        "change_question_score",
-    }
-    unresolved = [
-        index
-        for index, operation in enumerate(operations)
-        if isinstance(operation, dict)
-        and operation.get("type") in target_types
-        and operation.get("target") is None
-    ]
-    if len(unresolved) != 1:
-        return updated
-
-    index = unresolved[0]
-    operations[index]["target"] = addresses[0].model_dump(mode="json")
-    updated["operations"] = operations
     return updated
 
 
@@ -520,36 +473,16 @@ def _apply_explicit_opt_in_guards(
     arguments: dict[str, Any],
     message: str,
 ) -> dict[str, Any]:
-    """Enforce hard candidate constraints that require explicit teacher opt-in."""
+    """Guard hard candidate constraints that require explicit teacher opt-in."""
     updated = dict(arguments)
 
     if (
-        tool_name != "preview_paper_changes"
-        or _explicit_preserve_knowledge_points_requested(message)
+        tool_name == "preview_replace_question"
+        and updated.get("preserve_knowledge_points") is True
+        and not _explicit_preserve_knowledge_points_requested(message)
     ):
-        return updated
+        updated["preserve_knowledge_points"] = False
 
-    raw_operations = updated.get("operations")
-    if not isinstance(raw_operations, list):
-        return updated
-
-    changed = False
-    operations: list[Any] = []
-    for raw in raw_operations:
-        if not isinstance(raw, dict):
-            operations.append(raw)
-            continue
-        operation = dict(raw)
-        if (
-            operation.get("type") == "replace_question"
-            and operation.get("preserve_knowledge_points") is True
-        ):
-            operation["preserve_knowledge_points"] = False
-            changed = True
-        operations.append(operation)
-
-    if changed:
-        updated["operations"] = operations
     return updated
 
 
@@ -741,29 +674,45 @@ def run_teacher_agent(
             environment_inspection_tool_names()
         )
 
-        if not has_current_paper:
+        if pending:
+            # Existing single-question replacement pending:
+            # only allow its lifecycle plus optional current-paper read.
             definition_names = [
-                "prepare_generation_plan",
+                "confirm_replace_question",
+                "cancel_replace_question",
+                "read_current_paper",
+            ]
+        elif pending_generation:
+            # Existing generation plan:
+            # only allow patching/re-previewing or confirming that plan.
+            definition_names = [
+                "preview_generation_plan",
+                "confirm_generation_plan",
+            ]
+        elif pending_adjustment:
+            # Existing whole-paper adjustment:
+            # keep only tools that can inspect, update, or confirm that plan.
+            definition_names = [
+                "read_current_paper",
+                "preview_adjust_paper",
+                "preview_add_question",
+                "confirm_adjust_paper",
+            ]
+        elif not has_current_paper:
+            # T1.1 is additive: preserve legacy direct generation while
+            # exposing the new TeachingDesign business path. The legacy path
+            # is removed only after the confirmed-design generation bridge is
+            # complete and evaluated.
+            definition_names = [
+                "preview_generation_plan",
                 *environment_definition_names,
                 *design_definition_names,
             ]
-            if pending_generation:
-                definition_names.extend([
-                    "confirm_generation",
-                    "discard_pending_plan",
-                ])
-            if pending:
-                definition_names.append("discard_pending_plan")
-        elif pending or pending_generation or pending_adjustment:
-            # Pending describes unfinished business; it must not hide the
-            # Paper Agent's other domain capabilities.
-            definition_names = list(PAPER_TOOL_NAMES)
         else:
+            # A current paper exists and there is no pending transaction.
+            # Keep the current tool surface for now; capability-based
+            # narrowing can be added later if traces show it is necessary.
             definition_names = list(tools)
-
-        definition_names = list(dict.fromkeys(
-            name for name in definition_names if name in tools
-        ))
 
         definitions = toolkit.schemas(
             names=definition_names,
@@ -794,16 +743,10 @@ def run_teacher_agent(
                 "version_id": version_id,
             },
             "pending": (
-                {
-                    "type": "legacy_single_question_replacement",
-                    "position": pending.target_position,
-                }
-                if pending
-                else {"type": "generation_plan"}
-                if pending_generation
-                else {"type": "paper_change", "plan_id": pending_adjustment}
-                if pending_adjustment
-                else None
+                {"type": "single_question_replacement", "position": pending.target_position}
+                if pending else {"type": "generation_plan"}
+                if pending_generation else {"type": "whole_paper_adjustment", "plan_id": pending_adjustment}
+                if pending_adjustment else None
             ),
             "working_memory": working_memory.model_dump(mode="json") if working_memory else None,
             "active_teaching_design": active_teaching_design,
@@ -818,9 +761,12 @@ def run_teacher_agent(
         serialized_context = json.dumps(dynamic_context, ensure_ascii=False)
 
         question_operation_skill_active = bool(
-            has_current_paper
-            or pending
+            pending
             or pending_adjustment
+            or (
+                has_current_paper
+                and not pending_generation
+            )
         )
         teaching_design_skill_active = not bool(
             pending or pending_adjustment or pending_generation
@@ -890,7 +836,7 @@ def run_teacher_agent(
             or teaching_design_pending_at_turn_start
         )
         pending_state_rechecked = False
-        pending_paper_change_rechecked = False
+        pending_adjustment_rechecked = False
         paper_state_at_turn_start = bool(version_id or paper_id)
         paper_version_at_turn_start = context.version_id or context.paper_id
         paper_grounding_rechecked = False
@@ -976,74 +922,62 @@ def run_teacher_agent(
                         ])
                         malformed_response_retried = True
                         continue
-
-                    paper_change_lifecycle_observed = any(
-                        call["tool_name"] in {
-                            "preview_paper_changes",
-                            "confirm_paper_changes",
-                            "discard_pending_plan",
-                            "operate_paper_version",
-                        }
+                    adjustment_observed = any(
+                        call["tool_name"] in {"preview_adjust_paper", "preview_add_question", "confirm_adjust_paper"}
                         for call in trace_calls
                     )
-                    if (
-                        pending_adjustment
-                        and trace_calls
-                        and not paper_change_lifecycle_observed
-                        and not pending_paper_change_rechecked
-                    ):
+                    if pending_adjustment and not adjustment_observed and not pending_adjustment_rechecked:
                         messages.extend([
                             {"role": "assistant", "content": content.strip()},
                             {
                                 "role": "user",
                                 "content": (
-                                    "<pending_paper_change_guard>"
-                                    "当前存在待确认的 paper-change plan。"
-                                    "重新判断教师本轮原始请求："
-                                    "如果教师在修改当前方案，必须调用 preview_paper_changes；"
-                                    "如果明确确认，调用 confirm_paper_changes；"
-                                    "如果明确放弃，调用 discard_pending_plan；"
-                                    "如果只是读取或询问事实，可以直接回答。"
-                                    "read_paper / analyze_paper Observation 只能证明读取成功，"
-                                    "不能证明 pending 已修改、确认或取消。"
-                                    "没有对应生命周期 Tool Observation 时，不得声称业务状态已经改变。"
-                                    "</pending_paper_change_guard>"
+                                    "<pending_adjustment_guard>当前存在待确认的整卷 AdjustmentPlan。"
+                                    "如果教师正在修改该方案，必须调用 preview_adjust_paper 生成并保存新版 preview；"
+                                    "target_total_score 会与旧方案中的删除位置确定性合并。"
+                                    "如果教师明确接受当前方案，必须调用 confirm_adjust_paper。"
+                                    "没有对应 Tool Observation 时，不得声称方案已更新或已应用。"
+                                    "请重新处理教师本轮原始请求。</pending_adjustment_guard>"
                                 ),
                             },
                         ])
                         definitions = toolkit.schemas(
                             names=[
-                                "read_paper",
-                                "analyze_paper",
-                                "preview_paper_changes",
-                                "confirm_paper_changes",
-                                "discard_pending_plan",
+                                "read_current_paper",
+                                "preview_adjust_paper",
+                                "preview_add_question",
+                                "confirm_adjust_paper",
                             ]
                         )
-                        pending_paper_change_rechecked = True
+                        pending_adjustment_rechecked = True
                         continue
-
+                    if pending_adjustment and not adjustment_observed and pending_adjustment_rechecked:
+                        final_text = (
+                            "当前待确认的整卷调整方案没有被更新，本轮不会确认旧方案。"
+                            "请重试你的修改要求，我会先生成新的调整预览。"
+                        )
+                        turn_status = "needs_clarification"
+                        result_values["blocking_errors"].append("pending_adjustment_not_updated")
+                        break
                     if pending_state_at_turn_start and not trace_calls and not pending_state_rechecked:
                         if pending_generation:
                             pending_guard = (
-                                "当前存在待确认组卷方案。教师明确接受时调用 confirm_generation；"
-                                "教师修改方案时调用 prepare_generation_plan，并且只提交本轮 patch；"
-                                "教师明确放弃时调用 discard_pending_plan。"
-                                "未经 Tool Observation 不得声称方案已修改、放弃或已经组卷。"
-                            )
-                        elif pending_adjustment:
-                            pending_guard = (
-                                "当前存在待确认 paper-change plan。教师明确接受时调用 "
-                                "confirm_paper_changes；教师继续修改时调用 preview_paper_changes；"
-                                "教师明确放弃时调用 discard_pending_plan；需要当前试卷事实时调用 read_paper。"
-                                "Pending 是未完成业务状态，不得只靠自然语言声称已经修改或应用。"
+                                "你正在处理一个已经存在的组卷方案。教师明确接受当前方案时必须调用 "
+                                "confirm_generation_plan；教师提出修改时必须调用 preview_generation_plan。"
+                                "此时 preview_generation_plan 是 PATCH-only：只提交教师本轮相对当前 pending "
+                                "真正改变的字段；禁止 question_type_requirements，题型数量/分值变更只能使用 "
+                                "question_type_patches。修改章节或知识点时不要重发题型、题量和分值。"
+                                "不需要也不得编造取消旧 generation plan 的步骤。未经 Tool Observation "
+                                "不得声称方案已经修改或已经组卷。"
                             )
                         elif pending:
                             pending_guard = (
-                                "当前存在部署前遗留的单题换题 pending。模型侧不要再使用旧 Tool 名。"
-                                "教师接受时调用统一的 confirm_paper_changes；教师放弃时调用 "
-                                "discard_pending_plan。若教师要求换一个新候选，应先 discard_pending_plan，"
-                                "再调用 preview_paper_changes 创建新的修改计划。"
+                                "你正在处理一个已经存在的单题换题 pending 事务。忽略更早对话中的建议，"
+                                "只根据教师当前这条原始消息和最新 pending 状态行动。"
+                                "教师接受方案时调用 confirm_replace_question；拒绝、不要或放弃方案时调用 "
+                                "cancel_replace_question；需要查看原卷时调用 read_current_paper。"
+                                "如果只是询问方案，可以直接回答。不得生成新 preview，也不得在没有 Tool "
+                                "Observation 时声称状态已改变。"
                             )
                         else:
                             pending_guard = (
@@ -1132,7 +1066,7 @@ def run_teacher_agent(
                                         ensure_ascii=False,
                                     ),
                                 )
-                                definitions = toolkit.schemas(names=["read_paper"])
+                                definitions = toolkit.schemas(names=["read_current_paper"])
                                 paper_read_required = True
                                 continue
                             independent_answer = decision.answer.strip()
@@ -1176,7 +1110,7 @@ def run_teacher_agent(
                                 ),
                                 retry=True,
                             )
-                            definitions = toolkit.schemas(names=["read_paper"])
+                            definitions = toolkit.schemas(names=["read_current_paper"])
                             paper_read_call_retried = True
                             continue
                         final_text = (
@@ -1276,7 +1210,7 @@ def run_teacher_agent(
                             output=redact_trace_value(execution_payload),
                             ended_at=datetime.now(UTC),
                         )
-                        if name == "prepare_generation_plan":
+                        if name == "preview_generation_plan":
                             if execution_payload.get("ok"):
                                 # A successful corrected preview resolves any transient
                                 # generation_partial_patch_required from an earlier attempt.
@@ -1289,7 +1223,7 @@ def run_teacher_agent(
                                 in (execution_payload.get("blocking_errors") or [])
                             ):
                                 generation_patch_retry_needed = True
-                        if name == "read_paper":
+                        if name == "read_current_paper":
                             paper_observation_version_id = observed_version_id
                         if (
                             name in {
@@ -1323,7 +1257,7 @@ def run_teacher_agent(
                         "arguments": arguments,
                         "result": execution_payload,
                     }
-                    if name == "read_paper":
+                    if name == "read_current_paper":
                         trace_entry["paper_observation"] = {
                             "version_id": paper_observation_version_id,
                             "positions": arguments.get("positions"),
@@ -1351,9 +1285,9 @@ def run_teacher_agent(
                             "role": "user",
                             "content": (
                                 "<generation_patch_guard>当前已有 pending generation。"
-                                "上一条 prepare_generation_plan 错把完整 "
+                                "上一条 preview_generation_plan 错把完整 "
                                 "question_type_requirements 当成 patch，因此被 Python 拒绝。"
-                                "请立即重新调用 prepare_generation_plan：只提交教师本轮相对当前 "
+                                "请立即重新调用 preview_generation_plan：只提交教师本轮相对当前 "
                                 "pending 真正改变的字段；禁止 question_type_requirements；"
                                 "题型数量或分值变化使用 question_type_patches。"
                                 "如果本轮只修改章节/知识点，就只传 scope_names / "
@@ -1362,7 +1296,7 @@ def run_teacher_agent(
                             ),
                         })
                         definitions = toolkit.schemas(
-                            names=["prepare_generation_plan"],
+                            names=["preview_generation_plan"],
                             transform=lambda tool: _tool_definition_for_context(
                                 tool,
                                 pending_generation=True,
