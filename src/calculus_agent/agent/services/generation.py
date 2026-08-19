@@ -260,6 +260,28 @@ def _rebalance_scores(
     )
 
 
+def _recompute_total_score(request: GeneratePaperInput) -> GeneratePaperInput:
+    """Recompute the plan total from per-type ``count * score_each``.
+
+    Used only when the effective total-score source is NOT teacher_explicit.
+    Each type keeps its current ``score_each``; the plan total is the deterministic
+    sum. This prevents the system default (e.g. 100) from being a hard constraint
+    when the teacher only changes question counts.
+    """
+    requirements = request.question_type_requirements or []
+    if not requirements or any(item.score_each is None for item in requirements):
+        return request
+    recomputed = [
+        item.model_copy(update={"total_score": item.count * item.score_each})
+        for item in requirements
+    ]
+    return request.model_copy(update={
+        "question_type_requirements": recomputed,
+        "total_score": sum(item.total_score for item in recomputed),
+        "question_count": sum(item.count for item in recomputed),
+    })
+
+
 @dataclass
 class GenerationService:
     session: Session
@@ -341,32 +363,46 @@ class GenerationService:
         )
 
         if pending:
-            locked_types = (
-                set(pending.locked_score_question_types)
-                | changed_score_types
+            effective_teacher_explicit = (
+                "total_score" in patch.model_fields_set
+                or pending.total_score_source == "teacher_explicit"
             )
-            balanced, balance_question = _rebalance_scores(
-                request,
-                locked_types=locked_types,
-                changed_count_types=changed_count_types,
-            )
-            if balanced is None:
-                preview = GenerationPlanPreview(
-                    ok=False,
-                    request=request,
-                    total_score=request.total_score,
-                    sections=request.question_type_requirements or [],
-                    blocking_errors=["score_rebalance_ambiguous"],
-                    clarification_questions=[balance_question],
+            if effective_teacher_explicit:
+                # Rule A: the teacher explicitly owns the target total score
+                # (stated this round or in a previous round that has not been
+                # cancelled). Keep it and rebalance deterministically.
+                locked_types = (
+                    set(pending.locked_score_question_types)
+                    | changed_score_types
                 )
-                if self.store is not None and self.conversation_id:
-                    memory.last_clarification = {
-                        "missing_fields": ["score_rebalance_ambiguous"],
-                        "questions": [balance_question],
-                    }
-                    self.store.set_memory(self.conversation_id, memory)
-                return preview
-            request = balanced
+                balanced, balance_question = _rebalance_scores(
+                    request,
+                    locked_types=locked_types,
+                    changed_count_types=changed_count_types,
+                )
+                if balanced is None:
+                    preview = GenerationPlanPreview(
+                        ok=False,
+                        request=request,
+                        total_score=request.total_score,
+                        sections=request.question_type_requirements or [],
+                        blocking_errors=["score_rebalance_ambiguous"],
+                        clarification_questions=[balance_question],
+                    )
+                    if self.store is not None and self.conversation_id:
+                        memory.last_clarification = {
+                            "missing_fields": ["score_rebalance_ambiguous"],
+                            "questions": [balance_question],
+                        }
+                        self.store.set_memory(self.conversation_id, memory)
+                    return preview
+                request = balanced
+            else:
+                # Rule B: default / system source. The system default total (e.g.
+                # 100) is NOT a hard constraint. Keep each type's current
+                # score_each and recompute the plan total deterministically from
+                # count * score_each. Never returns score_rebalance_ambiguous.
+                request = _recompute_total_score(request)
 
         generation_request, warnings, errors, questions = (
             build_structured_generation_request(self.session, request)

@@ -152,6 +152,8 @@ _SYSTEM_PROMPT = """你是 Teacher Agent。
 
 新建试卷使用 `prepare_generation_plan`。它只准备和校验组卷方案，不创建试卷。教师明确确认当前 pending generation 后，才调用 `confirm_generation`。
 
+明确的新建试卷请求属于 direct generation，不要绕去 TeachingDesign。先按需真实调查 curriculum / question bank（`inspect_curriculum`、`inspect_question_bank`），然后必须在同一轮继续调用 `prepare_generation_plan` 生成可编辑蓝图卡片；不得只返回自然语言建议方案就结束。蓝图卡片本身就是预览：教师可在卡片内修改、用自然语言补充，或点击确认生成；只有“确认生成”调用 `confirm_generation`。`prepare_generation_plan` 成功后，聊天正文只做简短提示，不要再次展开题型数量、每题分值、总分等蓝图明细，避免和卡片重复。
+
 已有 pending generation 时，`prepare_generation_plan` 是 PATCH-only：只提交教师本轮真正改变的字段。题型数量或分值变化使用 `question_type_patches`；禁止重发完整 `question_type_requirements`。Python 会从 pending source of truth 合并未修改字段并确定性重平衡。
 
 教师明确表示“算了、不出了、不要这个方案”时调用 `discard_pending_plan`。它只清除未提交计划，不修改已有试卷。普通修改 pending generation 不需要先 discard。
@@ -408,6 +410,24 @@ _PRESERVE_KNOWLEDGE_POINTS_PATTERN = re.compile(
 )
 
 
+_TOTAL_SCORE_PATTERNS = (
+    # "总分100" / "满分 100 分" / "总分保持90分"
+    re.compile(
+        r"(?:总分|满分|卷面(?:总)?分)"
+        r"[^。！？,，；;]{0,8}?"
+        r"\d{1,3}\s*分?"
+    ),
+    # "100分的试卷" / "100分制考试"
+    re.compile(
+        r"\d{1,3}\s*分(?:制|的)?\s*(?:试卷|卷子|测试|考试)"
+    ),
+    # Follow-up shorthand such as "90分就可以" / "90即可".
+    re.compile(
+        r"^\s*\d{1,3}\s*分?\s*(?:就可以|即可|可以|就行|行)?[。！？]?\s*$"
+    ),
+)
+
+
 def _question_position(value: str) -> int | None:
     if value.isdigit():
         return int(value)
@@ -468,6 +488,17 @@ def _explicit_question_positions(message: str) -> list[int]:
 def _explicit_preserve_knowledge_points_requested(message: str) -> bool:
     """Return True only for an explicit teacher request to preserve KP/考点."""
     return _PRESERVE_KNOWLEDGE_POINTS_PATTERN.search(message) is not None
+
+
+
+def _explicit_total_score_requested(message: str) -> bool:
+    """Return True only when the teacher explicitly states a paper total score.
+
+    This is provenance validation for a hard business constraint. A model-added
+    default (for example total_score=100) must not silently become
+    teacher_explicit.
+    """
+    return any(pattern.search(message) is not None for pattern in _TOTAL_SCORE_PATTERNS)
 
 
 def _apply_question_reference_hints(
@@ -533,8 +564,18 @@ def _apply_explicit_opt_in_guards(
     arguments: dict[str, Any],
     message: str,
 ) -> dict[str, Any]:
-    """Enforce hard candidate constraints that require explicit teacher opt-in."""
+    """Enforce model arguments that require explicit teacher provenance."""
     updated = dict(arguments)
+
+    # total_score is a hard generation constraint only when it came from the
+    # teacher. The Tool schema also contains system defaults, so field presence
+    # in an LLM Tool Call is not sufficient provenance.
+    if (
+        tool_name == "prepare_generation_plan"
+        and "total_score" in updated
+        and not _explicit_total_score_requested(message)
+    ):
+        updated.pop("total_score", None)
 
     if (
         tool_name != "preview_paper_changes"
@@ -913,6 +954,7 @@ def run_teacher_agent(
         paper_observation_version_id: str | None = None
         malformed_response_retried = False
         generation_patch_retried = False
+        post_inspection_intent_rechecked = False
         trace = run_manager.row
         if trace is None:
             trace = TeacherAgentRunTrace(
@@ -1086,6 +1128,62 @@ def run_teacher_agent(
                             "你可以让我重新展示方案，或再次明确确认/取消。"
                         )
                         break
+
+                    # After environment inspection, re-check the semantic intent
+                    # before accepting a prose-only final answer. This prevents
+                    # direct-generation requests from stopping before the editable
+                    # blueprint, while also preventing environment-only questions
+                    # from being accidentally turned into generation requests.
+                    if (
+                        not has_current_paper
+                        and not pending
+                        and not pending_adjustment
+                        and not pending_generation
+                        and not post_inspection_intent_rechecked
+                        and any(
+                            call["tool_name"] in environment_definition_names
+                            for call in trace_calls
+                        )
+                        and not any(
+                            call["tool_name"] == "prepare_generation_plan"
+                            for call in trace_calls
+                        )
+                        and not any(
+                            call["tool_name"] in design_definition_names
+                            for call in trace_calls
+                        )
+                    ):
+                        messages.extend([
+                            {"role": "assistant", "content": content.strip()},
+                            {
+                                "role": "user",
+                                "content": (
+                                    "<post_inspection_intent_recheck>"
+                                    "环境调查已经完成。请重新依据教师本轮原始请求判断下一步，"
+                                    "不要因为调用过 inspect_curriculum / inspect_question_bank 就默认教师要组卷。"
+                                    "如果教师明确要新建/生成试卷，必须在同一轮调用 prepare_generation_plan，"
+                                    "生成可编辑 GenerationPlanPreview；蓝图卡片就是唯一预览，之后只需一次确认生成。"
+                                    "如果教师表达的是高层教学设计目标，继续使用对应 TeachingDesign Tool。"
+                                    "如果教师只是查询课程或题库事实，直接基于已有 Tool Observation 回答，"
+                                    "严禁创建 PendingGeneration。"
+                                    "</post_inspection_intent_recheck>"
+                                ),
+                            },
+                        ])
+                        definitions = toolkit.schemas(
+                            names=[
+                                "prepare_generation_plan",
+                                *environment_definition_names,
+                                *design_definition_names,
+                            ],
+                            transform=lambda tool: _tool_definition_for_context(
+                                tool,
+                                pending_generation=False,
+                            ),
+                        )
+                        post_inspection_intent_rechecked = True
+                        continue
+
                     current_paper_version_id = context.version_id or context.paper_id
                     paper_version_changed = (
                         paper_version_at_turn_start is not None
@@ -1427,6 +1525,16 @@ def run_teacher_agent(
             turn_status = "waiting_confirmation"
         elif pending_query_possible and turn_status == "waiting_confirmation":
             turn_status = "completed"
+
+        generation_preview = result_values.get("generation_preview")
+        if (
+            generation_preview is not None
+            and getattr(generation_preview, "ok", False)
+            and turn_status == "waiting_confirmation"
+        ):
+            final_text = (
+                "组卷方案已准备好，可直接在下方蓝图中调整，确认后生成试卷。"
+            )
 
         if "avoid_previous_paper_questions_unsupported" in result_values["warnings"]:
             final_text = (

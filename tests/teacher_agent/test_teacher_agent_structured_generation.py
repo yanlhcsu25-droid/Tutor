@@ -392,7 +392,9 @@ def test_default_generation_is_normalized_into_authoritative_pending(session):
     ]
 
 
-def test_count_only_patch_rebalances_to_preserved_target_score(session):
+def test_count_only_patch_recomputes_default_total_score(session):
+    """Problem 2: default-source count change keeps each score_each and recomputes
+    the plan total (no hard 100 constraint, no rebalance ambiguity)."""
     _scope(session)
     conversation_id = "score-rebalance"
     run_teacher_agent(
@@ -401,14 +403,132 @@ def test_count_only_patch_rebalances_to_preserved_target_score(session):
     )
     result = run_teacher_agent(
         session, "选择题改成2道", conversation_id=conversation_id,
-        backend=_Backend(_tool('{"question_type_patches":[{"question_type":"选择题","count":2}]}'), _final("已平衡")),
+        backend=_Backend(_tool('{"question_type_patches":[{"question_type":"选择题","count":2}]}'), _final("已更新")),
     )
     pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
     scores = {item.question_type: item.score_each for item in pending.request.question_type_requirements}
     assert result.status == "waiting_confirmation"
+    assert result.blocking_errors == []
+    assert pending.request.total_score == 90
+    assert pending.request.question_count == 8
+    assert scores["计算题"] == 15
+    assert scores["填空题"] == 10
+    assert scores["选择题"] == 5
+
+
+def test_direct_generation_forces_blueprint_card_after_env_inspection(session):
+    """Problem 1: a direct new-paper request that inspected the environment must
+    keep going in the same Agent turn and call prepare_generation_plan (the
+    editable blueprint card), instead of stopping at a natural-language proposal.
+    """
+    _scope(session)
+    conversation_id = "direct-gen-blueprint"
+    backend = _Backend(
+        _tool('{"scope_names":["第一章"]}', "inspect_curriculum"),
+        _tool('{"scope_names":["第一章"]}', "inspect_question_bank"),
+        _final("建议方案：选择题4道、填空题2道、计算题4道，请确认。"),
+        _tool('{"paper_type":"chapter_test","scope_names":["第一章"]}', "prepare_generation_plan"),
+        _final("方案已生成，请确认或调整。"),
+    )
+    with patch("calculus_agent.agent.services.generation.generate_paper_from_input") as gen:
+        result = run_teacher_agent(
+            session, "帮我出一套第一章测试卷", conversation_id=conversation_id, backend=backend
+        )
+    # The blueprint (preview) is produced without composing the paper.
+    gen.assert_not_called()
+    pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    assert result.status == "waiting_confirmation"
+    assert result.generation_preview is not None
+    assert result.generation_preview.total_score == 100
+    assert pending is not None
+    assert pending.request.scope_names == ["第一章"]
+    assert result.message == "组卷方案已准备好，可直接在下方蓝图中调整，确认后生成试卷。"
+
+    # Subsequent turn: a single confirm executes generation.
+    confirm_backend = _Backend(_tool('{}', "confirm_generation"), _final("已生成。"))
+    success = GeneratePaperToolResult(
+        ok=True, summary=PaperSummary(total_questions=10, total_score=100)
+    )
+    with patch(
+        "calculus_agent.agent.services.generation.generate_paper_from_input",
+        return_value=success,
+    ) as gen:
+        second = run_teacher_agent(
+            session, "确认生成", conversation_id=conversation_id, backend=confirm_backend
+        )
+    assert second.status == "completed"
+    gen.assert_called_once()
+    assert gen.call_args.args[1].scope_names == ["第一章"]
+
+
+def test_teacher_explicit_total_score_rebalanced_on_count_change(session):
+    """Problem 2 rule A: teacher explicitly owns total_score=100. A count change
+    deterministically rebalances and keeps the final total at 100 (no ambiguity).
+    """
+    _scope(session)
+    conversation_id = "explicit-rebalance"
+    first = run_teacher_agent(
+        session, "第一章测试卷，总分100", conversation_id=conversation_id,
+        backend=_Backend(
+            _tool('{"paper_type":"chapter_test","scope_names":["第一章"],"total_score":100}'),
+            _final("请确认"),
+        ),
+    )
+    assert first.status == "waiting_confirmation"
+    pending_before = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    assert pending_before.total_score_source == "teacher_explicit"
+
+    result = run_teacher_agent(
+        session, "选择题改成2道", conversation_id=conversation_id,
+        backend=_Backend(
+            _tool('{"question_type_patches":[{"question_type":"选择题","count":2}]}'),
+            _final("已平衡"),
+        ),
+    )
+    pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    types = {item.question_type: item for item in pending.request.question_type_requirements}
+    scores = {item.question_type: item.score_each for item in pending.request.question_type_requirements}
+    assert result.status == "waiting_confirmation"
+    assert "score_rebalance_ambiguous" not in result.blocking_errors
     assert pending.request.total_score == 100
     assert pending.request.question_count == 8
-    assert scores["计算题"] == 17.5
+    # 选择题 count changed (4->2); its score_each is preserved.
+    assert types["选择题"].count == 2 and types["选择题"].score_each == 5
+    # Deterministic rebalance adjusted exactly one unlocked type to keep total 100.
+    assert scores["填空题"] != 10 or scores["计算题"] != 15
+
+
+def test_default_count_change_preserves_unmodified_fields(session):
+    """Problem 2 rule B + scenario 4: default-source count change recomputes the
+    total but preserves every unmodified field (scope, difficulty, other types).
+    """
+    _scope(session)
+    conversation_id = "preserve-fields"
+    run_teacher_agent(
+        session, "第一章测试卷", conversation_id=conversation_id,
+        backend=_Backend(
+            _tool('{"paper_type":"chapter_test","scope_names":["第一章"],"difficulty_preference":"从基础逐渐过渡到需要思考"}'),
+            _final("请确认"),
+        ),
+    )
+    result = run_teacher_agent(
+        session, "填空题改成3道", conversation_id=conversation_id,
+        backend=_Backend(
+            _tool('{"question_type_patches":[{"question_type":"填空题","count":3}]}'),
+            _final("已更新"),
+        ),
+    )
+    pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    types = {item.question_type: item for item in pending.request.question_type_requirements}
+    assert result.status == "waiting_confirmation"
+    assert pending.request.scope_names == ["第一章"]
+    assert pending.request.difficulty_preference == "从基础逐渐过渡到需要思考"
+    assert types["选择题"].count == 4 and types["选择题"].score_each == 5
+    assert types["计算题"].count == 4 and types["计算题"].score_each == 15
+    assert types["填空题"].count == 3 and types["填空题"].score_each == 10
+    # 填空 2->3: total = 20 + 3*10 + 60 = 110 (recomputed, not forced to 100).
+    assert pending.request.total_score == 110
+    assert pending.total_score_source == "default_template"
 
 
 def test_pending_rejects_full_question_type_restatement(session):
@@ -453,7 +573,7 @@ def test_rebalance_clarification_keeps_previous_pending(session):
     _scope(session)
     conversation_id = "score-rebalance-clarification"
     run_teacher_agent(
-        session, "第一章测试卷，所有分值都按我说的", conversation_id=conversation_id,
+        session, "第一章测试卷，总分100，所有分值都按我说的", conversation_id=conversation_id,
         backend=_Backend(_tool('{"paper_type":"chapter_test","scope_names":["第一章"],"total_score":100,"question_type_requirements":[{"question_type":"选择题","count":4,"score_each":5},{"question_type":"填空题","count":2,"score_each":10},{"question_type":"计算题","count":4,"score_each":15}]}'), _final("请确认")),
     )
     result = run_teacher_agent(
@@ -517,3 +637,81 @@ def test_clarification_answer_completes_working_memory_draft(session):
     assert pending.request.paper_type == "chapter_test"
     assert pending.request.scope_names == ["第一章"]
     assert pending.request.knowledge_preferences == []
+
+def test_model_default_total_score_does_not_become_teacher_explicit(session):
+    """A model-added default 100 is not teacher provenance.
+
+    The teacher did not mention a total score, so the Agent adapter must strip
+    total_score from the Tool Call before GenerationService sees it. A later
+    count-only patch therefore recomputes the default total instead of preserving
+    100 as a hard constraint.
+    """
+    _scope(session)
+    conversation_id = "model-default-score-provenance"
+
+    first = run_teacher_agent(
+        session,
+        "第一章测试卷",
+        conversation_id=conversation_id,
+        backend=_Backend(
+            _tool(
+                '{"paper_type":"chapter_test","scope_names":["第一章"],'
+                '"total_score":100}'
+            ),
+            _final("方案。"),
+        ),
+    )
+    assert first.status == "waiting_confirmation"
+
+    store = DatabasePendingReplacementStore(session)
+    pending = store.get_generation(conversation_id)
+    assert pending is not None
+    assert pending.total_score_source == "default_template"
+    assert pending.request.total_score == 100
+
+    second = run_teacher_agent(
+        session,
+        "选择题改成2道",
+        conversation_id=conversation_id,
+        backend=_Backend(
+            _tool(
+                '{"question_type_patches":['
+                '{"question_type":"选择题","count":2}'
+                ']}'
+            ),
+            _final("已更新。"),
+        ),
+    )
+    pending = store.get_generation(conversation_id)
+    assert second.status == "waiting_confirmation"
+    assert pending.total_score_source == "default_template"
+    assert pending.request.total_score == 90
+    assert "score_rebalance_ambiguous" not in second.blocking_errors
+
+
+def test_environment_information_query_does_not_force_generation(session):
+    """Environment inspection is not itself evidence of generation intent."""
+    _scope(session)
+    conversation_id = "environment-info-only"
+    backend = _Backend(
+        _tool('{"scope_names":["第一章"]}', "inspect_curriculum"),
+        _tool(
+            '{"scope_names":["第一章"],"detail_level":"aggregate"}',
+            "inspect_question_bank",
+        ),
+        _final("第一章题库情况已经查到。"),
+        # The post-inspection semantic recheck may answer without any Tool Call.
+        _final("第一章题库情况已经查到。"),
+    )
+
+    result = run_teacher_agent(
+        session,
+        "帮我看看第一章现在题库供给怎么样",
+        conversation_id=conversation_id,
+        backend=backend,
+    )
+
+    assert result.status == "completed"
+    assert result.generation_preview is None
+    assert DatabasePendingReplacementStore(session).get_generation(conversation_id) is None
+
