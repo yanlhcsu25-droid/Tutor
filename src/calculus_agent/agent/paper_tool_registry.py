@@ -147,6 +147,22 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                 input_model.items,
             )
         except ReinforcementError as exc:
+            if exc.code == "feedback_question_not_found":
+                return ExecutedTool(
+                    payload={
+                        "ok": False,
+                        "code": exc.code,
+                        "message": exc.message,
+                    },
+                    status="needs_clarification",
+                    result_fields={
+                        "warnings": [],
+                        "blocking_errors": [],
+                        "clarification_questions": [
+                            exc.message,
+                        ],
+                    },
+                )
             return _failed(exc.code, exc.message)
 
         preview = result.preview

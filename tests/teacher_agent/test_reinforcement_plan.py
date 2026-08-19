@@ -682,3 +682,67 @@ def test_agent_confirm_path_reuses_existing_generation(session):
     assert result.status == "completed"
     assert _paper_count(session) == before + 1
     assert DatabasePendingReplacementStore(session).get_generation("conv-agent-2") is None
+
+
+def test_mixed_valid_and_invalid_feedback_is_all_or_nothing(session):
+    """One invalid feedback reference must abort the whole reinforcement plan."""
+
+    paper = _rich_paper(
+        session,
+        pid="paper-reinforcement-atomicity",
+    )
+
+    conversation_id = "conv-reinforcement-atomicity"
+
+    context = _make_context(
+        session,
+        paper.id,
+        conversation_id,
+    )
+
+    assert context.state_store.get_generation(
+        conversation_id
+    ) is None
+
+    before_paper_count = _paper_count(session)
+
+    feedback = PrepareReinforcementPlanInput.model_validate({
+        "items": [
+            {
+                # Valid reference.
+                "address": {
+                    "section_type": "选择题",
+                    "section_order": 1,
+                }
+            },
+            {
+                # Invalid reference: the fixture does not contain
+                # 计算题第99题.
+                "address": {
+                    "section_type": "计算题",
+                    "section_order": 99,
+                }
+            },
+        ]
+    })
+
+    result = build_paper_tools(context)[
+        "prepare_reinforcement_plan"
+    ].execute(feedback)
+
+    # A teacher-facing invalid question reference is recoverable input,
+    # not an infrastructure/system failure.
+    assert result.status == "needs_clarification"
+
+    # The machine-readable reason must remain observable.
+    assert result.payload.get("code") == "feedback_question_not_found"
+
+    # Core atomicity contract:
+    # the valid first feedback item must NOT produce a partial generation plan.
+    assert context.state_store.get_generation(
+        conversation_id
+    ) is None
+
+    # Preparation/clarification must never create a Paper.
+    assert _paper_count(session) == before_paper_count
+
