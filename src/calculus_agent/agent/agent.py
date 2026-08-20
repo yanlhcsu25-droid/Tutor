@@ -51,6 +51,7 @@ from .task_router import (
     TaskType,
     decide_task,
     has_explicit_curriculum_scope,
+    requires_teaching_design_artifact,
     tool_surface_for,
 )
 from .trace_log import AgentTraceRecorder, redact_trace_value
@@ -808,6 +809,7 @@ def run_teacher_agent(
 ) -> TeacherAgentResult:
     """Run LLM → tool observation → LLM until a final natural-language answer."""
     message = user_message.strip() if isinstance(user_message, str) else ""
+    teaching_design_artifact_requested = requires_teaching_design_artifact(message)
 
     # Restore workspace paper context before creating trace and agent context.
     # paper_id/version_id passed by API are optional hints.
@@ -1080,7 +1082,9 @@ def run_teacher_agent(
                 definition_names = [
                     "retrieve_curriculum_candidates",
                     "select_teaching_scope",
-                    "prepare_teaching_planning_draft",
+                    *([] if teaching_design_artifact_requested else [
+                        "prepare_teaching_planning_draft",
+                    ]),
                 ]
 
         definitions = toolkit.schemas(
@@ -1646,6 +1650,31 @@ def run_teacher_agent(
                         if grounded_decision is not None and grounded_decision.answer.strip():
                             final_text = grounded_decision.answer.strip()
                             break
+                    if (
+                        teaching_design_artifact_requested
+                        and post_inspection_intent_rechecked
+                        and not any(
+                            call["tool_name"] == "create_teaching_design"
+                            and (call.get("result") or {}).get("ok")
+                            for call in trace_calls
+                        )
+                        and all(
+                            any(
+                                call["tool_name"] == name
+                                and (call.get("result") or {}).get("ok")
+                                for call in trace_calls
+                            )
+                            for name in ("inspect_curriculum", "inspect_question_bank")
+                        )
+                    ):
+                        turn_status = "failed"
+                        result_values["blocking_errors"].append(
+                            "teaching_design_creation_required"
+                        )
+                        final_text = (
+                            "环境调查已经完成，但本轮没有成功创建可确认的 TeachingDesign。"
+                        )
+                        break
                     final_text = content.strip()
                     break
 
@@ -1787,15 +1816,19 @@ def run_teacher_agent(
                             name == "select_teaching_scope"
                             and execution_payload.get("ok")
                         ):
-                            definitions = toolkit.schemas(
-                                names=[
-                                    tool_name
-                                    for tool_name in tool_surface_for(
-                                        TaskType.TEACHING_PLANNING
-                                    ).allowed_tools
-                                    if tool_name in tools
+                            refreshed_names = [
+                                tool_name
+                                for tool_name in tool_surface_for(
+                                    TaskType.TEACHING_PLANNING
+                                ).allowed_tools
+                                if tool_name in tools
+                            ]
+                            if teaching_design_artifact_requested:
+                                refreshed_names = [
+                                    name for name in refreshed_names
+                                    if name != "prepare_teaching_planning_draft"
                                 ]
-                            )
+                            definitions = toolkit.schemas(names=refreshed_names)
                         if name == "read_paper":
                             paper_observation_version_id = observed_version_id
                         if (

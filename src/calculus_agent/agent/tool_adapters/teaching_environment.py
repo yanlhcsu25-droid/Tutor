@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from calculus_agent.application.curriculum_retrieval import (
     retrieve_curriculum_candidates,
 )
+from calculus_agent.config import get_settings
 from calculus_agent.application.scope_resolution import (
     resolve_deterministic_scope_labels,
 )
@@ -186,13 +187,21 @@ def build_environment_inspection_tools(context: Any) -> list[Any]:
             query=values.query,
             top_k=values.top_k,
         )
+        candidate_min_score = get_settings().textbook_scope_candidate_min_score
+        accepted_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.similarity_score >= candidate_min_score
+        ]
         projected = project_selectable_teaching_scopes(
             context.session,
-            semantic_matches=candidates,
+            semantic_matches=accepted_candidates,
         )
+        # Keep the complete retrieval result for recall/tracing. Only the
+        # accepted score band is projected into selectable scopes.
         semantic_matches = [
             candidate.model_dump(mode="json")
-            for candidate in projected.semantic_matches
+            for candidate in candidates
         ]
         selectable_scopes = [
             candidate.model_dump(mode="json")
@@ -222,6 +231,7 @@ def build_environment_inspection_tools(context: Any) -> list[Any]:
             "query": values.query,
             "semantic_matches": semantic_matches,
             "selectable_scopes": selectable_scopes,
+            "candidate_min_score": candidate_min_score,
             "scope_selected": False,
         }
         if not selectable_scopes:

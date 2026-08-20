@@ -19,6 +19,18 @@ class Settings(BaseSettings):
     # Phase 2C remains gated until the Phase 2B.1 human calibration passes.
     phase2c_enabled: bool = False
 
+    # Minimum hybrid-retrieval score for a curriculum node to become
+    # LLM-selectable. Raw semantic matches remain observable for recall audits.
+    textbook_scope_candidate_min_score: float = Field(
+        default=0.10,
+        ge=0.0,
+        le=1.0,
+        validation_alias=AliasChoices(
+            "CALCULUS_AGENT_TEXTBOOK_SCOPE_CANDIDATE_MIN_SCORE",
+            "TEXTBOOK_SCOPE_CANDIDATE_MIN_SCORE",
+        ),
+    )
+
     # OCR protection (Level 1: monitored in-process page workers).
     ocr_page_timeout_seconds: float = 300.0
     ocr_page_rss_limit_mb: int = 8192

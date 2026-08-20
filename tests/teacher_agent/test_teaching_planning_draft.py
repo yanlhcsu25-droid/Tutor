@@ -42,7 +42,7 @@ def test_teaching_planning_creates_conversation_draft(session):
         ),
         _text("已形成教学规划草稿。"),
     )
-    result = run_teacher_agent(session, "学生极限不好，帮我设计复习方案。", conversation_id="planning-draft", backend=backend)
+    result = run_teacher_agent(session, "学生极限学不好，先帮我分析原因并整理初步教学思路。", conversation_id="planning-draft", backend=backend)
 
     assert result.teaching_planning_draft is not None
     assert result.teaching_planning_draft.knowledge_focus == ["无穷小", "极限运算法则"]
@@ -78,7 +78,7 @@ def test_completed_scope_draft_does_not_ask_for_scope_again(session):
 
     result = run_teacher_agent(
         session,
-        "学生极限不好，帮我设计复习方案。",
+        "学生极限学不好，先帮我分析原因并整理初步教学思路。",
         conversation_id="planning-scope-complete",
         backend=backend,
     )

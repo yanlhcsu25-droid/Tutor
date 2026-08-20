@@ -7,6 +7,7 @@ from calculus_agent.agent.task_router import (
     TaskType,
     RoutingState,
     decide_task,
+    requires_teaching_design_artifact,
     tool_surface_for,
 )
 
@@ -18,6 +19,13 @@ def test_router_classifies_direct_action_generation_request():
     assert decision.route.task_type == TaskType.DIRECT_ACTION
     assert decision.route.confidence >= 0.9
     assert decision.route.clarification_needed is False
+
+
+def test_teaching_design_artifact_predicate_is_narrow():
+    assert requires_teaching_design_artifact("帮我设计复习方案") is True
+    assert requires_teaching_design_artifact("做一个教学设计") is True
+    assert requires_teaching_design_artifact("先分析一下怎么教") is False
+    assert requires_teaching_design_artifact("帮我安排复习") is False
 
 
 def test_router_classifies_teaching_planning_request():

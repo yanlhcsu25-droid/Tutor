@@ -213,6 +213,21 @@ _EXPLICIT_CURRICULUM_SCOPE_RE = re.compile(
 )
 
 
+_TEACHING_DESIGN_ARTIFACT_RE = re.compile(
+    r"(?:设计|制定|做|形成|创建)(?:一个|一份|个)?"
+    r"(?:新的)?(?:复习方案|教学设计|教学方案)"
+    r"|教学设计"
+)
+
+
+def requires_teaching_design_artifact(message: str) -> bool:
+    """Whether the teacher explicitly requests a persisted TeachingDesign.
+
+    This intentionally does not parse scope, assessment, or generation fields.
+    """
+    return bool(_TEACHING_DESIGN_ARTIFACT_RE.search(_normalize(message)))
+
+
 def has_explicit_curriculum_scope(message: str) -> bool:
     """Return whether the teacher supplied a curriculum-like scope signal."""
     return bool(_EXPLICIT_CURRICULUM_SCOPE_RE.search(_normalize(message)))

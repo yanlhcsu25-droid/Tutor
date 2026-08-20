@@ -136,6 +136,33 @@ def test_node_outside_retrieval_candidates_is_rejected(session):
     ))
 
 
+def test_low_score_semantic_hit_is_not_selectable(session, monkeypatch):
+    monkeypatch.setattr(
+        "calculus_agent.agent.tool_adapters.teaching_environment.retrieve_curriculum_candidates",
+        lambda *_args, **_kwargs: [CurriculumCandidate(
+            node_id="low-score-node",
+            node_type="chapter",
+            title="最近但不相关",
+            parent_path=[],
+            similarity_score=0.04,
+        )],
+    )
+    context = AgentExecutionContext(
+        session=session,
+        conversation_id="low-score",
+        paper_id=None,
+        version_id=None,
+        state_store=DatabasePendingReplacementStore(session),
+    )
+    tool = build_agent_tools(context)["retrieve_curriculum_candidates"]
+    execution = tool.execute(tool.input_model.model_validate({"query": "矩阵特征值"}))
+
+    assert execution.status == "needs_clarification"
+    assert execution.payload["semantic_matches"][0]["title"] == "最近但不相关"
+    assert execution.payload["selectable_scopes"] == []
+    assert execution.payload["candidate_min_score"] == 0.10
+
+
 def test_retrieval_without_legal_scope_enters_clarification(session, monkeypatch):
     monkeypatch.setattr(
         "calculus_agent.agent.tool_adapters.teaching_environment.retrieve_curriculum_candidates",
