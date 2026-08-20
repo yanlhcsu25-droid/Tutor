@@ -83,6 +83,20 @@ class TeachingDesignRepository:
             active.updated_at = now
         self.session.flush()
 
+    def clear_active(
+        self,
+        *,
+        owner_key: str,
+        conversation_id: str,
+    ) -> None:
+        active = self.session.get(
+            ActiveTeachingDesignRecord,
+            (owner_key, conversation_id),
+        )
+        if active is not None:
+            self.session.delete(active)
+            self.session.flush()
+
     def get_active(
         self,
         *,

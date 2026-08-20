@@ -16,7 +16,7 @@ from calculus_agent.agent.schemas import (
     PaperGenerationRequest,
 )
 from calculus_agent.agent.services.generation import GenerationService
-from calculus_agent.agent.state.service import RuntimeStateService
+from calculus_agent.agent.state.service import RuntimeStateService, WorkspaceService
 from calculus_agent.agent.tools.paper_tools import (
     GeneratePaperToolResult,
     PaperSummary,
@@ -107,6 +107,7 @@ def _make_service(session, conversation_id: str) -> GenerationService:
         store=DatabasePendingReplacementStore(session),
         conversation_id=conversation_id,
         runtime_state_service=RuntimeStateService(session),
+        workspace_service=WorkspaceService(session),
     )
 
 
@@ -169,6 +170,91 @@ def test_confirm_success_transitions_to_completed(session, monkeypatch):
     state = RuntimeStateService(session).get(conversation_id)
     assert state.phase == "completed"
     assert state.task_type == "generation"
+
+
+def test_pending_generation_is_not_stored_in_workspace(session, monkeypatch):
+    monkeypatch.setattr(
+        generation_module,
+        "build_structured_generation_request",
+        lambda session, request: (_fake_generation_request(), [], [], []),
+    )
+
+    conversation_id = "conv-workspace-boundary"
+    store = DatabasePendingReplacementStore(session)
+    service = GenerationService(
+        session=session,
+        store=store,
+        conversation_id=conversation_id,
+        runtime_state_service=RuntimeStateService(session),
+        workspace_service=WorkspaceService(session),
+    )
+
+    preview = service.preview(GenerationPlanPatch(paper_type="chapter_test"))
+
+    assert preview.ok is True
+    assert store.get_generation(conversation_id) is not None
+    workspace = WorkspaceService(session).get(conversation_id)
+    assert workspace is not None
+    assert workspace.active_type == "paper"
+    assert workspace.current_paper_id is None
+    assert workspace.current_version_id is None
+    assert not hasattr(workspace, "pending_generation_id")
+
+
+def test_confirm_clears_pending_and_only_updates_workspace_pointers(session, monkeypatch):
+    conversation_id = "conv-confirm-boundary"
+    blueprint = _make_blueprint(session)
+
+    def fake_generate(session, request):
+        paper = Paper(
+            blueprint_id=blueprint.id,
+            version=1,
+            status="passed",
+            title="测试卷",
+            total_score=10,
+            validation_status="passed",
+        )
+        session.add(paper)
+        session.flush()
+        paper.root_paper_id = paper.id
+        session.flush()
+        return GeneratePaperToolResult(
+            ok=True,
+            paper_id=paper.id,
+            version_id=paper.id,
+            summary=PaperSummary(
+                total_questions=1,
+                total_score=10,
+                question_type_counts={"计算题": 1},
+            ),
+            validation_status="passed",
+        )
+
+    monkeypatch.setattr(generation_module, "generate_paper_from_input", fake_generate)
+
+    workspace_service = WorkspaceService(session)
+    workspace_service.update(
+        conversation_id,
+        {"active_type": "paper", "current_paper_id": "old-paper"},
+    )
+    _seed_pending(session, conversation_id)
+    RuntimeStateService(session).transition(
+        conversation_id,
+        "waiting",
+        task_type="generation",
+        waiting_for="teacher_confirmation",
+    )
+
+    result = _make_service(session, conversation_id).confirm()
+
+    assert result.ok is True
+    assert DatabasePendingReplacementStore(session).get_generation(conversation_id) is None
+    workspace = workspace_service.get(conversation_id)
+    assert workspace is not None
+    assert workspace.active_type == "paper"
+    assert workspace.current_paper_id == str(result.paper_id)
+    assert workspace.current_version_id == str(result.version_id)
+    assert not hasattr(workspace, "pending_generation_id")
 
 
 def test_confirm_failure_transitions_to_failed(session, monkeypatch):

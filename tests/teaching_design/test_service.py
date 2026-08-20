@@ -272,13 +272,15 @@ def test_generation_projection_requires_confirmation_and_reports_gaps(session):
     assert projection.payload["difficulty_level"] == "hard"
     assert projection.payload["target_duration_min"] == 90
     assert projection.payload["duration_tolerance_min"] == 9
-    assert projection.payload["required_knowledge_names"] == ["极限"]
+    assert "required_knowledge_names" not in projection.payload
+    assert projection.payload["knowledge_preferences"] == ["极限"]
+    assert projection.payload["question_count"] == 10
     assert projection.payload["ability_weights"] == {
         "concept_understanding": 25,
         "calculation": 40,
         "application": 35,
     }
     assert projection.unsupported_design_constraints == []
-    assert "estimated_duration" in projection.bounded_constraints
+    assert "hard_duration_range" in projection.hard_constraints
     assert "ability_profile" in projection.soft_objectives
     assert "question_design_ideas" in projection.advisory_constraints

@@ -19,7 +19,13 @@ from .schemas import AgentWorkingMemory, GeneratePaperInput
 
 class PendingGeneration(BaseModel):
     request: GeneratePaperInput
-    total_score_source: Literal["teacher_explicit", "default_template", "system_rebalanced"] = "default_template"
+    total_score_source: Literal[
+        "teacher_explicit",
+        "teaching_design",
+        "pending_inherited",
+        "default_template",
+        "system_rebalanced",
+    ] = "default_template"
     locked_score_question_types: list[str] = Field(default_factory=list)
     teaching_design_version_id: str | None = None
     pending_version: int = Field(default=0, ge=0)
@@ -28,8 +34,28 @@ class PendingGeneration(BaseModel):
     def derive_question_count(self) -> "PendingGeneration":
         requirements = self.request.question_type_requirements or []
         if requirements:
+            provenance = dict(self.request.constraint_provenance)
+            if "question_count" in provenance:
+                item = provenance["question_count"]
+                if isinstance(item, dict):
+                    item = {
+                        **item,
+                        "merge_location": (
+                            f"{item.get('merge_location')};"
+                            "PendingGeneration.derive_question_count"
+                        ),
+                    }
+                else:
+                    item = item.model_copy(update={
+                        "merge_location": (
+                            f"{item.merge_location};"
+                            "PendingGeneration.derive_question_count"
+                        ),
+                    })
+                provenance["question_count"] = item
             self.request = self.request.model_copy(update={
                 "question_count": sum(item.count for item in requirements),
+                "constraint_provenance": provenance,
             })
         return self
 

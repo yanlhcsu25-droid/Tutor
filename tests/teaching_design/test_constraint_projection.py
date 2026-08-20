@@ -1,7 +1,65 @@
 from calculus_agent.teaching_design.generation_adapter import (
     project_confirmed_design,
 )
+from calculus_agent.teaching_design.schemas import TeachingDesignRead
 from calculus_agent.teaching_design.service import TeachingDesignService
+
+
+def _confirmed_projection(*, knowledge_count: int, assessment_plan: dict | None = None):
+    design = TeachingDesignRead(
+        version_id="regression",
+        design_key="regression",
+        owner_key="teacher",
+        source_conversation_id="regression",
+        parent_version_id=None,
+        version=1,
+        status="confirmed",
+        created_at="now",
+        content={
+            "title": "回归",
+            "objective": "回归",
+            "scope_names": ["第一章"],
+            "knowledge_plan": [
+                {"name": f"知识点{i}", "role": "required"}
+                for i in range(knowledge_count)
+            ],
+            "assessment_plan": assessment_plan or {},
+        },
+    )
+    return project_confirmed_design(design)
+
+
+def test_question_count_never_comes_from_teaching_required_knowledge():
+    for count in (2, 4, 8):
+        projection = _confirmed_projection(knowledge_count=count)
+        assert projection.payload["question_count"] == 10
+        assert "required_knowledge_names" not in projection.payload
+        assert "required_knowledge_coverage" not in projection.hard_constraints
+
+
+def test_explicit_assessment_structure_and_coverage_are_hard():
+    projection = _confirmed_projection(
+        knowledge_count=4,
+        assessment_plan={
+            "question_count": 6,
+            "assessment_required_knowledge": ["函数的极限"],
+        },
+    )
+    assert projection.payload["question_count"] == 6
+    assert "required_knowledge_coverage" in projection.hard_constraints
+    assert projection.payload["required_knowledge_names"] == ["函数的极限"]
+
+    projection = _confirmed_projection(
+        knowledge_count=4,
+        assessment_plan={
+            "question_type_requirements": [
+                {"question_type": "选择题", "count": 2},
+                {"question_type": "填空题", "count": 3},
+                {"question_type": "计算题", "count": 4},
+            ],
+        },
+    )
+    assert projection.payload["question_count"] == 9
 
 
 def test_confirmed_design_compiles_hard_bounded_soft_and_advisory_constraints(session):
@@ -60,12 +118,11 @@ def test_confirmed_design_compiles_hard_bounded_soft_and_advisory_constraints(se
     assert set(projection.hard_constraints) >= {
         "scope",
         "total_score",
-        "required_knowledge_coverage",
+        "hard_duration_range",
     }
-    assert set(projection.bounded_constraints) >= {
-        "difficulty_band",
-        "estimated_duration",
-    }
+    assert "required_knowledge_coverage" not in projection.hard_constraints
+    assert projection.payload["question_count"] == 10
+    assert set(projection.bounded_constraints) >= {"difficulty_band"}
     assert set(projection.soft_objectives) >= {
         "knowledge_priority",
         "ability_profile",
@@ -78,7 +135,8 @@ def test_confirmed_design_compiles_hard_bounded_soft_and_advisory_constraints(se
 
     assert projection.payload["target_duration_min"] == 90
     assert projection.payload["duration_tolerance_min"] == 9
-    assert projection.payload["required_knowledge_names"] == ["极限"]
+    assert "required_knowledge_names" not in projection.payload
+    assert projection.payload["knowledge_preferences"] == ["极限", "导数"]
     assert projection.payload["knowledge_preferences"] == ["极限", "导数"]
     assert projection.payload["knowledge_priority_weights"] == {
         "极限": 5,

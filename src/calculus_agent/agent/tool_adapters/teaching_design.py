@@ -11,6 +11,9 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from calculus_agent.application.scope_resolution import (
+    resolve_deterministic_scope_labels,
+)
 from calculus_agent.application.teaching_design_generation import (
     TeachingDesignPaperGenerationService,
 )
@@ -72,6 +75,7 @@ def teaching_design_tool_names(
             "read_active_teaching_design",
             "revise_teaching_design",
             "confirm_teaching_design",
+            "discard_teaching_design",
             *common,
         ]
     if status == "draft":
@@ -259,6 +263,23 @@ def build_teaching_design_tools(context: Any) -> list[Any]:
             )
 
         values = CreateTeachingDesignInput.model_validate(raw)
+        resolved_scope = context.inspection_state.get("validated_scope_names") or []
+        if not resolved_scope:
+            deterministic = resolve_deterministic_scope_labels(
+                context.session,
+                values.content.scope_names,
+            )
+            if not deterministic.ok:
+                return recoverable(
+                    "scope_resolution_required",
+                    "请先确认教材章节或知识点范围，再创建教学设计。",
+                )
+            resolved_scope = deterministic.validated_scope_names
+        values = values.model_copy(update={
+            "content": values.content.model_copy(update={
+                "scope_names": resolved_scope,
+            })
+        })
 
         covered, missing = _environment_evidence_covers(
             context,
@@ -426,6 +447,49 @@ def build_teaching_design_tools(context: Any) -> list[Any]:
             result_fields={
                 "teaching_design": design,
             },
+        )
+
+    def discard(_raw: BaseModel) -> Any:
+        conversation_id = require_conversation()
+        if not conversation_id:
+            return failed(
+                "teaching_design_requires_conversation",
+                "教学设计需要明确的 conversation_id 才能放弃。",
+            )
+        active = service().get_active(
+            owner_key=context.owner_key,
+            conversation_id=conversation_id,
+        )
+        if active is None:
+            return failed(
+                "no_active_teaching_design",
+                "当前没有可放弃的教学设计。",
+            )
+        try:
+            design = service().discard_unconfirmed(
+                active.version_id,
+                conversation_id=conversation_id,
+                run_id=context.run_id,
+            )
+        except (StaleTeachingDesignError, TeachingDesignStateError) as exc:
+            return failed("teaching_design_discard_failed", str(exc))
+        if context.state_store is not None:
+            memory = context.state_store.get_memory(conversation_id)
+            if memory.active_task.get("type") == "teaching_planning":
+                memory.active_task = {
+                    "type": "teaching_planning",
+                    "status": "cancelled",
+                    "waiting_for_scope": False,
+                }
+                context.state_store.set_memory(conversation_id, memory)
+        return ExecutedTool(
+            payload={
+                "ok": True,
+                "cancelled": True,
+                "teaching_design": design.model_dump(mode="json"),
+            },
+            status="completed",
+            result_fields={"teaching_design": design},
         )
 
     def confirm(_raw: BaseModel) -> Any:
@@ -603,6 +667,12 @@ def build_teaching_design_tools(context: Any) -> list[Any]:
             ),
             EmptyInput,
             confirm,
+        ),
+        AgentTool(
+            "discard_teaching_design",
+            "Discard the active unconfirmed TeachingDesign, remove it from the active conversation state, and do not generate a Paper.",
+            EmptyInput,
+            discard,
         ),
         AgentTool(
             "search_teaching_design_history",

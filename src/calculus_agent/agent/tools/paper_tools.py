@@ -5,7 +5,7 @@ from math import isclose
 import secrets
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -23,12 +23,17 @@ from calculus_agent.agent.schemas import (
 )
 from calculus_agent.generation_diagnosis import (
     GenerationDiagnosis,
+    RecoveryAction,
+    decide_recovery,
+    diagnose_generation_error,
     diagnose_generation_failure,
 )
 from calculus_agent.knowledge.classification import current_taxonomy_knowledge_nodes
+from calculus_agent.application.scope_resolution import (
+    resolve_deterministic_scope_labels,
+)
 from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.models import CurriculumNode, KnowledgeAlias, KnowledgeNode
-from calculus_agent.papers.selector import compose_paper
 from calculus_agent.papers.selector import compose_paper_with_evidence
 from calculus_agent.papers.persistence import create_paper_draft
 from calculus_agent.papers.workflow import validate_paper
@@ -72,6 +77,24 @@ class GeneratePaperToolResult(BaseModel):
     validation_status: Literal["passed", "failed"] | None = None
     validation_report: ValidationReportRead | None = None
     diagnosis: GenerationDiagnosis | None = None
+    recovery_action: RecoveryAction | None = None
+
+    @model_validator(mode="after")
+    def attach_recovery_action(self) -> "GeneratePaperToolResult":
+        if self.diagnosis is not None and self.recovery_action is None:
+            object.__setattr__(self, "recovery_action", decide_recovery(self.diagnosis))
+        return self
+
+
+def _technical_generation_failure(exc: BaseException) -> GeneratePaperToolResult:
+    return GeneratePaperToolResult(
+        ok=False,
+        blocking_errors=["technical_failure"],
+        diagnosis=diagnose_generation_error(
+            "technical_failure",
+            technical_error=exc,
+        ),
+    )
 
 
 def _knowledge_ids_under_curriculum_node(
@@ -108,6 +131,11 @@ def _scope_node_ids(
     """Resolve teacher-facing scope labels without accepting model-invented IDs."""
     if not labels:
         return [], []
+
+    deterministic = resolve_deterministic_scope_labels(session, labels)
+    if not deterministic.ok:
+        return [], ["scope_not_found"]
+    labels = deterministic.validated_scope_names
 
     curriculum = list(session.scalars(select(CurriculumNode)))
     knowledge = list(session.scalars(select(KnowledgeNode)))
@@ -569,6 +597,17 @@ def build_structured_generation_request(
         KnowledgeQuota(name=name, count=1)
         for name in required_names
     ]
+    total_score_provenance = request.constraint_provenance.get(
+        "total_score"
+    )
+    total_score_teacher_explicit = bool(
+        total_score_provenance is None
+        or (
+            total_score_provenance.get("teacher_explicit", False)
+            if isinstance(total_score_provenance, dict)
+            else total_score_provenance.teacher_explicit
+        )
+    )
     resolved_priority_weights = (
         _resolved_knowledge_priority_weights(
             request.knowledge_priority_weights or {},
@@ -756,22 +795,26 @@ def build_structured_generation_request(
 
             if (
                 request.total_score is not None
-                and not isclose(
-                    request.total_score,
-                    derived_score,
-                )
+                and not isclose(request.total_score, derived_score)
             ):
-                return (
-                    None,
-                    [],
-                    ["score_total_mismatch"],
-                    [
-                        f"各题型分值合计为"
-                        f"{derived_score:g}分，"
-                        f"与总分{request.total_score}"
-                        "分不一致。"
-                    ],
-                )
+                if total_score_teacher_explicit:
+                    return (
+                        None,
+                        [],
+                        ["score_total_mismatch"],
+                        [
+                            f"各题型分值合计为"
+                            f"{derived_score:g}分，"
+                            f"与总分{request.total_score}"
+                            "分不一致。"
+                        ],
+                    )
+                # A TeachingDesign/system value is a recommendation, not a
+                # teacher-owned hard total. Preserve the explicit structure and
+                # derive the effective total deterministically.
+                request = request.model_copy(update={
+                    "total_score": round(derived_score),
+                })
 
             blueprint = PaperBlueprint(
                 title=(
@@ -976,6 +1019,7 @@ def build_structured_generation_request(
             else 5
         ),
         ability_weights=(request.ability_weights or {}),
+        constraint_provenance=request.constraint_provenance,
         audience=request.audience,
         difficulty_preference_text=(
             request.difficulty_preference
@@ -1086,6 +1130,9 @@ def _execute_generation_request(
     )
 
     if not persisted.ok:
+        persistence_errors = persisted.blocking_errors or [
+            "paper_persistence_failed"
+        ]
         return GeneratePaperToolResult(
             ok=False,
             warnings=(
@@ -1093,8 +1140,9 @@ def _execute_generation_request(
                 + persisted.warnings
             ),
             blocking_errors=(
-                persisted.blocking_errors
+                persistence_errors
             ),
+            diagnosis=diagnose_generation_error(persistence_errors[0]),
         )
 
     validation_report = validate_paper(
@@ -1158,6 +1206,8 @@ def _execute_generation_request(
 def generate_paper_from_input(
     session: Session,
     request: GeneratePaperInput,
+    *,
+    excluded_question_ids: list[str] | None = None,
 ) -> GeneratePaperToolResult:
     (
         generation_request,
@@ -1170,6 +1220,9 @@ def generate_paper_from_input(
     )
 
     if generation_request is None:
+        diagnosis = diagnose_generation_error(
+            errors[0] if errors else "unknown_generation_failure"
+        )
         return GeneratePaperToolResult(
             ok=False,
             warnings=warnings,
@@ -1180,13 +1233,30 @@ def generate_paper_from_input(
             clarification_questions=(
                 questions
             ),
+            diagnosis=diagnosis,
         )
 
-    return _execute_generation_request(
-        session,
-        generation_request,
-        warnings=warnings,
-    )
+    if excluded_question_ids:
+        blueprint = generation_request.blueprint.model_copy(
+            update={
+                "excluded_question_ids": list(dict.fromkeys([
+                    *generation_request.blueprint.excluded_question_ids,
+                    *excluded_question_ids,
+                ])),
+            }
+        )
+        generation_request = generation_request.model_copy(
+            update={"blueprint": blueprint}
+        )
+
+    try:
+        return _execute_generation_request(
+            session,
+            generation_request,
+            warnings=warnings,
+        )
+    except Exception as exc:
+        return _technical_generation_failure(exc)
 
 
 def generate_paper_tool(
@@ -1206,6 +1276,11 @@ def generate_paper_tool(
     )
 
     if not blueprint_result.ok:
+        diagnosis = diagnose_generation_error(
+            blueprint_result.blocking_errors[0]
+            if blueprint_result.blocking_errors
+            else "invalid_paper_blueprint"
+        )
         return GeneratePaperToolResult(
             ok=False,
             warnings=(
@@ -1215,6 +1290,7 @@ def generate_paper_tool(
                 blueprint_result
                 .blocking_errors
             ),
+            diagnosis=diagnosis,
         )
 
     request, warnings, errors = (
@@ -1225,10 +1301,14 @@ def generate_paper_tool(
     )
 
     if request is None:
+        diagnosis = diagnose_generation_error(
+            errors[0] if errors else "invalid_paper_blueprint"
+        )
         return GeneratePaperToolResult(
             ok=False,
             warnings=warnings,
             blocking_errors=errors,
+            diagnosis=diagnosis,
         )
 
     request, scope_errors = (
@@ -1242,13 +1322,14 @@ def generate_paper_tool(
         scope_errors
         or request is None
     ):
+        errors = scope_errors or ["scope_not_found"]
         return GeneratePaperToolResult(
             ok=False,
             warnings=warnings,
             blocking_errors=(
-                scope_errors
-                or ["scope_not_found"]
+                errors
             ),
+            diagnosis=diagnose_generation_error(errors[0]),
         )
 
     # Legacy tool path must follow the same fresh-seed rule as the structured
@@ -1268,8 +1349,11 @@ def generate_paper_tool(
         }
     )
 
-    return _execute_generation_request(
-        session,
-        request,
-        warnings=warnings,
-    )
+    try:
+        return _execute_generation_request(
+            session,
+            request,
+            warnings=warnings,
+        )
+    except Exception as exc:
+        return _technical_generation_failure(exc)

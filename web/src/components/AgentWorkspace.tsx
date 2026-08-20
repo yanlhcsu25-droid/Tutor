@@ -9,6 +9,7 @@ import {
   UnlockOutlined, SendOutlined, PlusOutlined,
 } from "@ant-design/icons";
 
+import MarkdownMath from "./MarkdownMath";
 import {
   downloadPaperPdf,
   openPaperPdf,
@@ -44,6 +45,13 @@ type TeacherAgentResponse = {
   version_operation?: { current_version_id?: string | null } | null;
   warnings?: string[];
   blocking_errors?: string[];
+  teaching_planning_draft?: {
+    problem_analysis: string;
+    learning_objectives: string[];
+    knowledge_focus: string[];
+    teaching_strategy: string[];
+    assessment_strategy: string[];
+  } | null;
   generation_preview?: {
     ok: boolean; title?: string | null; total_questions?: number | null; total_score?: number | null;
     pending_version?: number | null;
@@ -146,15 +154,23 @@ type ChatMessage =
   | { role: "agent"; type: "requirement_card"; title: string; sections: Blueprint["sections"]; total_questions: number; total_score: number; suggestions?: string[]; blueprintId: string }
   | { role: "agent"; type: "generation_plan"; title: string; sections: { question_type: string; count: number; score_each?: number | null; total_score?: number | null }[]; total_questions: number; total_score: number; pending_version: number; disabled?: boolean }
   | { role: "agent"; type: "status"; text: string }
+  | { role: "agent"; type: "teaching_planning_draft"; draft: NonNullable<TeacherAgentResponse["teaching_planning_draft"]> }
   | { role: "agent"; type: "reply"; text: string }
   | { role: "agent"; type: "paper_ready"; paperId: string; version: number; preview: Preview; validationReport: ValidationReport }
   | { role: "agent"; type: "error"; text: string };
 
 type GenerationSection = { question_type: string; count: number; score_each?: number | null; total_score?: number | null };
 type GenerationPlanPatch = { question_type: string; count?: number; score_each?: number };
+type TeacherAgentConversationSummary = {
+  conversation_id: string;
+  last_message_at: string;
+  title: string;
+};
 type TeacherAgentSession = {
   conversation_id: string;
   messages: { role: string; content: string }[];
+  workspace?: { active_type?: string | null; current_paper_id?: string | null; current_version_id?: string | null } | null;
+  active_teaching_design?: { title: string; version: number; status: string } | null;
   pending_generation?: {
     request: {
       scope_names?: string[] | null;
@@ -239,6 +255,7 @@ export default function AgentWorkspace() {
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState(loadConversationId);
   const [restoringSession, setRestoringSession] = useState(true);
+  const [conversationHistory, setConversationHistory] = useState<TeacherAgentConversationSummary[]>([]);
 
   // ── blueprint/paper state (kept for compatibility) ──
   const [blueprintId, setBlueprintId] = useState<string | null>(null);
@@ -276,6 +293,11 @@ export default function AgentWorkspace() {
           });
         }
         setMessages(restoredMessages);
+        setCurrentPaperId(
+          restored.workspace?.current_version_id
+          ?? restored.workspace?.current_paper_id
+          ?? null,
+        );
       } catch (e) {
         if (!cancelled) message.error(String(e));
       } finally {
@@ -284,6 +306,35 @@ export default function AgentWorkspace() {
     };
     void restoreSession();
     return () => { cancelled = true; };
+  }, [conversationId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadConversationHistory = async () => {
+      try {
+        const response = await fetch(`${API}/teacher-agent/conversations`);
+        if (!response.ok) throw new Error("历史会话加载失败");
+        const data: TeacherAgentConversationSummary[] = await response.json();
+        if (!cancelled) setConversationHistory(data);
+      } catch (error) {
+        if (!cancelled) message.error(String(error));
+      }
+    };
+    void loadConversationHistory();
+    return () => { cancelled = true; };
+  }, [conversationId, messages.length]);
+
+  const handleSelectConversation = useCallback((id: string) => {
+    if (id === conversationId) return;
+    setRestoringSession(true);
+    setMessages([]);
+    setCurrentPaperId(null);
+    try {
+      globalThis.localStorage?.setItem(CONVERSATION_ID_STORAGE_KEY, id);
+    } catch {
+      // Keep the selected conversation in React state when storage is unavailable.
+    }
+    setConversationId(id);
   }, [conversationId]);
 
   // ── start a brand-new conversation (no Conversation table; just switch id) ──
@@ -331,6 +382,13 @@ export default function AgentWorkspace() {
         version_id: currentPaperId,
       });
       const agent: TeacherAgentResponse = await r.json();
+      const planningDraft = agent.teaching_planning_draft;
+      if (planningDraft) {
+        setMessages((prev) => [...prev, {
+          role: "agent", type: "teaching_planning_draft", draft: planningDraft,
+        }]);
+        return;
+      }
       if (agent.generation_preview) {
         setMessages((prev) => prev.map((item) =>
           item.role === "agent" && item.type === "generation_plan"
@@ -621,6 +679,31 @@ export default function AgentWorkspace() {
       );
     }
 
+    if (msg.type === "teaching_planning_draft") {
+      const sections = [
+        ["学习问题分析", [msg.draft.problem_analysis]],
+        ["学习目标", msg.draft.learning_objectives],
+        ["知识重点", msg.draft.knowledge_focus],
+        ["教学策略", msg.draft.teaching_strategy],
+        ["评估策略", msg.draft.assessment_strategy],
+      ] as const;
+      return (
+        <div key={idx} style={{ marginBottom: 16 }}>
+          <Card size="small" title="教学规划草稿" style={{ maxWidth: 620, background: "#f6ffed" }}>
+            {sections.map(([title, values]) => (
+              <div key={title} style={{ marginBottom: 10 }}>
+                <Typography.Text strong>{title}</Typography.Text>
+                <ul style={{ margin: "4px 0 0", paddingLeft: 20 }}>
+                  {values.map((value) => <li key={value}><MarkdownMath content={value} /></li>)}
+                </ul>
+              </div>
+            ))}
+            <Typography.Text type="secondary">请继续补充教材章节范围；之后可形成可确认的教学设计。</Typography.Text>
+          </Card>
+        </div>
+      );
+    }
+
     if (msg.type === "status") {
       return (
         <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, color: "#888" }}>
@@ -635,7 +718,7 @@ export default function AgentWorkspace() {
         <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16 }}>
           <RobotOutlined style={{ color: "#1677ff", marginTop: 4 }} />
           <div style={{ maxWidth: 620, background: "#fafafa", borderRadius: 10, padding: "9px 13px" }}>
-            <Typography.Text>{msg.text}</Typography.Text>
+            <MarkdownMath content={msg.text} />
           </div>
         </div>
       );
@@ -694,7 +777,7 @@ export default function AgentWorkspace() {
         <div key={idx} style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <RobotOutlined style={{ color: "#ff4d4f" }} />
-            <Typography.Text type="danger">{msg.text}</Typography.Text>
+            <div style={{ color: "#ff4d4f" }}><MarkdownMath content={msg.text} /></div>
           </div>
         </div>
       );
@@ -728,7 +811,33 @@ export default function AgentWorkspace() {
 
   // ── render ──
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", maxWidth: 800, margin: "0 auto", padding: "0 24px" }}>
+    <div style={{ display: "flex", height: "100%" }}>
+      <aside style={{ width: 250, flex: "0 0 250px", borderRight: "1px solid #f0f0f0", background: "#fafafa", overflow: "auto" }}>
+        <div style={{ padding: "16px 14px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Typography.Text strong>历史会话</Typography.Text>
+          <Button size="small" type="text" icon={<PlusOutlined />} onClick={handleNewConversation}>新建</Button>
+        </div>
+        {conversationHistory.length === 0 ? (
+          <Typography.Text type="secondary" style={{ display: "block", padding: "12px 14px" }}>暂无历史会话</Typography.Text>
+        ) : conversationHistory.map((item) => (
+          <button
+            key={item.conversation_id}
+            type="button"
+            onClick={() => handleSelectConversation(item.conversation_id)}
+            style={{
+              width: "100%", border: 0, borderBottom: "1px solid #f0f0f0", textAlign: "left",
+              padding: "12px 14px", cursor: "pointer",
+              background: item.conversation_id === conversationId ? "#e6f4ff" : "transparent",
+            }}
+          >
+            <Typography.Text ellipsis style={{ display: "block", maxWidth: 220 }}>{item.title}</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {new Date(item.last_message_at).toLocaleString()}
+            </Typography.Text>
+          </button>
+        ))}
+      </aside>
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, maxWidth: 800, margin: "0 auto", padding: "0 24px" }}>
       {/* messages area */}
       <div style={{ flex: 1, overflow: "auto", padding: "16px 0" }}>
         {!restoringSession && messages.length === 0 && (
@@ -809,6 +918,7 @@ export default function AgentWorkspace() {
             发送
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );

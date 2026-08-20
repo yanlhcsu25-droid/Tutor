@@ -26,7 +26,6 @@ def test_workspace_get_or_create_when_missing(session):
     assert created.active_type is None
     assert created.current_paper_id is None
     assert created.current_version_id is None
-    assert created.pending_generation_id is None
 
     # get_or_create is idempotent on the same conversation.
     again = service.get_or_create("conv-missing")
@@ -47,7 +46,6 @@ def test_workspace_update_current_paper_persists(session):
     assert reread.current_paper_id == "paper-123"
     assert reread.current_version_id == "version-9"
     assert reread.active_type is None
-    assert reread.pending_generation_id is None
 
 
 def test_workspace_update_rejects_unknown_fields(session):

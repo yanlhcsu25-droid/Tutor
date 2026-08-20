@@ -41,6 +41,7 @@ from calculus_agent.knowledge.classification import (
     suggest_question_knowledge,
 )
 from calculus_agent.models import (
+    AdjustmentPlanRecord,
     AgentRun,
     CurriculumNode,
     KnowledgeAlias,
@@ -52,6 +53,7 @@ from calculus_agent.models import (
     QuestionKnowledgeLink,
     QuestionDraft,
     RequirementParseCache,
+    TeacherAgentConversationMessage,
     TeacherAgentRunTrace,
     TeacherAgentSpan,
     Textbook,
@@ -63,6 +65,7 @@ from calculus_agent.agent.agent import (
     build_teacher_agent_backend,
     run_teacher_agent,
 )
+from calculus_agent.agent.identity import DEFAULT_TEACHER_OWNER_KEY
 from calculus_agent.agent.conversation_state import (
     DatabaseConversationHistoryStore,
     DatabasePendingReplacementStore,
@@ -78,7 +81,11 @@ from calculus_agent.agent.services.generation import (
     GenerationService,
     NoPendingGenerationError,
 )
-from calculus_agent.agent.state.service import RuntimeStateService
+from calculus_agent.agent.state.service import (
+    RuntimeStateService,
+    WorkspaceService,
+)
+from calculus_agent.teaching_design.service import TeachingDesignService
 from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult
 from calculus_agent.agent.trace_log import (
     list_agent_trace_sessions,
@@ -211,6 +218,48 @@ class TeacherAgentSessionMessage(BaseModel):
     content: str
 
 
+class TeacherAgentConversationSummary(BaseModel):
+    conversation_id: str
+    last_message_at: datetime
+    title: str
+
+
+class TeacherAgentWorkspaceRead(BaseModel):
+    active_type: str | None = None
+    current_paper_id: str | None = None
+    current_version_id: str | None = None
+
+
+class PendingPaperChangeSessionRead(BaseModel):
+    plan_id: str
+    paper_id: str
+    base_paper_version_id: str
+    status: str
+    applied_version_id: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    blocking_errors: list[str] = Field(default_factory=list)
+
+
+class PendingReplacementSessionRead(BaseModel):
+    action: str
+    paper_id: str
+    source_version_id: str
+    target_position: int
+    replacement_question_id: str
+    difficulty_direction: str | None = None
+    target_difficulty: int | None = None
+    preserve_knowledge_points: bool = False
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ActiveTeachingDesignSessionRead(BaseModel):
+    version_id: str
+    design_key: str
+    version: int
+    status: str
+    title: str
+
+
 class PendingGenerationSessionRead(BaseModel):
     request: GeneratePaperInput
     pending_version: int
@@ -219,7 +268,11 @@ class PendingGenerationSessionRead(BaseModel):
 class TeacherAgentSessionRead(BaseModel):
     conversation_id: str
     messages: list[TeacherAgentSessionMessage]
+    workspace: TeacherAgentWorkspaceRead | None = None
     pending_generation: PendingGenerationSessionRead | None = None
+    pending_paper_change: PendingPaperChangeSessionRead | None = None
+    pending_replacement: PendingReplacementSessionRead | None = None
+    active_teaching_design: ActiveTeachingDesignSessionRead | None = None
 
 
 def get_session(settings: Settings = Depends(get_settings)) -> Iterator[Session]:
@@ -234,7 +287,8 @@ def run_teacher_agent_endpoint(
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ) -> TeacherAgentResult:
-    """Thin HTTP adapter for the Phase 2B Teacher Agent workflow."""
+    """Thin HTTP adapter with workspace restoration."""
+
     return run_teacher_agent(
         session,
         request.message,
@@ -243,7 +297,6 @@ def run_teacher_agent_endpoint(
         version_id=request.version_id,
         backend=build_teacher_agent_backend(settings),
     )
-
 
 class TeacherAgentSpanRead(BaseModel):
     """One observable step inside a Teacher Agent run (read model)."""
@@ -334,17 +387,121 @@ def list_teacher_agent_runs(
     return [_build_teacher_agent_run_read(run, session) for run in runs]
 
 
+@router.get("/teacher-agent/conversations", response_model=list[TeacherAgentConversationSummary])
+def list_teacher_agent_conversations(
+    session: Session = Depends(get_session),
+) -> list[TeacherAgentConversationSummary]:
+    """List logical conversations derived from persisted messages.
+
+    There is intentionally no Conversation table in this version. The first
+    user message provides a deterministic, non-AI title.
+    """
+    rows = session.execute(
+        select(
+            TeacherAgentConversationMessage.conversation_id,
+            func.max(TeacherAgentConversationMessage.created_at).label("last_message_at"),
+        )
+        .group_by(TeacherAgentConversationMessage.conversation_id)
+        .order_by(func.max(TeacherAgentConversationMessage.created_at).desc())
+    ).all()
+    result: list[TeacherAgentConversationSummary] = []
+    for conversation_id, last_message_at in rows:
+        first_user = session.scalar(
+            select(TeacherAgentConversationMessage.content)
+            .where(
+                TeacherAgentConversationMessage.conversation_id == conversation_id,
+                TeacherAgentConversationMessage.role == "user",
+            )
+            .order_by(
+                TeacherAgentConversationMessage.created_at,
+                TeacherAgentConversationMessage.id,
+            )
+            .limit(1)
+        )
+        title = (first_user or "新会话").strip().replace("\\n", " ")
+        if len(title) > 80:
+            title = title[:80] + "…"
+        result.append(
+            TeacherAgentConversationSummary(
+                conversation_id=conversation_id,
+                last_message_at=last_message_at,
+                title=title,
+            )
+        )
+    return result
+
+
 @router.get("/teacher-agent/session", response_model=TeacherAgentSessionRead)
 def get_teacher_agent_session(
     conversation_id: str = Query(min_length=1, max_length=120),
     session: Session = Depends(get_session),
 ) -> TeacherAgentSessionRead:
-    """Recover the database-backed UI state; traces are deliberately excluded."""
+    """Recover messages plus pointers to current business state."""
     history = DatabaseConversationHistoryStore(session).list_messages(conversation_id)
-    pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    store = DatabasePendingReplacementStore(session)
+    pending = store.get_generation(conversation_id)
+    workspace = WorkspaceService(session).get(conversation_id)
+
+    pending_paper_change = None
+    plan_id = store.get_adjustment(conversation_id)
+    if plan_id:
+        plan = session.get(AdjustmentPlanRecord, plan_id)
+        if plan is not None:
+            pending_paper_change = PendingPaperChangeSessionRead(
+                plan_id=plan.id,
+                paper_id=plan.paper_id,
+                base_paper_version_id=plan.base_paper_version_id,
+                status=plan.status,
+                applied_version_id=plan.applied_version_id,
+                warnings=list(plan.warnings_json or []),
+                blocking_errors=list(plan.blocking_errors_json or []),
+            )
+
+    pending_replacement = store.get(conversation_id)
+    replacement_read = (
+        PendingReplacementSessionRead(
+            action=pending_replacement.action,
+            paper_id=pending_replacement.paper_id,
+            source_version_id=pending_replacement.source_version_id,
+            target_position=pending_replacement.target_position,
+            replacement_question_id=pending_replacement.replacement_question_id,
+            difficulty_direction=pending_replacement.difficulty_direction,
+            target_difficulty=pending_replacement.target_difficulty,
+            preserve_knowledge_points=pending_replacement.preserve_knowledge_points,
+            warnings=pending_replacement.warnings,
+        )
+        if pending_replacement is not None
+        else None
+    )
+
+    active_design = TeachingDesignService(session).get_active(
+        owner_key=DEFAULT_TEACHER_OWNER_KEY,
+        conversation_id=conversation_id,
+    )
+    design_read = (
+        ActiveTeachingDesignSessionRead(
+            version_id=active_design.version_id,
+            design_key=active_design.design_key,
+            version=active_design.version,
+            status=active_design.status,
+            title=active_design.content.title,
+        )
+        if active_design is not None
+        else None
+    )
+
     return TeacherAgentSessionRead(
         conversation_id=conversation_id,
         messages=[TeacherAgentSessionMessage.model_validate(item) for item in history],
+        workspace=(
+            TeacherAgentWorkspaceRead(
+                active_type=workspace.active_type,
+                current_paper_id=workspace.current_paper_id,
+                current_version_id=workspace.current_version_id,
+            )
+            if workspace is not None
+            else None
+        ),
         pending_generation=(
             PendingGenerationSessionRead(
                 request=pending.request,
@@ -352,6 +509,9 @@ def get_teacher_agent_session(
             )
             if pending is not None else None
         ),
+        pending_paper_change=pending_paper_change,
+        pending_replacement=replacement_read,
+        active_teaching_design=design_read,
     )
 
 

@@ -17,7 +17,7 @@ from .services.adjustment import AdjustmentService, AdjustmentServiceError
 from .services.generation import GenerationService, NoPendingGenerationError
 from .services.reinforcement import ReinforcementError, ReinforcementService
 from .services.replacement import ReplacementService, ReplacementServiceError
-from .state.service import RuntimeStateService
+from .state.service import RuntimeStateService, WorkspaceService
 from .tool_registry import AgentExecutionContext, AgentTool, EmptyInput, ExecutedTool
 from .tools.analysis_tools import analyze_paper
 from .tools.read_tools import ReadCurrentPaperInput, read_current_paper
@@ -92,6 +92,18 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         paper_id=context.paper_id,
         version_id=context.version_id,
     )
+
+    def sync_workspace_version(version_id: str | None) -> None:
+        if not context.conversation_id or not version_id:
+            return
+        WorkspaceService(session).update(
+            context.conversation_id,
+            {
+                "active_type": "paper",
+                "current_paper_id": context.paper_id,
+                "current_version_id": version_id,
+            },
+        )
 
     def read(raw: BaseModel) -> ExecutedTool:
         result = read_current_paper(
@@ -266,6 +278,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
             if result.ok and result.new_version_id:
                 context.paper_id = result.new_version_id
                 context.version_id = result.new_version_id
+                sync_workspace_version(result.new_version_id)
 
             return ExecutedTool(
                 payload=result.model_dump(mode="json"),
@@ -325,6 +338,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         if result.ok:
             context.paper_id = result.new_version_id
             context.version_id = result.new_version_id
+            sync_workspace_version(result.new_version_id)
 
             # Confirmation success is the commit boundary.  Do not rely only
             # on nested-service cleanup: the model-visible Tool guarantees
@@ -396,6 +410,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         if result.ok:
             context.paper_id = result.current_version_id
             context.version_id = result.current_version_id
+            sync_workspace_version(result.current_version_id)
             if store and context.conversation_id:
                 if store.get(context.conversation_id) is not None:
                     store.clear(context.conversation_id)

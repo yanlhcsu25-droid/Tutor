@@ -5,6 +5,61 @@ from calculus_agent.schemas import PaperBlueprint, PaperPreviewRead, ValidationR
 from .schemas import DiagnosisFact, GenerationDiagnosis, SelectionEvidence
 
 
+_CODE_CLASSIFICATION: dict[str, tuple[str, str]] = {
+    "generation_state_store_unavailable": ("technical", "technical_intervention"),
+    "paper_persistence_failed": ("technical", "technical_intervention"),
+    "missing_exam_scope": ("design", "requires_user_input"),
+    "needs_clarification": ("design", "requires_user_input"),
+    "invalid_scope": ("design", "requires_user_input"),
+    "scope_not_found": ("design", "requires_user_input"),
+    "teaching_design_not_executable": ("design", "requires_design_revision"),
+    "invalid_paper_blueprint": ("design", "requires_design_revision"),
+    "pending_generation_exists": ("design", "requires_user_input"),
+    "generation_partial_patch_required": ("execution", "requires_user_input"),
+    "score_rebalance_ambiguous": ("execution", "requires_user_input"),
+    "score_total_mismatch": ("design", "requires_design_revision"),
+    "missing_difficulty_ratio": ("design", "requires_user_input"),
+}
+
+
+def diagnose_generation_error(
+    code: str,
+    *,
+    technical_error: BaseException | None = None,
+) -> GenerationDiagnosis:
+    """Classify an explicit preflight/persistence failure deterministically.
+
+    ``code`` is supplied by the deterministic layer that produced the failure;
+    this function does not inspect prompts, messages, or warning text.
+    """
+    if technical_error is not None:
+        return GenerationDiagnosis(
+            failure_class="technical",
+            code="technical_failure",
+            recoverability="technical_intervention",
+            facts=[DiagnosisFact(
+                dimension="exception",
+                subject=type(technical_error).__name__,
+                source="exception",
+            )],
+        )
+
+    failure_class, recoverability = _CODE_CLASSIFICATION.get(
+        code,
+        ("unknown", "unknown"),
+    )
+    return GenerationDiagnosis(
+        failure_class=failure_class,
+        code=code,
+        recoverability=recoverability,
+        facts=[DiagnosisFact(
+            dimension="failure_code",
+            actual=code,
+            source="compiled_constraints",
+        )],
+    )
+
+
 def _required_type_counts(blueprint: PaperBlueprint) -> dict[str, int]:
     if blueprint.sections:
         return {

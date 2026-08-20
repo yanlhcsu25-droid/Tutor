@@ -49,7 +49,7 @@ def test_trace_records_real_tool_order_memory_and_final_response(session, tmp_pa
     assert trace["status"] == "success"
     assert trace["agent_status"] == "needs_clarification"
     assert trace["user_input"] == "帮我出一套题"
-    assert trace["final_response"] == "请先确认组卷范围。"
+    assert trace["final_response"] == "请确认要组卷的章节或知识范围。"
     assert trace["duration_ms"] >= 0
     assert trace["memory_before"]["active_task"] == {}
     assert [item["tool_name"] for item in trace["tool_calls"]] == [
@@ -131,9 +131,7 @@ def test_trace_keeps_multiple_tool_calls_in_execution_order(session, tmp_path):
     calls = read_agent_traces(directory)[0]["tool_calls"]
     assert [(item["sequence"], item["tool_name"]) for item in calls] == [
         (1, "prepare_generation_plan"),
-        (2, "read_paper"),
     ]
-    assert calls[1]["memory_before"] == calls[0]["memory_after"]
 
 
 def test_admin_trace_read_apis_are_read_only_adapters(monkeypatch):

@@ -19,6 +19,7 @@ from calculus_agent.models import Paper
 from calculus_agent.question_types import canonical_question_type
 
 from ..conversation_state import PendingGeneration, PendingGenerationStaleError
+from ..generation_history import historical_question_ids, record_successful_generation
 from ..schemas import (
     AgentWorkingMemory,
     GenerationPlanPatch,
@@ -180,9 +181,15 @@ def _merge_question_type_patch(
                 updates["score_each"] = values["score_each"]
 
         if updates:
+            effective_count = updates.get("count", previous.count)
+            effective_score_each = updates.get(
+                "score_each",
+                previous.score_each,
+            )
             updates["total_score"] = (
-                updates.get("count", previous.count)
-                * updates.get("score_each", previous.score_each)
+                effective_count * effective_score_each
+                if effective_score_each is not None
+                else None
             )
             current[name] = previous.model_copy(update=updates)
 
@@ -263,6 +270,35 @@ def _rebalance_scores(
         None,
         "当前题型数量无法按0.5分粒度自动平衡到目标总分，请明确希望调整哪一类题目的每题分值。",
     )
+
+
+def _total_score_source(
+    patch: GenerationPlanPatch,
+    *,
+    pending: PendingGeneration | None,
+) -> str:
+    """Resolve total-score ownership without treating persisted defaults as teacher input."""
+    provenance = patch.constraint_provenance.get("total_score")
+    if provenance is not None:
+        teacher_explicit = (
+            provenance.get("teacher_explicit", False)
+            if isinstance(provenance, dict)
+            else provenance.teacher_explicit
+        )
+        source = (
+            provenance.get("source", "")
+            if isinstance(provenance, dict)
+            else provenance.source
+        )
+        if teacher_explicit:
+            return "teacher_explicit"
+        if source.startswith("TeachingDesign"):
+            return "teaching_design"
+    if "total_score" in patch.model_fields_set:
+        return "teacher_explicit"
+    if pending is not None:
+        return "pending_inherited"
+    return "default_template"
 
 
 def _recompute_total_score(request: GeneratePaperInput) -> GeneratePaperInput:
@@ -438,8 +474,12 @@ class GenerationService:
         )
 
         if merge_pending:
+            effective_source = _total_score_source(
+                patch,
+                pending=merge_pending,
+            )
             effective_teacher_explicit = (
-                "total_score" in patch.model_fields_set
+                effective_source == "teacher_explicit"
                 or merge_pending.total_score_source == "teacher_explicit"
             )
             if effective_teacher_explicit:
@@ -534,6 +574,10 @@ class GenerationService:
             warnings=warnings,
             blocking_errors=errors,
             clarification_questions=questions,
+            constraint_provenance=request.constraint_provenance,
+            total_score_source=(
+                _total_score_source(patch, pending=merge_pending)
+            ),
         )
 
         if (
@@ -546,11 +590,10 @@ class GenerationService:
                 PendingGeneration(
                     request=request,
                     total_score_source=(
-                        "teacher_explicit"
+                        _total_score_source(patch, pending=merge_pending)
                         if "total_score" in patch.model_fields_set
+                        or merge_pending is None
                         else merge_pending.total_score_source
-                        if merge_pending
-                        else "default_template"
                     ),
                     locked_score_question_types=sorted(
                         (
@@ -574,12 +617,11 @@ class GenerationService:
                 "request": saved_pending.request,
                 "pending_version": saved_pending.pending_version,
             })
-            # Phase 3A:
-            # Workspace records the active pending generation pointer.
+            # Workspace records the active paper context only.  Pending
+            # generation state is owned by the generation store.
             self._update_workspace(
                 {
                     "active_type": "paper",
-                    "pending_generation_key": self.conversation_id,
                 }
             )
             # Phase 2: surface the generation lifecycle.  A validated pending
@@ -629,10 +671,25 @@ class GenerationService:
         if pending is None:
             raise NoPendingGenerationError("no_pending_generation")
 
-        result = generate_paper_from_input(
-            self.session,
-            pending.request,
+        prior_question_ids = (
+            historical_question_ids(
+                self.session,
+                conversation_id=self.conversation_id,
+            )
+            if self.conversation_id
+            else []
         )
+        if prior_question_ids:
+            result = generate_paper_from_input(
+                self.session,
+                pending.request,
+                excluded_question_ids=prior_question_ids,
+            )
+        else:
+            result = generate_paper_from_input(
+                self.session,
+                pending.request,
+            )
 
         if (
             pending.teaching_design_version_id is not None
@@ -645,13 +702,21 @@ class GenerationService:
                 )
                 self.session.flush()
 
+        if result.ok and self.conversation_id and result.paper_id and result.version_id:
+            record_successful_generation(
+                self.session,
+                conversation_id=self.conversation_id,
+                paper_id=str(result.paper_id),
+                version_id=str(result.version_id),
+                teaching_design_version_id=pending.teaching_design_version_id,
+            )
+
         if (
             result.ok
             and self.store is not None
             and self.conversation_id
         ):
             self.store.clear_generation(self.conversation_id)
-            # Phase 3A:
             # The generated paper becomes the active workspace object.
             self._update_workspace(
                 {
@@ -662,7 +727,6 @@ class GenerationService:
                     "current_version_id": str(
                         result.version_id
                     ),
-                    "pending_generation_id": None,
                 }
             )
             memory = self.store.get_memory(self.conversation_id)

@@ -33,7 +33,6 @@ class ConversationWorkspace(Base):
     active_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
     current_paper_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     current_version_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    pending_generation_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

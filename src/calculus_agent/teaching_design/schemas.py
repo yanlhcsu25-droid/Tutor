@@ -62,6 +62,14 @@ class LecturePlan(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class AssessmentQuestionTypeRequirement(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_type: str = Field(min_length=1, max_length=40)
+    count: int = Field(ge=1, le=100)
+    score_each: float | None = Field(default=None, gt=0, le=300)
+
+
 class AssessmentPlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -73,6 +81,9 @@ class AssessmentPlan(BaseModel):
         "final",
     ] = "chapter_test"
     total_score: int = Field(default=100, ge=1, le=300)
+    question_count: int | None = Field(default=None, ge=1, le=100)
+    question_type_requirements: list[AssessmentQuestionTypeRequirement] = Field(default_factory=list)
+    assessment_required_knowledge: list[str] = Field(default_factory=list)
     duration_minutes: int | None = Field(default=None, ge=1, le=600)
     difficulty: Literal["easy", "normal", "hard"] = "normal"
     coverage_strategy: str | None = Field(default=None, max_length=3000)

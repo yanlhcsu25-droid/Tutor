@@ -661,7 +661,15 @@ def test_rebalance_clarification_keeps_previous_pending(session):
     _scope(session)
     conversation_id = "score-rebalance-clarification"
     run_teacher_agent(
-        session, "第一章测试卷，总分100，所有分值都按我说的", conversation_id=conversation_id,
+        session,
+        (
+            "第一章测试卷，总分100，"
+            "选择题4道每题5分，"
+            "填空题2道每题10分，"
+            "计算题4道每题15分，"
+            "这些分值都按我说的"
+        ),
+        conversation_id=conversation_id,
         backend=_Backend(_tool('{"paper_type":"chapter_test","scope_names":["第一章"],"total_score":100,"question_type_requirements":[{"question_type":"选择题","count":4,"score_each":5},{"question_type":"填空题","count":2,"score_each":10},{"question_type":"计算题","count":4,"score_each":15}]}'), _final("请确认")),
     )
     result = run_teacher_agent(

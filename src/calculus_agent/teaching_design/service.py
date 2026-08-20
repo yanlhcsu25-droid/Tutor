@@ -252,6 +252,29 @@ class TeachingDesignService:
         self.session.flush()
         return _serialize(record)
 
+    def discard_unconfirmed(
+        self,
+        version_id: str,
+        *,
+        conversation_id: str,
+        run_id: str | None,
+    ) -> TeachingDesignRead:
+        """Abandon an unconfirmed design and remove its active pointer."""
+        record = self._required(version_id)
+        self._assert_latest(record)
+        if record.status not in {"draft", "awaiting_confirmation"}:
+            raise TeachingDesignStateError(
+                f"cannot_discard_from_status:{record.status}"
+            )
+        record.status = "superseded"
+        record.superseded_at = datetime.now(UTC)
+        self.repository.clear_active(
+            owner_key=record.owner_key,
+            conversation_id=conversation_id,
+        )
+        self.session.flush()
+        return _serialize(record)
+
     def activate_historical_version(
         self,
         version_id: str,

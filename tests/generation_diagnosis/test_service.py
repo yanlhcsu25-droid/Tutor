@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from calculus_agent.generation_diagnosis import (
     SelectionEvidence,
+    diagnose_generation_error,
     diagnose_generation_failure,
 )
 from calculus_agent.schemas import KnowledgeQuota, PaperBlueprint
@@ -165,3 +166,30 @@ def test_diagnosis_is_read_only_for_inputs():
 
     assert blueprint.model_dump(mode="json") == blueprint_before
     assert evidence.model_dump(mode="json") == evidence_before
+
+
+def test_preflight_scope_failure_has_structured_diagnosis():
+    diagnosis = diagnose_generation_error("scope_not_found")
+
+    assert diagnosis.failure_class == "design"
+    assert diagnosis.code == "scope_not_found"
+    assert diagnosis.recoverability == "requires_user_input"
+    assert diagnosis.facts[0].actual == "scope_not_found"
+
+
+def test_persistence_failure_is_technical():
+    diagnosis = diagnose_generation_error("paper_persistence_failed")
+
+    assert diagnosis.failure_class == "technical"
+    assert diagnosis.recoverability == "technical_intervention"
+
+
+def test_explicit_technical_exception_is_structured():
+    diagnosis = diagnose_generation_error(
+        "paper_persistence_failed",
+        technical_error=RuntimeError("db unavailable"),
+    )
+
+    assert diagnosis.code == "technical_failure"
+    assert diagnosis.failure_class == "technical"
+    assert diagnosis.facts[0].subject == "RuntimeError"

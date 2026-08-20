@@ -9,13 +9,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 
 from calculus_agent.agent.conversation_state import PendingGeneration
 from calculus_agent.agent.schemas import GenerationPlanPatch, GenerationPlanPreview
 from calculus_agent.agent.services.generation import GenerationService
+from calculus_agent.agent.state.service import WorkspaceService
 from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult
+from calculus_agent.generation_diagnosis import (
+    GenerationDiagnosis,
+    diagnose_generation_error,
+)
 from calculus_agent.teaching_design.generation_adapter import (
     GenerationProjection,
     project_confirmed_design,
@@ -46,6 +51,16 @@ class TeachingDesignPaperGenerationResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     blocking_errors: list[str] = Field(default_factory=list)
     clarification_questions: list[str] = Field(default_factory=list)
+    diagnosis: GenerationDiagnosis | None = None
+
+    @model_validator(mode="after")
+    def derive_design_revision_from_diagnosis(self) -> "TeachingDesignPaperGenerationResult":
+        """Diagnosis is the sole authority for design-revision semantics."""
+        self.requires_design_revision = bool(
+            self.diagnosis is not None
+            and self.diagnosis.recoverability == "requires_design_revision"
+        )
+        return self
 
 
 @dataclass
@@ -105,6 +120,9 @@ class TeachingDesignPaperGenerationService:
                     "当前运行环境缺少可持久化的 generation state store，"
                     "不能安全执行已确认教学设计。"
                 ],
+                diagnosis=diagnose_generation_error(
+                    "generation_state_store_unavailable"
+                ),
             )
 
         if projection.unsupported_design_constraints:
@@ -125,6 +143,9 @@ class TeachingDesignPaperGenerationService:
                     "当前教学设计仍包含执行层无法安全表示的约束。"
                     "系统不会静默删除这些约束直接出卷。"
                 ],
+                diagnosis=diagnose_generation_error(
+                    "teaching_design_not_executable"
+                ),
             )
 
         existing = self.store.get_generation(self.conversation_id)
@@ -142,6 +163,9 @@ class TeachingDesignPaperGenerationService:
                     "当前仍存在旧的待确认组卷方案，不能与已确认教学设计静默合并。"
                     "请先处理旧方案后再执行该教学设计。"
                 ],
+                diagnosis=diagnose_generation_error(
+                    "pending_generation_exists"
+                ),
             )
 
         patch = GenerationPlanPatch.model_validate(projection.payload)
@@ -150,6 +174,7 @@ class TeachingDesignPaperGenerationService:
             store=self.store,
             conversation_id=self.conversation_id,
             teaching_design_version_id=design.version_id,
+            workspace_service=WorkspaceService(self.session),
         )
         preview = service.preview(patch)
 
@@ -181,6 +206,11 @@ class TeachingDesignPaperGenerationService:
                 blocking_errors=list(preview.blocking_errors),
                 clarification_questions=list(
                     preview.clarification_questions
+                ),
+                diagnosis=diagnose_generation_error(
+                    preview.blocking_errors[0]
+                    if preview.blocking_errors
+                    else "unknown_generation_failure"
                 ),
             )
 
@@ -214,6 +244,11 @@ class TeachingDesignPaperGenerationService:
                 blocking_errors=list(paper.blocking_errors),
                 clarification_questions=list(
                     paper.clarification_questions
+                ),
+                diagnosis=paper.diagnosis or diagnose_generation_error(
+                    paper.blocking_errors[0]
+                    if paper.blocking_errors
+                    else "unknown_generation_failure"
                 ),
             )
 

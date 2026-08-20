@@ -296,6 +296,23 @@ class PaperOperationHistory(Base):
     )
 
 
+class ConversationGenerationRecord(Base):
+    """Successful paper-generation event within one conversation context."""
+
+    __tablename__ = "conversation_generation_record"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    conversation_id: Mapped[str] = mapped_column(String(120), index=True)
+    paper_id: Mapped[str] = mapped_column(ForeignKey("paper.id"), index=True)
+    teaching_design_version_id: Mapped[str | None] = mapped_column(
+        ForeignKey("teaching_design_version.id"), nullable=True, index=True
+    )
+    question_ids_json: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
+    )
+
+
 class AgentPendingReplacement(Base):
     """One confirmation-gated replacement per explicitly identified conversation."""
 

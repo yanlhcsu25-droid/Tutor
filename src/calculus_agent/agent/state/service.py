@@ -57,7 +57,6 @@ class WorkspaceService:
             "active_type",
             "current_paper_id",
             "current_version_id",
-            "pending_generation_id",
         }
     )
 

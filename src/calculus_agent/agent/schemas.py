@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from calculus_agent.papers.addressing import QuestionAddress
-from calculus_agent.schemas import PaperBlueprint
+from calculus_agent.schemas import ConstraintProvenance, PaperBlueprint
 
 
 class RequirementPreferences(BaseModel):
@@ -53,6 +53,7 @@ class GeneratePaperInput(BaseModel):
     target_duration_min: int | None = Field(default=None, ge=1, le=600)
     duration_tolerance_min: int | None = Field(default=None, ge=0, le=120)
     ability_weights: dict[str, int] | None = None
+    constraint_provenance: dict[str, ConstraintProvenance] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_execution_targets(self) -> "GeneratePaperInput":
@@ -130,6 +131,18 @@ class PrepareReinforcementPlanInput(BaseModel):
     items: list[FeedbackItemInput] = Field(min_length=1, max_length=100)
 
 
+class TeachingPlanningDraft(BaseModel):
+    """Conversation-scoped, pre-curriculum teaching-planning artifact."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    problem_analysis: str = Field(min_length=1, max_length=3000)
+    learning_objectives: list[str] = Field(min_length=1, max_length=20)
+    knowledge_focus: list[str] = Field(min_length=1, max_length=20)
+    teaching_strategy: list[str] = Field(min_length=1, max_length=20)
+    assessment_strategy: list[str] = Field(min_length=1, max_length=20)
+
+
 class AgentWorkingMemory(BaseModel):
     active_task: dict = Field(default_factory=dict)
     generation_summary: dict = Field(default_factory=dict)
@@ -144,11 +157,19 @@ class GenerationPlanPreview(BaseModel):
     title: str | None = None
     total_questions: int | None = None
     total_score: float | None = None
+    total_score_source: Literal[
+        "teacher_explicit",
+        "teaching_design",
+        "pending_inherited",
+        "default_template",
+        "system_rebalanced",
+    ] | None = None
     pending_version: int | None = None
     sections: list[QuestionTypeRequirement] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     blocking_errors: list[str] = Field(default_factory=list)
     clarification_questions: list[str] = Field(default_factory=list)
+    constraint_provenance: dict[str, ConstraintProvenance] = Field(default_factory=dict)
 
 
 class GenerationConstraints(BaseModel):
@@ -172,6 +193,7 @@ class GenerationConstraints(BaseModel):
     audience: str | None = None
     difficulty_preference_text: str | None = None
     diversity_preference: str | None = None
+    constraint_provenance: dict[str, ConstraintProvenance] = Field(default_factory=dict)
 
 class PaperGenerationRequest(BaseModel):
     blueprint: PaperBlueprint

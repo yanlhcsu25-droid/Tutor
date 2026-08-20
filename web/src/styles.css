@@ -16,6 +16,14 @@ main { max-width:1180px; margin:auto; padding:38px 20px 70px; }
 .draft-select { width:100%; } .draft-hint { margin:12px 0 0!important; }
 .manual-add { display:grid; grid-template-columns:minmax(220px,1fr) minmax(260px,1.4fr) auto; gap:10px; margin:16px 0 20px; } .manual-add .ant-select { width:100%; }
 .version-diff { margin-top:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; display:flex; gap:14px; align-items:flex-start; } .diff-item { display:inline-block; max-width:360px; margin:0 10px 4px 0; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+.markdown-math { line-height:1.75; color:inherit; }
+.markdown-math p { margin:0 0 8px; }
+.markdown-math p:last-child { margin-bottom:0; }
+.markdown-math h2, .markdown-math h3, .markdown-math h4 { margin:8px 0; }
+.markdown-math ul { margin:4px 0 8px; }
+.markdown-math code { padding:2px 5px; border-radius:4px; background:#f1f5f9; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
+.markdown-math math { font-size:1.05em; vertical-align:middle; }
+.markdown-math math[display="block"] { display:block; margin:10px 0; text-align:center; font-size:1.2em; }
 @media(max-width:991px){.panel{margin-bottom:20px}.hero h1{font-size:29px!important}.question{flex-direction:column;gap:8px}.manual-add{grid-template-columns:1fr}}
 /* OCR 审核界面 */
 .ocr-card { margin-bottom:20px; box-shadow:0 10px 32px rgba(15,23,42,.05); border-color:#dbeafe; }

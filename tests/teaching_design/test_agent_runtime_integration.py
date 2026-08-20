@@ -112,23 +112,23 @@ def _seed_curriculum(session):
     session.flush()
 
 
-def test_fresh_request_does_not_expose_teaching_design_creation(session):
-    # TeachingDesign is legacy-only: a fresh request must never resurrect
-    # create/search/activate TeachingDesign tools, even for a teaching task.
+def test_fresh_teaching_planning_request_exposes_design_creation_only(session):
+    # Fresh Teaching Planning can create a design after environment evidence;
+    # history lookup and activation remain unavailable.
     conversation_id = "fresh-request"
     _seed_curriculum(session)
     backend = ScriptedBackend([_text("我先了解下你的需求。")])
     run_teacher_agent(
         session,
-        "第一到第三章做一次90分钟期中复习，中等偏难。",
+        "学生极限一直学不好，帮我安排第一到第三章复习。",
         conversation_id=conversation_id,
         backend=backend,
     )
     surface = _tool_names(backend.requests[0])
-    assert "prepare_generation_plan" in surface
+    assert "prepare_generation_plan" not in surface
     assert "inspect_curriculum" in surface
     assert "inspect_question_bank" in surface
-    assert "create_teaching_design" not in surface
+    assert "create_teaching_design" in surface
     assert "search_teaching_design_history" not in surface
     assert "activate_teaching_design" not in surface
 
@@ -213,7 +213,7 @@ def test_real_conversation_revise_confirm_legacy_design_is_versioned_and_traceab
     )
     assert revised_result.teaching_design.created_by_run_id == revised_result.run_id
     assert "revise_teaching_design" in _tool_names(revise_backend.requests[0])
-    assert "confirm_teaching_design" in _tool_names(revise_backend.requests[0])
+    assert "confirm_teaching_design" not in _tool_names(revise_backend.requests[0])
     assert "create_teaching_design" not in _tool_names(revise_backend.requests[0])
     assert revise_backend.requests[1][1] == []
 
@@ -227,6 +227,8 @@ def test_real_conversation_revise_confirm_legacy_design_is_versioned_and_traceab
         conversation_id=conversation_id,
         backend=confirm_backend,
     )
+    assert "confirm_teaching_design" in _tool_names(confirm_backend.requests[0])
+    assert "revise_teaching_design" not in _tool_names(confirm_backend.requests[0])
 
     assert confirmed_result.status == "completed"
     assert confirmed_result.teaching_design is not None

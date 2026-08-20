@@ -7,6 +7,18 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from calculus_agent.question_types import ALLOWED_QUESTION_TYPES, canonical_question_type
 
 
+class ConstraintProvenance(BaseModel):
+    """Audit trail for one value entering the executable selector contract."""
+    model_config = {"extra": "forbid"}
+
+    source: str
+    defaulted_by: str | None = None
+    merge_location: str | None = None
+    teacher_explicit: bool = False
+    strength: Literal["hard", "bounded", "soft", "advisory"]
+    note: str | None = None
+
+
 class CurriculumImportRequest(BaseModel):
     directory_text: str = Field(min_length=1, max_length=20000)
 

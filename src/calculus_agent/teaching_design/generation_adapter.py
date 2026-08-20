@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from calculus_agent.schemas import ConstraintProvenance
+
 from .schemas import TeachingDesignRead
 
 
@@ -36,6 +38,7 @@ class GenerationProjection(BaseModel):
     soft_objectives: list[str] = Field(default_factory=list)
     advisory_constraints: list[str] = Field(default_factory=list)
     unsupported_design_constraints: list[str] = Field(default_factory=list)
+    constraint_provenance: dict[str, ConstraintProvenance] = Field(default_factory=dict)
 
 
 class TeachingDesignGenerationError(RuntimeError):
@@ -58,11 +61,14 @@ def project_confirmed_design(
     content = design.content
     assessment = content.assessment_plan
 
-    required_knowledge = [
+    teaching_required_knowledge = [
         item.name
         for item in content.knowledge_plan
         if item.role == "required"
     ]
+    assessment_required_knowledge = list(
+        dict.fromkeys(assessment.assessment_required_knowledge)
+    )
     optional_knowledge = [
         item.name
         for item in content.knowledge_plan
@@ -80,11 +86,66 @@ def project_confirmed_design(
         if item.role in {"required", "optional"}
     }
 
+    default_sections = {
+        "chapter_test": [("选择题", 4, 5), ("填空题", 2, 10), ("计算题", 4, 15)],
+        "homework": [("计算题", 3, 10), ("证明题", 2, 10)],
+        "midterm": [("选择题", 4, 5), ("填空题", 2, 10), ("计算题", 4, 15)],
+        "final": [("选择题", 4, 5), ("填空题", 2, 10), ("计算题", 4, 15)],
+    }[assessment.paper_type]
+    explicit_sections = assessment.question_type_requirements
+    sections = explicit_sections or default_sections
+    question_type_requirements = [
+        {
+            "question_type": item.question_type if explicit_sections else item[0],
+            "count": item.count if explicit_sections else item[1],
+            "score_each": (
+                item.score_each if explicit_sections else item[2]
+            ),
+        }
+        for item in sections
+    ] if explicit_sections or assessment.question_count is None else []
+
+    # TeachingDesign is the only authoritative input here.  In particular,
+    # AssessmentPlan's Pydantic default is not teacher-explicit merely because
+    # it is present in the persisted content.
+    provenance = {
+        "paper_type": ConstraintProvenance(
+            source="TeachingDesign.assessment_plan.paper_type",
+            defaulted_by="AssessmentPlan.paper_type=chapter_test",
+            teacher_explicit=False,
+            strength="hard",
+        ),
+        "scope_names": ConstraintProvenance(
+            source="TeachingDesignContent.scope_names",
+            teacher_explicit=True,
+            strength="hard",
+        ),
+        "total_score": ConstraintProvenance(
+            source="TeachingDesign.assessment_plan.total_score",
+            defaulted_by="AssessmentPlan.total_score=100",
+            teacher_explicit=False,
+            strength="hard",
+            note="Persisted schema does not retain field-level explicitness.",
+        ),
+        "difficulty_level": ConstraintProvenance(
+            source="TeachingDesign.assessment_plan.difficulty",
+            defaulted_by="AssessmentPlan.difficulty=normal",
+            teacher_explicit=False,
+            strength="bounded",
+        ),
+    }
     payload: dict = {
         "paper_type": assessment.paper_type,
         "scope_names": content.scope_names,
         "total_score": assessment.total_score,
         "difficulty_level": assessment.difficulty,
+        "constraint_provenance": provenance,
+        "question_type_requirements": question_type_requirements or None,
+        "question_count": (
+            assessment.question_count
+            if assessment.question_count is not None
+            else sum(item["count"] for item in question_type_requirements)
+        ),
     }
 
     hard = [
@@ -96,12 +157,60 @@ def project_confirmed_design(
     advisory: list[str] = []
     unsupported: list[str] = []
 
-    if required_knowledge:
-        payload["required_knowledge_names"] = required_knowledge
+    provenance["question_type_requirements"] = ConstraintProvenance(
+        source="TeachingDesign.assessment_plan (no per-type distribution)",
+        defaulted_by=(
+            "TeachingDesign.assessment_plan.question_type_requirements"
+            if explicit_sections
+            else (
+                "TeachingDesign.assessment_plan.question_count"
+                if assessment.question_count is not None
+                else "blueprint_adapter.CHAPTER_TEST_TEMPLATE"
+            )
+        ),
+        merge_location="paper_tools.build_structured_generation_request",
+        teacher_explicit=False,
+        strength="hard",
+        note=(
+            "The default chapter-test template is 4/2/4; required knowledge "
+            "without a distribution instead uses one question per required point."
+        ),
+    )
+
+    if assessment_required_knowledge:
+        payload["required_knowledge_names"] = assessment_required_knowledge
         hard.append("required_knowledge_coverage")
+        provenance["required_knowledge_names"] = ConstraintProvenance(
+            source="TeachingDesign.assessment_plan.assessment_required_knowledge",
+            teacher_explicit=True,
+            strength="hard",
+        )
+
+    provenance["question_count"] = ConstraintProvenance(
+        source=(
+            "TeachingDesign.assessment_plan.question_type_requirements"
+            if explicit_sections
+            else "TeachingDesign.assessment_plan.question_count"
+            if assessment.question_count is not None
+            else "blueprint_adapter.CHAPTER_TEST_TEMPLATE"
+        ),
+        defaulted_by=(
+            None
+            if explicit_sections or assessment.question_count is not None
+            else "build_structured_generation_request.paper_type_template"
+        ),
+        merge_location="GenerationService._derive_question_count",
+        teacher_explicit=bool(explicit_sections or assessment.question_count is not None),
+        strength="hard",
+        note="Knowledge-plan cardinality never determines paper question count.",
+    )
 
     preferred_knowledge = list(
-        dict.fromkeys([*required_knowledge, *optional_knowledge])
+        dict.fromkeys([
+            *teaching_required_knowledge,
+            *optional_knowledge,
+            *assessment_required_knowledge,
+        ])
     )
     if preferred_knowledge:
         payload["knowledge_preferences"] = preferred_knowledge
@@ -112,10 +221,23 @@ def project_confirmed_design(
 
     if assessment.duration_minutes is not None:
         payload["target_duration_min"] = assessment.duration_minutes
+        provenance["target_duration_min"] = ConstraintProvenance(
+            source="TeachingDesign.assessment_plan.duration_minutes",
+            teacher_explicit=True,
+            strength="bounded",
+        )
+        provenance["duration_tolerance_min"] = ConstraintProvenance(
+            source="_duration_tolerance(target_duration_min)",
+            defaulted_by="generation_adapter._duration_tolerance",
+            merge_location="build_structured_generation_request",
+            teacher_explicit=False,
+            strength="hard",
+            note="For 90 minutes this is 90 ± 9; selector enforces this range as hard bounds.",
+        )
         payload["duration_tolerance_min"] = _duration_tolerance(
             assessment.duration_minutes
         )
-        bounded.append("estimated_duration")
+        hard.append("hard_duration_range")
 
     if assessment.ability_weights:
         unknown = sorted(
@@ -153,4 +275,5 @@ def project_confirmed_design(
         soft_objectives=soft,
         advisory_constraints=advisory,
         unsupported_design_constraints=unsupported,
+        constraint_provenance=provenance,
     )

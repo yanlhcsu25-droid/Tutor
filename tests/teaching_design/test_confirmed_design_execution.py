@@ -142,12 +142,14 @@ def test_execution_immediately_previews_and_confirms_without_second_teacher_conf
             store,
             conversation_id,
             teaching_design_version_id,
+            workspace_service,
         ):
             calls.append(
                 (
                     "init",
                     conversation_id,
                     teaching_design_version_id,
+                    workspace_service,
                 )
             )
             self.teaching_design_version_id = (
@@ -205,4 +207,5 @@ def test_execution_immediately_previews_and_confirms_without_second_teacher_conf
         "confirm",
     ]
     assert calls[0][2] == design.version_id
+    assert calls[0][3].__class__.__name__ == "WorkspaceService"
     assert calls[2][1] == design.version_id

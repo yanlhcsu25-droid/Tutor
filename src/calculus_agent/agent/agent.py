@@ -19,6 +19,10 @@ from calculus_agent.application.teaching_design_generation import (
 )
 from calculus_agent.teaching_design.schemas import TeachingDesignRead
 
+from .pending_teaching_design_intent import (
+    PendingTeachingDesignIntent,
+    resolve_pending_teaching_design_intent,
+)
 from .conversation_state import (
     DatabaseConversationHistoryStore,
     DatabasePendingReplacementStore,
@@ -42,12 +46,19 @@ from .tool_adapters.teaching_design import teaching_design_tool_names
 from .tool_adapters.teaching_environment import (
     environment_inspection_tool_names,
 )
+from .task_router import (
+    RoutingState,
+    TaskType,
+    decide_task,
+    has_explicit_curriculum_scope,
+    tool_surface_for,
+)
 from .trace_log import AgentTraceRecorder, redact_trace_value
 from .tool_registry import AgentExecutionContext, build_agent_tools
 from .paper_change_service import PaperChangePreview
 from .paper_tool_registry import PAPER_TOOL_NAMES
 from .toolkit import Toolkit
-from .schemas import GenerationPlanPreview
+from .schemas import GenerationPlanPreview, TeachingPlanningDraft
 from .tools.add_tools import AddQuestionPreview
 from .tools.analysis_tools import (
     ConfirmAdjustmentResult,
@@ -103,6 +114,41 @@ PENDING_PRESERVATION_ERRORS: frozenset[str] = frozenset({
 })
 
 
+_PENDING_CONFIRMATION_WRITING_TOOLS: frozenset[str] = frozenset({
+    "prepare_generation_plan",
+    "preview_paper_changes",
+    "create_teaching_design",
+    "revise_teaching_design",
+})
+
+
+def _successful_pending_confirmation_tool_observed(
+    trace_calls: list[dict[str, Any]],
+) -> bool:
+    # True only when this turn successfully wrote pending domain state.
+    for call in trace_calls:
+        if call.get("tool_name") not in _PENDING_CONFIRMATION_WRITING_TOOLS:
+            continue
+        result = call.get("result")
+        if isinstance(result, dict) and result.get("ok") is True:
+            return True
+    return False
+
+
+def _recoverable_post_tool_narration_failure(
+    *,
+    current_stage: str,
+    trace_calls: list[dict[str, Any]],
+    pending_action_in_store: bool,
+) -> bool:
+    # A narration failure must not roll back an already-saved pending action.
+    return (
+        current_stage in {"llm_call", "response_parse"}
+        and pending_action_in_store
+        and _successful_pending_confirmation_tool_observed(trace_calls)
+    )
+
+
 class ChatBackend(Protocol):
     def complete(self, messages: list[dict], tools: list[dict]) -> dict: ...
 
@@ -130,6 +176,7 @@ class TeacherAgentResult(BaseModel):
         default_factory=list
     )
     teaching_design_generation: TeachingDesignPaperGenerationResult | None = None
+    teaching_planning_draft: TeachingPlanningDraft | None = None
 
 
 class _PaperGroundingDecision(BaseModel):
@@ -195,10 +242,10 @@ Tool 成功后，根据 reinforcement_context 简短说明：哪些知识点成�
 
 版本链统一使用 `operate_paper_version(action=undo|redo|restore)`；restore 必须提供 target_version。
 
-## TeachingDesign 兼容边界
+## TeachingDesign 边界
 
-新的教学讨论或新建试卷请求不再主动创建 TeachingDesign。普通“怎么教、重点是什么”等教学方法讨论可以直接自然语言回答；明确的新建试卷请求继续走 `prepare_generation_plan`。
-只有当前会话已经存在历史未完成的 TeachingDesign（draft / awaiting_confirmation）时，才允许继续读取、修改或确认该旧设计，直到其生命周期结束。不得为新的请求创建新的 TeachingDesign。
+普通“怎么教、重点是什么”等教学方法讨论可以直接自然语言回答；明确的新建试卷请求继续走 `prepare_generation_plan`。只有被当前任务模式识别为 `TEACHING_PLANNING` 的明确教学目标，才可在完成同轮 curriculum 和 aggregate question-bank 调查后调用 `create_teaching_design`。创建后必须等待教师确认；不得在同一轮自动确认或生成试卷。
+当前会话已经存在未完成 TeachingDesign（draft / awaiting_confirmation）时，允许继续读取、修改或确认该既有设计，直到其生命周期结束。
 
 ## 执行原则
 
@@ -241,7 +288,9 @@ def _merge_result_fields(target: dict[str, Any], values: dict[str, Any]) -> None
     for key, value in values.items():
         if key in {"warnings", "blocking_errors", "clarification_questions"}:
             existing = target.setdefault(key, [])
-            existing.extend(item for item in value if item not in existing)
+            for item in value:
+                if item not in existing:
+                    existing.append(item)
         elif value is not None:
             target[key] = value
 
@@ -510,6 +559,59 @@ def _explicit_total_score_requested(message: str) -> bool:
     return any(pattern.search(message) is not None for pattern in _TOTAL_SCORE_PATTERNS)
 
 
+_EXPLICIT_QUESTION_COUNT_PATTERNS = (
+    re.compile(r"(?:共|总共|一共|合计|总计)\s*\d{1,3}\s*(?:道|题)"),
+    re.compile(r"(?:题量|总题数|题目数量)\s*[:：]?\s*\d{1,3}"),
+    re.compile(
+        r"^\s*\d{1,3}\s*(?:道|题)\s*"
+        r"(?:就可以|即可|可以|就行|行)?[。！？]?\s*$"
+    ),
+)
+
+_EXPLICIT_QUESTION_TYPE_COUNT_PATTERNS = (
+    # "计算题5道" / "计算题 5" — Arabic digits may omit the unit.
+    re.compile(
+        r"(?:选择题|填空题|计算题|证明题)"
+        r"[^。！？,，；;]{0,8}?"
+        r"\d{1,3}\s*(?:道|题)?"
+    ),
+    # "计算题五道" / "计算题十题" — Chinese numerals MUST carry a unit.
+    # This avoids false positives such as "计算题多一点".
+    re.compile(
+        r"(?:选择题|填空题|计算题|证明题)"
+        r"[^。！？,，；;]{0,8}?"
+        r"[一二三四五六七八九十两]+\s*(?:道|题)"
+    ),
+    # "5道计算题" / "五道计算题"
+    re.compile(
+        r"(?:\d{1,3}|[一二三四五六七八九十两]+)"
+        r"\s*(?:道|题)\s*"
+        r"(?:选择题|填空题|计算题|证明题)"
+    ),
+)
+
+
+def _explicit_question_count_requested(message: str) -> bool:
+    """High-confidence evidence that the teacher stated the whole-paper count."""
+    return any(
+        pattern.search(message) is not None
+        for pattern in _EXPLICIT_QUESTION_COUNT_PATTERNS
+    )
+
+
+def _explicit_question_type_structure_requested(message: str) -> bool:
+    """High-confidence evidence that the teacher stated per-type counts.
+
+    The model may reason about a sensible structure, but exact counts are
+    executable business constraints. If the teacher did not state them, the
+    deterministic paper-type template must remain authoritative.
+    """
+    return any(
+        pattern.search(message) is not None
+        for pattern in _EXPLICIT_QUESTION_TYPE_COUNT_PATTERNS
+    )
+
+
 def _apply_question_reference_hints(
     *,
     tool_name: str,
@@ -576,15 +678,28 @@ def _apply_explicit_opt_in_guards(
     """Enforce model arguments that require explicit teacher provenance."""
     updated = dict(arguments)
 
-    # total_score is a hard generation constraint only when it came from the
-    # teacher. The Tool schema also contains system defaults, so field presence
-    # in an LLM Tool Call is not sufficient provenance.
-    if (
-        tool_name == "prepare_generation_plan"
-        and "total_score" in updated
-        and not _explicit_total_score_requested(message)
-    ):
-        updated.pop("total_score", None)
+    if tool_name == "prepare_generation_plan":
+        # Hard/defaultable generation fields need teacher provenance.
+        # Presence in an LLM Tool Call only proves that the model supplied the
+        # field; it does NOT prove that the teacher requested it.
+        if (
+            "total_score" in updated
+            and not _explicit_total_score_requested(message)
+        ):
+            updated.pop("total_score", None)
+
+        if (
+            "question_count" in updated
+            and not _explicit_question_count_requested(message)
+        ):
+            updated.pop("question_count", None)
+
+        if not _explicit_question_type_structure_requested(message):
+            # Exact per-type counts/scores are executable structure. When the
+            # teacher did not state a structure, discard model-invented values
+            # and let the deterministic paper-type template compile defaults.
+            updated.pop("question_type_requirements", None)
+            updated.pop("question_type_patches", None)
 
     if (
         tool_name != "preview_paper_changes"
@@ -693,14 +808,32 @@ def run_teacher_agent(
 ) -> TeacherAgentResult:
     """Run LLM → tool observation → LLM until a final natural-language answer."""
     message = user_message.strip() if isinstance(user_message, str) else ""
+
+    # Restore workspace paper context before creating trace and agent context.
+    # paper_id/version_id passed by API are optional hints.
+    # Conversation workspace is the source of truth when they are missing.
+    if conversation_id and (paper_id is None or version_id is None):
+        from calculus_agent.agent.state import WorkspaceService
+
+        workspace = WorkspaceService(session).get(conversation_id)
+
+        if workspace is not None:
+            paper_id = paper_id or workspace.current_paper_id
+            version_id = version_id or workspace.current_version_id
+
     trace_recorder = trace_recorder or AgentTraceRecorder()
+
     trace_recorder.start(
         conversation_id=conversation_id,
         paper_id=paper_id,
         user_input=message,
     )
+
     run_manager = TeacherAgentRunManager(
-        session, conversation_id, paper_id, message
+        session,
+        conversation_id,
+        paper_id,
+        message,
     ).create()
     run_id = run_manager.run_id
     agent_span = (
@@ -780,6 +913,10 @@ def run_teacher_agent(
         )
         tools = build_agent_tools(context)
         toolkit = Toolkit(tools.values())
+        working_memory = (
+            store.get_memory(conversation_id)
+            if store and conversation_id and hasattr(store, "get_memory") else None
+        )
         pending = store.get(conversation_id) if store and conversation_id else None
         pending_adjustment = (
             store.get_adjustment(conversation_id)
@@ -802,6 +939,16 @@ def run_teacher_agent(
             and active_teaching_design.get("status")
             in {"draft", "awaiting_confirmation"}
         )
+        pending_teaching_design_intent: PendingTeachingDesignIntent | None = None
+        if (
+            active_teaching_design
+            and active_teaching_design.get("status") == "awaiting_confirmation"
+        ):
+            pending_teaching_design_intent = resolve_pending_teaching_design_intent(
+                message,
+                backend=backend,
+            )
+
         design_definition_names = (
             [
                 name
@@ -818,6 +965,26 @@ def run_teacher_agent(
         environment_definition_names = (
             environment_inspection_tool_names()
         )
+        task_decision = decide_task(
+            message,
+            state=RoutingState(
+                pending_generation=bool(pending_generation),
+                pending_paper_change=bool(pending_adjustment),
+                pending_replacement=bool(pending),
+                current_paper=has_current_paper,
+                active_teaching_design=legacy_teaching_design_active,
+            ),
+        )
+        continuing_teaching_planning = bool(
+            working_memory
+            and working_memory.active_task.get("type") == "teaching_planning"
+            and working_memory.active_task.get("status") in {"awaiting_scope", "drafted"}
+        )
+        if continuing_teaching_planning and not (
+            pending_generation or pending_adjustment or pending or has_current_paper
+        ):
+            task_decision.route.task_type = TaskType.TEACHING_PLANNING
+            task_decision.route.reason = "continuing conversation teaching-planning draft"
 
         if not has_current_paper:
             definition_names = [
@@ -825,6 +992,8 @@ def run_teacher_agent(
                 *environment_definition_names,
                 *design_definition_names,
             ]
+            if task_decision.route.task_type == TaskType.TEACHING_PLANNING:
+                definition_names.append("create_teaching_design")
             if pending_generation:
                 definition_names.extend([
                     "confirm_generation",
@@ -839,13 +1008,14 @@ def run_teacher_agent(
         else:
             definition_names = list(tools)
 
-        # TeachingDesign is legacy compatibility only.
-        # New requests must never expose TeachingDesign creation/history tools.
+        # A fresh TeachingDesign entry is available only to the dedicated
+        # TEACHING_PLANNING route. History/activation remain legacy-only.
         teaching_design_tool_names_all = {
             "read_active_teaching_design",
             "create_teaching_design",
             "revise_teaching_design",
             "confirm_teaching_design",
+            "discard_teaching_design",
             "search_teaching_design_history",
             "activate_teaching_design",
         }
@@ -858,6 +1028,10 @@ def run_teacher_agent(
                     legacy_teaching_design_active
                     and name in design_definition_names
                 )
+                or (
+                    task_decision.route.task_type == TaskType.TEACHING_PLANNING
+                    and name == "create_teaching_design"
+                )
             )
         ]
 
@@ -865,16 +1039,56 @@ def run_teacher_agent(
             name for name in definition_names if name in tools
         ))
 
+        if pending_teaching_design_intent is not None:
+            intent_tools = {
+                "confirm": {"confirm_teaching_design"},
+                "revise": {"revise_teaching_design"},
+                "query": {"read_active_teaching_design"},
+                "cancel": {"discard_teaching_design"},
+                "ambiguous": set(),
+            }[pending_teaching_design_intent.action]
+            definition_names = [
+                name for name in definition_names if name in intent_tools
+            ]
+
+        # Apply the new task surface only when no existing lifecycle owns the
+        # turn. Pending/Paper/legacy TeachingDesign state remains authoritative
+        # and keeps its established Tool surface unchanged.
+        has_strong_business_state = bool(
+            pending_generation
+            or pending_adjustment
+            or pending
+            or has_current_paper
+            or legacy_teaching_design_active
+        )
+        if not has_strong_business_state and task_decision.route.task_type in {
+            TaskType.TEACHING_PLANNING,
+            TaskType.INFORMATION_REQUEST,
+        }:
+            allowed = set(tool_surface_for(task_decision.route.task_type).allowed_tools)
+            definition_names = [
+                name for name in definition_names if name in allowed
+            ]
+            # A teaching topic is not automatically a textbook scope. Without
+            # an explicit chapter/section-like scope, let the model analyze the
+            # learning problem and ask for scope only when material generation
+            # actually requires curriculum grounding.
+            if (
+                task_decision.route.task_type == TaskType.TEACHING_PLANNING
+                and not has_explicit_curriculum_scope(message)
+            ):
+                definition_names = [
+                    "retrieve_curriculum_candidates",
+                    "select_teaching_scope",
+                    "prepare_teaching_planning_draft",
+                ]
+
         definitions = toolkit.schemas(
             names=definition_names,
             transform=lambda tool: _tool_definition_for_context(
                 tool,
                 pending_generation=bool(pending_generation),
             ),
-        )
-        working_memory = (
-            store.get_memory(conversation_id)
-            if store and conversation_id and hasattr(store, "get_memory") else None
         )
         trace_recorder.set_memory_before(
             working_memory.model_dump(mode="json") if working_memory else None
@@ -914,6 +1128,7 @@ def run_teacher_agent(
                 ],
                 "global_positions": explicit_question_positions,
             },
+            "task_route": task_decision.model_dump(mode="json"),
         }
         serialized_context = json.dumps(dynamic_context, ensure_ascii=False)
 
@@ -924,9 +1139,45 @@ def run_teacher_agent(
         )
         teaching_design_skill_active = legacy_teaching_design_active
 
+        teaching_topic_only = (
+            task_decision.route.task_type == TaskType.TEACHING_PLANNING
+            and not has_explicit_curriculum_scope(message)
+            and not has_strong_business_state
+        )
         system_parts = [
             _SYSTEM_PROMPT.strip(),
+            (
+                "当前任务模式："
+                + task_decision.route.task_type.value
+                + "。该模式仅用于本轮工作流和 Tool surface 路由，"
+                "不是业务事实，不得自行扩展为章节、题量、分值、难度或生成约束。"
+            ),
         ]
+        if teaching_topic_only:
+            system_parts.append(
+                "当前请求包含教学主题但未给出明确教材章节范围。必须先调用 "
+                "retrieve_curriculum_candidates，再根据 Observation 调用 select_teaching_scope；"
+                "选择只能来自 Tool 返回的 selectable_scopes，reasoning 仅作解释。Python 验证成功后，必须使用返回的 "
+                "validated_scope_names 调用 inspect_curriculum 和 inspect_question_bank，最后才可创建 TeachingDesign。"
+                "不得把候选直接当作 scope，也不得自行生成 curriculum id。若教师只要求初步分析而不要求形成"
+                "可确认教学设计，可以改用 prepare_teaching_planning_draft。"
+            )
+        if task_decision.route.clarification_needed:
+            system_parts.append(
+                "当前任务分类置信度不足。请先向教师提出以下澄清问题，"
+                "不要调用会改变业务状态的 Tool："
+                + (task_decision.route.clarification_question or "")
+            )
+
+        if pending_teaching_design_intent is not None:
+            intent_messages = {
+                "confirm": "本轮只允许确认当前教学设计。",
+                "revise": "本轮包含新的教学要求，只允许调用 revise_teaching_design，禁止确认当前设计。",
+                "query": "本轮是对当前教学设计的询问，只允许读取后回答。",
+                "cancel": "教师希望放弃当前教学设计，只允许调用 discard_teaching_design，不要确认或修改它。",
+                "ambiguous": "无法确定教师是确认、修改、询问还是放弃当前教学设计，请先用自然语言澄清，不要调用确认或修改 Tool。",
+            }
+            system_parts.append(intent_messages[pending_teaching_design_intent.action])
 
         if teaching_design_skill_active:
             system_parts.extend([
@@ -1000,6 +1251,10 @@ def run_teacher_agent(
         malformed_response_retried = False
         generation_patch_retried = False
         post_inspection_intent_rechecked = False
+        clarification_boundary_reached = False
+        terminal_tool_boundary_reached = False
+        repeated_validation_boundary_reached = False
+        last_tool_validation_failure: tuple[str, str] | None = None
         trace = run_manager.row
         if trace is None:
             trace = TeacherAgentRunTrace(
@@ -1032,7 +1287,25 @@ def run_teacher_agent(
                 )
                 with llm_generation_span(backend, messages, definitions) as _lf_llm:
                     try:
-                        response_message = _assistant_message(backend.complete(messages, definitions))
+                        if (
+                            _round == 0
+                            and pending_teaching_design_intent is not None
+                            and pending_teaching_design_intent.action == "cancel"
+                        ):
+                            response_message = {
+                                "tool_calls": [{
+                                    "id": f"cancel_{uuid4().hex}",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "discard_teaching_design",
+                                        "arguments": "{}",
+                                    },
+                                }],
+                            }
+                        else:
+                            response_message = _assistant_message(
+                                backend.complete(messages, definitions)
+                            )
                         run_manager.update_span(
                             model_span,
                             status="success",
@@ -1213,6 +1486,9 @@ def run_teacher_agent(
                                     "如果教师明确要新建/生成试卷，必须在同一轮调用 prepare_generation_plan，"
                                     "生成可编辑 GenerationPlanPreview；Tool 成功后先用聊天正文给出简短的组卷设计意图，"
                                     "再由蓝图卡片展示可编辑结构，之后只需一次确认生成。"
+                                    "如果当前任务模式是 TEACHING_PLANNING，且教师提出明确的教学目标、"
+                                    "教学重点、复习安排或测评策略，必须在同一轮调用 create_teaching_design；"
+                                    "该 Tool 会校验环境证据，并在创建后等待教师确认，禁止同轮确认或生成试卷。"
                                     "如果教师只是讨论教学方法、讲课重点或复习建议，直接自然语言回答，"
                                     "不要创建 TeachingDesign，也不要创建 PendingGeneration。"
                                     "如果教师只是查询课程或题库事实，直接基于已有 Tool Observation 回答，"
@@ -1221,12 +1497,29 @@ def run_teacher_agent(
                                 ),
                             },
                         ])
+                        post_inspection_names = [
+                            "prepare_generation_plan",
+                            *environment_definition_names,
+                            *design_definition_names,
+                        ]
+                        if task_decision.route.task_type == TaskType.TEACHING_PLANNING:
+                            post_inspection_names.append("create_teaching_design")
+                        if task_decision.route.task_type in {
+                            TaskType.TEACHING_PLANNING,
+                            TaskType.INFORMATION_REQUEST,
+                        }:
+                            allowed = set(
+                                tool_surface_for(
+                                    task_decision.route.task_type
+                                ).allowed_tools
+                            )
+                            post_inspection_names = [
+                                name
+                                for name in post_inspection_names
+                                if name in allowed
+                            ]
                         definitions = toolkit.schemas(
-                            names=[
-                                "prepare_generation_plan",
-                                *environment_definition_names,
-                                *design_definition_names,
-                            ],
+                            names=post_inspection_names,
                             transform=lambda tool: _tool_definition_for_context(
                                 tool,
                                 pending_generation=False,
@@ -1383,7 +1676,12 @@ def run_teacher_agent(
                         arguments=arguments,
                         message=message,
                     )
-                    tool = tools.get(name)
+                    blocked_confirmation = bool(
+                        pending_teaching_design_intent is not None
+                        and pending_teaching_design_intent.action == "revise"
+                        and name == "confirm_teaching_design"
+                    )
+                    tool = None if blocked_confirmation else tools.get(name)
                     tool_span = run_manager.add_span(
                         "tool_call", name,
                         parent_span_id=agent_span.span_id if agent_span is not None else None,
@@ -1397,7 +1695,22 @@ def run_teacher_agent(
                         conversation_id=conversation_id,
                     )
                     generation_patch_retry_needed = False
-                    if tool is None:
+                    tool_execution_status: str | None = None
+                    if blocked_confirmation:
+                        execution_payload = {
+                            "ok": False,
+                            "code": "pending_design_revision_requires_revise",
+                            "message": "本轮包含新的教学要求，不能确认当前教学设计；请先修改。",
+                        }
+                        tool_execution_status = "needs_clarification"
+                        turn_status = "needs_clarification"
+                        result_values["clarification_questions"].append(
+                            "本轮包含新的教学要求，请先修改教学设计。"
+                        )
+                        result_values["blocking_errors"].append(
+                            "pending_design_revision_requires_revise"
+                        )
+                    elif tool is None:
                         execution_payload = {
                             "ok": False,
                             "code": "unknown_tool",
@@ -1431,8 +1744,27 @@ def run_teacher_agent(
                                 },
                             )
                         execution_payload = execution.payload
+                        tool_execution_status = execution.status
                         turn_status = execution.status
                         _merge_result_fields(result_values, execution.result_fields)
+                        if execution_payload.get("code") == "invalid_tool_arguments":
+                            signature = (name, "invalid_tool_arguments")
+                            if signature == last_tool_validation_failure:
+                                repeated_validation_boundary_reached = True
+                                final_text = (
+                                    "模型连续两次返回无法校验的工具参数，本轮没有执行该操作。"
+                                    "请重新发起请求。"
+                                )
+                            else:
+                                last_tool_validation_failure = signature
+                        else:
+                            if last_tool_validation_failure is not None:
+                                result_values["blocking_errors"] = [
+                                    code
+                                    for code in result_values["blocking_errors"]
+                                    if code != "invalid_tool_arguments"
+                                ]
+                            last_tool_validation_failure = None
                         run_manager.update_span(
                             tool_span, status="success",
                             output=redact_trace_value(execution_payload),
@@ -1451,6 +1783,19 @@ def run_teacher_agent(
                                 in (execution_payload.get("blocking_errors") or [])
                             ):
                                 generation_patch_retry_needed = True
+                        if (
+                            name == "select_teaching_scope"
+                            and execution_payload.get("ok")
+                        ):
+                            definitions = toolkit.schemas(
+                                names=[
+                                    tool_name
+                                    for tool_name in tool_surface_for(
+                                        TaskType.TEACHING_PLANNING
+                                    ).allowed_tools
+                                    if tool_name in tools
+                                ]
+                            )
                         if name == "read_paper":
                             paper_observation_version_id = observed_version_id
                         if (
@@ -1506,6 +1851,33 @@ def run_teacher_agent(
                         "name": name,
                         "content": json.dumps(execution_payload, ensure_ascii=False),
                     })
+                    if (
+                        name == "prepare_teaching_planning_draft"
+                        and tool_execution_status == "completed"
+                        and execution_payload.get("ok")
+                    ):
+                        # This tool is the terminal boundary of the planning-only
+                        # workflow. Its structured result is already authoritative;
+                        # asking the model for another turn can only reproduce the
+                        # same tool call and exhaust the round limit.
+                        terminal_tool_boundary_reached = True
+                        if execution_payload.get("waiting_for_scope"):
+                            final_text = "已形成教学规划草稿，请继续补充教材章节范围。"
+                        else:
+                            final_text = "已形成教学规划草稿，并已保留当前确认的教材范围。"
+
+                    if (
+                        tool_execution_status == "needs_clarification"
+                        and not generation_patch_retry_needed
+                    ):
+                        clarification_boundary_reached = True
+                        turn_status = "needs_clarification"
+                        final_text = str(
+                            execution_payload.get("message")
+                            or (execution_payload.get("clarification_questions") or [""])[0]
+                            or "请补充必要信息后继续。"
+                        )
+                        break
                     if generation_patch_retry_needed:
                         # Recover once inside the same Agent turn instead of asking the
                         # teacher to repeat a request that Python can already represent.
@@ -1531,6 +1903,16 @@ def run_teacher_agent(
                             ),
                         )
                         generation_patch_retried = True
+                    if terminal_tool_boundary_reached or repeated_validation_boundary_reached:
+                        # Stop processing any additional model-provided calls in
+                        # this response as well as stopping the next LLM round.
+                        break
+                if (
+                    clarification_boundary_reached
+                    or terminal_tool_boundary_reached
+                    or repeated_validation_boundary_reached
+                ):
+                    break
             else:
                 raise RuntimeError("agent_tool_round_limit")
         except Exception as exc:
@@ -1567,7 +1949,31 @@ def run_teacher_agent(
                 )
             )
         if turn_error is not None:
-            pass
+            if _recoverable_post_tool_narration_failure(
+                current_stage=current_stage,
+                trace_calls=trace_calls,
+                pending_action_in_store=pending_action_in_store,
+            ):
+                # The business Tool already committed a valid pending action.
+                # A later LLM call is presentation/narration only; its failure
+                # must not turn the committed business outcome into "failed".
+                turn_status = "waiting_confirmation"
+                error_code = turn_error.get("error_code")
+                if error_code:
+                    result_values["blocking_errors"] = [
+                        item
+                        for item in result_values["blocking_errors"]
+                        if item != error_code
+                    ]
+                if "post_tool_narration_failed" not in result_values["warnings"]:
+                    result_values["warnings"].append(
+                        "post_tool_narration_failed"
+                    )
+                final_text = (
+                    "方案已成功生成并保存，当前等待确认。"
+                    "本轮说明文字生成超时，但不影响已保存的方案；"
+                    "你可以查看方案后确认，或继续修改。"
+                )
         elif any(code in PENDING_PRESERVATION_ERRORS for code in blocking_errors):
             turn_status = "waiting_confirmation"
         elif any(code in CLARIFICATION_BLOCKING_ERRORS for code in blocking_errors):

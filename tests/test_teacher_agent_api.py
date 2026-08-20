@@ -8,8 +8,10 @@ from calculus_agent.agent.conversation_state import (
     PendingGeneration,
 )
 from calculus_agent.agent.schemas import GeneratePaperInput, QuestionTypeRequirement
+from calculus_agent.agent.state import WorkspaceService
 from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult, PaperSummary
 from calculus_agent.config import Settings
+from calculus_agent.teaching_design import TeachingDesignContent, TeachingDesignService
 
 
 def test_teacher_agent_http_entry_delegates_to_phase2b_agent(monkeypatch, session):
@@ -75,11 +77,48 @@ def test_teacher_agent_http_entry_keeps_clarification_structured(monkeypatch, se
     assert result.paper is None
 
 
-def test_teacher_agent_session_reads_messages_and_pending_plan_from_database(session):
+def test_teacher_agent_conversation_list_aggregates_message_history(session):
+    history = DatabaseConversationHistoryStore(session)
+    history.append("conversation-a", role="user", content="第一章测试卷")
+    history.append("conversation-a", role="assistant", content="请确认")
+    history.append("conversation-b", role="user", content="查询第三章题库")
+
+    conversations = api.list_teacher_agent_conversations(session)
+
+    assert {item.conversation_id for item in conversations} == {
+        "conversation-a",
+        "conversation-b",
+    }
+    titles = {item.conversation_id: item.title for item in conversations}
+    assert titles["conversation-a"] == "第一章测试卷"
+    assert titles["conversation-b"] == "查询第三章题库"
+    assert all(item.last_message_at is not None for item in conversations)
+
+
+def test_teacher_agent_session_reads_messages_workspace_and_pending_plan(session):
     conversation_id = "restored-session"
     history = DatabaseConversationHistoryStore(session)
     history.append(conversation_id, role="user", content="给我出第三章测试")
     history.append(conversation_id, role="assistant", content="请确认组卷方案。")
+    TeachingDesignService(session).create(
+        owner_key="local_teacher",
+        conversation_id=conversation_id,
+        content=TeachingDesignContent(
+            title="第三章复习",
+            objective="理解核心概念",
+            scope_names=["第三章"],
+        ),
+        run_id="run-design",
+        source_user_message="帮我设计第三章复习",
+    )
+    WorkspaceService(session).update(
+        conversation_id,
+        {
+            "active_type": "paper",
+            "current_paper_id": "paper-1",
+            "current_version_id": "paper-1-v2",
+        },
+    )
     DatabasePendingReplacementStore(session).set_generation(
         conversation_id,
         PendingGeneration(request=GeneratePaperInput(
@@ -96,6 +135,11 @@ def test_teacher_agent_session_reads_messages_and_pending_plan_from_database(ses
     restored = api.get_teacher_agent_session(conversation_id, session)
 
     assert restored.conversation_id == conversation_id
+    assert restored.workspace is not None
+    assert restored.workspace.current_paper_id == "paper-1"
+    assert restored.workspace.current_version_id == "paper-1-v2"
+    assert restored.active_teaching_design is not None
+    assert restored.active_teaching_design.title == "第三章复习"
     assert [(item.role, item.content) for item in restored.messages] == [
         ("user", "给我出第三章测试"),
         ("assistant", "请确认组卷方案。"),

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -27,6 +28,7 @@ Recoverability = Literal[
     "retry_same_design",
     "repair_without_design_change",
     "requires_design_revision",
+    "requires_user_input",
     "technical_intervention",
     "unknown",
 ]
@@ -76,3 +78,23 @@ class GenerationDiagnosis(BaseModel):
     code: str
     recoverability: Recoverability
     facts: list[DiagnosisFact] = Field(default_factory=list)
+
+
+class RecoveryActionType(StrEnum):
+    ASK_USER = "ask_user"
+    AUTO_RETRY = "auto_retry"
+    ADJUST_CONSTRAINTS = "adjust_constraints"
+    REVISE_DESIGN = "revise_design"
+    ABORT = "abort"
+
+
+class RecoveryAction(BaseModel):
+    """Deterministic next-step recommendation derived from a diagnosis."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    action_type: RecoveryActionType
+    reason: str
+    options: list[str] = Field(default_factory=list)
+    auto_executable: bool = False
+    metadata: dict = Field(default_factory=dict)

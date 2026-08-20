@@ -42,6 +42,39 @@ def test_toolkit_validates_arguments_before_execution():
     assert result.payload["code"] == "invalid_tool_arguments"
 
 
+class _NestedContent(BaseModel):
+    title: str
+    tags: list[str]
+    note: str
+
+
+class _NestedInput(BaseModel):
+    content: _NestedContent
+
+
+def test_toolkit_decodes_json_strings_only_for_schema_containers():
+    def execute(raw: BaseModel) -> ExecutedTool:
+        values = _NestedInput.model_validate(raw)
+        return ExecutedTool(
+            payload={"ok": True, "content": values.content.model_dump()},
+            status="completed",
+        )
+
+    toolkit = Toolkit([AgentTool(
+        name="nested",
+        description="nested schema",
+        input_model=_NestedInput,
+        execute=execute,
+    )])
+    result = toolkit.execute("nested", {
+        "content": '{"title":"复习方案","tags":"[\\"极限\\",\\"无穷小\\"]","note":"{\\"keep\\":true}"}',
+    })
+
+    assert result.status == "completed"
+    assert result.payload["content"]["tags"] == ["极限", "无穷小"]
+    assert result.payload["content"]["note"] == '{"keep":true}'
+
+
 def test_toolkit_normalizes_unknown_tool_failure():
     toolkit = Toolkit([_tool()])
     result = toolkit.execute("missing", {})

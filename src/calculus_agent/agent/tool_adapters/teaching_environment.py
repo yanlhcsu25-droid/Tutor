@@ -6,15 +6,58 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from calculus_agent.application.curriculum_retrieval import (
+    retrieve_curriculum_candidates,
+)
+from calculus_agent.application.scope_resolution import (
+    resolve_deterministic_scope_labels,
+)
+from calculus_agent.application.teaching_scope import (
+    project_selectable_teaching_scopes,
+)
 from calculus_agent.application.teaching_environment import (
     InspectQuestionBankRequest,
     inspect_curriculum,
     inspect_question_bank,
 )
 from calculus_agent.knowledge.normalization import normalize_name
+from calculus_agent.agent.tool_registry import ExecutedTool
 
 
 MAX_ENVIRONMENT_INSPECTION_CALLS = 4
+
+
+def _validated_scope_for_inspection(context: Any, labels: list[str]) -> tuple[list[str] | None, ExecutedTool | None]:
+    selected = context.inspection_state.get("validated_scope_names") or []
+    if selected and set(_scope_keys(labels)).issubset(set(_scope_keys(selected))):
+        return list(selected), None
+
+    resolved = resolve_deterministic_scope_labels(context.session, labels)
+    if resolved.ok:
+        context.inspection_state["validated_scope_names"] = resolved.validated_scope_names
+        return resolved.validated_scope_names, None
+
+    message = "请先确认教材章节或知识点范围；我会先根据候选教材范围完成解析。"
+    return None, ExecutedTool(
+        payload={
+            "ok": False,
+            "code": "scope_resolution_required",
+            "message": message,
+            "unresolved_labels": resolved.unresolved_labels,
+        },
+        status="needs_clarification",
+        result_fields={
+            "blocking_errors": ["scope_resolution_required"],
+            "clarification_questions": [message],
+        },
+    )
+
+
+class RetrieveCurriculumCandidatesInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    query: str = Field(min_length=1, max_length=1000)
+    top_k: int = Field(default=5, ge=1, le=20)
 
 
 class InspectCurriculumInput(BaseModel):
@@ -46,6 +89,7 @@ class InspectQuestionBankInput(BaseModel):
 
 def environment_inspection_tool_names() -> list[str]:
     return [
+        "retrieve_curriculum_candidates",
         "inspect_curriculum",
         "inspect_question_bank",
     ]
@@ -135,6 +179,71 @@ def build_environment_inspection_tools(context: Any) -> list[Any]:
             ]),
         }
 
+    def retrieve_curriculum_candidates_tool(raw: BaseModel) -> ExecutedTool:
+        values = RetrieveCurriculumCandidatesInput.model_validate(raw)
+        candidates = retrieve_curriculum_candidates(
+            context.session,
+            query=values.query,
+            top_k=values.top_k,
+        )
+        projected = project_selectable_teaching_scopes(
+            context.session,
+            semantic_matches=candidates,
+        )
+        semantic_matches = [
+            candidate.model_dump(mode="json")
+            for candidate in projected.semantic_matches
+        ]
+        selectable_scopes = [
+            candidate.model_dump(mode="json")
+            for candidate in projected.selectable_scopes
+        ]
+        context.inspection_state["curriculum_semantic_matches"] = semantic_matches
+        context.inspection_state["selectable_teaching_scopes"] = selectable_scopes
+        if context.state_store is not None and context.conversation_id:
+            memory = context.state_store.get_memory(context.conversation_id)
+            current = (
+                memory.active_task
+                if memory.active_task.get("type") == "teaching_planning"
+                else {}
+            )
+            memory.active_task = {
+                **current,
+                "type": "teaching_planning",
+                "status": "scope_candidates_retrieved" if selectable_scopes else "awaiting_scope_clarification",
+                "target_topic": values.query,
+                "curriculum_semantic_matches": semantic_matches,
+                "selectable_teaching_scopes": selectable_scopes,
+                "waiting_for_scope": True,
+            }
+            context.state_store.set_memory(context.conversation_id, memory)
+        payload = {
+            "ok": bool(selectable_scopes),
+            "query": values.query,
+            "semantic_matches": semantic_matches,
+            "selectable_scopes": selectable_scopes,
+            "scope_selected": False,
+        }
+        if not selectable_scopes:
+            message = "当前教材中没有找到可确认的教学范围，请补充章节、小节或知识点名称。"
+            return ExecutedTool(
+                payload={
+                    **payload,
+                    "code": "curriculum_candidates_not_found",
+                    "message": message,
+                },
+                status="needs_clarification",
+                result_fields={
+                    "blocking_errors": ["curriculum_candidates_not_found"],
+                    "clarification_questions": [message],
+                },
+            )
+        return ExecutedTool(
+            payload=payload,
+            status="completed",
+            result_fields={},
+        )
+
     def inspect_curriculum_tool(raw: BaseModel) -> ExecutedTool:
         values = InspectCurriculumInput.model_validate(raw)
 
@@ -146,9 +255,15 @@ def build_environment_inspection_tools(context: Any) -> list[Any]:
                 "或向教师说明仍缺少的关键证据。",
             )
 
+        validated_scope, resolution_error = _validated_scope_for_inspection(
+            context,
+            values.scope_names,
+        )
+        if resolution_error is not None:
+            return resolution_error
         result = inspect_curriculum(
             context.session,
-            scope_names=values.scope_names,
+            scope_names=validated_scope or [],
             run_id=context.run_id,
         )
         payload = result.model_dump(mode="json")
@@ -199,9 +314,13 @@ def build_environment_inspection_tools(context: Any) -> list[Any]:
                 "不要继续无目的查询题库。",
             )
 
-        requested_scope_keys = set(
-            _scope_keys(values.scope_names)
+        validated_scope, resolution_error = _validated_scope_for_inspection(
+            context,
+            values.scope_names,
         )
+        if resolution_error is not None:
+            return resolution_error
+        requested_scope_keys = set(_scope_keys(validated_scope or []))
 
         if values.detail_level == "chapter_detail":
             aggregate_scope_keys = set(
@@ -225,7 +344,7 @@ def build_environment_inspection_tools(context: Any) -> list[Any]:
         result = inspect_question_bank(
             context.session,
             InspectQuestionBankRequest(
-                scope_names=values.scope_names,
+                scope_names=validated_scope or [],
                 detail_level=values.detail_level,
                 chapter_name=values.chapter_name,
                 knowledge_names=values.knowledge_names,
@@ -272,6 +391,16 @@ def build_environment_inspection_tools(context: Any) -> list[Any]:
         )
 
     return [
+        AgentTool(
+            "retrieve_curriculum_candidates",
+            (
+                "Retrieve read-only CurriculumNode and KnowledgeNode candidates "
+                "for a teacher's natural-language topic. This is candidate recall "
+                "only: it does not select, validate, or modify teaching scope."
+            ),
+            RetrieveCurriculumCandidatesInput,
+            retrieve_curriculum_candidates_tool,
+        ),
         AgentTool(
             "inspect_curriculum",
             (
