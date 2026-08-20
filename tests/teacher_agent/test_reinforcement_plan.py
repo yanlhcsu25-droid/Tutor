@@ -746,3 +746,147 @@ def test_mixed_valid_and_invalid_feedback_is_all_or_nothing(session):
     # Preparation/clarification must never create a Paper.
     assert _paper_count(session) == before_paper_count
 
+
+def test_cross_chapter_wrong_question_expands_scope_and_compiles_hard_knowledge_coverage(session):
+    # A later-chapter question may legitimately depend on earlier knowledge.
+    # Reinforcement must practice every linked current knowledge point instead
+    # of asking the teacher to choose one chapter.
+    tb = _textbook(session)
+    c1 = _chapter(
+        session,
+        tb,
+        "c1",
+        "第一章 函数与极限",
+    )
+    c3 = _chapter(
+        session,
+        tb,
+        "c3",
+        "第三章 微分中值定理与导数的应用",
+    )
+
+    prerequisite = _knode(
+        session,
+        "k-prerequisite",
+        c1.id,
+        "函数的求导法则",
+    )
+    target = _knode(
+        session,
+        "k-target",
+        c3.id,
+        "函数的单调性与曲线的凹凸性",
+    )
+
+    paper = _paper(
+        session,
+        "paper-cross-chapter-reinforcement",
+        "第三章测试卷",
+    )
+    question = _question(
+        session,
+        "q-cross-chapter",
+        "计算题",
+        c3.id,
+        [
+            prerequisite.id,
+            target.id,
+        ],
+    )
+    _item(
+        session,
+        paper,
+        question,
+        1,
+    )
+
+    conversation_id = "conv-cross-chapter-reinforcement"
+    service = _service(
+        session,
+        conversation_id,
+    )
+
+    result = service.prepare(
+        paper.id,
+        [
+            _feedback(
+                address=QuestionAddress(
+                    section_type="计算题",
+                    section_order=1,
+                )
+            )
+        ],
+    )
+
+    assert result.preview.ok is True
+    assert result.preview.blocking_errors == []
+    assert result.preview.clarification_questions == []
+
+    # Scope is the union of the target knowledge chapters.
+    assert set(result.context.scope_names) == {
+        "第一章 函数与极限",
+        "第三章 微分中值定理与导数的应用",
+    }
+
+    # Every unique linked knowledge point becomes one hard coverage target.
+    assert set(
+        result.patch.required_knowledge_names or []
+    ) == {
+        "函数的求导法则",
+        "函数的单调性与曲线的凹凸性",
+    }
+    assert result.patch.question_count == 2
+
+    # Legacy evidence weight is not an executable generation constraint.
+    assert result.patch.knowledge_priority_weights is None
+
+    pending = DatabasePendingReplacementStore(
+        session
+    ).get_generation(conversation_id)
+    assert pending is not None
+    assert pending.request.question_count == 2
+    assert set(
+        pending.request.required_knowledge_names or []
+    ) == {
+        "函数的求导法则",
+        "函数的单调性与曲线的凹凸性",
+    }
+
+    # Verify the executable blueprint, not merely the semantic patch.
+    from calculus_agent.agent.tools.paper_tools import (
+        build_structured_generation_request,
+    )
+
+    (
+        generation_request,
+        _,
+        errors,
+        questions,
+    ) = build_structured_generation_request(
+        session,
+        pending.request,
+    )
+
+    assert errors == []
+    assert questions == []
+    assert generation_request is not None
+    assert (
+        generation_request.blueprint.total_questions
+        == 2
+    )
+    assert (
+        generation_request.blueprint.strict_knowledge
+        is True
+    )
+    assert {
+        quota.name: quota.count
+        for quota in (
+            generation_request
+            .blueprint
+            .knowledge_quotas
+        )
+    } == {
+        "函数的求导法则": 1,
+        "函数的单调性与曲线的凹凸性": 1,
+    }
+

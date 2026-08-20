@@ -37,6 +37,7 @@ from calculus_agent.question_types import (
     canonical_question_type,
 )
 from calculus_agent.questions.chapter_assignment import (
+    resolve_chapter_reference,
     resolve_scope_chapter_ids,
     scope_labels_are_whole_chapters,
 )
@@ -73,6 +74,33 @@ class GeneratePaperToolResult(BaseModel):
     diagnosis: GenerationDiagnosis | None = None
 
 
+def _knowledge_ids_under_curriculum_node(
+    curriculum: list[CurriculumNode],
+    knowledge: list[KnowledgeNode],
+    root_id: str,
+) -> list[str]:
+    """Return knowledge IDs attached to a curriculum node and its descendants."""
+    selected_curriculum: set[str] = set()
+    pending = [root_id]
+
+    while pending:
+        current = pending.pop()
+        if current in selected_curriculum:
+            continue
+        selected_curriculum.add(current)
+        pending.extend(
+            node.id
+            for node in curriculum
+            if node.parent_id == current
+        )
+
+    return [
+        node.id
+        for node in knowledge
+        if node.curriculum_node_id in selected_curriculum
+    ]
+
+
 def _scope_node_ids(
     session: Session,
     labels: list[str],
@@ -86,6 +114,25 @@ def _scope_node_ids(
     resolved: set[str] = set()
 
     for label in labels:
+        # Whole-chapter labels must share the same canonical resolver used by
+        # curriculum / question-bank inspection. In particular, an inspection
+        # output such as "第一章 函数与极限" is a display label and must remain a
+        # valid downstream generation scope.
+        chapter = resolve_chapter_reference(
+            session,
+            label=label,
+        )
+        if chapter is not None:
+            matches = _knowledge_ids_under_curriculum_node(
+                curriculum,
+                knowledge,
+                chapter.id,
+            )
+            if not matches:
+                return [], ["scope_not_found"]
+            resolved.update(matches)
+            continue
+
         normalized = normalize_name(label)
         curriculum_matches = [
             node
@@ -97,28 +144,13 @@ def _scope_node_ids(
             return [], ["scope_ambiguous"]
 
         if curriculum_matches:
-            selected_curriculum: set[str] = set()
-            pending = [curriculum_matches[0].id]
-
-            while pending:
-                current = pending.pop()
-                if current in selected_curriculum:
-                    continue
-                selected_curriculum.add(current)
-                pending.extend(
-                    node.id
-                    for node in curriculum
-                    if node.parent_id == current
-                )
-
-            matches = [
-                node.id
-                for node in knowledge
-                if node.curriculum_node_id in selected_curriculum
-            ]
+            matches = _knowledge_ids_under_curriculum_node(
+                curriculum,
+                knowledge,
+                curriculum_matches[0].id,
+            )
             if not matches:
                 return [], ["scope_not_found"]
-
             resolved.update(matches)
             continue
 
@@ -138,7 +170,8 @@ def _scope_node_ids(
             resolved.add(knowledge_matches[0].id)
             continue
 
-        # Reuse the established chapter/section resolver for labels such as 第一章.
+        # Keep the legacy resolver only for non-chapter labels such as explicit
+        # section references. Whole chapters were already handled above.
         placeholder = PaperGenerationRequest(
             blueprint=PaperBlueprint(
                 title="scope resolver",
@@ -549,7 +582,56 @@ def build_structured_generation_request(
         or []
     )
 
-    if requirements:
+    if required_names and not requirements:
+        # Generic hard-knowledge-coverage plan.  A trusted caller can specify
+        # required_knowledge_names without inventing a question-type split.
+        required_count = len(required_names)
+        desired_count = (
+            request.question_count
+            if request.question_count is not None
+            else required_count
+        )
+
+        if desired_count < required_count:
+            return (
+                None,
+                [],
+                ["question_count_below_required_knowledge_coverage"],
+                [
+                    f"当前要求至少覆盖{required_count}个知识点，"
+                    f"但总题数只有{desired_count}题。"
+                    "请增加题量或减少必覆盖知识点。"
+                ],
+            )
+
+        default_total_score = max(
+            desired_count,
+            min(100, desired_count * 10),
+        )
+
+        blueprint = PaperBlueprint(
+            title=(
+                f"{scopes[0] if len(scopes) == 1 else '高等数学'}"
+                "专项巩固练习"
+            ),
+            total_questions=desired_count,
+            total_score=(
+                request.total_score
+                or default_total_score
+            ),
+            soft_knowledge_preferences=list(
+                dict.fromkeys(
+                    [
+                        *preferred_names,
+                        *required_names,
+                    ]
+                )
+            ),
+            # New papers receive the actual fresh seed only at execution.
+            seed=None,
+        )
+
+    elif requirements:
         canonical = [
             canonical_question_type(
                 item.question_type
@@ -816,6 +898,42 @@ def build_structured_generation_request(
                     "请同时说明各题型数量。"
                 ],
             )
+
+    # Hard required-knowledge coverage compiled deterministically.
+    # The existing selector / CP-SAT path already enforces knowledge_quotas.
+    if required_names:
+        if blueprint.total_questions < len(required_names):
+            return (
+                None,
+                warnings,
+                ["question_count_below_required_knowledge_coverage"],
+                [
+                    f"当前要求至少覆盖{len(required_names)}个知识点，"
+                    f"但蓝图只有{blueprint.total_questions}题。"
+                    "请增加题量或减少必覆盖知识点。"
+                ],
+            )
+
+        blueprint = blueprint.model_copy(
+            update={
+                "knowledge_quotas": [
+                    KnowledgeQuota(
+                        name=name,
+                        count=1,
+                    )
+                    for name in required_names
+                ],
+                "strict_knowledge": True,
+                "soft_knowledge_preferences": list(
+                    dict.fromkeys(
+                        [
+                            *preferred_names,
+                            *required_names,
+                        ]
+                    )
+                ),
+            }
+        )
 
     (
         allowed,

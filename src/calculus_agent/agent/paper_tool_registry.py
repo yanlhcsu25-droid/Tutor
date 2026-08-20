@@ -17,6 +17,7 @@ from .services.adjustment import AdjustmentService, AdjustmentServiceError
 from .services.generation import GenerationService, NoPendingGenerationError
 from .services.reinforcement import ReinforcementError, ReinforcementService
 from .services.replacement import ReplacementService, ReplacementServiceError
+from .state.service import RuntimeStateService
 from .tool_registry import AgentExecutionContext, AgentTool, EmptyInput, ExecutedTool
 from .tools.analysis_tools import analyze_paper
 from .tools.read_tools import ReadCurrentPaperInput, read_current_paper
@@ -68,6 +69,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         store=store,
         conversation_id=context.conversation_id,
         expected_pending_generation_version=context.expected_pending_generation_version,
+        runtime_state_service=RuntimeStateService(session),
     )
     reinforcement_service = ReinforcementService(
         session=session,
@@ -363,6 +365,11 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
                 store.clear(context.conversation_id)
                 discarded.append("legacy_replacement")
             session.flush()
+            # Phase 2: discarding an uncommitted plan returns the Agent to idle.
+            if discarded:
+                RuntimeStateService(session).transition(
+                    context.conversation_id, "idle"
+                )
         return ExecutedTool(
             payload={
                 "ok": True,

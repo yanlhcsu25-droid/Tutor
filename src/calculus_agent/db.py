@@ -26,6 +26,7 @@ def create_schema(database_url: str) -> None:
     from calculus_agent import models  # noqa: F401
     from calculus_agent.curriculum_context import models as curriculum_context_models  # noqa: F401
     from calculus_agent.teaching_design import models as teaching_design_models  # noqa: F401
+    from calculus_agent.agent.state import models as agent_state_models  # noqa: F401
 
     engine = build_engine(database_url)
     Base.metadata.create_all(engine)

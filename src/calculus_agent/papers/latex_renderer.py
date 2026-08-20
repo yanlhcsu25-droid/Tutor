@@ -1111,6 +1111,93 @@ def _options_table(
     )
 
 
+
+def _count_unescaped_single_dollar_delimiters(
+    value: str,
+) -> int:
+    """Count inline-math ``$`` delimiters, excluding ``$$`` and escaped ``\\$``."""
+
+    count = 0
+    index = 0
+
+    while index < len(value):
+        if value[index] != "$":
+            index += 1
+            continue
+
+        backslashes = 0
+        cursor = index - 1
+        while cursor >= 0 and value[cursor] == "\\":
+            backslashes += 1
+            cursor -= 1
+
+        if backslashes % 2 == 1:
+            index += 1
+            continue
+
+        if index + 1 < len(value) and value[index + 1] == "$":
+            index += 2
+            continue
+
+        count += 1
+        index += 1
+
+    return count
+
+
+def _coalesce_multiline_inline_math(
+    lines: list[str],
+) -> list[str]:
+    r"""Restore OCR-split single-dollar math spans before line rendering.
+
+    Historical reviewed solutions may store one inline-math span as:
+
+        答案：$
+        \left\{ ... \right.
+        $
+
+    Rendering line-by-line would escape the opening ``$`` as prose and then
+    wrap the final formula fragment in ``\(...\)``, producing an invalid
+    ``\( ... $\)`` delimiter sequence.
+
+    Only unmatched *single* dollar delimiters participate here. ``$$`` display
+    blocks remain owned by ``_consume_multiline_display_math()``, escaped
+    ``\$`` is treated as text, and an unclosed span at EOF is returned in its
+    original line structure rather than guessed.
+    """
+
+    restored: list[str] = []
+    pending: list[str] = []
+    in_inline_math = False
+
+    for line in lines:
+        delimiter_count = _count_unescaped_single_dollar_delimiters(line)
+
+        if in_inline_math:
+            pending.append(line)
+
+            if delimiter_count % 2 == 1:
+                restored.append("\n".join(pending))
+                pending = []
+                in_inline_math = False
+
+            continue
+
+        if delimiter_count % 2 == 1:
+            pending = [line]
+            in_inline_math = True
+            continue
+
+        restored.append(line)
+
+    if pending:
+        # Do not invent a closing delimiter for damaged source. Preserve the
+        # original lines so downstream escaping behaves as it did previously.
+        restored.extend(pending)
+
+    return restored
+
+
 def _reference_solution_latex(
     value: str,
 ) -> str:
@@ -1126,7 +1213,9 @@ def _reference_solution_latex(
 
     value = unescape(value)
 
-    lines = value.splitlines()
+    lines = _coalesce_multiline_inline_math(
+        value.splitlines()
+    )
 
     rendered: list[str] = []
 
@@ -1540,7 +1629,29 @@ def _legacy_math_commands_are_safe(
 def _normalize_legacy_tex(
     value: str,
 ) -> str:
-    """Repair deterministic OCR spacing / command-concatenation artifacts."""
+    """Repair deterministic OCR / legacy-TeX compatibility artifacts."""
+
+    # mathtools/aligned compatibility:
+    #
+    # Some valid OCR-derived formulas arrive as:
+    #
+    #   \begin{aligned}&a&=b\\
+    #
+    # With mathtools loaded, starting the body immediately after
+    # \begin{aligned} can trigger the package's optional-argument parser and
+    # fail with:
+    #
+    #   Missing control sequence inserted.
+    #   <inserted text> \inaccessible
+    #
+    # Insert a separator only when the environment body starts immediately.
+    # Preserve legal optional arguments such as \begin{aligned}[t] and leave
+    # already-separated whitespace/newline forms unchanged.
+    value = re.sub(
+        r"(\\begin\{aligned\})(?=[^\s\[])",
+        r"\1 ",
+        value,
+    )
 
     value = re.sub(
         r"\\lef\s+t\b",

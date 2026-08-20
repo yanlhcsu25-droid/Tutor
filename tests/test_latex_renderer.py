@@ -280,3 +280,50 @@ def test_xlongequal_has_no_external_package_dependency():
     assert r"\providecommand{\xlongequal}[2][]" in result
     assert r"\mathrel{\overset{#2}{=}}" in result
     assert r"\xlongequal{t-u=s}" in result
+
+def test_teacher_solution_restores_multiline_single_dollar_math():
+    paper = _paper()
+    paper.items[0].solution_steps = [
+        r"""答案：$
+\left\{ \begin{array}{l}
+7x-y=11, \\ z=0.
+\end{array} \right.
+$
+解：投影方程如上。"""
+    ]
+
+    result = render_paper_latex(paper, teacher_version=True)
+
+    assert "答案：" in result
+    assert r"\left\{ \begin{array}{l}" in result
+    assert r"\end{array} \right." in result
+    assert r"\$\par" not in result
+    assert r"$\)" not in result
+
+
+def test_teacher_solution_multiline_math_does_not_consume_display_dollars():
+    paper = _paper()
+    paper.items[0].solution_steps = [
+        r"""推导如下：
+$$
+x^2+y^2=1
+$$
+所以结论成立。"""
+    ]
+
+    result = render_paper_latex(paper, teacher_version=True)
+
+    assert r"\ExamDisplayMath{x^2+y^2=1}" in result
+
+
+def test_teacher_solution_unclosed_single_dollar_is_not_guessed_closed():
+    paper = _paper()
+    paper.items[0].solution_steps = [
+        "原始OCR残缺：$",
+        "下一行仍是普通文本",
+    ]
+
+    result = render_paper_latex(paper, teacher_version=True)
+
+    assert "下一行仍是普通文本" in result
+    assert r"\$" in result

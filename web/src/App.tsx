@@ -1,24 +1,17 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Layout, Menu, Typography, Modal, Button, Space } from "antd";
 import {
   RobotOutlined, FilePdfOutlined, BookOutlined,
-  FormOutlined, DatabaseOutlined, PlusOutlined,
+  DatabaseOutlined, PlusOutlined,
 } from "@ant-design/icons";
 import AgentWorkspace, { clearStoredConversationId } from "./components/AgentWorkspace";
 import OcrReviewDrawer from "./components/OcrReviewDrawer";
-import PaperDrawer from "./components/PaperDrawer";
 import QuestionBankDrawer from "./components/QuestionBankDrawer";
 import PdfImportPanel from "./components/PdfImportPanel";
 import TextbookDrawer from "./components/TextbookDrawer";
 import AdminConsole from "./components/AdminConsole";
 
 const { Sider, Content } = Layout;
-
-type Preview = {
-  title: string; total_score: number; feasible: boolean; warnings: string[];
-  items: { item_id: string; question_id: string; question_text: string; question_type: string; score: number; knowledge: string[]; locked: boolean }[];
-};
-type ValidationReport = { passed: boolean; violations: { code: string; field: string; required: unknown; actual: unknown; question_ids: string[]; repairable: boolean; message: string }[] };
 
 export default function App() {
   if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/")) {
@@ -31,33 +24,6 @@ export default function App() {
   const [ocrSourceId, setOcrSourceId] = useState<string | null>(null);
   const [questionBankOpen, setQuestionBankOpen] = useState(false);
   const [textbookOpen, setTextbookOpen] = useState(false);
-
-  // ── paper drawer ──
-  const [paperDrawerOpen, setPaperDrawerOpen] = useState(false);
-  const [paperId, setPaperId] = useState<string | null>(null);
-  const [paperPreview, setPaperPreview] = useState<Preview | null>(null);
-  const [paperValidation, setPaperValidation] = useState<ValidationReport | null>(null);
-  const [paperVersion, setPaperVersion] = useState<number | null>(null);
-
-  const openPaperDrawer = useCallback((pid: string, preview: Preview, validation: ValidationReport, version: number) => {
-    setPaperId(pid);
-    setPaperPreview(preview);
-    setPaperValidation(validation);
-    setPaperVersion(version);
-    setPaperDrawerOpen(true);
-  }, []);
-
-  const refreshPaper = useCallback(async (pid: string) => {
-    try {
-      const r = await fetch(`/api/v1/papers/${pid}`);
-      if (!r.ok) return;
-      const data = await r.json();
-      setPaperId(data.paper_id);
-      setPaperPreview(data.preview);
-      setPaperValidation(data.validation_report);
-      setPaperVersion(data.version);
-    } catch { /* ignore */ }
-  }, []);
 
   // ── PDF import → OCR review flow ──
   const handlePdfImportReady = (_sourceId: string, _count: number) => {
@@ -79,10 +45,6 @@ export default function App() {
       okText: "新建",
       cancelText: "取消",
       onOk: () => {
-        setPaperDrawerOpen(false);
-        setPaperId(null);
-        setPaperPreview(null);
-        setPaperValidation(null);
         clearStoredConversationId();
         window.location.reload();
       },
@@ -115,7 +77,7 @@ export default function App() {
       {/* main content — always AgentWorkspace */}
       <Layout>
         <Content style={{ background: "#fff", overflow: "auto", height: "100vh" }}>
-          <AgentWorkspace onOpenPaperDrawer={openPaperDrawer} activePaperId={paperId} />
+          <AgentWorkspace />
         </Content>
       </Layout>
 
@@ -141,17 +103,6 @@ export default function App() {
           setOcrReviewOpen(false);
           setOcrSourceId(null);
         }}
-      />
-
-      {/* Paper Drawer */}
-      <PaperDrawer
-        open={paperDrawerOpen}
-        paperId={paperId}
-        preview={paperPreview}
-        validation={paperValidation}
-        version={paperVersion}
-        onClose={() => setPaperDrawerOpen(false)}
-        onRefresh={refreshPaper}
       />
 
       {/* Question Bank Drawer */}

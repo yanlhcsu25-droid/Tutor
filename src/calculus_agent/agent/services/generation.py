@@ -26,6 +26,11 @@ from ..schemas import (
     GeneratePaperInput,
     QuestionTypeRequirement,
 )
+from ..state.service import (
+    InvalidStateTransitionError,
+    RuntimeStateService,
+    WorkspaceService,
+)
 from ..tools.paper_tools import (
     GeneratePaperToolResult,
     build_structured_generation_request,
@@ -289,6 +294,58 @@ class GenerationService:
     conversation_id: str | None
     expected_pending_generation_version: int | None = None
     teaching_design_version_id: str | None = None
+    runtime_state_service: RuntimeStateService | None = None
+    workspace_service: WorkspaceService | None = None
+
+    def _transition(
+        self,
+        phase: str,
+        *,
+        task_type: str | None = None,
+        waiting_for: str | None = None,
+    ) -> None:
+        """Best-effort runtime-state write.
+
+        No-op when the state layer is absent, and an out-of-band runtime phase
+        (e.g. a pending plan created before this state layer existed) must never
+        break generation.  ``RuntimeStateService.transition`` still raises on
+        genuinely illegal transitions; only the lifecycle projection swallows it.
+        """
+        if self.runtime_state_service is None or not self.conversation_id:
+            return
+        try:
+            self.runtime_state_service.transition(
+                self.conversation_id,
+                phase,
+                task_type=task_type,
+                waiting_for=waiting_for,
+            )
+        except InvalidStateTransitionError:
+            return
+
+    def _update_workspace(
+        self,
+        values: dict,
+    ) -> None:
+        """Best-effort workspace pointer update.
+
+        Workspace stores only pointers, never domain payload.
+        Missing workspace must not break generation lifecycle.
+        """
+        if self.workspace_service is None:
+            return
+
+        if not self.conversation_id:
+            return
+
+        self.workspace_service.get_or_create(
+            self.conversation_id
+        )
+
+        self.workspace_service.update(
+            self.conversation_id,
+            values,
+        )
 
     def _pending(self) -> PendingGeneration | None:
         if self.store is None or not self.conversation_id:
@@ -517,6 +574,21 @@ class GenerationService:
                 "request": saved_pending.request,
                 "pending_version": saved_pending.pending_version,
             })
+            # Phase 3A:
+            # Workspace records the active pending generation pointer.
+            self._update_workspace(
+                {
+                    "active_type": "paper",
+                    "pending_generation_key": self.conversation_id,
+                }
+            )
+            # Phase 2: surface the generation lifecycle.  A validated pending
+            # plan is now awaiting teacher confirmation.
+            self._transition(
+                "waiting",
+                task_type="generation",
+                waiting_for="teacher_confirmation",
+            )
 
         if self.store is not None and self.conversation_id:
             memory = self.store.get_memory(self.conversation_id)
@@ -579,6 +651,20 @@ class GenerationService:
             and self.conversation_id
         ):
             self.store.clear_generation(self.conversation_id)
+            # Phase 3A:
+            # The generated paper becomes the active workspace object.
+            self._update_workspace(
+                {
+                    "active_type": "paper",
+                    "current_paper_id": str(
+                        result.paper_id
+                    ),
+                    "current_version_id": str(
+                        result.version_id
+                    ),
+                    "pending_generation_id": None,
+                }
+            )
             memory = self.store.get_memory(self.conversation_id)
             memory.active_task = {
                 "type": "generation",
@@ -595,5 +681,11 @@ class GenerationService:
             memory.generation_summary = {}
             memory.last_clarification = None
             self.store.set_memory(self.conversation_id, memory)
+
+        # Phase 2: close the lifecycle on the runtime state (completed / failed).
+        self._transition(
+            "completed" if result.ok else "failed",
+            task_type="generation",
+        )
 
         return result

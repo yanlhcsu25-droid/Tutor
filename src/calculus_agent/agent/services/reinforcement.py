@@ -128,7 +128,11 @@ class ReinforcementService:
         )
         return ReinforcementResult(context=context, patch=patch, preview=preview)
 
-    def build_context(self, paper_id: str, items: list[Any]) -> ReinforcementContext:
+    def build_context(
+        self,
+        paper_id: str,
+        items: list[Any],
+    ) -> ReinforcementContext:
         paper = self.session.get(Paper, paper_id)
         if paper is None:
             raise ReinforcementError(
@@ -151,49 +155,80 @@ class ReinforcementService:
 
         section_orders = section_order_map(paper_items)
         items_by_position = {item.position: item for item in paper_items}
+
+        current_nodes = list(
+            current_taxonomy_knowledge_nodes(self.session)
+        )
         valid_knowledge_ids = {
-            node.id for node in current_taxonomy_knowledge_nodes(self.session)
+            node.id for node in current_nodes
         }
         nodes_by_id = {
-            node.id: node for node in current_taxonomy_knowledge_nodes(self.session)
+            node.id: node for node in current_nodes
         }
         curriculum_by_id = {
-            node.id: node for node in self.session.scalars(select(CurriculumNode))
+            node.id: node
+            for node in self.session.scalars(
+                select(CurriculumNode)
+            )
         }
 
-        resolved_items: list[PaperItem] = []
-        seen_ids: set[str] = set()
+        # Resolve the entire teacher feedback set first.  This preserves
+        # all-or-nothing behavior: no PendingGeneration is touched if any
+        # address is invalid.
+        resolved_items: list[tuple[PaperItem, Any]] = []
+        seen_item_ids: set[str] = set()
         warnings: list[str] = []
 
         for feedback in items:
-            item = self._resolve_item(feedback, paper_items, items_by_position)
+            item = self._resolve_item(
+                feedback,
+                paper_items,
+                items_by_position,
+            )
             if item is None:
                 raise ReinforcementError(
                     "feedback_question_not_found",
                     self._not_found_message(feedback),
                 )
-            if item.id in seen_ids:
-                warnings.append("duplicate_feedback_reference_ignored")
+            if item.id in seen_item_ids:
+                warnings.append(
+                    "duplicate_feedback_reference_ignored"
+                )
                 continue
-            seen_ids.add(item.id)
-            resolved_items.append(item)
+            seen_item_ids.add(item.id)
+            resolved_items.append((item, feedback))
 
         evidence: list[ReinforcementEvidence] = []
         source_question_ids: list[str] = []
-        counts: Counter[str] = Counter()
-        scope_chapter_ids: list[str] = []
-        scope_names: list[str] = []
 
-        for item in resolved_items:
-            question = self.session.get(Question, item.question_id)
+        # Observable evidence only.  It no longer controls generation weight.
+        counts: Counter[str] = Counter()
+
+        for item, feedback in resolved_items:
+            question = self.session.get(
+                Question,
+                item.question_id,
+            )
             if question is None:
                 raise ReinforcementError(
                     "feedback_question_not_found",
                     "当前试卷题目缺少对应的题库题目记录，无法解析知识点。",
                 )
 
+            # Keep authoritative Question chapter ownership as a data-integrity
+            # invariant, but do NOT use it as the reinforcement scope.
+            if self._chapter_title(
+                question.curriculum_chapter_id,
+                curriculum_by_id,
+            ) is None:
+                raise ReinforcementError(
+                    "reinforcement_scope_unresolved",
+                    "反馈的题目无法确定其所属章节，无法据此生成巩固卷。",
+                )
+
             knowledge_ids = self._valid_knowledge_ids(
-                question.id, valid_knowledge_ids
+                question.id,
+                valid_knowledge_ids,
             )
             if not knowledge_ids:
                 raise ReinforcementError(
@@ -202,76 +237,154 @@ class ReinforcementService:
                     "无法据此确定强化重点。",
                 )
 
-            chapter_id = question.curriculum_chapter_id
-            chapter_title = self._chapter_title(chapter_id, curriculum_by_id)
-            if chapter_title is None:
-                raise ReinforcementError(
-                    "reinforcement_scope_unresolved",
-                    "反馈的题目无法确定其所属章节，无法据此确定巩固卷范围。",
-                )
-
-            if chapter_id not in scope_chapter_ids:
-                scope_chapter_ids.append(chapter_id)
-                scope_names.append(chapter_title)
-
+            # _valid_knowledge_ids already deduplicates per Question, so one
+            # Question contributes at most one evidence count to one Knowledge.
             for knowledge_id in knowledge_ids:
                 counts[knowledge_id] += 1
 
             if question.id not in source_question_ids:
                 source_question_ids.append(question.id)
 
-            evidence.append(ReinforcementEvidence(
-                paper_item_id=item.id,
-                question_id=question.id,
-                position=item.position,
-                section_type=item.section,
-                section_order=section_orders.get(item.id, item.position),
-                question_type=question.question_type,
-                difficulty=self._difficulty(question.id),
-                knowledge=[
-                    {
-                        "knowledge_node_id": kid,
-                        "knowledge_name": nodes_by_id[kid].name,
-                    }
-                    for kid in knowledge_ids
-                ],
-                teacher_note=feedback.teacher_note,
-            ))
+            evidence.append(
+                ReinforcementEvidence(
+                    paper_item_id=item.id,
+                    question_id=question.id,
+                    position=item.position,
+                    section_type=item.section,
+                    section_order=section_orders.get(
+                        item.id,
+                        item.position,
+                    ),
+                    question_type=question.question_type,
+                    difficulty=self._difficulty(question.id),
+                    knowledge=[
+                        {
+                            "knowledge_node_id": knowledge_id,
+                            "knowledge_name": nodes_by_id[
+                                knowledge_id
+                            ].name,
+                        }
+                        for knowledge_id in knowledge_ids
+                    ],
+                    teacher_note=feedback.teacher_note,
+                )
+            )
 
         targets = [
             KnowledgeReinforcementTarget(
                 knowledge_node_id=knowledge_id,
-                knowledge_name=nodes_by_id[knowledge_id].name,
+                knowledge_name=nodes_by_id[
+                    knowledge_id
+                ].name,
                 evidence_count=evidence_count,
-                weight=reinforcement_weight(evidence_count),
+                # Compatibility / observability only.
+                # compile_patch() no longer consumes this weight.
+                weight=reinforcement_weight(
+                    evidence_count
+                ),
             )
-            for knowledge_id, evidence_count in counts.items()
+            for knowledge_id, evidence_count
+            in counts.items()
         ]
-        # Stable, deterministic ordering: strongest evidence first, then name.
-        targets.sort(key=lambda target: (-target.evidence_count, target.knowledge_name))
+        targets.sort(
+            key=lambda target: (
+                -target.evidence_count,
+                target.knowledge_name,
+                target.knowledge_node_id,
+            )
+        )
 
-        context = ReinforcementContext(
+        if not targets:
+            raise ReinforcementError(
+                "reinforcement_knowledge_unresolved",
+                "反馈的题目没有可用于巩固的知识点。",
+            )
+
+        # A later-chapter question may legitimately use earlier knowledge.
+        # Reinforcement therefore spans the real chapters of ALL target
+        # KnowledgeNodes rather than forcing every target into the source
+        # Question's owning chapter.
+        chapter_refs: dict[str, str] = {}
+        for target in targets:
+            knowledge_node = nodes_by_id[
+                target.knowledge_node_id
+            ]
+            chapter_ref = self._chapter_ref(
+                knowledge_node.curriculum_node_id,
+                curriculum_by_id,
+            )
+            if chapter_ref is None:
+                raise ReinforcementError(
+                    "reinforcement_scope_unresolved",
+                    f"知识点“{target.knowledge_name}”"
+                    "没有可确定的章节归属，无法生成巩固卷。",
+                )
+
+            chapter_id, chapter_title = chapter_ref
+            chapter_refs[chapter_id] = chapter_title
+
+        ordered_chapter_ids = sorted(
+            chapter_refs,
+            key=lambda chapter_id: (
+                getattr(
+                    curriculum_by_id[chapter_id],
+                    "sort_order",
+                    0,
+                )
+                or 0,
+                chapter_refs[chapter_id],
+                chapter_id,
+            ),
+        )
+
+        return ReinforcementContext(
             source_paper_id=paper_id,
             source_question_ids=source_question_ids,
             evidence=evidence,
             target_knowledge=targets,
-            scope_names=scope_names,
-            scope_chapter_ids=scope_chapter_ids,
+            scope_names=[
+                chapter_refs[chapter_id]
+                for chapter_id in ordered_chapter_ids
+            ],
+            scope_chapter_ids=ordered_chapter_ids,
             warnings=warnings,
         )
-        return context
 
-    def compile_patch(self, context: ReinforcementContext) -> GenerationPlanPatch:
-        preferences = [target.knowledge_name for target in context.target_knowledge]
-        weights = {
-            target.knowledge_name: target.weight
-            for target in context.target_knowledge
-        }
+    def compile_patch(
+        self,
+        context: ReinforcementContext,
+    ) -> GenerationPlanPatch:
+        target_names = list(
+            dict.fromkeys(
+                target.knowledge_name
+                for target in context.target_knowledge
+            )
+        )
+
+        if not target_names:
+            raise ReinforcementError(
+                "reinforcement_knowledge_unresolved",
+                "没有可用于巩固的知识点。",
+            )
+
+        if len(target_names) > 100:
+            raise ReinforcementError(
+                "reinforcement_target_limit_exceeded",
+                "本次错题涉及的知识点超过100个，请缩小反馈范围后重试。",
+            )
+
+        # V1 executable rule:
+        # unique wrong-question knowledge -> min 1 selected question per target.
+        #
+        # knowledge_preferences keeps the targets visible as a soft ordering
+        # signal. required_knowledge_names is the hard generation contract.
+        # No evidence_count -> weight -> selector inference is used here.
         return GenerationPlanPatch(
             paper_type="chapter_exercise",
             scope_names=list(context.scope_names),
-            knowledge_preferences=preferences,
-            knowledge_priority_weights=weights,
+            question_count=len(target_names),
+            knowledge_preferences=target_names,
+            required_knowledge_names=target_names,
         )
 
     def _resolve_item(self, feedback, paper_items, items_by_position) -> PaperItem | None:
@@ -309,6 +422,24 @@ class ReinforcementService:
             .order_by(QuestionProfile.profile_version.desc())
         ).first()
         return profile.difficulty if profile is not None else None
+
+    def _chapter_ref(
+        self,
+        curriculum_node_id: str | None,
+        curriculum_by_id: dict[str, CurriculumNode],
+    ) -> tuple[str, str] | None:
+        'Resolve any curriculum node to its owning chapter id + title.'
+        current = curriculum_node_id
+
+        while current is not None:
+            node = curriculum_by_id.get(current)
+            if node is None:
+                return None
+            if node.node_type == "chapter":
+                return node.id, node.title
+            current = node.parent_id
+
+        return None
 
     def _chapter_title(
         self,

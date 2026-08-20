@@ -78,6 +78,7 @@ from calculus_agent.agent.services.generation import (
     GenerationService,
     NoPendingGenerationError,
 )
+from calculus_agent.agent.state.service import RuntimeStateService
 from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult
 from calculus_agent.agent.trace_log import (
     list_agent_trace_sessions,
@@ -365,6 +366,7 @@ def _pending_generation_service(
         store=DatabasePendingReplacementStore(session),
         conversation_id=conversation_id,
         expected_pending_generation_version=expected_version,
+        runtime_state_service=RuntimeStateService(session),
     )
 
 

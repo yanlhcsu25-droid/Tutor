@@ -9,6 +9,12 @@ import {
   UnlockOutlined, SendOutlined, PlusOutlined,
 } from "@ant-design/icons";
 
+import {
+  downloadPaperPdf,
+  openPaperPdf,
+  type PaperPdfVersion,
+} from "../utils/paperPdf";
+
 const API = "/api/v1";
 const CONVERSATION_ID_STORAGE_KEY = "teacher-agent.conversation-id";
 
@@ -144,11 +150,6 @@ type ChatMessage =
   | { role: "agent"; type: "paper_ready"; paperId: string; version: number; preview: Preview; validationReport: ValidationReport }
   | { role: "agent"; type: "error"; text: string };
 
-interface Props {
-  onOpenPaperDrawer: (paperId: string, preview: Preview, validation: ValidationReport, version: number) => void;
-  activePaperId?: string | null;
-}
-
 type GenerationSection = { question_type: string; count: number; score_each?: number | null; total_score?: number | null };
 type GenerationPlanPatch = { question_type: string; count?: number; score_each?: number };
 type TeacherAgentSession = {
@@ -231,7 +232,7 @@ function GenerationPlanCard({
   );
 }
 
-export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Props) {
+export default function AgentWorkspace() {
   // ── chat state ──
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -242,9 +243,6 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
   // ── blueprint/paper state (kept for compatibility) ──
   const [blueprintId, setBlueprintId] = useState<string | null>(null);
   const [currentPaperId, setCurrentPaperId] = useState<string | null>(null);
-  useEffect(() => {
-    if (activePaperId) setCurrentPaperId(activePaperId);
-  }, [activePaperId]);
   const [supplyCheck, setSupplyCheck] = useState<SupplyCheck | null>(null);
   const [candidatePreview, setCandidatePreview] = useState<Preview | null>(null);
   const [candidateBlueprintId, setCandidateBlueprintId] = useState<string | null>(null);
@@ -676,13 +674,13 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
               </div>
             )}
             <Space>
-              <Button type="primary" size="small" onClick={() => onOpenPaperDrawer(msg.paperId, msg.preview, msg.validationReport, msg.version)}>
+              <Button type="primary" size="small" onClick={() => void viewPaperPdf(msg.paperId, "student")}>
                 查看试卷
               </Button>
-              <Button disabled={!validationPassed} size="small" icon={<FilePdfOutlined />} onClick={() => downloadPdf(msg.paperId, "student")}>
+              <Button disabled={!validationPassed} size="small" icon={<FilePdfOutlined />} onClick={() => downloadPdf(msg.paperId, "student", msg.preview.title)}>
                 下载试卷 PDF
               </Button>
-              <Button disabled={!validationPassed} size="small" icon={<FilePdfOutlined />} onClick={() => downloadPdf(msg.paperId, "teacher")}>
+              <Button disabled={!validationPassed} size="small" icon={<FilePdfOutlined />} onClick={() => downloadPdf(msg.paperId, "teacher", msg.preview.title)}>
                 下载题目与答案解析 PDF
               </Button>
             </Space>
@@ -705,17 +703,27 @@ export default function AgentWorkspace({ onOpenPaperDrawer, activePaperId }: Pro
     return null;
   };
 
-  const downloadPdf = async (paperId: string, version: "student" | "teacher") => {
+  const viewPaperPdf = async (
+    paperId: string,
+    version: PaperPdfVersion,
+  ) => {
     try {
-      const r = await fetch(`${API}/papers/${paperId}/exports/${version}.pdf`);
-      if (!r.ok) throw new Error("导出失败");
-      const url = URL.createObjectURL(await r.blob());
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = version === "student" ? "试卷.pdf" : "题目与答案解析.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) { message.error(String(e)); }
+      await openPaperPdf(paperId, version);
+    } catch (error) {
+      message.error(String(error));
+    }
+  };
+
+  const downloadPdf = async (
+    paperId: string,
+    version: PaperPdfVersion,
+    title: string,
+  ) => {
+    try {
+      await downloadPaperPdf(paperId, version, title);
+    } catch (error) {
+      message.error(String(error));
+    }
   };
 
   // ── render ──
