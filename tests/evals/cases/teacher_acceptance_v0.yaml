@@ -1,0 +1,245 @@
+version: "0.1"
+
+suite:
+  name: teacher_acceptance_v0
+  description: >
+    Teacher Agent 真实业务验收回归。检查业务状态、生命周期、Tool Observation
+    和本地 Trace，不评价 Prompt 文案。
+
+defaults:
+  max_tool_rounds: 8
+  isolated_session: true
+  reset_pending_before_case: true
+  reset_working_memory_before_case: true
+
+cases:
+  - id: TD-001
+    category: teaching_design
+    title: limit_topic_auto_maps_to_first_chapter
+    turns:
+      - user: "学生极限不好，帮我设计一次复习方案。"
+    expected:
+      status: waiting_confirmation
+    forbidden:
+      response_claims:
+        - "已经确认"
+        - "已经应用"
+    graders:
+      - type: state
+      - type: acceptance
+        forbidden_tools:
+          - prepare_generation_plan
+        statuses:
+          - waiting_confirmation
+        require_trace: true
+
+  - id: TD-002
+    category: teaching_design
+    title: broad_topic_can_resolve_to_teaching_design
+    turns:
+      - user: "学生函数学得不好，帮我安排复习。"
+    expected:
+      status: waiting_confirmation
+    graders:
+      - type: state
+      - type: acceptance
+        forbidden_tools:
+          - prepare_generation_plan
+        statuses:
+          - waiting_confirmation
+        require_trace: true
+
+  - id: TD-003
+    category: teaching_design
+    title: explicit_scope_enters_teaching_design_workflow
+    turns:
+      - user: "帮我设计第三章导数复习方案。"
+    expected:
+      status: waiting_confirmation
+    graders:
+      - type: state
+      - type: acceptance
+        forbidden_tools:
+          - prepare_generation_plan
+        statuses:
+          - waiting_confirmation
+        require_trace: true
+
+  - id: GEN-001
+    category: generation
+    title: generation_preview_waits_for_confirmation
+    turns:
+      - user: "第一章生成一套测试卷，10题100分。"
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        question_count: 10
+        total_score: 100
+    forbidden:
+      response_claims:
+        - "已经生成"
+        - "已经完成"
+    graders:
+      - type: state
+      - type: score
+      - type: acceptance
+        required_tools:
+          - prepare_generation_plan
+        forbidden_tools:
+          - confirm_generation
+        statuses:
+          - waiting_confirmation
+        require_trace: true
+
+  - id: GEN-002
+    category: generation
+    title: generation_confirm_uses_business_score_calculation
+    setup:
+      pending_generation:
+        paper_type: chapter_test
+        scope_names:
+          - "第一章 函数与极限"
+        total_score: 100
+        question_type_requirements:
+          - question_type: "选择题"
+            count: 2
+          - question_type: "填空题"
+            count: 3
+          - question_type: "计算题"
+            count: 5
+    turns:
+      - user: "选择2题，填空3题，计算5题，总分100。"
+      - user: "确认生成。"
+    expected:
+      status: completed
+    graders:
+      - type: state
+      - type: score
+      - type: acceptance
+        # The latest-turn trace contains confirmation. The initial pending
+        # fixture is the lifecycle precondition for this confirmation case.
+        required_tools:
+          - confirm_generation
+        statuses:
+          - completed
+        require_trace: true
+
+  - id: GEN-003
+    category: generation
+    title: insufficient_question_supply_is_reported_without_false_success
+    turns:
+      - user: "第三章生成20道证明题。"
+      - user: "确认生成。"
+      - user: "确认生成。"
+    expected:
+      status: needs_clarification
+    forbidden:
+      response_claims:
+        - "已经生成"
+        - "已成功生成"
+    graders:
+      - type: state
+      - type: acceptance
+        # Insufficient supply is a recoverable business outcome, not a false
+        # success. The final turn trace contains the confirmation attempt.
+        required_tools:
+          - confirm_generation
+        statuses:
+          - needs_clarification
+        require_trace: true
+
+  - id: MOD-001
+    category: paper_modification
+    title: replacement_preview_does_not_modify_before_confirmation
+    setup:
+      current_paper:
+        question_count: 10
+        total_score: 100
+    turns:
+      - user: "第三题太难，换一道简单一点。"
+    expected:
+      status: waiting_confirmation
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools:
+          - read_paper
+          - preview_paper_changes
+        forbidden_tools:
+          - confirm_paper_changes
+        statuses:
+          - waiting_confirmation
+        require_trace: true
+        paper_unchanged: true
+
+  - id: MOD-002
+    category: paper_modification
+    title: delete_question_has_pending_change_lifecycle
+    setup:
+      current_paper:
+        question_count: 10
+        total_score: 100
+    turns:
+      - user: "删除计算题第二题。"
+    expected:
+      status: waiting_confirmation
+    graders:
+      - type: state
+      - type: acceptance
+        # Preview is the lifecycle contract. Its implementation may resolve a
+        # typed address without emitting a separate read_paper observation.
+        required_tools:
+          - preview_paper_changes
+        forbidden_tools:
+          - confirm_paper_changes
+        statuses:
+          - waiting_confirmation
+        require_trace: true
+        paper_unchanged: true
+
+  - id: PENDING-001
+    category: pending
+    title: cancel_pending_generation
+    setup:
+      pending_generation:
+        paper_type: chapter_test
+        scope_names:
+          - "第一章 函数与极限"
+        total_score: 100
+        question_count: 10
+    turns:
+      - user: "取消吧。"
+    expected:
+      pending_generation: null
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools:
+          - discard_pending_plan
+        statuses:
+          - completed
+          - needs_clarification
+        require_trace: true
+
+  - id: ERR-001
+    category: error_handling
+    title: tool_failure_is_not_reported_as_success_and_is_traced
+    backend:
+      behavior: tool_failure
+    turns:
+      - user: "帮我查询当前试卷。"
+    expected:
+      status: failed
+    forbidden:
+      response_claims:
+        - "查询成功"
+        - "已经查询到"
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools:
+          - eval_missing_tool
+        statuses:
+          - failed
+        require_trace: true
+        require_failed_tool: true

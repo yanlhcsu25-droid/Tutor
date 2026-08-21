@@ -1,5 +1,6 @@
 import json
 
+from calculus_agent.agent.trace_log import redact_trace_value
 from calculus_agent.runtime.observation_projection import (
     observation_size_metrics,
     project_tool_observation,
@@ -44,6 +45,12 @@ def test_tool_observation_serializes_exception_values():
         "ok": False,
         "error": "bad input",
     }
+
+
+def test_trace_payload_serializes_exception_values():
+    payload = redact_trace_value({"ok": False, "error": ValueError("bad input")})
+
+    assert json.dumps(payload) == '{"ok": false, "error": "bad input"}'
 
 
 def test_tool_observation_preserves_normal_payload():

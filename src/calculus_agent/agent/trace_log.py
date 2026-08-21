@@ -27,7 +27,14 @@ _OPENAI_KEY_RE = re.compile(r"\bsk-[A-Za-z0-9_-]{8,}\b")
 
 
 def redact_trace_value(value: Any) -> Any:
-    """Remove secret-shaped values before data ever reaches the trace payload."""
+    """Return a redacted value that is also safe for JSON trace storage.
+
+    Tool observations are allowed to contain runtime objects (most notably an
+    exception in an ``error`` field).  ``json.dumps(..., default=str)`` at the
+    LLM boundary does not help here because local trace spans are persisted by
+    SQLAlchemy's JSON type, which serializes without that fallback.  Normalize
+    non-JSON values at the single trace boundary instead.
+    """
     if isinstance(value, Mapping):
         return {
             str(key): "[REDACTED]" if _SENSITIVE_KEY_RE.search(str(key))
@@ -40,7 +47,12 @@ def redact_trace_value(value: Any) -> Any:
         value = _SENSITIVE_VALUE_RE.sub("[REDACTED]", value)
         value = _BEARER_RE.sub("Bearer [REDACTED]", value)
         return _OPENAI_KEY_RE.sub("[REDACTED]", value)
-    return value
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    # Exceptions and every other runtime-only object must never reach a JSON
+    # column.  This intentionally mirrors the existing JSONL serializer's
+    # ``default=str`` behavior while retaining the useful exception message.
+    return str(value)
 
 
 class AgentTraceRecorder:

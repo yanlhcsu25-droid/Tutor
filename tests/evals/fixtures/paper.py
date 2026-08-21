@@ -126,7 +126,13 @@ def _create_question(
         question_type=question_type,
         default_score=10,
         final_answer=f"answer-{key}",
-        solution_json={"text": draft.solution_text},
+        # Generation validation requires the same structured solution shape as
+        # production questions.  A plain ``text`` field is not considered a
+        # usable solution by validate_paper().
+        solution_json={
+            "solution_steps": [draft.solution_text],
+            "final_answer": f"answer-{key}",
+        },
         verification_status="manual_verified",
         review_status="approved",
         is_active=True,
@@ -166,6 +172,34 @@ def _create_question(
 
     session.flush()
     return question
+
+
+def seed_success_question_bank(session: Session) -> None:
+    """Seed approved, production-shaped candidates for generation evals.
+
+    This is intentionally separate from ``seed_current_paper``: generation
+    cases need question supply, while paper mutation cases need a current Paper.
+    Chapter three is left unseeded so shortage cases remain deterministic.
+    """
+    chapter, knowledge = _chapter_scope(session, chapter_code="一")
+    knowledge_ids = [node.id for node in knowledge]
+    requirements = (
+        ("选择题", 4),
+        ("填空题", 3),
+        ("计算题", 5),
+        ("证明题", 2),
+    )
+    for question_type, count in requirements:
+        for index in range(count):
+            _create_question(
+                session,
+                key=f"bank-chapter1-{question_type}-{index}",
+                question_type=question_type,
+                difficulty=3,
+                chapter_id=chapter.id,
+                knowledge_ids=knowledge_ids,
+            )
+    session.flush()
 
 
 def seed_current_paper(

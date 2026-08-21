@@ -1235,11 +1235,19 @@ def run_teacher_agent(
         pending_state_rechecked = False
         pending_paper_change_rechecked = False
         paper_state_at_turn_start = bool(version_id or paper_id)
+        paper_change_requested = bool(
+            paper_state_at_turn_start
+            and not pending_adjustment
+            and not pending
+            and re.search(r"(?:换|替换|删除|删掉|移除|修改|调整)", message)
+            and re.search(r"(?:题|题目|分值|分数)", message)
+        )
         paper_version_at_turn_start = context.version_id or context.paper_id
         paper_grounding_rechecked = False
         paper_grounding_format_retried = False
         paper_read_required = False
         paper_read_call_retried = False
+        paper_change_reprompted = False
         paper_observation_version_id: str | None = None
         malformed_response_retried = False
         generation_patch_retried = False
@@ -1628,6 +1636,35 @@ def run_teacher_agent(
                             definitions = []
                             paper_grounding_format_retried = True
                             continue
+                        paper_change_intent = bool(
+                            re.search(r"(?:换|替换|删除|删掉|移除|修改|调整)", message)
+                            and re.search(r"(?:题|题目|分值|分数)", message)
+                        )
+                        has_preview = any(
+                            call["tool_name"] == "preview_paper_changes"
+                            and (call.get("result") or {}).get("ok")
+                            for call in trace_calls
+                        )
+                        if paper_change_intent and paper_read_required and not has_preview:
+                            if not paper_change_reprompted:
+                                paper_change_reprompted = True
+                                messages.append({
+                                    "role": "user",
+                                    "content": (
+                                        "<paper_change_boundary>教师请求的是试卷修改，"
+                                        "当前试卷已经读取成功。请立即调用 "
+                                        "preview_paper_changes 创建待确认修改方案；"
+                                        "禁止直接回复完成。</paper_change_boundary>"
+                                    ),
+                                })
+                                definitions = toolkit.schemas(names=["preview_paper_changes"])
+                                continue
+                            turn_status = "failed"
+                            result_values["blocking_errors"].append(
+                                "paper_change_preview_required"
+                            )
+                            final_text = "当前试卷已读取，但本轮没有生成修改预览。"
+                            break
                         if paper_read_required and not paper_read_call_retried:
                             messages = _paper_read_messages(
                                 message=message,
@@ -1684,6 +1721,44 @@ def run_teacher_agent(
                         )
                         final_text = (
                             "环境调查已经完成，但本轮没有成功创建可确认的 TeachingDesign。"
+                        )
+                        break
+                    paper_change_intent = bool(
+                        paper_state_at_turn_start
+                        and re.search(r"(?:换|替换|删除|删掉|移除|修改|调整)", message)
+                        and re.search(r"(?:题|题目|分值|分数)", message)
+                    )
+                    has_preview = any(
+                        call["tool_name"] == "preview_paper_changes"
+                        and (call.get("result") or {}).get("ok")
+                        for call in trace_calls
+                    )
+                    has_confirmation = any(
+                        call["tool_name"] == "confirm_paper_changes"
+                        and (call.get("result") or {}).get("ok")
+                        for call in trace_calls
+                    )
+                    if paper_change_intent and paper_read_required and not has_preview and not has_confirmation:
+                        if not paper_change_reprompted:
+                            paper_change_reprompted = True
+                            messages.append({
+                                "role": "user",
+                                "content": (
+                                    "<paper_change_boundary>教师请求的是试卷修改。"
+                                    "当前试卷已经读取成功，但尚未生成修改预览。"
+                                    "请立即调用 preview_paper_changes 创建待确认修改方案；"
+                                    "禁止直接以 completed 回复。</paper_change_boundary>"
+                                ),
+                            })
+                            definitions = toolkit.schemas(names=["preview_paper_changes"])
+                            continue
+                        turn_status = "failed"
+                        result_values["blocking_errors"].append(
+                            "paper_change_preview_required"
+                        )
+                        final_text = (
+                            "当前试卷已读取，但本轮没有生成修改预览，"
+                            "因此不能声明修改已完成。"
                         )
                         break
                     final_text = content.strip()
@@ -1854,6 +1929,7 @@ def run_teacher_agent(
                             definitions = toolkit.schemas(names=refreshed_names)
                         if name == "read_paper":
                             paper_observation_version_id = observed_version_id
+                            paper_read_required = True
                         if (
                             name in {
                                 "create_teaching_design",
@@ -1908,6 +1984,28 @@ def run_teacher_agent(
                         payload=execution_payload,
                     )
                     if (
+                        name == "read_paper"
+                        and execution_payload.get("ok")
+                        and paper_change_requested
+                        and not paper_change_reprompted
+                    ):
+                        # A read only establishes Paper facts. For a requested
+                        # mutation, force the next model decision onto the
+                        # preview boundary rather than letting a multi-call
+                        # response keep reading/analyzing and end as completed.
+                        paper_change_reprompted = True
+                        messages.append({
+                            "role": "user",
+                            "content": (
+                                "<paper_change_boundary>当前试卷已经读取成功。"
+                                "教师请求修改试卷，下一步必须调用 "
+                                "preview_paper_changes 创建待确认方案；"
+                                "不要再次读取/分析试卷，也不要直接回复完成。</paper_change_boundary>"
+                            ),
+                        })
+                        definitions = toolkit.schemas(names=["preview_paper_changes"])
+                        break
+                    if (
                         name == "prepare_teaching_planning_draft"
                         and tool_execution_status == "completed"
                         and execution_payload.get("ok")
@@ -1918,6 +2016,7 @@ def run_teacher_agent(
                         # same tool call and exhaust the round limit.
                         terminal_tool_boundary_reached = True
                         if execution_payload.get("waiting_for_scope"):
+                            turn_status = "needs_clarification"
                             final_text = "已形成教学规划草稿，请继续补充教材章节范围。"
                         else:
                             final_text = "已形成教学规划草稿，并已保留当前确认的教材范围。"
@@ -2042,6 +2141,41 @@ def run_teacher_agent(
             turn_status = "waiting_confirmation"
         elif pending_query_possible and turn_status == "waiting_confirmation":
             turn_status = "completed"
+
+        # A teaching-design request may not be reported as completed merely
+        # because the model produced a plausible narrative.  The authoritative
+        # completion signal is a successful create/revise Tool Observation and
+        # a persisted active design.  This closes the false-success boundary
+        # exposed by Teacher Acceptance TD-003.
+        if teaching_design_artifact_requested and turn_status == "completed":
+            design_tool_succeeded = any(
+                item.get("tool_name") in {
+                    "create_teaching_design",
+                    "revise_teaching_design",
+                }
+                and isinstance(item.get("result"), dict)
+                and item["result"].get("ok") is True
+                for item in trace_calls
+            )
+            active_design_final = active_teaching_design_snapshot(
+                session,
+                owner_key=owner_key,
+                conversation_id=conversation_id,
+            )
+            design_persisted = bool(
+                active_design_final
+                and active_design_final.get("version_id")
+                and active_design_final.get("status")
+                in {"draft", "awaiting_confirmation", "confirmed"}
+            )
+            if not (design_tool_succeeded and design_persisted):
+                turn_status = "failed"
+                if "teaching_design_not_created" not in blocking_errors:
+                    blocking_errors.append("teaching_design_not_created")
+                final_text = (
+                    "本轮没有通过 TeachingDesign 工具完成并保存教学设计，"
+                    "因此不能声明方案已经创建。请重试或补充教学范围。"
+                )
 
         # A successful generation preview already caused one post-Tool LLM
         # response. Preserve that model-authored response so it can explain the

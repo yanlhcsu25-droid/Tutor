@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "calculus-knowledge-agent"
+name = "tutor"
 version = "0.1.0"
-description = "Knowledge-grounded and verifiable calculus tutoring backend"
+description = "Verifiable teaching-design and paper-generation agent for teachers"
 readme = "README.md"
 requires-python = ">=3.11,<3.15"
 dependencies = [

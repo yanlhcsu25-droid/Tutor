@@ -17,6 +17,7 @@ data/external/
 uploads/
 workbench_data/
 logs/
+tests/evals/reports/*.json
 *.preprocess.json
 web/node_modules/
 web/dist/

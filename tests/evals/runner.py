@@ -24,6 +24,7 @@ from calculus_agent.agent.agent import (
     run_teacher_agent,
 )
 from calculus_agent.agent.trace_log import AgentTraceRecorder, read_agent_traces
+from calculus_agent.agent.identity import DEFAULT_TEACHER_OWNER_KEY
 from calculus_agent.agent.conversation_state import (
     DatabasePendingReplacementStore,
     PendingGeneration,
@@ -42,10 +43,11 @@ from tests.evals.case_loader import (
 )
 from tests.evals.curriculum_fixture import seed_eval_curriculum
 from tests.evals.fixtures.context import EvalFixtureContext
-from tests.evals.fixtures.paper import seed_current_paper
+from tests.evals.fixtures.paper import seed_current_paper, seed_success_question_bank
 from tests.evals.graders.constraint_grader import grade_constraints
 from tests.evals.graders.score_grader import grade_score
 from tests.evals.graders.state_grader import grade_state
+from tests.evals.graders.acceptance_grader import grade_acceptance
 
 
 # ============================================================
@@ -151,6 +153,37 @@ def create_eval_backend(case: EvalCase):
     """
 
     backend_config = case.backend or {}
+
+    if backend_config.get("behavior") == "tool_failure":
+        class ToolFailureBackend:
+            model = "eval-tool-failure-backend"
+            calls = 0
+
+            def complete(self, messages, tools, **kwargs):
+                self.calls += 1
+                if self.calls == 1:
+                    return {
+                        "message": {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [{
+                                "id": "eval-tool-failure",
+                                "type": "function",
+                                "function": {
+                                    "name": "eval_missing_tool",
+                                    "arguments": "{}",
+                                },
+                            }],
+                        }
+                    }
+                return {
+                    "message": {
+                        "role": "assistant",
+                        "content": "工具执行失败，未完成该操作。",
+                    }
+                }
+
+        return ToolFailureBackend()
 
     if backend_config.get("behavior") == "raise":
         exception_config = (
@@ -785,6 +818,7 @@ SUPPORTED_SETUP_KEYS = {
     "pending_generation",
     "pending_replacement",
     "current_paper",
+    "teaching_design",
 }
 
 
@@ -867,6 +901,37 @@ def apply_case_setup(
             session=session,
             conversation_id=conversation_id,
             payload=pending_generation,
+        )
+
+    teaching_design = setup.get("teaching_design")
+    if teaching_design is not None:
+        if not isinstance(teaching_design, dict):
+            raise ValueError(
+                f"{case.id}.setup.teaching_design 必须是 object"
+            )
+        from calculus_agent.teaching_design.schemas import TeachingDesignContent
+        from calculus_agent.teaching_design.service import TeachingDesignService
+
+        content = TeachingDesignContent.model_validate({
+            "title": teaching_design.get("title", "Eval teaching design"),
+            "objective": teaching_design.get(
+                "objective", "巩固函数与极限基础并安排基础训练"
+            ),
+            "scope_names": teaching_design.get(
+                "scope_names", ["第一章 函数与极限"]
+            ),
+            "teaching_priorities": teaching_design.get(
+                "teaching_priorities", ["基础概念", "基础训练"]
+            ),
+        })
+        TeachingDesignService(session).create(
+            owner_key=DEFAULT_TEACHER_OWNER_KEY,
+            conversation_id=conversation_id,
+            content=content,
+            run_id=None,
+            source_user_message="eval fixture",
+            change_reason="eval_fixture",
+            ready_for_confirmation=True,
         )
 
     pending_replacement = setup.get(
@@ -980,11 +1045,40 @@ def extract_tool_calls(
 # ============================================================
 
 
+def _paper_db_snapshot(session, paper_id: str | None) -> dict[str, Any] | None:
+    if not paper_id:
+        return None
+    from calculus_agent.models import Paper, PaperItem
+
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        return None
+    items = session.scalars(
+        select(PaperItem).where(PaperItem.paper_id == paper_id).order_by(PaperItem.position)
+    ).all()
+    return {
+        "paper_id": paper.id,
+        "version": paper.version,
+        "status": paper.status,
+        "total_score": paper.total_score,
+        "items": [
+            {
+                "position": item.position,
+                "question_id": item.question_id,
+                "section": item.section,
+                "score": item.score,
+            }
+            for item in items
+        ],
+    }
+
+
 def collect_actual_state(
     *,
     session,
     conversation_id: str,
     result: Any | None,
+    paper_id: str | None = None,
 ) -> dict[str, Any]:
 
     result_dict = (
@@ -1114,6 +1208,7 @@ def collect_actual_state(
         "pending_replacement": pending_replacement,
 
         "paper": paper,
+        "paper_db": _paper_db_snapshot(session, paper_id),
 
         "trace": {
             **trace,
@@ -1172,6 +1267,11 @@ def run_graders(
                     case,
                     actual,
                 )
+            )
+
+        elif grader_type == "acceptance":
+            results.append(
+                grade_acceptance(case, actual, grader_config)
             )
 
         elif grader_type == (
@@ -1241,6 +1341,7 @@ def run_case(
     # Deterministic, isolated curriculum so generation scopes (e.g. 第三章)
     # resolve exactly like production without touching the developer's DB.
     seed_eval_curriculum(session)
+    seed_success_question_bank(session)
 
     turn_results: list[dict] = []
 
@@ -1280,6 +1381,7 @@ def run_case(
             session=session,
             conversation_id=conversation_id,
             result=None,
+            paper_id=fixture_context.paper_id,
         )
 
         result = None
@@ -1310,6 +1412,7 @@ def run_case(
                         conversation_id
                     ),
                     result=result,
+                    paper_id=fixture_context.paper_id,
                 )
             )
 
@@ -1344,6 +1447,7 @@ def run_case(
                         conversation_id
                     ),
                     result=result,
+                    paper_id=fixture_context.paper_id,
                 )
             )
             run_id = getattr(result, "run_id", None)
@@ -1396,6 +1500,7 @@ def run_case(
             session=session,
             conversation_id=conversation_id,
             result=result,
+            paper_id=fixture_context.paper_id,
         )
 
         actual["before"] = (

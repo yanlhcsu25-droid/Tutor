@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "Chinese Math Paper Agent"
+    app_name: str = "Tutor"
     database_url: str = "sqlite:///./calculus_agent.db"
 
     # Phase 2C remains gated until the Phase 2B.1 human calibration passes.

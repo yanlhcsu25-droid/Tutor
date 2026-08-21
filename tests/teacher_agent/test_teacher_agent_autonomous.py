@@ -294,6 +294,53 @@ def test_natural_replacement_reads_then_previews_and_waits_for_confirmation(sess
         TeacherAgentRunTrace.conversation_id == "replace"
     )).tool_calls_json] == ["read_paper", "preview_paper_changes"]
 
+def test_teaching_design_cannot_complete_without_persisted_design(session):
+    backend = SequenceBackend(final("我已为您创建第三章导数复习方案。"))
+
+    result = run_teacher_agent(
+        session,
+        "帮我设计一份复习方案。",
+        conversation_id="design-must-persist",
+        backend=backend,
+    )
+
+    assert result.status == "failed"
+    assert "teaching_design_not_created" in result.blocking_errors
+    assert "不能声明方案已经创建" in result.message
+
+
+def test_paper_change_cannot_complete_after_read_without_preview(session):
+    paper = _paper(session)
+    backend = SequenceBackend(
+        tool_call("read_paper", {"positions": [3]}, call_id="read-only"),
+        tool_call(
+            "preview_paper_changes",
+            {
+                "operations": [{
+                    "type": "replace_question",
+                    "target": {"section_type": "计算题", "section_order": 3},
+                    "difficulty_direction": "easier",
+                }]
+            },
+            call_id="required-preview",
+        ),
+        final("已生成修改预览，请确认后应用。"),
+    )
+
+    result = run_teacher_agent(
+        session, "第3题太难，换一道简单一点。", conversation_id="preview-required",
+        paper_id=paper.id, version_id=paper.id, backend=backend,
+    )
+
+    assert result.status == "waiting_confirmation"
+    trace = session.scalar(select(TeacherAgentRunTrace).where(
+        TeacherAgentRunTrace.conversation_id == "preview-required"
+    ))
+    assert [call["tool_name"] for call in trace.tool_calls_json] == [
+        "read_paper", "preview_paper_changes"
+    ]
+
+
 def test_non_fixed_wording_preserves_knowledge_without_intent_patterns(session):
     paper = _paper(session)
     backend = SequenceBackend(
