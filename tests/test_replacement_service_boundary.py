@@ -28,12 +28,9 @@ def test_paper_registry_routes_replacement_through_current_boundaries():
     source = Path(paper_tool_registry.__file__).read_text(encoding="utf-8")
 
     # New model-visible replacement preview belongs to unified PaperChange.
-    assert "PaperChangeService(" in source
-    assert "paper_change_service.preview(" in source
-
-    # Legacy PendingReplacement is supported only at confirmation boundary.
-    assert "ReplacementService(" in source
-    assert "replacement_service.confirm()" in source
+    assert "PaperWorkflow(" in source
+    assert "paper_workflow.preview(" in source
+    assert "paper_workflow.confirm(" in source
 
     # Old model-visible replacement lifecycle must not return.
     assert "replacement_service.preview(" not in source

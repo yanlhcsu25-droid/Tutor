@@ -7,17 +7,11 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from calculus_agent.models import AdjustmentPlanRecord
-from .paper_change_service import (
-    PaperChangeRequest,
-    PaperChangeService,
-    PaperChangeServiceError,
-)
+from .paper_change_service import PaperChangeRequest
 from .schemas import GenerationPlanPatch, PrepareReinforcementPlanInput
-from .services.adjustment import AdjustmentService, AdjustmentServiceError
-from .services.generation import GenerationService
 from calculus_agent.application.generation import GenerationWorkflow
+from calculus_agent.application.paper import PaperWorkflow
 from .services.reinforcement import ReinforcementError, ReinforcementService
-from .services.replacement import ReplacementService, ReplacementServiceError
 from .state.service import RuntimeStateService, WorkspaceService
 from .tool_registry import AgentExecutionContext, AgentTool, EmptyInput, ExecutedTool
 from .tools.analysis_tools import analyze_paper
@@ -70,23 +64,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         session=session,
         generation_service=generation_workflow.service,
     )
-    adjustment_service = AdjustmentService(
-        session=session,
-        store=store,
-        conversation_id=context.conversation_id,
-    )
-    replacement_service = ReplacementService(
-        session=session,
-        store=store,
-        conversation_id=context.conversation_id,
-    )
-    paper_change_service = PaperChangeService(
-        session=session,
-        store=store,
-        conversation_id=context.conversation_id,
-        paper_id=context.paper_id,
-        version_id=context.version_id,
-    )
+    paper_workflow = PaperWorkflow(context)
 
     def sync_workspace_version(version_id: str | None) -> None:
         if not context.conversation_id or not version_id:
@@ -185,142 +163,10 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         return generation_workflow.confirm()
 
     def preview_changes(raw: BaseModel) -> ExecutedTool:
-        paper_change_service.paper_id = context.paper_id
-        paper_change_service.version_id = context.version_id
-        try:
-            result = paper_change_service.preview(PaperChangeRequest.model_validate(raw))
-        except PaperChangeServiceError as exc:
-            return _failed(exc.code, exc.message)
-        status: Literal[
-            "completed", "needs_clarification", "waiting_confirmation", "failed"
-        ]
-        if result.ok and result.plan is not None:
-            status = "waiting_confirmation"
-        elif result.ok:
-            status = "completed"
-        elif result.clarification_questions:
-            status = "needs_clarification"
-        else:
-            status = "failed"
-        return ExecutedTool(
-            payload=result.model_dump(mode="json"),
-            status=status,
-            result_fields={
-                "adjustment_preview": result,
-                "warnings": result.warnings,
-                "blocking_errors": result.blocking_errors,
-                "clarification_questions": result.clarification_questions,
-            },
-        )
+        return paper_workflow.preview(raw)
 
     def confirm_changes(_raw: BaseModel) -> ExecutedTool:
-        legacy_pending = (
-            store.get(context.conversation_id)
-            if store and context.conversation_id
-            else None
-        )
-        plan_id = (
-            store.get_adjustment(context.conversation_id)
-            if store and context.conversation_id and hasattr(store, "get_adjustment")
-            else None
-        )
-
-        if plan_id and legacy_pending is not None:
-            return _failed(
-                "pending_state_conflict",
-                "当前同时存在两种不兼容的待确认试卷修改状态；未执行任何确认操作。",
-            )
-
-        if not plan_id and legacy_pending is not None:
-            try:
-                result = replacement_service.confirm()
-            except ReplacementServiceError as exc:
-                return _failed(exc.code, exc.message)
-
-            if result.ok and result.new_version_id:
-                context.paper_id = result.new_version_id
-                context.version_id = result.new_version_id
-                sync_workspace_version(result.new_version_id)
-
-            return ExecutedTool(
-                payload=result.model_dump(mode="json"),
-                status="completed" if result.ok else "failed",
-                result_fields={
-                    "replacement": result,
-                    "blocking_errors": result.blocking_errors,
-                },
-            )
-
-        if not plan_id:
-            return _failed(
-                "no_pending_action",
-                "当前没有等待确认的试卷修改方案。",
-            )
-
-        record = session.get(AdjustmentPlanRecord, plan_id)
-        if record is None:
-            return _failed(
-                "adjustment_plan_not_found",
-                "待确认的试卷修改方案不存在。",
-            )
-
-        effective_version_id = (
-            context.version_id
-            or context.paper_id
-            or record.base_paper_version_id
-        )
-        effective_paper_id = context.paper_id or effective_version_id
-
-        paper_change_service.paper_id = effective_paper_id
-        paper_change_service.version_id = effective_version_id
-
-        contract_errors = paper_change_service.validate_confirmation_contracts(plan_id)
-        if contract_errors:
-            record.status = "failed"
-            record.blocking_errors_json = contract_errors
-            session.flush()
-            return ExecutedTool(
-                payload={
-                    "ok": False,
-                    "plan_id": plan_id,
-                    "blocking_errors": contract_errors,
-                },
-                status="failed",
-                result_fields={"blocking_errors": contract_errors},
-            )
-
-        try:
-            result = adjustment_service.confirm(
-                paper_id=effective_paper_id,
-                version_id=effective_version_id,
-            )
-        except AdjustmentServiceError as exc:
-            return _failed(exc.code, exc.message)
-
-        if result.ok:
-            context.paper_id = result.new_version_id
-            context.version_id = result.new_version_id
-            sync_workspace_version(result.new_version_id)
-
-            # Confirmation success is the commit boundary.  Do not rely only
-            # on nested-service cleanup: the model-visible Tool guarantees
-            # that its own pending pointer is gone before returning success.
-            if (
-                store
-                and context.conversation_id
-                and hasattr(store, "clear_adjustment")
-            ):
-                store.clear_adjustment(context.conversation_id)
-                session.flush()
-
-        return ExecutedTool(
-            payload=result.model_dump(mode="json"),
-            status="completed" if result.ok else "failed",
-            result_fields={
-                "adjustment": result,
-                "blocking_errors": result.blocking_errors,
-            },
-        )
+        return paper_workflow.confirm()
 
     def discard_pending(_raw: BaseModel) -> ExecutedTool:
         discarded: list[str] = []
