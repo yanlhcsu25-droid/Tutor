@@ -880,6 +880,7 @@ def run_teacher_agent(
             owner_key=owner_key,
             run_id=run_id,
             user_message=message,
+            workflow_trace=trace_recorder.set_task_workflow,
         )
         tools = build_agent_tools(context)
         toolkit = Toolkit(tools.values())

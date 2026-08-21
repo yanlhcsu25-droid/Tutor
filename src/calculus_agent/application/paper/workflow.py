@@ -54,6 +54,7 @@ class PaperWorkflow:
         )
 
     def preview(self, raw: Any) -> ExecutedTool:
+        self.context.mark_workflow("paper")
         self.paper_change_service.paper_id = self.context.paper_id
         self.paper_change_service.version_id = self.context.version_id
         try:
@@ -87,6 +88,7 @@ class PaperWorkflow:
         )
 
     def confirm(self) -> ExecutedTool:
+        self.context.mark_workflow("paper")
         legacy_pending = (
             self.store.get(self.context.conversation_id)
             if self.store and self.context.conversation_id else None

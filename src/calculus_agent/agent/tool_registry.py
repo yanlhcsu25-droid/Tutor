@@ -32,6 +32,11 @@ class AgentExecutionContext:
     inspection_call_count: int = 0
     # Runtime-only routing flag; never exposed through a Tool schema.
     use_teaching_design_workflow: bool = False
+    workflow_trace: Callable[[str], None] | None = None
+
+    def mark_workflow(self, name: str) -> None:
+        if self.workflow_trace is not None:
+            self.workflow_trace(name)
 
 
 @dataclass

@@ -1,0 +1,39 @@
+version: "0.1"
+
+suite:
+  name: workflow_routing
+  description: Validate user intent routes to correct workflow.
+
+cases:
+
+  - id: WF-TEACHING-DESIGN-001
+    category: workflow_routing
+    title: Teaching design request routes to teaching design workflow
+
+    turns:
+      - user: "学生极限不好，请帮我设计一份复习方案"
+
+    expected:
+      workflow: teaching_design
+
+
+  - id: WF-GENERATION-001
+    category: workflow_routing
+    title: Direct paper generation routes to generation workflow
+
+    turns:
+      - user: "帮我出一套第一章函数与极限测试卷，10题100分"
+
+    expected:
+      workflow: generation
+
+
+  - id: WF-PAPER-001
+    category: workflow_routing
+    title: Paper modification routes to paper workflow
+
+    turns:
+      - user: "把刚才试卷第三题换一道"
+
+    expected:
+      workflow: paper

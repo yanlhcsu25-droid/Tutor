@@ -24,6 +24,7 @@ class GenerationWorkflow:
         )
 
     def prepare(self, raw: Any) -> ExecutedTool:
+        self.context.mark_workflow("generation")
         preview = self.service.preview(GenerationPlanPatch.model_validate(raw))
         return ExecutedTool(
             payload=preview.model_dump(mode="json"),
@@ -37,6 +38,7 @@ class GenerationWorkflow:
         )
 
     def confirm(self) -> ExecutedTool:
+        self.context.mark_workflow("generation")
         try:
             result = self.service.confirm()
         except NoPendingGenerationError:

@@ -77,6 +77,12 @@ class AgentTraceRecorder:
         except Exception:
             pass
 
+    def set_task_workflow(self, task_workflow: str) -> None:
+        try:
+            self._record["task_workflow"] = task_workflow
+        except Exception:
+            pass
+
     def set_memory_before(self, memory: Any) -> None:
         try:
             self._record["memory_before"] = redact_trace_value(memory)

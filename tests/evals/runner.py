@@ -4,6 +4,7 @@ import argparse
 import importlib
 import json
 import sys
+import tempfile
 import traceback
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
@@ -22,6 +23,7 @@ from calculus_agent.agent.agent import (
     build_teacher_agent_backend,
     run_teacher_agent,
 )
+from calculus_agent.agent.trace_log import AgentTraceRecorder, read_agent_traces
 from calculus_agent.agent.conversation_state import (
     DatabasePendingReplacementStore,
     PendingGeneration,
@@ -1281,6 +1283,7 @@ def run_case(
         )
 
         result = None
+        trace_dir = Path(tempfile.mkdtemp(prefix="teacher-agent-eval-trace-"))
 
         # constraint grader 比较：
         # 最后一轮真实用户输入前 vs 最后一轮后
@@ -1328,6 +1331,7 @@ def run_case(
                 paper_id=fixture_context.paper_id,
                 version_id=fixture_context.version_id,
                 backend=backend,
+                trace_recorder=AgentTraceRecorder(trace_dir),
             )
 
             session.commit()
@@ -1352,6 +1356,8 @@ def run_case(
                 session,
                 getattr(result, "run_id", None),
             )
+            file_traces = read_agent_traces(trace_dir)
+            task_workflow = file_traces[0].get("task_workflow") if file_traces else None
 
             turn_results.append(
                 {
@@ -1380,6 +1386,8 @@ def run_case(
                             for span in model_spans
                             if isinstance(span.get("input_json"), dict)
                         ],
+                        "task_workflow": task_workflow,
+                        "workflow": task_workflow,
                     },
                 }
             )

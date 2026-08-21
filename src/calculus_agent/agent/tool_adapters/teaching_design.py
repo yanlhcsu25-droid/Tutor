@@ -256,7 +256,10 @@ def build_teaching_design_tools(context: Any) -> list[Any]:
         # Other callers retain the legacy Tool-loop implementation as fallback.
         if getattr(context, "use_teaching_design_workflow", False):
             values = CreateTeachingDesignInput.model_validate(raw)
-            workflow_result = TeachingDesignWorkflow(context.session).execute(
+            workflow_result = TeachingDesignWorkflow(
+                context.session,
+                workflow_trace=context.workflow_trace,
+            ).execute(
                 requirement=TeachingRequirement(
                     topic=context.user_message or values.content.title,
                     goal=values.content.objective,

@@ -55,8 +55,9 @@ class TeachingDesignWorkflowResult(BaseModel):
 class TeachingDesignWorkflow:
     """Execute the fixed evidence-before-create TeachingDesign sequence."""
 
-    def __init__(self, session: Any) -> None:
+    def __init__(self, session: Any, *, workflow_trace: Any = None) -> None:
         self.session = session
+        self.workflow_trace = workflow_trace
 
     def execute(
         self,
@@ -67,6 +68,7 @@ class TeachingDesignWorkflow:
         run_id: str | None,
         source_user_message: str,
     ) -> TeachingDesignWorkflowResult:
+        self._mark_workflow()
         if not conversation_id:
             return self._failure(
                 "teaching_design_requires_conversation",
@@ -152,6 +154,12 @@ class TeachingDesignWorkflow:
             resolved_scope_names=scope_names,
             evidence_refs=evidence_refs,
         )
+
+    def _mark_workflow(self) -> None:
+        # Mark immediately before workflow execution, not during Tool setup.
+        callback = getattr(self, "workflow_trace", None)
+        if callback is not None:
+            callback("teaching_design")
 
     @staticmethod
     def _failure(code: str, message: str, **values: Any) -> TeachingDesignWorkflowResult:
