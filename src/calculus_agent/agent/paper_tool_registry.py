@@ -14,7 +14,8 @@ from .paper_change_service import (
 )
 from .schemas import GenerationPlanPatch, PrepareReinforcementPlanInput
 from .services.adjustment import AdjustmentService, AdjustmentServiceError
-from .services.generation import GenerationService, NoPendingGenerationError
+from .services.generation import GenerationService
+from calculus_agent.application.generation import GenerationWorkflow
 from .services.reinforcement import ReinforcementError, ReinforcementService
 from .services.replacement import ReplacementService, ReplacementServiceError
 from .state.service import RuntimeStateService, WorkspaceService
@@ -64,16 +65,10 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
     session = context.session
     store = context.state_store
 
-    generation_service = GenerationService(
-        session=session,
-        store=store,
-        conversation_id=context.conversation_id,
-        expected_pending_generation_version=context.expected_pending_generation_version,
-        runtime_state_service=RuntimeStateService(session),
-    )
+    generation_workflow = GenerationWorkflow(context)
     reinforcement_service = ReinforcementService(
         session=session,
-        generation_service=generation_service,
+        generation_service=generation_workflow.service,
     )
     adjustment_service = AdjustmentService(
         session=session,
@@ -135,17 +130,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         )
 
     def prepare_generation(raw: BaseModel) -> ExecutedTool:
-        preview = generation_service.preview(GenerationPlanPatch.model_validate(raw))
-        return ExecutedTool(
-            payload=preview.model_dump(mode="json"),
-            status="waiting_confirmation" if preview.ok else "needs_clarification",
-            result_fields={
-                "generation_preview": preview,
-                "warnings": preview.warnings,
-                "blocking_errors": preview.blocking_errors,
-                "clarification_questions": preview.clarification_questions,
-            },
-        )
+        return generation_workflow.prepare(raw)
 
     def prepare_reinforcement(raw: BaseModel) -> ExecutedTool:
         current_paper_id = context.version_id or context.paper_id
@@ -197,30 +182,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         )
 
     def confirm_generation(_raw: BaseModel) -> ExecutedTool:
-        try:
-            result = generation_service.confirm()
-        except NoPendingGenerationError:
-            return _failed("no_pending_generation", "当前没有等待确认的组卷方案。")
-        status = (
-            "completed"
-            if result.ok
-            else "needs_clarification"
-            if result.needs_clarification
-            else "failed"
-        )
-        if result.ok:
-            context.paper_id = str(result.paper_id)
-            context.version_id = str(result.version_id)
-        return ExecutedTool(
-            payload=result.model_dump(mode="json"),
-            status=status,
-            result_fields={
-                "paper": result,
-                "warnings": result.warnings,
-                "blocking_errors": result.blocking_errors,
-                "clarification_questions": result.clarification_questions,
-            },
-        )
+        return generation_workflow.confirm()
 
     def preview_changes(raw: BaseModel) -> ExecutedTool:
         paper_change_service.paper_id = context.paper_id

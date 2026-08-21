@@ -15,9 +15,9 @@ def test_generation_service_is_a_real_shared_boundary():
 def test_paper_registry_delegates_generation_to_service():
     source = Path(paper_tool_registry.__file__).read_text(encoding="utf-8")
 
-    assert "GenerationService(" in source
-    assert "generation_service.preview(" in source
-    assert "generation_service.confirm()" in source
+    assert "GenerationWorkflow(" in source
+    assert "generation_workflow.prepare(" in source
+    assert "generation_workflow.confirm()" in source
     assert "def _rebalance_scores(" not in source
     assert "def _merge_question_type_patch(" not in source
     assert "build_structured_generation_request(" not in source
