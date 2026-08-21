@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from calculus_agent.application.teaching_design_generation import (
+from calculus_agent.application.teaching_design_execution import (
     TeachingDesignPaperGenerationService,
 )
 from calculus_agent.agent.conversation_state import (
@@ -45,7 +45,7 @@ def test_execution_failure_is_not_automatically_classified_as_design_revision(
     conversation_id = "t4-execution-classification"
     design = _confirmed(session, conversation_id)
 
-    import calculus_agent.application.teaching_design_generation as module
+    import calculus_agent.application.teaching_design_execution as module
 
     class FakeGenerationService:
         def __init__(self, **_kwargs):

@@ -14,7 +14,7 @@ from calculus_agent.config import Settings
 from calculus_agent.models import TeacherAgentRunTrace
 from calculus_agent.orchestration.backend import BailianChatBackend
 from calculus_agent.papers.addressing import QuestionAddress
-from calculus_agent.application.teaching_design_generation import (
+from calculus_agent.application.teaching_design_execution import (
     TeachingDesignPaperGenerationResult,
 )
 from calculus_agent.teaching_design.schemas import TeachingDesignRead
@@ -73,49 +73,13 @@ from calculus_agent.agent.tools.read_tools import ReadCurrentPaperResult
 from calculus_agent.agent.tools.replacement_tools import ApplyReplacementResult, ReplacementDryRunResult
 from calculus_agent.agent.tools.version_tools import VersionOperationResult
 from calculus_agent.runtime.tool_loop import ToolLoop
+from calculus_agent.runtime.policies import AgentRuntimePolicy
 
 logger = logging.getLogger(__name__)
 
 
 QUESTION_OPERATION_SKILL = "paper_question_operations"
 TEACHING_DESIGN_SKILL = "teaching_design"
-
-
-CLARIFICATION_BLOCKING_ERRORS: frozenset[str] = frozenset({
-    "knowledge_scope_conflict",
-    "knowledge_unknown",
-    "knowledge_ambiguous",
-    "knowledge_scope_uncertain",
-    "missing_scope",
-    "missing_exam_scope",
-    "scope_not_found",
-    "scope_ambiguous",
-    "missing_total_score",
-    "missing_difficulty_ratio",
-    "question_count_mismatch",
-    "score_total_mismatch",
-    "question_type_invalid",
-    "candidate_insufficient",
-    "insufficient_candidates",
-    "generation_partial_patch_required",
-    "score_rebalance_ambiguous",
-    "add_question_score_required",
-    "add_question_score_ambiguous",
-    "paper_observation_required",
-    "no_current_paper",
-    "no_pending_generation",
-    "no_pending_action",
-    "no_pending_adjustment",
-    "curriculum_scope_unresolved",
-    "question_bank_scope_unresolved",
-})
-
-PENDING_PRESERVATION_ERRORS: frozenset[str] = frozenset({
-    "pending_replacement_exists",
-    "pending_generation_exists",
-    "pending_adjustment_exists",
-    "legacy_pending_replacement_exists",
-})
 
 
 _PENDING_CONFIRMATION_WRITING_TOOLS: frozenset[str] = frozenset({
@@ -812,6 +776,7 @@ def run_teacher_agent(
 ) -> TeacherAgentResult:
     """Run LLM → tool observation → LLM until a final natural-language answer."""
     message = user_message.strip() if isinstance(user_message, str) else ""
+    policy = AgentRuntimePolicy(max_tool_rounds=max_tool_rounds)
     teaching_design_artifact_requested = requires_teaching_design_artifact(message)
 
     # Restore workspace paper context before creating trace and agent context.
@@ -1279,7 +1244,7 @@ def run_teacher_agent(
 
         final_text = ""
         try:
-            for _round in range(max_tool_rounds + 1):
+            for _round in range(policy.max_tool_rounds + 1):
                 current_stage = "llm_call"
                 active_skills = []
                 if teaching_design_skill_active:
@@ -1704,7 +1669,7 @@ def run_teacher_agent(
                     final_text = content.strip()
                     break
 
-                if _round >= max_tool_rounds:
+                if not policy.can_start_round(_round + 1):
                     raise RuntimeError("agent_tool_round_limit")
                 normalized_calls = []
                 for call in tool_calls:
@@ -1964,15 +1929,19 @@ def run_teacher_agent(
                             ),
                         )
                         generation_patch_retried = True
-                    if terminal_tool_boundary_reached or repeated_validation_boundary_reached:
+                    if policy.should_stop_after_tool(
+                        clarification_boundary=clarification_boundary_reached,
+                        terminal_boundary=terminal_tool_boundary_reached,
+                        repeated_validation_boundary=repeated_validation_boundary_reached,
+                    ):
                         # Stop processing any additional model-provided calls in
                         # this response as well as stopping the next LLM round.
                         break
-                if (
-                    clarification_boundary_reached
-                    or terminal_tool_boundary_reached
-                    or repeated_validation_boundary_reached
-                ):
+                if policy.should_stop_after_tool(
+                    clarification_boundary=clarification_boundary_reached,
+                    terminal_boundary=terminal_tool_boundary_reached,
+                    repeated_validation_boundary=repeated_validation_boundary_reached,
+                ): 
                     break
             else:
                 raise RuntimeError("agent_tool_round_limit")
@@ -2035,9 +2004,9 @@ def run_teacher_agent(
                     "本轮说明文字生成超时，但不影响已保存的方案；"
                     "你可以查看方案后确认，或继续修改。"
                 )
-        elif any(code in PENDING_PRESERVATION_ERRORS for code in blocking_errors):
+        elif any(policy.preserves_pending_state(code) for code in blocking_errors):
             turn_status = "waiting_confirmation"
-        elif any(code in CLARIFICATION_BLOCKING_ERRORS for code in blocking_errors):
+        elif any(policy.is_clarification_error(code) for code in blocking_errors):
             turn_status = "needs_clarification"
         elif pending_action_in_store:
             turn_status = "waiting_confirmation"

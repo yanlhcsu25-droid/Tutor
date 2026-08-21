@@ -1,4 +1,4 @@
-from calculus_agent.application.teaching_design_generation import (
+from calculus_agent.application.teaching_design_execution import (
     TeachingDesignPaperGenerationService,
 )
 from calculus_agent.agent.conversation_state import DatabasePendingReplacementStore
@@ -138,7 +138,7 @@ def test_execution_immediately_previews_and_confirms_without_second_teacher_conf
         GeneratePaperToolResult,
         PaperSummary,
     )
-    import calculus_agent.application.teaching_design_generation as module
+    import calculus_agent.application.teaching_design_execution as module
 
     class FakeGenerationService:
         def __init__(

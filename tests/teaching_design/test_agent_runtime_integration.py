@@ -1,6 +1,6 @@
 from sqlalchemy import select
 
-from calculus_agent.application.teaching_design_generation import (
+from calculus_agent.application.teaching_design_execution import (
     TeachingDesignPaperGenerationResult,
 )
 from calculus_agent.agent.agent import run_teacher_agent

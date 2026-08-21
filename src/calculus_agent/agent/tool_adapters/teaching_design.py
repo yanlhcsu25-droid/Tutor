@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from calculus_agent.application.scope_resolution import (
     resolve_deterministic_scope_labels,
 )
-from calculus_agent.application.teaching_design_generation import (
+from calculus_agent.application.teaching_design_execution import (
     TeachingDesignPaperGenerationService,
 )
 from calculus_agent.application.teaching_design_workflow import (
