@@ -141,7 +141,10 @@ def project_confirmed_design(
         "scope_names": content.scope_names,
         "total_score": assessment.total_score,
         "difficulty_level": assessment.difficulty,
-        "constraint_provenance": provenance,
+        "constraint_provenance": {
+            key: value.model_dump(mode="json")
+            for key, value in provenance.items()
+        },
         "question_type_requirements": question_type_requirements or None,
         "question_count": (
             assessment.question_count

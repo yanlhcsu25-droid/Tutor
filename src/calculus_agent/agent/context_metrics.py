@@ -18,6 +18,7 @@ class ContextMetrics:
     estimated_tokens: int
     context_breakdown: dict[str, int] = field(default_factory=dict)
     workspace_breakdown: dict[str, int] = field(default_factory=dict)
+    workspace_detail_breakdown: dict[str, dict[str, int]] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -106,7 +107,54 @@ def measure_context(
         estimated_tokens=(total_chars + 3) // 4,
         context_breakdown=breakdown,
         workspace_breakdown=workspace_breakdown,
+        workspace_detail_breakdown=_measure_workspace_detail_breakdown(
+            workspace_context,
+        ),
     )
+
+
+def _measure_workspace_detail_breakdown(
+    workspace_context: dict[str, Any] | None,
+) -> dict[str, dict[str, int]]:
+    if not isinstance(workspace_context, dict):
+        return {"active_task": {}, "teaching_design": {}}
+
+    def chars(value: Any) -> int:
+        if value is None:
+            return 0
+        return len(json.dumps(value, ensure_ascii=False)) * 2
+
+    memory = workspace_context.get("working_memory")
+    memory = memory if isinstance(memory, dict) else {}
+    active_task = memory.get("active_task")
+    active_task = active_task if isinstance(active_task, dict) else {}
+    design = workspace_context.get("active_teaching_design")
+    design = design if isinstance(design, dict) else {}
+    content = design.get("content")
+    content = content if isinstance(content, dict) else {}
+    constraints = content.get("assessment_plan")
+    provenance = content.get("evidence_refs")
+    core_content = {
+        key: value
+        for key, value in content.items()
+        if key not in {"assessment_plan", "evidence_refs"}
+    }
+    metadata = {
+        key: value
+        for key, value in design.items()
+        if key != "content"
+    }
+    return {
+        "active_task": {
+            **{str(key): chars(value) for key, value in active_task.items()},
+        },
+        "teaching_design": {
+            "content_chars": chars(core_content),
+            "metadata_chars": chars(metadata),
+            "constraints_chars": chars(constraints),
+            "provenance_chars": chars(provenance),
+        },
+    }
 
 
 def _measure_workspace_breakdown(

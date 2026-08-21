@@ -76,6 +76,11 @@ def _baseline(result: dict) -> dict:
             for item in metrics
             if isinstance(item, dict)
         ]
+        workspace_detail_breakdowns = [
+            item.get("workspace_detail_breakdown", {})
+            for item in metrics
+            if isinstance(item, dict)
+        ]
         turns.append(
             {
                 "turn": turn.get("turn"),
@@ -83,6 +88,10 @@ def _baseline(result: dict) -> dict:
                 "context_breakdown": breakdowns[-1] if breakdowns else {},
                 "workspace_breakdown": (
                     workspace_breakdowns[-1] if workspace_breakdowns else {}
+                ),
+                "workspace_detail_breakdown": (
+                    workspace_detail_breakdowns[-1]
+                    if workspace_detail_breakdowns else {}
                 ),
                 "estimated_tokens": max(
                     (
