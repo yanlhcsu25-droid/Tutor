@@ -72,6 +72,7 @@ from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult
 from calculus_agent.agent.tools.read_tools import ReadCurrentPaperResult
 from calculus_agent.agent.tools.replacement_tools import ApplyReplacementResult, ReplacementDryRunResult
 from calculus_agent.agent.tools.version_tools import VersionOperationResult
+from calculus_agent.runtime.tool_loop import ToolLoop
 
 logger = logging.getLogger(__name__)
 
@@ -1320,8 +1321,8 @@ def run_teacher_agent(
                                 }],
                             }
                         else:
-                            response_message = _assistant_message(
-                                backend.complete(messages, definitions)
+                            response_message = ToolLoop.run(
+                                backend, messages, definitions
                             )
                         llm_ended_at = datetime.now(UTC)
                         run_manager.update_span(
@@ -1718,7 +1719,7 @@ def run_teacher_agent(
                 for call in normalized_calls:
                     call_id = call["id"]
                     current_stage = "tool_arguments_parse"
-                    name, arguments = _tool_arguments(call)
+                    name, arguments = ToolLoop.parse_call(call)
                     arguments = _apply_question_reference_hints(
                         tool_name=name,
                         arguments=arguments,
@@ -1782,7 +1783,9 @@ def run_teacher_agent(
                         current_stage = "tool_execution"
                         with tool_observation_span(name, arguments) as _lf_tool:
                             try:
-                                execution = toolkit.execute(name, arguments)
+                                execution = ToolLoop.execute(
+                                    toolkit, name, arguments
+                                )
                             except Exception as exc:
                                 _langfuse_update(_lf_tool, level="ERROR", status_message=str(exc))
                                 run_manager.update_span(
@@ -1903,12 +1906,12 @@ def run_teacher_agent(
                         result=execution_payload,
                         memory_after=memory_after_tool,
                     )
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": call_id,
-                        "name": name,
-                        "content": json.dumps(execution_payload, ensure_ascii=False),
-                    })
+                    ToolLoop.append_observation(
+                        messages,
+                        call_id=call_id,
+                        name=name,
+                        payload=execution_payload,
+                    )
                     if (
                         name == "prepare_teaching_planning_draft"
                         and tool_execution_status == "completed"
