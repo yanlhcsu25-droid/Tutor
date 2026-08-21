@@ -1,0 +1,19 @@
+version: "0.1"
+suite:
+  name: teacher_agent_context_stability
+  description: Long-task baseline for context size, latency, and tool-loop stability.
+cases:
+  - id: CTX-STABILITY-LONG-01
+    category: context_stability
+    title: Long teaching and paper workflow baseline
+    turns:
+      - user: "学生极限不好，请帮我设计一份复习方案。"
+      - user: "范围先按第一章函数与极限。"
+      - user: "基于这个方案出一套测试卷。"
+      - user: "把选择题减少一道，增加一道计算题。"
+      - user: "确认生成。"
+      - user: "把刚生成的选择题第1题换一道。"
+    expected:
+      report: long_task_stability
+    graders:
+      - type: context_stability
