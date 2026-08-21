@@ -51,5 +51,8 @@ class ToolLoop:
             "role": "tool",
             "tool_call_id": call_id,
             "name": name,
-            "content": json.dumps(payload, ensure_ascii=False),
+            # Tool failures may carry exception objects from validation or
+            # adapter boundaries. Keep the normal JSON payload unchanged while
+            # making the observation transport total.
+            "content": json.dumps(payload, ensure_ascii=False, default=str),
         })
