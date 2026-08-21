@@ -1031,6 +1031,60 @@ def run_teacher_agent(
                     ]),
                 ]
 
+        # Deterministic exposure layer: lifecycle state narrows the model
+        # surface without changing any Tool implementation or schema.
+        if pending_generation:
+            definition_names = [
+                name for name in (
+                    "prepare_generation_plan",
+                    "confirm_generation",
+                    "discard_pending_plan",
+                )
+                if name in tools
+            ]
+        elif pending_adjustment or pending:
+            definition_names = [
+                name for name in (
+                    "read_paper",
+                    "analyze_paper",
+                    "preview_paper_changes",
+                    "confirm_paper_changes",
+                    "discard_pending_plan",
+                )
+                if name in tools
+            ]
+        elif (
+            has_current_paper
+            and not legacy_teaching_design_active
+            and set(definition_names) != {"create_teaching_design"}
+        ):
+            # Existing-paper turns default to the Paper lifecycle surface.
+            # Direct generation remains available through its explicit entry.
+            generation_words = (
+                "出", "生成", "组卷", "测试卷", "练习卷", "测验", "考试"
+            )
+            if (
+                task_decision.route.task_type == TaskType.DIRECT_ACTION
+                and any(word in message for word in generation_words)
+            ):
+                exposed = (
+                    "read_paper",
+                    "analyze_paper",
+                    "prepare_generation_plan",
+                    "prepare_reinforcement_plan",
+                    "discard_pending_plan",
+                )
+            else:
+                exposed = (
+                    "read_paper",
+                    "analyze_paper",
+                    "preview_paper_changes",
+                    "confirm_paper_changes",
+                    "discard_pending_plan",
+                    "operate_paper_version",
+                )
+            definition_names = [name for name in exposed if name in tools]
+
         definitions = toolkit.schemas(
             names=definition_names,
             transform=lambda tool: _tool_definition_for_context(
