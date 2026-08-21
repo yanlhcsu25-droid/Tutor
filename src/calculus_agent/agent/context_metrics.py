@@ -17,6 +17,7 @@ class ContextMetrics:
     total_chars: int
     estimated_tokens: int
     context_breakdown: dict[str, int] = field(default_factory=dict)
+    workspace_breakdown: dict[str, int] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -28,6 +29,7 @@ def measure_context(
     tool_definitions: Iterable[dict[str, Any]] = (),
     serialized_context: str = "",
     conversation_history: Iterable[dict[str, Any]] = (),
+    workspace_context: dict[str, Any] | None = None,
 ) -> ContextMetrics:
     """Measure the supplied payload without modifying it.
 
@@ -90,6 +92,10 @@ def measure_context(
         "observation_chars": observation_chars,
         "other_chars": other_chars,
     }
+    workspace_breakdown = _measure_workspace_breakdown(
+        workspace_context,
+        workspace_chars=workspace_chars,
+    )
     return ContextMetrics(
         system_chars=system_chars,
         user_chars=user_chars,
@@ -99,4 +105,57 @@ def measure_context(
         total_chars=total_chars,
         estimated_tokens=(total_chars + 3) // 4,
         context_breakdown=breakdown,
+        workspace_breakdown=workspace_breakdown,
     )
+
+
+def _measure_workspace_breakdown(
+    workspace_context: dict[str, Any] | None,
+    *,
+    workspace_chars: int,
+) -> dict[str, int]:
+    """Attribute serialized workspace values without changing the payload."""
+    if not isinstance(workspace_context, dict):
+        return {
+            "active_task_chars": 0,
+            "teaching_design_chars": 0,
+            "generation_chars": 0,
+            "paper_chars": 0,
+            "memory_chars": 0,
+            "other_chars": workspace_chars,
+        }
+
+    def chars(value: Any) -> int:
+        if value is None:
+            return 0
+        return len(json.dumps(value, ensure_ascii=False)) * 2
+
+    memory = workspace_context.get("working_memory")
+    memory_dict = memory if isinstance(memory, dict) else {}
+    active_task = memory_dict.get("active_task")
+    generation_values = {
+        "pending": workspace_context.get("pending"),
+        "generation_summary": memory_dict.get("generation_summary"),
+    }
+    generation = (
+        generation_values
+        if any(value is not None for value in generation_values.values())
+        else None
+    )
+    paper = workspace_context.get("current_paper")
+    teaching_design = workspace_context.get("active_teaching_design")
+    memory_rest = {
+        key: value
+        for key, value in memory_dict.items()
+        if key not in {"active_task", "generation_summary"}
+    }
+    known = {
+        "active_task_chars": chars(active_task),
+        "teaching_design_chars": chars(teaching_design),
+        "generation_chars": chars(generation),
+        "paper_chars": chars(paper),
+        "memory_chars": chars(memory_rest),
+    }
+    known_total = sum(known.values())
+    known["other_chars"] = max(0, workspace_chars - known_total)
+    return known

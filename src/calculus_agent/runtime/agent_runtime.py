@@ -1219,6 +1219,7 @@ def run_teacher_agent(
                     tool_definitions=definitions,
                     serialized_context=serialized_context,
                     conversation_history=recent_messages,
+                    workspace_context=dynamic_context,
                 )
                 model_span = run_manager.add_span(
                     "model_call", "llm_completion",

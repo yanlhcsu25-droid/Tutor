@@ -48,5 +48,6 @@ class AgentContextBuilder:
             tool_definitions=tool_definitions,
             serialized_context=serialized_context,
             conversation_history=history_messages,
+            workspace_context=dynamic_context,
         )
         return messages, serialized_context, metrics
