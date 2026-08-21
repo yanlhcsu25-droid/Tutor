@@ -12,6 +12,7 @@ import calculus_agent.agent.tool_adapters.teaching_design as teaching_design_ada
 from calculus_agent.models import (
     CurriculumNode,
     TeacherAgentRunTrace,
+    TeacherAgentSpan,
     Textbook,
 )
 from calculus_agent.teaching_design.service import TeachingDesignService
@@ -131,6 +132,63 @@ def test_fresh_teaching_planning_request_exposes_design_creation_only(session):
     assert "create_teaching_design" in surface
     assert "search_teaching_design_history" not in surface
     assert "activate_teaching_design" not in surface
+
+
+def test_explicit_scoped_design_uses_single_workflow_entry_tool(session):
+    _seed_curriculum(session)
+    backend = ScriptedBackend([_text("我先为你整理教学设计需求。")])
+
+    run_teacher_agent(
+        session,
+        "请帮我设计一份第一章复习方案，学生极限掌握不好。",
+        conversation_id="workflow-entry",
+        backend=backend,
+    )
+
+    assert _tool_names(backend.requests[0]) == {"create_teaching_design"}
+
+
+def test_workflow_entry_creates_design_after_one_semantic_tool_call(session):
+    _seed_curriculum(session)
+    backend = ScriptedBackend([
+        _call("create_teaching_design", {"content": _design_content() | {
+            "scope_names": ["第一章"],
+            "title": "第一章极限复习",
+            "objective": "帮助学生掌握极限基础。",
+        }}),
+        _text("已形成教学设计，请确认。"),
+    ])
+
+    result = run_teacher_agent(
+        session,
+        "请帮我设计一份第一章复习方案，学生极限掌握不好。",
+        conversation_id="workflow-create",
+        backend=backend,
+    )
+
+    assert result.status == "waiting_confirmation"
+    assert result.teaching_design is not None
+    assert result.teaching_design.content.scope_names == ["第1章"]
+    assert _tool_names(backend.requests[0]) == {"create_teaching_design"}
+    assert len(backend.requests) == 2
+
+    trace = session.scalar(
+        select(TeacherAgentRunTrace).where(TeacherAgentRunTrace.run_id == result.run_id)
+    )
+    assert trace is not None
+    assert [call["tool_name"] for call in trace.tool_calls_json] == [
+        "create_teaching_design"
+    ]
+    model_spans = list(session.scalars(
+        select(TeacherAgentSpan)
+        .where(TeacherAgentSpan.run_id == result.run_id)
+        .where(TeacherAgentSpan.span_type == "model_call")
+        .order_by(TeacherAgentSpan.started_at)
+    ))
+    # One tool-calling model round, followed only by result narration.
+    assert model_spans[0].input_json["tool_round"] == 0
+    assert model_spans[0].output_json["tool_calls"] == 1
+    assert model_spans[0].output_json["tool_names"] == ["create_teaching_design"]
 
 
 def test_real_conversation_revise_confirm_legacy_design_is_versioned_and_traceable(

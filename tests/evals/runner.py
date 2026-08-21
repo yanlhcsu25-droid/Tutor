@@ -915,6 +915,46 @@ def load_latest_trace(
     return row_to_dict(row)
 
 
+def load_model_spans(
+    session,
+    run_id: str | None,
+) -> list[dict[str, Any]]:
+    """Return model-call telemetry for the current eval turn."""
+    if not run_id:
+        return []
+
+    span_cls = find_model_class("TeacherAgentSpan")
+    if span_cls is None:
+        return []
+
+    statement = select(span_cls).where(
+        span_cls.run_id == run_id,
+        span_cls.span_type == "model_call",
+    )
+    return [row_to_dict(row) for row in session.scalars(statement).all()]
+
+def load_tool_spans(
+    session,
+    run_id: str | None,
+) -> list[dict[str, Any]]:
+    if not run_id:
+        return []
+
+    span_cls = find_model_class("TeacherAgentSpan")
+
+    if span_cls is None:
+        return []
+
+    statement = select(span_cls).where(
+        span_cls.run_id == run_id,
+        span_cls.span_type == "tool_call",
+    )
+
+    return [
+        row_to_dict(row)
+        for row in session.scalars(statement).all()
+    ]
+
 def extract_tool_calls(
     trace: dict[str, Any],
 ) -> list[dict[str, Any]]:
@@ -1150,6 +1190,7 @@ def run_graders(
             "trace",
             "tool_rule",
             "context",
+            "context_stability",
         }:
             results.append(
                 {
@@ -1301,6 +1342,16 @@ def run_case(
                     result=result,
                 )
             )
+            run_id = getattr(result, "run_id", None)
+            model_spans = load_model_spans(
+                session,
+                getattr(result, "run_id", None),
+            )
+
+            tool_spans = load_tool_spans(
+                session,
+                getattr(result, "run_id", None),
+            )
 
             turn_results.append(
                 {
@@ -1311,6 +1362,25 @@ def run_case(
                         result
                     ),
                     "state": post_turn_state,
+                    "observability": {
+                        "model_calls": model_spans,
+                        "tool_calls": tool_spans,
+                        "context_metrics": [
+                            (span.get("input_json") or {}).get("context_metrics", {})
+                            for span in model_spans
+                            if isinstance(span.get("input_json"), dict)
+                        ],
+                        "latency_ms": [
+                            span.get("latency_ms")
+                            for span in model_spans
+                            if span.get("latency_ms") is not None
+                        ],
+                        "tool_rounds": [
+                            (span.get("input_json") or {}).get("tool_round")
+                            for span in model_spans
+                            if isinstance(span.get("input_json"), dict)
+                        ],
+                    },
                 }
             )
 

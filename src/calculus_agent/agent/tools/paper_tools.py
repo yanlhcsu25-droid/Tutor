@@ -438,6 +438,31 @@ def _knowledge_preferences(
     )
 
 
+def resolve_advisory_knowledge_preferences(
+    session: Session,
+    labels: list[str],
+    *,
+    scope_labels: list[str],
+) -> tuple[list[str], list[str]]:
+    """Resolve soft TeachingDesign knowledge without turning prose into a blocker."""
+    scope_ids, scope_errors = _scope_node_ids(session, scope_labels)
+    if scope_errors:
+        # Scope validation remains enforced by the normal generation compiler.
+        return [], [f"advisory_knowledge_unresolved:{label}" for label in labels]
+
+    resolved: list[str] = []
+    warnings: list[str] = []
+    for label in dict.fromkeys(labels):
+        names, _ids, errors, _questions = _knowledge_preferences(
+            session, [label], scope_ids, scope_labels
+        )
+        if errors:
+            warnings.append(f"advisory_knowledge_unresolved:{label}")
+        else:
+            resolved.extend(names)
+    return list(dict.fromkeys(resolved)), warnings
+
+
 def _resolved_knowledge_priority_weights(
     raw: dict[str, int],
     resolved_names: list[str],

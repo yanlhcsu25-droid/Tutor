@@ -37,6 +37,8 @@ class GenerationProjection(BaseModel):
     bounded_constraints: list[str] = Field(default_factory=list)
     soft_objectives: list[str] = Field(default_factory=list)
     advisory_constraints: list[str] = Field(default_factory=list)
+    # Free-text teaching semantics resolved tolerantly by the generation adapter.
+    advisory_knowledge_names: list[str] = Field(default_factory=list)
     unsupported_design_constraints: list[str] = Field(default_factory=list)
     constraint_provenance: dict[str, ConstraintProvenance] = Field(default_factory=dict)
 
@@ -267,6 +269,17 @@ def project_confirmed_design(
     if assessment.notes:
         advisory.append("assessment_notes")
 
+    # These values guide generation when they map to a real KnowledgeNode, but
+    # they are pedagogical prose rather than executable coverage requirements.
+    advisory_knowledge_names = list(dict.fromkeys([
+        *teaching_required_knowledge,
+        *optional_knowledge,
+        *(item.teaching_focus for item in content.knowledge_plan if item.teaching_focus),
+        *content.teaching_priorities,
+        *assessment.question_design_ideas,
+        *([assessment.coverage_strategy] if assessment.coverage_strategy else []),
+    ]))
+
     return GenerationProjection(
         teaching_design_version_id=design.version_id,
         payload=payload,
@@ -274,6 +287,7 @@ def project_confirmed_design(
         bounded_constraints=bounded,
         soft_objectives=soft,
         advisory_constraints=advisory,
+        advisory_knowledge_names=advisory_knowledge_names,
         unsupported_design_constraints=unsupported,
         constraint_provenance=provenance,
     )

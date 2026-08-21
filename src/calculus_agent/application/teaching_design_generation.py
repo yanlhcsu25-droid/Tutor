@@ -16,7 +16,10 @@ from calculus_agent.agent.conversation_state import PendingGeneration
 from calculus_agent.agent.schemas import GenerationPlanPatch, GenerationPlanPreview
 from calculus_agent.agent.services.generation import GenerationService
 from calculus_agent.agent.state.service import WorkspaceService
-from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult
+from calculus_agent.agent.tools.paper_tools import (
+    GeneratePaperToolResult,
+    resolve_advisory_knowledge_preferences,
+)
 from calculus_agent.generation_diagnosis import (
     GenerationDiagnosis,
     diagnose_generation_error,
@@ -168,7 +171,24 @@ class TeachingDesignPaperGenerationService:
                 ),
             )
 
-        patch = GenerationPlanPatch.model_validate(projection.payload)
+        # Only assessment_required_knowledge is compiled as a hard coverage
+        # constraint. Teaching-plan prose is resolved best-effort and can never
+        # turn an otherwise valid confirmed design into knowledge_unknown.
+        payload = dict(projection.payload)
+        resolved_advisory, advisory_knowledge_warnings = (
+            resolve_advisory_knowledge_preferences(
+                self.session,
+                projection.advisory_knowledge_names,
+                scope_labels=design.content.scope_names,
+            )
+        )
+        payload["knowledge_preferences"] = resolved_advisory
+        payload["knowledge_priority_weights"] = {
+            name: weight
+            for name, weight in (payload.get("knowledge_priority_weights") or {}).items()
+            if name in resolved_advisory
+        }
+        patch = GenerationPlanPatch.model_validate(payload)
         service = GenerationService(
             session=self.session,
             store=self.store,
@@ -182,6 +202,7 @@ class TeachingDesignPaperGenerationService:
             f"teaching_design_advisory:{item}"
             for item in projection.advisory_constraints
         ]
+        advisory_warnings.extend(advisory_knowledge_warnings)
 
         if not preview.ok:
             self._cleanup_internal_pending(

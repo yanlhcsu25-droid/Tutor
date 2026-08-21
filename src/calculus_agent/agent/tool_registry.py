@@ -30,6 +30,8 @@ class AgentExecutionContext:
     observed_evidence: dict[str, dict[str, Any]] = field(default_factory=dict)
     inspection_state: dict[str, Any] = field(default_factory=dict)
     inspection_call_count: int = 0
+    # Runtime-only routing flag; never exposed through a Tool schema.
+    use_teaching_design_workflow: bool = False
 
 
 @dataclass

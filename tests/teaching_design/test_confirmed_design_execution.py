@@ -114,6 +114,12 @@ def test_execution_immediately_previews_and_confirms_without_second_teacher_conf
             "title": "第一章测试",
             "objective": "完成第一章核心内容测评。",
             "scope_names": ["第一章"],
+            "knowledge_plan": [
+                {
+                    "name": "洛必达法则与其他方法对比",
+                    "role": "optional",
+                }
+            ],
             "assessment_plan": {
                 "paper_type": "chapter_test",
                 "total_score": 100,
@@ -209,3 +215,4 @@ def test_execution_immediately_previews_and_confirms_without_second_teacher_conf
     assert calls[0][2] == design.version_id
     assert calls[0][3].__class__.__name__ == "WorkspaceService"
     assert calls[2][1] == design.version_id
+    assert "advisory_knowledge_unresolved:洛必达法则与其他方法对比" in result.warnings

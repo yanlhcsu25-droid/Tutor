@@ -17,6 +17,10 @@ from calculus_agent.application.scope_resolution import (
 from calculus_agent.application.teaching_design_generation import (
     TeachingDesignPaperGenerationService,
 )
+from calculus_agent.application.teaching_design_workflow import (
+    TeachingDesignWorkflow,
+    TeachingRequirement,
+)
 from calculus_agent.knowledge.normalization import normalize_name
 from calculus_agent.teaching_design.schemas import (
     EvidenceReference,
@@ -246,6 +250,36 @@ def build_teaching_design_tools(context: Any) -> list[Any]:
             return failed(
                 "teaching_design_requires_conversation",
                 "教学设计需要明确的 conversation_id 才能持久化。",
+            )
+
+        # The direct workflow entry keeps the public Tool schema unchanged.
+        # Other callers retain the legacy Tool-loop implementation as fallback.
+        if getattr(context, "use_teaching_design_workflow", False):
+            values = CreateTeachingDesignInput.model_validate(raw)
+            workflow_result = TeachingDesignWorkflow(context.session).execute(
+                requirement=TeachingRequirement(
+                    topic=context.user_message or values.content.title,
+                    goal=values.content.objective,
+                    content=values.content,
+                ),
+                owner_key=context.owner_key,
+                conversation_id=conversation_id,
+                run_id=context.run_id,
+                source_user_message=context.user_message,
+            )
+            if workflow_result.ok:
+                return ExecutedTool(
+                    payload={
+                        "ok": True,
+                        "confirmation_required": True,
+                        "teaching_design": workflow_result.teaching_design.model_dump(mode="json"),
+                    },
+                    status="waiting_confirmation",
+                    result_fields={"teaching_design": workflow_result.teaching_design},
+                )
+            return recoverable(
+                workflow_result.code or "teaching_design_workflow_failed",
+                workflow_result.message or "教学设计创建流程未完成。",
             )
 
         td_service = service()
@@ -636,7 +670,16 @@ def build_teaching_design_tools(context: Any) -> list[Any]:
         AgentTool(
             "create_teaching_design",
             (
-                "Create TeachingDesign v1 only after current-run "
+                "Create TeachingDesign v1 directly from the teacher's "
+                "structured semantic requirement. For the deterministic "
+                "TeachingDesign workflow entry, scope resolution, curriculum "
+                "inspection, aggregate question-bank inspection, and evidence "
+                "attachment execute inside this Tool; do not call those Tools "
+                "first. evidence_refs are system-managed; do not invent them. "
+                "The design becomes awaiting_confirmation and cannot be "
+                "confirmed in the same teacher turn."
+                if getattr(context, "use_teaching_design_workflow", False)
+                else "Create TeachingDesign v1 only after current-run "
                 "inspect_curriculum and aggregate inspect_question_bank "
                 "observations cover the same scope. evidence_refs are "
                 "system-managed from those observations; do not invent them. "
