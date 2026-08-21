@@ -14,6 +14,56 @@ from .context_metrics import ContextMetrics, measure_context
 class AgentContextBuilder:
     """Build the initial LLM context for one agent turn."""
 
+    @staticmethod
+    def project_workspace(dynamic_context: dict[str, Any]) -> dict[str, Any]:
+        """Return the compact, LLM-facing view of runtime workspace state."""
+        projected = dict(dynamic_context)
+
+        working_memory = dynamic_context.get("working_memory")
+        if isinstance(working_memory, dict):
+            active_task = working_memory.get("active_task")
+            active_task_view = {}
+            if isinstance(active_task, dict):
+                for key in ("type", "status", "target_topic", "pending_action"):
+                    if key in active_task:
+                        active_task_view[key] = active_task[key]
+            projected["working_memory"] = {"active_task": active_task_view}
+        else:
+            projected["working_memory"] = None
+
+        teaching_design = dynamic_context.get("active_teaching_design")
+        if isinstance(teaching_design, dict):
+            content = teaching_design.get("content")
+            content = content if isinstance(content, dict) else {}
+            knowledge_plan = content.get("knowledge_plan") or []
+            key_knowledge = []
+            for item in knowledge_plan:
+                if isinstance(item, dict) and item.get("name"):
+                    key_knowledge.append({
+                        "name": item["name"],
+                        "role": item.get("role"),
+                        "priority": item.get("priority"),
+                    })
+            projected["active_teaching_design"] = {
+                "version_id": teaching_design.get("version_id"),
+                "status": teaching_design.get("status"),
+                "scope": content.get("scope_names", []),
+                "goal": content.get("objective"),
+                "key_knowledge": key_knowledge,
+            }
+        else:
+            projected["active_teaching_design"] = None
+        return projected
+
+    @classmethod
+    def serialize_workspace(
+        cls,
+        dynamic_context: dict[str, Any],
+        **_: Any,
+    ) -> str:
+        """Serialize only the LLM-facing projection (never mutate input state)."""
+        return json.dumps(cls.project_workspace(dynamic_context), ensure_ascii=False)
+
     def build(
         self,
         *,
@@ -23,12 +73,9 @@ class AgentContextBuilder:
         system_parts: Iterable[str],
         tool_definitions: Iterable[dict[str, Any]] = (),
     ) -> tuple[list[dict[str, Any]], str, ContextMetrics]:
-        """Return ``(messages, serialized_context, metrics)`` without changing inputs.
-
-        Serialization and the placement of workspace context are deliberately
-        kept identical to the runtime's previous inline implementation.
-        """
-        serialized_context = json.dumps(dynamic_context, ensure_ascii=False)
+        """Return ``(messages, serialized_context, metrics)`` without changing inputs."""
+        serialized_context = self.serialize_workspace(dynamic_context)
+        projected_context = self.project_workspace(dynamic_context)
         history_messages = list(recent_messages)
         assembled_system_parts = [*system_parts, "当前工作区上下文：" + serialized_context]
         system_content = "\n\n".join(assembled_system_parts)
@@ -48,6 +95,6 @@ class AgentContextBuilder:
             tool_definitions=tool_definitions,
             serialized_context=serialized_context,
             conversation_history=history_messages,
-            workspace_context=dynamic_context,
+            workspace_context=projected_context,
         )
         return messages, serialized_context, metrics

@@ -1219,7 +1219,7 @@ def run_teacher_agent(
                     tool_definitions=definitions,
                     serialized_context=serialized_context,
                     conversation_history=recent_messages,
-                    workspace_context=dynamic_context,
+                    workspace_context=context_builder.project_workspace(dynamic_context),
                 )
                 model_span = run_manager.add_span(
                     "model_call", "llm_completion",
@@ -1505,7 +1505,7 @@ def run_teacher_agent(
                     if needs_grounding_gate and not paper_grounding_rechecked:
                         messages = _paper_grounding_messages(
                             message=message,
-                            serialized_context=json.dumps(
+                            serialized_context=context_builder.serialize_workspace(
                                 {
                                     **dynamic_context,
                                     "current_paper": {
@@ -1535,7 +1535,7 @@ def run_teacher_agent(
                                         )
                                     ),
                                     requested_addresses=explicit_question_addresses,
-                                    serialized_context=json.dumps(
+                                    serialized_context=context_builder.serialize_workspace(
                                         {
                                             **dynamic_context,
                                             "current_paper": {
@@ -1557,7 +1557,7 @@ def run_teacher_agent(
                         if not paper_read_required and not paper_grounding_format_retried:
                             messages = _paper_grounding_messages(
                                 message=message,
-                                serialized_context=json.dumps(
+                                serialized_context=context_builder.serialize_workspace(
                                     {
                                         **dynamic_context,
                                         "current_paper": {
@@ -1578,7 +1578,7 @@ def run_teacher_agent(
                                 message=message,
                                 requested_positions=explicit_question_positions,
                                 requested_addresses=explicit_question_addresses,
-                                serialized_context=json.dumps(
+                                serialized_context=context_builder.serialize_workspace(
                                     {
                                         **dynamic_context,
                                         "current_paper": {
