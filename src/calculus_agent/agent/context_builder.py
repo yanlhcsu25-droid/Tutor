@@ -29,6 +29,7 @@ class AgentContextBuilder:
         kept identical to the runtime's previous inline implementation.
         """
         serialized_context = json.dumps(dynamic_context, ensure_ascii=False)
+        history_messages = list(recent_messages)
         assembled_system_parts = [*system_parts, "当前工作区上下文：" + serialized_context]
         system_content = "\n\n".join(assembled_system_parts)
         current_user_content = (
@@ -39,12 +40,13 @@ class AgentContextBuilder:
         )
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": system_content},
-            *list(recent_messages),
+            *history_messages,
             {"role": "user", "content": current_user_content},
         ]
         metrics = measure_context(
             messages=messages,
             tool_definitions=tool_definitions,
             serialized_context=serialized_context,
+            conversation_history=history_messages,
         )
         return messages, serialized_context, metrics

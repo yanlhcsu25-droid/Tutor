@@ -66,10 +66,16 @@ def _baseline(result: dict) -> dict:
             output = span.get("output_json") or {}
             tool_names.extend(output.get("tool_names") or [])
         totals = [item.get("total_chars", 0) for item in metrics if isinstance(item, dict)]
+        breakdowns = [
+            item.get("context_breakdown", {})
+            for item in metrics
+            if isinstance(item, dict)
+        ]
         turns.append(
             {
                 "turn": turn.get("turn"),
                 "context_chars": max(totals, default=0),
+                "context_breakdown": breakdowns[-1] if breakdowns else {},
                 "estimated_tokens": max(
                     (
                         item.get("estimated_tokens", 0)
