@@ -1,6 +1,21 @@
 import json
 
+from calculus_agent.runtime.observation_projection import project_tool_observation
 from calculus_agent.runtime.tool_loop import ToolLoop
+
+
+def test_tool_observation_projection_removes_runtime_internals():
+    payload = {
+        "ok": True,
+        "content": "真实业务内容",
+        "constraint_provenance": {"internal": True},
+        "curriculum_semantic_matches": ["large internal result"],
+    }
+
+    projected = project_tool_observation("inspect_curriculum", payload)
+
+    assert projected == {"ok": True, "content": "真实业务内容"}
+    assert payload["constraint_provenance"] == {"internal": True}
 
 
 def test_tool_observation_serializes_exception_values():

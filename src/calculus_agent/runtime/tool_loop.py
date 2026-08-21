@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .observation_projection import project_tool_observation
+
 
 class ToolLoop:
     """Execute one model interaction and one validated Tool observation."""
@@ -51,8 +53,11 @@ class ToolLoop:
             "role": "tool",
             "tool_call_id": call_id,
             "name": name,
-            # Tool failures may carry exception objects from validation or
-            # adapter boundaries. Keep the normal JSON payload unchanged while
-            # making the observation transport total.
-            "content": json.dumps(payload, ensure_ascii=False, default=str),
+            # Only the LLM-facing copy is projected; the full payload remains
+            # available to the runtime and trace recorder.
+            "content": json.dumps(
+                project_tool_observation(name, payload),
+                ensure_ascii=False,
+                default=str,
+            ),
         })
