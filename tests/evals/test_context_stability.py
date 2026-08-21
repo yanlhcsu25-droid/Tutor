@@ -35,11 +35,14 @@ def _baseline(result: dict) -> dict:
         tool_calls = observations.get("tool_calls") or []
 
         tool_observation_details = []
+        observation_size_metrics = []
         tool_timeline = []
         for span in tool_calls:
             output = span.get("output_json") or {}
 
             payload = output.get("payload")
+            if isinstance(output.get("_observation_metrics"), dict):
+                observation_size_metrics.append(output["_observation_metrics"])
 
             tool_timeline.append(
                 {
@@ -107,6 +110,7 @@ def _baseline(result: dict) -> dict:
                 ),
                 "tool_calls": tool_names,
                 "tool_timeline": tool_timeline,
+                "observation_size_metrics": observation_size_metrics,
                 "runtime_success": (
                     turn.get("state") or {}
                 ).get("status") not in {"failed", None},

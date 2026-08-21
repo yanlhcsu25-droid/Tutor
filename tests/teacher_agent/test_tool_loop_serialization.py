@@ -1,6 +1,9 @@
 import json
 
-from calculus_agent.runtime.observation_projection import project_tool_observation
+from calculus_agent.runtime.observation_projection import (
+    observation_size_metrics,
+    project_tool_observation,
+)
 from calculus_agent.runtime.tool_loop import ToolLoop
 
 
@@ -16,6 +19,16 @@ def test_tool_observation_projection_removes_runtime_internals():
 
     assert projected == {"ok": True, "content": "真实业务内容"}
     assert payload["constraint_provenance"] == {"internal": True}
+
+
+def test_observation_size_metrics_reports_projection_reduction():
+    metrics = observation_size_metrics(
+        "inspect_curriculum",
+        {"ok": True, "metadata": {"large": "x" * 20}},
+    )
+
+    assert metrics["raw_observation_chars"] > metrics["llm_observation_chars"]
+    assert metrics["observation_reduction_chars"] > 0
 
 
 def test_tool_observation_serializes_exception_values():

@@ -7,6 +7,7 @@ in the next LLM message.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 
@@ -43,3 +44,18 @@ def project_tool_observation(
 
     result = project(payload)
     return result if isinstance(result, dict) else {"value": result}
+
+
+def observation_size_metrics(
+    tool_name: str,
+    payload: dict[str, Any],
+) -> dict[str, int]:
+    """Measure full versus LLM-facing observation size."""
+    projected = project_tool_observation(tool_name, payload)
+    raw_chars = len(json.dumps(payload, ensure_ascii=False, default=str))
+    projected_chars = len(json.dumps(projected, ensure_ascii=False, default=str))
+    return {
+        "raw_observation_chars": raw_chars,
+        "llm_observation_chars": projected_chars,
+        "observation_reduction_chars": max(0, raw_chars - projected_chars),
+    }

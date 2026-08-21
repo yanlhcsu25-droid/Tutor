@@ -73,6 +73,7 @@ from calculus_agent.agent.tools.read_tools import ReadCurrentPaperResult
 from calculus_agent.agent.tools.replacement_tools import ApplyReplacementResult, ReplacementDryRunResult
 from calculus_agent.agent.tools.version_tools import VersionOperationResult
 from calculus_agent.runtime.tool_loop import ToolLoop
+from calculus_agent.runtime.observation_projection import observation_size_metrics
 from calculus_agent.runtime.policies import AgentRuntimePolicy
 
 logger = logging.getLogger(__name__)
@@ -1759,7 +1760,12 @@ def run_teacher_agent(
                         result_values["blocking_errors"].append("unknown_tool")
                         run_manager.update_span(
                             tool_span, status="success",
-                            output=redact_trace_value(execution_payload),
+                            output=redact_trace_value({
+                                **execution_payload,
+                                "_observation_metrics": observation_size_metrics(
+                                    name, execution_payload
+                                ),
+                            }),
                             ended_at=datetime.now(UTC),
                         )
                     else:
@@ -1808,7 +1814,12 @@ def run_teacher_agent(
                             last_tool_validation_failure = None
                         run_manager.update_span(
                             tool_span, status="success",
-                            output=redact_trace_value(execution_payload),
+                            output=redact_trace_value({
+                                **execution_payload,
+                                "_observation_metrics": observation_size_metrics(
+                                    name, execution_payload
+                                ),
+                            }),
                             ended_at=datetime.now(UTC),
                         )
                         if name == "prepare_generation_plan":
