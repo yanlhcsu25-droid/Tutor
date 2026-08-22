@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isclose
+import re
 from typing import Protocol
 
 from pydantic import BaseModel
@@ -332,6 +333,7 @@ class GenerationService:
     teaching_design_version_id: str | None = None
     runtime_state_service: RuntimeStateService | None = None
     workspace_service: WorkspaceService | None = None
+    user_message: str = ""
 
     def _transition(
         self,
@@ -413,6 +415,37 @@ class GenerationService:
 
         existing_pending = self._pending()
         memory = self._memory()
+        learning_context = memory.active_learning_context
+        if learning_context and learning_context.scope_names:
+            explicit_context_terms = [
+                *learning_context.scope_names,
+                *learning_context.knowledge_names,
+            ]
+            teacher_supplied_scope = (
+                "章" in self.user_message
+                or any(
+                    term and term in self.user_message
+                    for term in explicit_context_terms
+                )
+            )
+            contextual_followup = bool(re.fullmatch(
+                r"(?:好的|好|可以|那|就|按这个|帮我|给我|请|生成|出|准备|"
+                r"一份|一套|一些|些|专项|练习题|练习|题|试卷|吧|呀|[，。！？\s])+",
+                self.user_message,
+            ))
+            if contextual_followup and not teacher_supplied_scope:
+                # Tool arguments are model output, not teacher provenance. For
+                # a contextual follow-up (“帮我生成练习题”), inherit the last
+                # validated learning scope instead of trusting a newly composed
+                # label such as “极限洛必达法则”.
+                patch_values["scope_names"] = list(
+                    learning_context.scope_names
+                )
+                if learning_context.knowledge_names:
+                    patch_values["knowledge_preferences"] = list(
+                        learning_context.knowledge_names
+                    )
+
 
         # A new top-level task must compile independently from an unrelated
         # existing pending generation. We intentionally do NOT clear the old
@@ -710,6 +743,25 @@ class GenerationService:
                 version_id=str(result.version_id),
                 teaching_design_version_id=pending.teaching_design_version_id,
             )
+
+        if (
+            not result.ok
+            and self.store is not None
+            and self.conversation_id
+            and result.diagnosis is not None
+        ):
+            memory = self.store.get_memory(self.conversation_id)
+            context = memory.active_learning_context
+            if context is not None:
+                diagnosis = result.diagnosis.model_dump(mode="json")
+                if result.recovery_action is not None:
+                    diagnosis["recovery_action"] = (
+                        result.recovery_action.model_dump(mode="json")
+                    )
+                memory.active_learning_context = context.model_copy(update={
+                    "generation_diagnosis": diagnosis,
+                })
+                self.store.set_memory(self.conversation_id, memory)
 
         if (
             result.ok

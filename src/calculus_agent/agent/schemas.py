@@ -143,8 +143,25 @@ class TeachingPlanningDraft(BaseModel):
     assessment_strategy: list[str] = Field(min_length=1, max_length=20)
 
 
+class ActiveLearningContext(BaseModel):
+    """Compact, conversation-scoped learning facts for the next teacher action.
+
+    This is short-term workspace state, not long-term student memory. Values
+    come from validated curriculum/question-bank observations, never solely
+    from model-authored narrative.
+    """
+
+    scope_names: list[str] = Field(default_factory=list)
+    knowledge_names: list[str] = Field(default_factory=list)
+    learning_need: str | None = None
+    evidence_refs: list[dict] = Field(default_factory=list)
+    generation_diagnosis: dict | None = None
+    source_run_id: str | None = None
+
+
 class AgentWorkingMemory(BaseModel):
     active_task: dict = Field(default_factory=dict)
+    active_learning_context: ActiveLearningContext | None = None
     generation_summary: dict = Field(default_factory=dict)
     last_clarification: dict | None = None
     last_completed_paper: dict | None = None

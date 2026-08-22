@@ -6,7 +6,7 @@ from typing import Any
 
 from calculus_agent.agent.schemas import GenerationPlanPatch
 from calculus_agent.agent.services.generation import GenerationService, NoPendingGenerationError
-from calculus_agent.agent.state.service import RuntimeStateService
+from calculus_agent.agent.state.service import RuntimeStateService, WorkspaceService
 from calculus_agent.agent.tool_registry import AgentExecutionContext, ExecutedTool
 
 
@@ -21,6 +21,8 @@ class GenerationWorkflow:
             conversation_id=context.conversation_id,
             expected_pending_generation_version=context.expected_pending_generation_version,
             runtime_state_service=RuntimeStateService(context.session),
+            workspace_service=WorkspaceService(context.session),
+            user_message=context.user_message,
         )
 
     def prepare(self, raw: Any) -> ExecutedTool:

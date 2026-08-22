@@ -27,7 +27,24 @@ class AgentContextBuilder:
                 for key in ("type", "status", "target_topic", "pending_action"):
                     if key in active_task:
                         active_task_view[key] = active_task[key]
+            learning_context = working_memory.get("active_learning_context")
+            learning_context_view = None
+            if isinstance(learning_context, dict):
+                learning_context_view = {
+                    key: learning_context.get(key)
+                    for key in (
+                        "scope_names",
+                        "knowledge_names",
+                        "learning_need",
+                        "generation_diagnosis",
+                    )
+                    if learning_context.get(key) not in (None, [], {})
+                }
             projected["working_memory"] = {"active_task": active_task_view}
+            if learning_context_view:
+                projected["working_memory"][
+                    "active_learning_context"
+                ] = learning_context_view
         else:
             projected["working_memory"] = None
 

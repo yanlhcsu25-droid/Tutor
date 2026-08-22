@@ -22,6 +22,7 @@ from calculus_agent.application.teaching_environment import (
     inspect_question_bank,
 )
 from calculus_agent.knowledge.normalization import normalize_name
+from calculus_agent.agent.schemas import ActiveLearningContext
 from calculus_agent.agent.tool_registry import ExecutedTool
 
 
@@ -393,6 +394,45 @@ def build_environment_inspection_tools(context: Any) -> list[Any]:
                 *result.requested_scope_names,
                 *result.resolved_scope_names,
             ])
+
+        # Persist a compact, validated handoff for a later teacher action such
+        # as “好的，帮我生成练习题吧”. Runtime-only inspection_state and Trace
+        # are not sufficient because neither is restored into the next turn.
+        if context.state_store is not None and context.conversation_id:
+            memory = context.state_store.get_memory(context.conversation_id)
+            previous = memory.active_learning_context
+            evidence_refs = list(previous.evidence_refs) if previous else []
+            if result.evidence_ref is not None:
+                current_ref = result.evidence_ref.model_dump(mode="json")
+                if current_ref.get("ref_id") not in {
+                    item.get("ref_id") for item in evidence_refs
+                    if isinstance(item, dict)
+                }:
+                    evidence_refs.append(current_ref)
+            knowledge_names = list(dict.fromkeys([
+                *(previous.knowledge_names if previous else []),
+                *values.knowledge_names,
+                *(
+                    values.scope_names
+                    if values.scope_names != result.resolved_scope_names
+                    else []
+                ),
+            ]))
+            memory.active_learning_context = ActiveLearningContext(
+                scope_names=list(result.resolved_scope_names),
+                knowledge_names=knowledge_names,
+                learning_need=(
+                    previous.learning_need
+                    if previous and previous.learning_need
+                    else context.user_message
+                ),
+                evidence_refs=evidence_refs[-4:],
+                generation_diagnosis=(
+                    previous.generation_diagnosis if previous else None
+                ),
+                source_run_id=context.run_id,
+            )
+            context.state_store.set_memory(context.conversation_id, memory)
 
         return ExecutedTool(
             payload=payload,

@@ -271,57 +271,6 @@ wheels = [
 ]
 
 [[package]]
-name = "calculus-knowledge-agent"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "fastapi" },
-    { name = "langfuse" },
-    { name = "ortools" },
-    { name = "paddleocr" },
-    { name = "paddlepaddle" },
-    { name = "paddlex", extra = ["ocr"] },
-    { name = "pydantic-settings" },
-    { name = "pypdfium2" },
-    { name = "python-multipart" },
-    { name = "reportlab" },
-    { name = "sqlalchemy" },
-    { name = "sympy" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.115" },
-    { name = "langfuse", specifier = ">=4.14.4" },
-    { name = "ortools", specifier = ">=9.14,<10" },
-    { name = "paddleocr", specifier = ">=3.0" },
-    { name = "paddlepaddle", specifier = ">=3.0" },
-    { name = "paddlex", extras = ["ocr"], specifier = ">=3.7" },
-    { name = "pydantic-settings", specifier = ">=2.6" },
-    { name = "pypdfium2", specifier = ">=5.0" },
-    { name = "python-multipart", specifier = ">=0.0.18" },
-    { name = "reportlab", specifier = ">=4.2" },
-    { name = "sqlalchemy", specifier = ">=2.0" },
-    { name = "sympy", specifier = ">=1.13" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "pytest", specifier = ">=8.3" },
-    { name = "ruff", specifier = ">=0.8" },
-]
-
-[[package]]
 name = "certifi"
 version = "2026.7.22"
 source = { registry = "https://pypi.org/simple" }
@@ -3151,6 +3100,57 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/21/3b/6c24bec5be5e743ffd99576daa5cc077722fc7d5bbc00bd133fa0c698dc6/tqdm-4.70.0.tar.gz", hash = "sha256:55b0b0dbd97462d06ebee91e4dac24ed4d4702be82b24f07e6c1d27e08cea220", size = 795438, upload-time = "2026-07-27T11:33:15.271Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f9/1c/01bfd571a64e7f270e6bab5e33777debe0edc56759233ce84f27dec92d14/tqdm-4.70.0-py3-none-any.whl", hash = "sha256:7f585706bfddbdebf89daac705b2dfcc16890130727d3197ca62c732b4310953", size = 80184, upload-time = "2026-07-27T11:33:13.167Z" },
+]
+
+[[package]]
+name = "tutor"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "fastapi" },
+    { name = "langfuse" },
+    { name = "ortools" },
+    { name = "paddleocr" },
+    { name = "paddlepaddle" },
+    { name = "paddlex", extra = ["ocr"] },
+    { name = "pydantic-settings" },
+    { name = "pypdfium2" },
+    { name = "python-multipart" },
+    { name = "reportlab" },
+    { name = "sqlalchemy" },
+    { name = "sympy" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "langfuse", specifier = ">=4.14.4" },
+    { name = "ortools", specifier = ">=9.14,<10" },
+    { name = "paddleocr", specifier = ">=3.0" },
+    { name = "paddlepaddle", specifier = ">=3.0" },
+    { name = "paddlex", extras = ["ocr"], specifier = ">=3.7" },
+    { name = "pydantic-settings", specifier = ">=2.6" },
+    { name = "pypdfium2", specifier = ">=5.0" },
+    { name = "python-multipart", specifier = ">=0.0.18" },
+    { name = "reportlab", specifier = ">=4.2" },
+    { name = "sqlalchemy", specifier = ">=2.0" },
+    { name = "sympy", specifier = ">=1.13" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "ruff", specifier = ">=0.8" },
 ]
 
 [[package]]

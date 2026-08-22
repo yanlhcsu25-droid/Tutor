@@ -45,3 +45,25 @@ def test_llm_workspace_projection_excludes_runtime_internals():
         "key_knowledge": [{"name": "极限", "role": "required", "priority": 5}],
     }
     assert source["working_memory"]["generation_summary"] == {"internal": "large"}
+
+
+def test_llm_workspace_projection_includes_compact_learning_context():
+    projected = AgentContextBuilder.project_workspace({
+        "working_memory": {
+            "active_task": {"type": "information_request", "status": "completed"},
+            "active_learning_context": {
+                "scope_names": ["第三章 微分中值定理与导数的应用"],
+                "knowledge_names": ["洛必达法则"],
+                "learning_need": "学生洛必达法则老算错",
+                "evidence_refs": [{"ref_id": "large-internal-evidence"}],
+                "source_run_id": "run-internal",
+            },
+        },
+        "active_teaching_design": None,
+    })
+
+    assert projected["working_memory"]["active_learning_context"] == {
+        "scope_names": ["第三章 微分中值定理与导数的应用"],
+        "knowledge_names": ["洛必达法则"],
+        "learning_need": "学生洛必达法则老算错",
+    }

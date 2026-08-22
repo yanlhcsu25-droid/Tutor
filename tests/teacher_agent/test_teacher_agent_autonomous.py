@@ -294,6 +294,75 @@ def test_natural_replacement_reads_then_previews_and_waits_for_confirmation(sess
         TeacherAgentRunTrace.conversation_id == "replace"
     )).tool_calls_json] == ["read_paper", "preview_paper_changes"]
 
+def test_followup_generation_inherits_validated_learning_context(session):
+    from tests.evals.curriculum_fixture import seed_eval_curriculum
+    from tests.evals.fixtures.paper import seed_success_question_bank
+
+    seed_eval_curriculum(session)
+    seed_success_question_bank(session)
+    conversation_id = "learning-context-followup"
+    analysis_backend = SequenceBackend(
+        tool_call(
+            "retrieve_curriculum_candidates",
+            {"query": "极限洛必达法则", "top_k": 5},
+            call_id="retrieve-learning-scope",
+        ),
+        tool_call(
+            "inspect_question_bank",
+            {
+                "scope_names": ["洛必达法则"],
+                "detail_level": "aggregate",
+            },
+            call_id="inspect-learning-supply",
+        ),
+        final("学生需要加强洛必达法则专项训练。"),
+        final("学生需要加强洛必达法则专项训练。"),
+    )
+
+    first = run_teacher_agent(
+        session,
+        "我有个学生，极限洛必达不知道怎么就是老算错，你帮我分析一下",
+        conversation_id=conversation_id,
+        backend=analysis_backend,
+    )
+    assert first.status == "completed"
+    memory = DatabasePendingReplacementStore(session).get_memory(conversation_id)
+    assert memory.active_learning_context is not None
+    assert memory.active_learning_context.scope_names == [
+        "第三章 微分中值定理与导数的应用"
+    ]
+    assert "洛必达法则" in memory.active_learning_context.knowledge_names
+
+    generation_backend = SequenceBackend(
+        tool_call(
+            "prepare_generation_plan",
+            {
+                "paper_type": "homework",
+                # This model-composed label is deliberately invalid. A generic
+                # follow-up must inherit the validated workspace scope instead.
+                "scope_names": ["极限洛必达法则"],
+                "knowledge_preferences": ["洛必达法则"],
+            },
+            call_id="prepare-contextual-generation",
+        ),
+        final("已生成专项练习方案，请确认。"),
+    )
+    second = run_teacher_agent(
+        session,
+        "好的，帮我生成练习题吧",
+        conversation_id=conversation_id,
+        backend=generation_backend,
+    )
+
+    assert second.status == "waiting_confirmation"
+    pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    assert pending is not None
+    assert pending.request.scope_names == [
+        "第三章 微分中值定理与导数的应用"
+    ]
+    assert "洛必达法则" in pending.request.knowledge_preferences
+
+
 def test_teaching_design_cannot_complete_without_persisted_design(session):
     backend = SequenceBackend(final("我已为您创建第三章导数复习方案。"))
 
