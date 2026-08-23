@@ -42,7 +42,6 @@ from calculus_agent.knowledge.classification import (
 )
 from calculus_agent.models import (
     AdjustmentPlanRecord,
-    AgentRun,
     AgentPendingAdjustment,
     AgentPendingGeneration,
     AgentPendingReplacement,
@@ -62,9 +61,7 @@ from calculus_agent.models import (
     TeacherAgentSpan,
     ConversationGenerationRecord,
     Textbook,
-    ToolCallTrace,
 )
-from calculus_agent.orchestration.service import run_paper_agent
 from calculus_agent.agent.agent import (
     TeacherAgentResult,
     build_teacher_agent_backend,
@@ -136,7 +133,7 @@ from calculus_agent.requirements.parser import (
     apply_blueprint_modification,
 )
 from calculus_agent.requirements.conversation_agent import PaperConversationAgent
-from calculus_agent.orchestration.backend import BailianChatBackend
+from calculus_agent.runtime.backend import BailianChatBackend
 from calculus_agent.schemas import (
     AgentRunRead,
     AgentRunRequest,
@@ -797,59 +794,58 @@ def extract_question_images(
         ) from error
 
 
-@router.post("/agents/runs", response_model=AgentRunRead)
+def _legacy_agent_run_read(run: TeacherAgentRunTrace) -> AgentRunRead:
+    """Compatibility projection backed by the canonical Teacher Runtime."""
+    calls = list(run.tool_calls_json or [])
+    return AgentRunRead(
+        run_id=run.run_id or run.id,
+        status=run.result_status,
+        mode="teacher_runtime",
+        final_response=run.final_response,
+        steps_used=len(calls),
+        error_message=run.error_message,
+        traces=[ToolCallTraceRead(
+            step=index + 1,
+            actor="teacher_agent",
+            tool_name=str(call.get("tool_name", "unknown")),
+            arguments=dict(call.get("arguments") or {}),
+            result=dict(call.get("result") or {}),
+            status="success" if not call.get("error") else "error",
+            duration_ms=int(call.get("duration_ms") or 0),
+        ) for index, call in enumerate(calls)],
+    )
+
+
+@router.post("/agents/runs", response_model=AgentRunRead, deprecated=True)
 def create_agent_run(
     request: AgentRunRequest,
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ) -> AgentRunRead:
-    if not settings.siliconflow_api_key:
-        raise HTTPException(
-            status_code=503,
-            detail="尚未配置 SiliconFlow API Key，请设置 SILICONFLOW_API_KEY",
-        )
-    return run_paper_agent(
+    """Deprecated route; it no longer executes the retired orchestration loop."""
+    result = run_teacher_agent(
         session,
-        request,
-        api_key=settings.siliconflow_api_key,
-        base_url=settings.siliconflow_base_url,
-        model=settings.siliconflow_agent_model,
-        timeout=settings.siliconflow_timeout_seconds,
+        request.request,
+        conversation_id=f"legacy-api-{uuid.uuid4()}",
+        backend=build_teacher_agent_backend(settings),
+        max_tool_rounds=request.max_steps,
     )
-
-
-@router.get("/agents/runs/{run_id}", response_model=AgentRunRead)
-def get_agent_run(run_id: str, session: Session = Depends(get_session)) -> AgentRunRead:
-    run = session.get(AgentRun, run_id)
+    run = session.query(TeacherAgentRunTrace).filter(
+        TeacherAgentRunTrace.run_id == result.run_id
+    ).first()
     if run is None:
-        raise HTTPException(status_code=404, detail="Agent run not found")
-    traces = list(
-        session.scalars(
-            select(ToolCallTrace)
-            .where(ToolCallTrace.run_id == run.id)
-            .order_by(ToolCallTrace.step, ToolCallTrace.created_at)
-        ).all()
-    )
-    return AgentRunRead(
-        run_id=run.id,
-        status=run.status,
-        mode=run.mode,
-        final_response=run.final_response,
-        steps_used=run.steps_used,
-        error_message=run.error_message,
-        traces=[
-            ToolCallTraceRead(
-                step=item.step,
-                actor=item.actor,
-                tool_name=item.tool_name,
-                arguments=item.arguments_json,
-                result=item.result_json,
-                status=item.status,
-                duration_ms=item.duration_ms,
-            )
-            for item in traces
-        ],
-    )
+        raise HTTPException(status_code=500, detail="Teacher Runtime 未写入运行记录")
+    return _legacy_agent_run_read(run)
+
+
+@router.get("/agents/runs/{run_id}", response_model=AgentRunRead, deprecated=True)
+def get_agent_run(run_id: str, session: Session = Depends(get_session)) -> AgentRunRead:
+    run = session.query(TeacherAgentRunTrace).filter(
+        TeacherAgentRunTrace.run_id == run_id
+    ).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Agent 运行记录不存在")
+    return _legacy_agent_run_read(run)
 
 
 @router.post("/curriculum/import", response_model=list[CurriculumNodeRead])

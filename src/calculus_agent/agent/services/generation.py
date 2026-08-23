@@ -28,16 +28,17 @@ from ..schemas import (
     GeneratePaperInput,
     QuestionTypeRequirement,
 )
-from ..state.service import (
-    InvalidStateTransitionError,
-    RuntimeStateService,
-    WorkspaceService,
-)
+from ..state.reconciler import reconcile_pending_generation
+from ..state.service import RuntimeStateService, WorkspaceService
 from ..tools.paper_tools import (
     GeneratePaperToolResult,
     build_structured_generation_request,
     generate_paper_from_input,
 )
+
+
+class GenerationLifecycleError(RuntimeError):
+    """A generation write was blocked by the authoritative Runtime lifecycle."""
 
 
 class GenerationStateStore(Protocol):
@@ -342,12 +343,12 @@ class GenerationService:
         task_type: str | None = None,
         waiting_for: str | None = None,
     ) -> None:
-        """Best-effort runtime-state write.
+        """Apply a required lifecycle transition for a normal generation write.
 
-        No-op when the state layer is absent, and an out-of-band runtime phase
-        (e.g. a pending plan created before this state layer existed) must never
-        break generation.  ``RuntimeStateService.transition`` still raises on
-        genuinely illegal transitions; only the lifecycle projection swallows it.
+        State is optional only for non-Agent/legacy adapters that do not supply
+        a RuntimeStateService.  Once supplied, an invalid transition blocks the
+        business operation; reconciliation belongs exclusively to the explicit
+        legacy restore path below.
         """
         if self.runtime_state_service is None or not self.conversation_id:
             return
@@ -358,8 +359,24 @@ class GenerationService:
                 task_type=task_type,
                 waiting_for=waiting_for,
             )
-        except InvalidStateTransitionError:
-            return
+        except Exception as error:
+            raise GenerationLifecycleError(
+                f"generation_lifecycle_transition_failed: {error}"
+            ) from error
+
+    def _reconcile_existing_pending(self, pending: PendingGeneration | None) -> None:
+        """Repair only persisted pre-state-layer pending generations explicitly."""
+        if (
+            pending is not None
+            and self.runtime_state_service is not None
+            and self.conversation_id
+        ):
+            try:
+                reconcile_pending_generation(
+                    self.runtime_state_service, self.conversation_id
+                )
+            except Exception as error:
+                raise GenerationLifecycleError(str(error)) from error
 
     def _update_workspace(
         self,
@@ -414,6 +431,9 @@ class GenerationService:
         unsupported = patch_values.pop("avoid_previous_paper_questions", None)
 
         existing_pending = self._pending()
+        # Existing domain pending may predate RuntimeState. Reconcile it once,
+        # before this normal preview path is allowed to overwrite any state.
+        self._reconcile_existing_pending(existing_pending)
         memory = self._memory()
         learning_context = memory.active_learning_context
         if learning_context and learning_context.scope_names:
@@ -625,6 +645,12 @@ class GenerationService:
             and self.store is not None
             and self.conversation_id
         ):
+            # Fail closed before persisting a new/updated PendingGeneration.
+            self._transition(
+                "waiting",
+                task_type="generation",
+                waiting_for="teacher_confirmation",
+            )
             saved_pending = self.store.set_generation(
                 self.conversation_id,
                 PendingGeneration(
@@ -663,13 +689,6 @@ class GenerationService:
                 {
                     "active_type": "paper",
                 }
-            )
-            # Phase 2: surface the generation lifecycle.  A validated pending
-            # plan is now awaiting teacher confirmation.
-            self._transition(
-                "waiting",
-                task_type="generation",
-                waiting_for="teacher_confirmation",
             )
 
         if self.store is not None and self.conversation_id:
@@ -710,6 +729,10 @@ class GenerationService:
         pending = self._pending()
         if pending is None:
             raise NoPendingGenerationError("no_pending_generation")
+        self._reconcile_existing_pending(pending)
+        # A paper must never be created until confirmation has entered the
+        # authoritative execution phase.
+        self._transition("executing", task_type="generation")
 
         prior_question_ids = (
             historical_question_ids(
@@ -719,6 +742,9 @@ class GenerationService:
             if self.conversation_id
             else []
         )
+        # The generation entry point materializes GenerationConstraints. Keep the
+        # historical keyword as a compatibility adapter for existing callers;
+        # it is immediately folded into constraints at that boundary.
         if prior_question_ids:
             result = generate_paper_from_input(
                 self.session,
@@ -726,10 +752,7 @@ class GenerationService:
                 excluded_question_ids=prior_question_ids,
             )
         else:
-            result = generate_paper_from_input(
-                self.session,
-                pending.request,
-            )
+            result = generate_paper_from_input(self.session, pending.request)
 
         if (
             pending.teaching_design_version_id is not None
@@ -805,7 +828,8 @@ class GenerationService:
             memory.last_clarification = None
             self.store.set_memory(self.conversation_id, memory)
 
-        # Phase 2: close the lifecycle on the runtime state (completed / failed).
+        # Close the lifecycle before returning; an invalid terminal state is a
+        # hard failure rather than telemetry that may be silently discarded.
         self._transition(
             "completed" if result.ok else "failed",
             task_type="generation",

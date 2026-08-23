@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from calculus_agent.papers.addressing import QuestionAddress
 from calculus_agent.schemas import ConstraintProvenance, PaperBlueprint
+from calculus_agent.generation.constraints import GenerationConstraints
 
 
 class RequirementPreferences(BaseModel):
@@ -188,29 +189,6 @@ class GenerationPlanPreview(BaseModel):
     clarification_questions: list[str] = Field(default_factory=list)
     constraint_provenance: dict[str, ConstraintProvenance] = Field(default_factory=dict)
 
-
-class GenerationConstraints(BaseModel):
-    scope: list[str] = Field(default_factory=list)
-    scope_chapter_ids: list[str] = Field(default_factory=list)
-    scope_node_ids: list[str] = Field(default_factory=list)
-    scope_knowledge_node_ids: list[str] = Field(default_factory=list)
-
-    allowed_difficulty_levels: list[int] = Field(default_factory=list)
-    preferred_difficulty_levels: list[int] = Field(default_factory=list)
-    fallback_difficulty_levels: list[int] = Field(default_factory=list)
-
-    preferred_knowledge_node_ids: list[str] = Field(default_factory=list)
-    knowledge_priority_weights: dict[str, int] = Field(default_factory=dict)
-
-    target_duration_min: int | None = Field(default=None, ge=1, le=600)
-    duration_tolerance_min: int = Field(default=5, ge=0, le=120)
-
-    ability_weights: dict[str, int] = Field(default_factory=dict)
-
-    audience: str | None = None
-    difficulty_preference_text: str | None = None
-    diversity_preference: str | None = None
-    constraint_provenance: dict[str, ConstraintProvenance] = Field(default_factory=dict)
 
 class PaperGenerationRequest(BaseModel):
     blueprint: PaperBlueprint

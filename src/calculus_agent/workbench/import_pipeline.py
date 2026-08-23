@@ -397,7 +397,15 @@ def match_questions_and_solutions(
                 matches = number_matches
                 match_method = "number_only"
         candidate = question.candidate
-        if len(q_by_number.get(normalize_match_number(question.candidate.original_number), [])) == 1 and len(matches) == 1:
+        exact_match_is_unique = (
+            match_method == "exact_number"
+            and len(q_by_key.get(question.key, [])) == 1
+        )
+        number_fallback_is_safe = (
+            match_method == "number_only"
+            and len(q_by_number.get(normalize_match_number(question.candidate.original_number), [])) == 1
+        )
+        if len(matches) == 1 and (exact_match_is_unique or number_fallback_is_safe):
             candidate.answer = matches[0].answer
             candidate.analysis = matches[0].analysis
             candidate.match_method = match_method

@@ -165,15 +165,9 @@ def test_capability_question_is_direct_response_without_router_or_tool(session):
     assert len(backend.calls) == 1
 
 
-def test_normal_chat_with_paper_uses_validated_no_observation_exit(session):
+def test_normal_chat_with_paper_does_not_require_observation(session):
     paper = _paper(session)
-    backend = SequenceBackend(
-        final("你好，我可以帮你处理当前试卷。"),
-        final(json.dumps({
-            "paper_observation_required": False,
-            "answer": "你好，需要我帮你做什么？",
-        }, ensure_ascii=False)),
-    )
+    backend = SequenceBackend(final("你好，我可以帮你处理当前试卷。"))
     result = run_teacher_agent(
         session,
         "你好",
@@ -183,24 +177,16 @@ def test_normal_chat_with_paper_uses_validated_no_observation_exit(session):
         backend=backend,
     )
     assert result.status == "completed"
-    assert result.message == "你好，需要我帮你做什么？"
-    assert len(backend.calls) == 2
-    assert backend.calls[1][1] == []
+    assert result.message == "你好，我可以帮你处理当前试卷。"
+    assert len(backend.calls) == 1
     assert not session.scalar(select(TeacherAgentRunTrace).where(
         TeacherAgentRunTrace.conversation_id == "paper-chat"
     )).tool_calls_json
 
 
-def test_normal_chat_retries_invalid_grounding_exit_format(session):
+def test_normal_chat_has_no_grounding_json_format_retry(session):
     paper = _paper(session)
-    backend = SequenceBackend(
-        final("你好，我可以帮你处理当前试卷。"),
-        final("你好，需要我帮你做什么？"),
-        final(json.dumps({
-            "paper_observation_required": False,
-            "answer": "你好，需要我帮你做什么？",
-        }, ensure_ascii=False)),
-    )
+    backend = SequenceBackend(final("你好，需要我帮你做什么？"))
     result = run_teacher_agent(
         session,
         "你好",
@@ -211,20 +197,12 @@ def test_normal_chat_retries_invalid_grounding_exit_format(session):
     )
     assert result.status == "completed"
     assert result.message == "你好，需要我帮你做什么？"
-    assert len(backend.calls) == 3
-    assert "禁止 Markdown" in backend.calls[2][0][0]["content"]
+    assert len(backend.calls) == 1
 
 
-def test_normal_chat_accepts_fenced_validated_grounding_decision(session):
+def test_normal_chat_does_not_parse_grounding_json(session):
     paper = _paper(session)
-    backend = SequenceBackend(
-        final("谢谢你。"),
-        final(
-            "```json\n"
-            '{"paper_observation_required":false,"answer":"不客气！"}'
-            "\n```"
-        ),
-    )
+    backend = SequenceBackend(final("不客气！"))
     result = run_teacher_agent(
         session,
         "谢谢",
@@ -235,7 +213,7 @@ def test_normal_chat_accepts_fenced_validated_grounding_decision(session):
     )
     assert result.status == "completed"
     assert result.message == "不客气！"
-    assert len(backend.calls) == 2
+    assert len(backend.calls) == 1
 
 
 def test_agent_reads_real_question_then_answers_from_observation(session):
@@ -486,15 +464,8 @@ def test_total_score_answer_is_grounded_by_whole_paper_observation(session):
     paper = _paper(session)
     backend = SequenceBackend(
         final("当前试卷总分是100分。"),
-        final(json.dumps({
-            "paper_observation_required": True,
-            "answer": "",
-        }, ensure_ascii=False)),
         tool_call("read_paper", call_id="score-read"),
-        final(json.dumps({
-            "paper_observation_required": False,
-            "answer": "当前试卷总分是30分。",
-        }, ensure_ascii=False)),
+        final("当前试卷总分是30分。"),
     )
     result = run_teacher_agent(
         session,
@@ -628,10 +599,6 @@ def test_paper_fact_claim_without_tool_is_rechecked(session):
     paper = _paper(session)
     backend = SequenceBackend(
         final("我已读取，第2题是我猜的题目。"),
-        final(json.dumps({
-            "paper_observation_required": True,
-            "answer": "",
-        }, ensure_ascii=False)),
         tool_call("read_paper", {"positions": [2]}, call_id="fact-recheck"),
         final("第2题是“自主 Agent 真实题干2”。"),
     )
@@ -647,11 +614,7 @@ def test_paper_fact_claim_without_tool_is_rechecked(session):
     assert "真实题干2" in result.message
     assert "我猜" not in result.message
     assert result.paper_read.questions[0].position == 2
-    assert any(
-        "Paper 事实核验" in item.get("content", "")
-        for item in backend.calls[1][0]
-        if isinstance(item.get("content"), str)
-    )
+    assert backend.calls[1][1][0]["function"]["name"] == "read_paper"
 
 
 def test_ungrounded_paper_fact_is_rejected_after_focused_recheck(session):
@@ -664,11 +627,6 @@ def test_ungrounded_paper_fact_is_rejected_after_focused_recheck(session):
         version_id=paper.id,
         backend=SequenceBackend(
             final("第2题是我猜的极限题。"),
-            final(json.dumps({
-                "paper_observation_required": True,
-                "answer": "",
-            }, ensure_ascii=False)),
-            final("第2题仍然是我猜的极限题。"),
             final("第2题仍然是我猜的极限题。"),
         ),
     )
@@ -706,7 +664,6 @@ def test_paper_observation_is_invalidated_after_version_change(session):
         tool_call("read_paper", {"positions": [3]}, call_id="read-old-version"),
         tool_call("confirm_paper_changes", call_id="confirm-version-change"),
         final("替换后第3题仍是旧版本题干3。"),
-        final(json.dumps({"paper_observation_required": True, "answer": ""}, ensure_ascii=False)),
         tool_call("read_paper", {"positions": [3]}, call_id="read-new-version"),
         final("替换后第3题是“自主 Agent 真实题干4”。"),
     )

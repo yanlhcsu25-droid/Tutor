@@ -5,6 +5,7 @@ never build a real paper: ``build_structured_generation_request`` and
 ``generate_paper_from_input`` are monkeypatched with deterministic fakes.
 """
 
+import pytest
 import calculus_agent.agent.services.generation as generation_module
 from calculus_agent.agent.conversation_state import (
     DatabasePendingReplacementStore,
@@ -15,7 +16,7 @@ from calculus_agent.agent.schemas import (
     GenerationPlanPatch,
     PaperGenerationRequest,
 )
-from calculus_agent.agent.services.generation import GenerationService
+from calculus_agent.agent.services.generation import GenerationLifecycleError, GenerationService
 from calculus_agent.agent.state.service import RuntimeStateService, WorkspaceService
 from calculus_agent.agent.tools.paper_tools import (
     GeneratePaperToolResult,
@@ -285,8 +286,7 @@ def test_confirm_failure_transitions_to_failed(session, monkeypatch):
 
 
 def test_confirm_out_of_band_phase_does_not_break_generation(session, monkeypatch):
-    """A pending plan created before this state layer existed (phase=idle) must
-    still confirm without raising — the lifecycle projection is best-effort."""
+    """A legacy pending plan is explicitly reconciled from idle to waiting."""
     conversation_id = "conv-legacy"
     blueprint = _make_blueprint(session)
 
@@ -314,8 +314,56 @@ def test_confirm_out_of_band_phase_does_not_break_generation(session, monkeypatc
     monkeypatch.setattr(generation_module, "generate_paper_from_input", fake_generate)
 
     _seed_pending(session, conversation_id)
-    # NOTE: we intentionally do NOT drive the state to ``waiting`` — it is idle.
+    # NOTE: RuntimeState is absent for this legacy record and is reconciled.
 
     result = _make_service(session, conversation_id).confirm()
 
     assert result.ok is True
+    assert RuntimeStateService(session).get(conversation_id).phase == "completed"
+
+
+def test_preview_fails_closed_when_runtime_is_executing(session, monkeypatch):
+    monkeypatch.setattr(
+        generation_module,
+        "build_structured_generation_request",
+        lambda session, request: (_fake_generation_request(), [], [], []),
+    )
+    conversation_id = "conv-illegal-preview"
+    state = RuntimeStateService(session)
+    state.transition(conversation_id, "waiting")
+    state.transition(conversation_id, "executing")
+    store = DatabasePendingReplacementStore(session)
+
+    with pytest.raises(GenerationLifecycleError, match="generation_lifecycle_transition_failed"):
+        GenerationService(
+            session=session,
+            store=store,
+            conversation_id=conversation_id,
+            runtime_state_service=state,
+        ).preview(GenerationPlanPatch(paper_type="chapter_test"))
+
+    # Runtime rejection happens before the new pending generation is persisted.
+    assert store.get_generation(conversation_id) is None
+
+
+def test_confirm_rejects_executing_pending_without_generating(session, monkeypatch):
+    conversation_id = "conv-executing-pending"
+    store = DatabasePendingReplacementStore(session)
+    _seed_pending(session, conversation_id)
+    state = RuntimeStateService(session)
+    state.transition(conversation_id, "waiting")
+    state.transition(conversation_id, "executing")
+    called = False
+
+    def must_not_generate(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("generation must not run after lifecycle rejection")
+
+    monkeypatch.setattr(generation_module, "generate_paper_from_input", must_not_generate)
+
+    with pytest.raises(GenerationLifecycleError, match="generation_state_conflict"):
+        _make_service(session, conversation_id).confirm()
+
+    assert called is False
+    assert store.get_generation(conversation_id) is not None

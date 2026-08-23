@@ -16,11 +16,11 @@ from calculus_agent.agent.blueprint_adapter import (
 )
 from calculus_agent.agent.schemas import (
     GeneratePaperInput,
-    GenerationConstraints,
     PaperGenerationRequest,
     RequirementBlueprint,
     RequirementPreferences,
 )
+from calculus_agent.generation.constraints import GenerationConstraints
 from calculus_agent.generation_diagnosis import (
     GenerationDiagnosis,
     RecoveryAction,
@@ -1232,8 +1232,16 @@ def generate_paper_from_input(
     session: Session,
     request: GeneratePaperInput,
     *,
+    constraints: GenerationConstraints | None = None,
     excluded_question_ids: list[str] | None = None,
 ) -> GeneratePaperToolResult:
+    constraints = constraints or GenerationConstraints.from_generation_input(request)
+    if excluded_question_ids:
+        constraints = constraints.model_copy(update={
+            "excluded_question_ids": (
+                constraints.excluded_question_ids | set(excluded_question_ids)
+            ),
+        })
     (
         generation_request,
         warnings,
@@ -1261,13 +1269,12 @@ def generate_paper_from_input(
             diagnosis=diagnosis,
         )
 
-    if excluded_question_ids:
+    if constraints.excluded_question_ids:
         blueprint = generation_request.blueprint.model_copy(
             update={
-                "excluded_question_ids": list(dict.fromkeys([
-                    *generation_request.blueprint.excluded_question_ids,
-                    *excluded_question_ids,
-                ])),
+                "excluded_question_ids": constraints.merged_exclusions(
+                    generation_request.blueprint.excluded_question_ids
+                ),
             }
         )
         generation_request = generation_request.model_copy(

@@ -63,11 +63,14 @@ Tutor 的核心约束：
 Teacher UI / API
        │
        ▼
-Teacher Agent Runtime
+Teacher Agent Runtime Facade (`agent_runtime.py`)
        │
-       ├── Task Router / Tool Surface
-       ├── Tool Loop
-       ├── Preview / Confirm Guards
+       ▼
+Runtime Coordinator (`coordinator.py`)
+       ├── ToolExposurePolicy / GroundingPolicy
+       ├── Model turn preparation + execution
+       ├── ResponsePolicy / FinalizationPolicy
+       ├── Tool execution boundary
        └── Run-Level Trace
        │
        ▼
@@ -161,7 +164,7 @@ RUN_LIVE_LLM=1 uv run pytest -q tests/evals/test_teacher_acceptance.py -s
 
 ```text
 src/calculus_agent/
-  runtime/              # Agent loop, lifecycle boundaries, context policy
+  runtime/              # Facade, coordinator, deterministic policies and executors
   agent/                # Tool registry, state, tracing, adapters
   teaching_design/      # Versioned TeachingDesign domain
   papers/               # Paper persistence, selection, rendering, export

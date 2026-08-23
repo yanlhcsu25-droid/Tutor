@@ -25,7 +25,7 @@ from calculus_agent.models import (
     QuestionKnowledgeReview,
     Textbook,
 )
-from calculus_agent.orchestration.backend import BailianChatBackend
+from calculus_agent.runtime.backend import BailianChatBackend
 
 
 @dataclass(frozen=True)

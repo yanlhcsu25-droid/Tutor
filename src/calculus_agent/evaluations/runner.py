@@ -6,9 +6,9 @@ from pathlib import Path
 from calculus_agent.config import Settings
 from calculus_agent.db import build_session_factory, create_schema
 from calculus_agent.evaluations.metrics import score_trace
-from calculus_agent.orchestration.service import run_paper_agent
-from calculus_agent.orchestration.types import TraceEntry
-from calculus_agent.schemas import AgentRunRequest
+from calculus_agent.agent.agent import build_teacher_agent_backend, run_teacher_agent
+from calculus_agent.models import TeacherAgentRunTrace
+from calculus_agent.runtime.trace_types import TraceEntry
 
 
 def run_evaluation(cases_path: Path, *, mode: str, settings: Settings) -> dict:
@@ -24,29 +24,27 @@ def run_evaluation(cases_path: Path, *, mode: str, settings: Settings) -> dict:
     results = []
     with factory.begin() as session:
         for case in cases:
-            run = run_paper_agent(
+            result = run_teacher_agent(
                 session,
-                AgentRunRequest(
-                    request=case["request"],
-                    max_steps=case.get("max_steps", 12),
-                    mode=mode,
-                ),
-                api_key=settings.siliconflow_api_key,
-                base_url=settings.siliconflow_base_url,
-                model=settings.siliconflow_agent_model,
-                timeout=settings.siliconflow_timeout_seconds,
+                case["request"],
+                conversation_id=f"legacy-eval-{case['id']}",
+                backend=build_teacher_agent_backend(settings),
+                max_tool_rounds=case.get("max_steps", 12),
             )
+            trace = session.query(TeacherAgentRunTrace).filter(
+                TeacherAgentRunTrace.run_id == result.run_id
+            ).one()
             traces = [
                 TraceEntry(
-                    step=item.step,
-                    actor=item.actor,
-                    tool_name=item.tool_name,
-                    arguments=item.arguments,
-                    result=item.result,
-                    status=item.status,
-                    duration_ms=item.duration_ms,
+                    step=index + 1,
+                    actor="teacher_agent",
+                    tool_name=str(item.get("tool_name", "unknown")),
+                    arguments=dict(item.get("arguments") or {}),
+                    result=dict(item.get("result") or {}),
+                    status="success" if not item.get("error") else "error",
+                    duration_ms=int(item.get("duration_ms") or 0),
                 )
-                for item in run.traces
+                for index, item in enumerate(trace.tool_calls_json or [])
             ]
             suffix = "multi" if mode == "multi_agent" else "single"
             metrics = score_trace(
@@ -58,8 +56,8 @@ def run_evaluation(cases_path: Path, *, mode: str, settings: Settings) -> dict:
             results.append(
                 {
                     "id": case["id"],
-                    "status": run.status,
-                    "steps": run.steps_used,
+                    "status": result.status,
+                    "steps": len(traces),
                     "metrics": asdict(metrics),
                 }
             )

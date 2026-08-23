@@ -1,6 +1,6 @@
 import json
 
-from calculus_agent.orchestration.types import ChatBackend
+from calculus_agent.runtime.backend import ChatBackend
 from calculus_agent.question_types import canonical_question_type
 from calculus_agent.requirements.parser import (
     _normalize_blueprint_payload,

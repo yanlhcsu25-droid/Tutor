@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from calculus_agent.orchestration.types import TraceEntry
+from calculus_agent.runtime.trace_types import TraceEntry
 
 
 @dataclass(frozen=True)

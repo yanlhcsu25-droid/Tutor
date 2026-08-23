@@ -1,5 +1,5 @@
 from calculus_agent.evaluations.metrics import score_trace
-from calculus_agent.orchestration.types import TraceEntry
+from calculus_agent.runtime.trace_types import TraceEntry
 
 
 def _trace(step: int, actor: str, tool: str) -> TraceEntry:

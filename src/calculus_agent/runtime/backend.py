@@ -1,5 +1,10 @@
 import json
 from urllib.request import Request, urlopen
+from typing import Protocol
+
+
+class ChatBackend(Protocol):
+    def complete(self, messages: list[dict], tools: list[dict]) -> dict: ...
 
 
 class OllamaChatBackend:
