@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Layout, Menu, Typography, Modal, Button, Space } from "antd";
 import {
   RobotOutlined, FilePdfOutlined, BookOutlined,
-  DatabaseOutlined, PlusOutlined,
+  DatabaseOutlined, PlusOutlined, ThunderboltOutlined,
 } from "@ant-design/icons";
 import AgentWorkspace, { clearStoredConversationId } from "./components/AgentWorkspace";
 import OcrReviewDrawer from "./components/OcrReviewDrawer";
@@ -10,6 +10,7 @@ import QuestionBankDrawer from "./components/QuestionBankDrawer";
 import PdfImportPanel from "./components/PdfImportPanel";
 import TextbookDrawer from "./components/TextbookDrawer";
 import AdminConsole from "./components/AdminConsole";
+import SidebarConversations from "./components/SidebarConversations";
 
 const { Sider, Content } = Layout;
 
@@ -52,18 +53,17 @@ export default function App() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {/* sidebar */}
-      <Sider width={160} style={{ background: "#fff", borderRight: "1px solid #f0f0f0" }}>
-        <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
-          <Typography.Title level={5} style={{ margin: 0, fontSize: 15 }}>
-            <RobotOutlined /> MathPaper
-          </Typography.Title>
+    <Layout className="app-layout">
+      <Sider width={280} breakpoint="md" collapsedWidth={0} className="app-sider">
+        <div className="app-brand">
+          <span className="app-brand-icon"><ThunderboltOutlined /></span>
+          <span><b>MathPaper</b><small>智能组卷工作台</small></span>
         </div>
         <Menu
           mode="inline"
           defaultSelectedKeys={["agent"]}
-          style={{ borderRight: 0, marginTop: 4 }}
+          className="app-menu"
+          style={{ borderRight: 0 }}
           items={[
             { key: "new", icon: <PlusOutlined />, label: "新建组卷", onClick: handleNewSession },
             { type: "divider" },
@@ -72,11 +72,12 @@ export default function App() {
             { key: "textbook", icon: <BookOutlined />, label: "教材目录", onClick: () => setTextbookOpen(true) },
           ]}
         />
+        <SidebarConversations />
       </Sider>
 
       {/* main content — always AgentWorkspace */}
       <Layout>
-        <Content style={{ background: "#fff", overflow: "auto", height: "100vh" }}>
+        <Content className="app-content">
           <AgentWorkspace />
         </Content>
       </Layout>

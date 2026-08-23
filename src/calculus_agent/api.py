@@ -43,6 +43,10 @@ from calculus_agent.knowledge.classification import (
 from calculus_agent.models import (
     AdjustmentPlanRecord,
     AgentRun,
+    AgentPendingAdjustment,
+    AgentPendingGeneration,
+    AgentPendingReplacement,
+    AgentWorkingMemoryRecord,
     CurriculumNode,
     KnowledgeAlias,
     KnowledgeNode,
@@ -56,6 +60,7 @@ from calculus_agent.models import (
     TeacherAgentConversationMessage,
     TeacherAgentRunTrace,
     TeacherAgentSpan,
+    ConversationGenerationRecord,
     Textbook,
     ToolCallTrace,
 )
@@ -81,11 +86,13 @@ from calculus_agent.agent.services.generation import (
     GenerationService,
     NoPendingGenerationError,
 )
+from calculus_agent.agent.state.models import AgentRuntimeState, ConversationWorkspace
 from calculus_agent.agent.state.service import (
     RuntimeStateService,
     WorkspaceService,
 )
 from calculus_agent.teaching_design.service import TeachingDesignService
+from calculus_agent.teaching_design.models import TeachingDesignVersionRecord
 from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult
 from calculus_agent.agent.trace_log import (
     list_agent_trace_sessions,
@@ -216,12 +223,22 @@ class PendingGenerationConfirmResponse(BaseModel):
 class TeacherAgentSessionMessage(BaseModel):
     role: str
     content: str
+    created_at: datetime | None = None
+
+
+class GeneratedPaperSessionRead(BaseModel):
+    paper_id: str
+    created_at: datetime
 
 
 class TeacherAgentConversationSummary(BaseModel):
     conversation_id: str
     last_message_at: datetime
     title: str
+
+
+class TeacherAgentConversationDeleteRequest(BaseModel):
+    conversation_ids: list[str] = Field(min_length=1, max_length=200)
 
 
 class TeacherAgentWorkspaceRead(BaseModel):
@@ -268,6 +285,7 @@ class PendingGenerationSessionRead(BaseModel):
 class TeacherAgentSessionRead(BaseModel):
     conversation_id: str
     messages: list[TeacherAgentSessionMessage]
+    generated_papers: list[GeneratedPaperSessionRead] = Field(default_factory=list)
     workspace: TeacherAgentWorkspaceRead | None = None
     pending_generation: PendingGenerationSessionRead | None = None
     pending_paper_change: PendingPaperChangeSessionRead | None = None
@@ -387,15 +405,48 @@ def list_teacher_agent_runs(
     return [_build_teacher_agent_run_read(run, session) for run in runs]
 
 
+_CONVERSATION_TOPIC_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("洛必达法则", ("洛必达", "l'hopital", "l’hopital")),
+    ("函数与极限", ("函数", "极限", "连续")),
+    ("导数与微分", ("导数", "微分", "求导")),
+    ("积分", ("积分", "不定积分", "定积分")),
+    ("微分方程", ("微分方程",)),
+    ("级数", ("级数", "泰勒")),
+    ("线性代数", ("线性代数", "矩阵", "行列式")),
+)
+
+
+def _conversation_topic(content: str) -> str | None:
+    normalized = content.lower()
+    for topic, keywords in _CONVERSATION_TOPIC_RULES:
+        if any(keyword in normalized for keyword in keywords):
+            return topic
+    return None
+
+
+def _conversation_summary_title(
+    messages: list[TeacherAgentConversationMessage], *, has_paper: bool, has_teaching_design: bool,
+) -> str | None:
+    """Derive a concise task title from the complete persisted conversation."""
+    user_content = "\n".join(item.content for item in messages if item.role == "user")
+    topic = _conversation_topic("\n".join(item.content for item in messages))
+    if not topic:
+        return None
+    # Explicit practice intent wins even when a practice paper was generated.
+    if any(token in user_content for token in ("专项", "练习", "巩固", "错题")):
+        return f"{topic}专项训练"
+    if has_paper or any(token in user_content for token in ("测试", "试卷", "出卷", "组卷", "考试")):
+        return f"{topic}章节测试"
+    if has_teaching_design or any(token in user_content for token in ("怎么讲", "教学", "讲解", "分析", "怎么办", "学生")):
+        return f"{topic}教学方法"
+    return f"{topic}教学讨论"
+
+
 @router.get("/teacher-agent/conversations", response_model=list[TeacherAgentConversationSummary])
 def list_teacher_agent_conversations(
     session: Session = Depends(get_session),
 ) -> list[TeacherAgentConversationSummary]:
-    """List logical conversations derived from persisted messages.
-
-    There is intentionally no Conversation table in this version. The first
-    user message provides a deterministic, non-AI title.
-    """
+    """List logical conversations with concise task-oriented titles."""
     rows = session.execute(
         select(
             TeacherAgentConversationMessage.conversation_id,
@@ -406,21 +457,31 @@ def list_teacher_agent_conversations(
     ).all()
     result: list[TeacherAgentConversationSummary] = []
     for conversation_id, last_message_at in rows:
-        first_user = session.scalar(
-            select(TeacherAgentConversationMessage.content)
-            .where(
-                TeacherAgentConversationMessage.conversation_id == conversation_id,
-                TeacherAgentConversationMessage.role == "user",
-            )
-            .order_by(
-                TeacherAgentConversationMessage.created_at,
-                TeacherAgentConversationMessage.id,
-            )
+        messages = list(session.scalars(
+            select(TeacherAgentConversationMessage)
+            .where(TeacherAgentConversationMessage.conversation_id == conversation_id)
+            .order_by(TeacherAgentConversationMessage.created_at, TeacherAgentConversationMessage.id)
+        ))
+        has_paper = session.scalar(
+            select(ConversationGenerationRecord.id)
+            .where(ConversationGenerationRecord.conversation_id == conversation_id)
             .limit(1)
+        ) is not None
+        has_teaching_design = session.scalar(
+            select(TeachingDesignVersionRecord.id)
+            .where(TeachingDesignVersionRecord.source_conversation_id == conversation_id)
+            .limit(1)
+        ) is not None
+        title = _conversation_summary_title(
+            messages, has_paper=has_paper, has_teaching_design=has_teaching_design,
         )
-        title = (first_user or "新会话").strip().replace("\\n", " ")
-        if len(title) > 80:
-            title = title[:80] + "…"
+        # Semantic extraction is intentionally best-effort. Keep the historical
+        # first-message title only when no task/topic can be inferred.
+        if title is None:
+            first_user = next((item.content for item in messages if item.role == "user"), "")
+            title = first_user.strip().replace("\\n", " ") or "新会话"
+            if len(title) > 80:
+                title = title[:80] + "…"
         result.append(
             TeacherAgentConversationSummary(
                 conversation_id=conversation_id,
@@ -429,6 +490,37 @@ def list_teacher_agent_conversations(
             )
         )
     return result
+
+
+@router.delete("/teacher-agent/conversations")
+def delete_teacher_agent_conversations(
+    request: TeacherAgentConversationDeleteRequest,
+    session: Session = Depends(get_session),
+) -> dict[str, int]:
+    """Delete selected chat history and its conversation-scoped transient state.
+
+    Generated papers are intentionally retained: deleting a chat must not delete
+    formal teaching artifacts. Their linkage record is removed with the chat.
+    """
+    conversation_ids = sorted(set(request.conversation_ids))
+    run_ids = list(session.scalars(
+        select(TeacherAgentRunTrace.run_id).where(
+            TeacherAgentRunTrace.conversation_id.in_(conversation_ids),
+            TeacherAgentRunTrace.run_id.is_not(None),
+        )
+    ))
+    if run_ids:
+        session.execute(delete(TeacherAgentSpan).where(TeacherAgentSpan.run_id.in_(run_ids)))
+    session.execute(delete(TeacherAgentRunTrace).where(TeacherAgentRunTrace.conversation_id.in_(conversation_ids)))
+    session.execute(delete(TeacherAgentConversationMessage).where(TeacherAgentConversationMessage.conversation_id.in_(conversation_ids)))
+    for model in (
+        AgentPendingAdjustment, AgentPendingGeneration, AgentPendingReplacement,
+        AgentWorkingMemoryRecord, ConversationWorkspace, AgentRuntimeState,
+        ConversationGenerationRecord,
+    ):
+        session.execute(delete(model).where(model.conversation_id.in_(conversation_ids)))
+    session.commit()
+    return {"deleted_count": len(conversation_ids)}
 
 
 @router.get("/teacher-agent/session", response_model=TeacherAgentSessionRead)
@@ -490,9 +582,22 @@ def get_teacher_agent_session(
         else None
     )
 
+    message_rows = list(session.scalars(
+        select(TeacherAgentConversationMessage)
+        .where(TeacherAgentConversationMessage.conversation_id == conversation_id)
+        .order_by(TeacherAgentConversationMessage.created_at, TeacherAgentConversationMessage.id)
+        .limit(500)
+    ))
+    generated_papers = list(session.scalars(
+        select(ConversationGenerationRecord)
+        .where(ConversationGenerationRecord.conversation_id == conversation_id)
+        .order_by(ConversationGenerationRecord.created_at, ConversationGenerationRecord.id)
+    ))
+
     return TeacherAgentSessionRead(
         conversation_id=conversation_id,
-        messages=[TeacherAgentSessionMessage.model_validate(item) for item in history],
+        messages=[TeacherAgentSessionMessage(role=item.role, content=item.content, created_at=item.created_at) for item in message_rows],
+        generated_papers=[GeneratedPaperSessionRead(paper_id=item.paper_id, created_at=item.created_at) for item in generated_papers],
         workspace=(
             TeacherAgentWorkspaceRead(
                 active_type=workspace.active_type,

@@ -442,7 +442,14 @@ class GenerationService:
                     learning_context.scope_names
                 )
                 if learning_context.knowledge_names:
+                    # A diagnostic-led “专项练习” is not an advisory chapter
+                    # preference. Every selected question must satisfy the
+                    # diagnosed knowledge target; otherwise the generated paper
+                    # silently expands into a whole-chapter exercise.
                     patch_values["knowledge_preferences"] = list(
+                        learning_context.knowledge_names
+                    )
+                    patch_values["required_knowledge_names"] = list(
                         learning_context.knowledge_names
                     )
 

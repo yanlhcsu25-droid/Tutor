@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert, Button, Card, Empty, InputNumber, List, Modal, Progress, Radio, Select, Space,
+  Alert, Button, Card, Empty, List, Modal, Progress, Radio, Select, Space,
   Tag, Tooltip, Typography, Upload, message,
 } from "antd";
 import { DeleteOutlined, FilePdfOutlined, PlusOutlined } from "@ant-design/icons";
@@ -61,7 +61,6 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
   const [loadError, setLoadError] = useState("");
   const [solutionMode, setSolutionMode] = useState<"inline" | "separate">("inline");
   const [ocrMode, setOcrMode] = useState<"mineru" | "ppstructure">("mineru");
-  const [ranges, setRanges] = useState({ questionStart: 1, questionEnd: 1, solutionStart: 2, solutionEnd: 2 });
   const [preview, setPreview] = useState<{ sourceId: string; page: number; total: number; markdown: string } | null>(null);
 
   const refresh = useCallback(async () => {
@@ -128,12 +127,6 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
       message.error("PDF 不能超过 200MB");
       return false;
     }
-    if (solutionMode === "separate" && (
-      ranges.questionStart > ranges.questionEnd || ranges.solutionStart > ranges.solutionEnd
-    )) {
-      message.error("页码范围起始页不能大于结束页");
-      return false;
-    }
     setUploading(true);
     const sourceFileId = `src_${crypto.randomUUID().replaceAll("-", "")}`;
     setActiveSourceId(sourceFileId);
@@ -142,10 +135,6 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
         sourceFileId,
         ocrMode,
         solutionMode,
-        questionPageStart: ranges.questionStart,
-        questionPageEnd: ranges.questionEnd,
-        solutionPageStart: ranges.solutionStart,
-        solutionPageEnd: ranges.solutionEnd,
       });
       message.success(result.deduplicated ? "已找到相同的历史 PDF" : `OCR 完成，识别 ${result.question_count} 道题`);
       await refresh();
@@ -214,16 +203,7 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
           />
         </Space>
         {solutionMode === "separate" && (
-          <Space wrap size="small">
-            <Typography.Text>题目页</Typography.Text>
-            <InputNumber min={1} value={ranges.questionStart} onChange={(value) => setRanges({ ...ranges, questionStart: value ?? 1 })} />
-            <Typography.Text>至</Typography.Text>
-            <InputNumber min={1} value={ranges.questionEnd} onChange={(value) => setRanges({ ...ranges, questionEnd: value ?? 1 })} />
-            <Typography.Text>答案页</Typography.Text>
-            <InputNumber min={1} value={ranges.solutionStart} onChange={(value) => setRanges({ ...ranges, solutionStart: value ?? 1 })} />
-            <Typography.Text>至</Typography.Text>
-            <InputNumber min={1} value={ranges.solutionEnd} onChange={(value) => setRanges({ ...ranges, solutionEnd: value ?? 1 })} />
-          </Space>
+          <Typography.Text type="secondary">将根据 OCR Markdown 自动识别“参考答案/解析”区域并按题号匹配</Typography.Text>
         )}
         <Space>
           <Upload accept=".pdf,application/pdf" showUploadList={false} beforeUpload={handleUpload} disabled={uploading}>

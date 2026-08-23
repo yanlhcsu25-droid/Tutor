@@ -43,7 +43,7 @@ from .ocr import (
     run_ocr_into_database,
     trace_split_pages,
 )
-from .import_pipeline import DocumentLayout, import_document
+from .import_pipeline import DocumentLayout, import_document, infer_separate_layout
 from .ai_content_review import (
     audit_content_with_llm,
     deterministic_content_issues,
@@ -208,10 +208,29 @@ def _get_db(session: Session) -> WorkbenchDatabase:
 
 # ── source CRUD ──
 
+def _materialize_display_layout(db: WorkbenchDatabase, source: dict[str, Any]) -> dict[str, Any]:
+    """Expose inferred page ranges for older auto-layout sources too."""
+    layout = dict(source.get("layout") or {})
+    if layout.get("solution_mode") != "separate" or layout.get("question_pages") or layout.get("solution_pages"):
+        return source
+    try:
+        pages = db.list_pages(source["source_file_id"])
+        inferred = infer_separate_layout([
+            (item["page_number"], item.get("edited_markdown") or item.get("raw_markdown", ""))
+            for item in pages
+        ])
+    except (ValueError, KeyError):
+        return source
+    layout.update(inferred.to_dict())
+    source["layout"] = layout
+    return source
+
+
 @app.get("/api/sources")
 def list_sources() -> dict[str, Any]:
     with _get_session() as session:
-        return {"items": _get_db(session).list_sources()}
+        db = _get_db(session)
+        return {"items": [_materialize_display_layout(db, item) for item in db.list_sources()]}
 
 
 @app.post("/api/sources")
@@ -233,18 +252,21 @@ async def upload_source(
     if ocr_mode not in {"mineru", "ppstructure", "page_recall"}:
         raise HTTPException(status_code=400, detail="不支持的 OCR 方式")
     if solution_mode == "separate":
+        # 套卷不再要求人工填写页码；OCR 完成后由 Markdown 内容自动识别答案区。
+        # 保留旧字段以兼容旧客户端，但只接受“全部填写”这一旧格式，避免半套范围
+        # 与自动识别结果混用。
         values = (question_page_start, question_page_end, solution_page_start, solution_page_end)
-        if any(value is None or value < 1 for value in values):
-            raise HTTPException(status_code=400, detail="套卷模式必须填写有效的题目页和答案页范围")
-        assert question_page_start is not None and question_page_end is not None
-        assert solution_page_start is not None and solution_page_end is not None
-        if question_page_start > question_page_end or solution_page_start > solution_page_end:
-            raise HTTPException(status_code=400, detail="页码范围起始页不能大于结束页")
-        layout = DocumentLayout(
-            solution_mode="separate",
-            question_pages=list(range(question_page_start, question_page_end + 1)),
-            solution_pages=list(range(solution_page_start, solution_page_end + 1)),
-        )
+        any_range = any(value is not None for value in values)
+        if any_range:
+            if any(value is None or value < 1 for value in values):
+                raise HTTPException(status_code=400, detail="页码范围必须全部填写，或全部留空使用自动识别")
+            assert question_page_start is not None and question_page_end is not None
+            assert solution_page_start is not None and solution_page_end is not None
+            if question_page_start > question_page_end or solution_page_start > solution_page_end:
+                raise HTTPException(status_code=400, detail="页码范围起始页不能大于结束页")
+            layout = DocumentLayout("separate", list(range(question_page_start, question_page_end + 1)), list(range(solution_page_start, solution_page_end + 1)))
+        else:
+            layout = DocumentLayout("separate")
     else:
         layout = DocumentLayout(solution_mode="inline")
     source_file_id = source_file_id or f"src_{uuid.uuid4().hex}"
@@ -405,7 +427,25 @@ async def upload_source(
         db = _get_db(session)
         if layout.solution_mode == "inline":
             layout = DocumentLayout("inline", list(range(1, actual_page_count + 1)), [])
+        elif not layout.question_pages and not layout.solution_pages:
+            # OCR 阶段已根据 Markdown 完成自动匹配；这里将推断结果保存下来，
+            # 供审核界面按“题目/答案”两个页签展示。
+            pages = db.list_pages(source_file_id)
+            page_inputs = [
+                (item["page_number"], item.get("edited_markdown") or item.get("raw_markdown", ""))
+                for item in pages
+            ]
+            layout = infer_separate_layout(page_inputs)
         saved_layout = layout.to_dict()
+        if layout.solution_mode == "separate" and layout.solution_pages:
+            # 如果答案标题出现在答案起始页的中间，该页在展示上同时属于两侧；
+            # 实际匹配仍使用不重叠的 question_pages，避免答案被当成题目。
+            first_solution_page = layout.solution_pages[0]
+            page = next((text for number, text in page_inputs if number == first_solution_page), "") if 'page_inputs' in locals() else ""
+            answer_marker = re.search(r"(?im)^\s*(?:#{1,4}\s*)?(?:参考答案|参考解答|答案与解析|答案解析|试题答案|习题答案|答案|解析|解答)\s*[:：]?\s*$", page)
+            question_before_answer = bool(answer_marker and re.search(r"(?m)^\s*\d{1,3}[、.．]", page[:answer_marker.start()]))
+            saved_layout["display_question_pages"] = list(layout.question_pages) + ([first_solution_page] if question_before_answer and first_solution_page not in layout.question_pages else [])
+            saved_layout["display_solution_pages"] = list(layout.solution_pages)
         saved_layout["ocr_mode"] = ocr_mode
         saved_layout["workflow_stage"] = "markdown_reviewing"
         db.save_source_layout(source_file_id, saved_layout)
@@ -556,7 +596,7 @@ def get_question(question_id: str) -> dict[str, Any]:
         db = _get_db(session)
         question = _question_or_404(db, question_id)
         source = _source_or_404(db, question["source_file_id"])
-        return {"question": question, "source": source}
+        return {"question": question, "source": _materialize_display_layout(db, source)}
 
 
 @app.patch("/api/questions/{question_id}")

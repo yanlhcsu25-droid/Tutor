@@ -161,14 +161,10 @@ type ChatMessage =
 
 type GenerationSection = { question_type: string; count: number; score_each?: number | null; total_score?: number | null };
 type GenerationPlanPatch = { question_type: string; count?: number; score_each?: number };
-type TeacherAgentConversationSummary = {
-  conversation_id: string;
-  last_message_at: string;
-  title: string;
-};
 type TeacherAgentSession = {
   conversation_id: string;
-  messages: { role: string; content: string }[];
+  messages: { role: string; content: string; created_at?: string | null }[];
+  generated_papers?: { paper_id: string; created_at: string }[];
   workspace?: { active_type?: string | null; current_paper_id?: string | null; current_version_id?: string | null } | null;
   active_teaching_design?: { title: string; version: number; status: string } | null;
   pending_generation?: {
@@ -255,7 +251,6 @@ export default function AgentWorkspace() {
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState(loadConversationId);
   const [restoringSession, setRestoringSession] = useState(true);
-  const [conversationHistory, setConversationHistory] = useState<TeacherAgentConversationSummary[]>([]);
 
   // ── blueprint/paper state (kept for compatibility) ──
   const [blueprintId, setBlueprintId] = useState<string | null>(null);
@@ -292,12 +287,35 @@ export default function AgentWorkspace() {
             pending_version: pending.pending_version,
           });
         }
-        setMessages(restoredMessages);
-        setCurrentPaperId(
-          restored.workspace?.current_version_id
+        const restoredPaperId = restored.workspace?.current_version_id
           ?? restored.workspace?.current_paper_id
-          ?? null,
-        );
+          ?? null;
+        const generatedPapers = restored.generated_papers ?? [];
+        let insertedPaperCount = 0;
+        for (const generated of generatedPapers) {
+          try {
+            const paperResponse = await fetch(`${API}/papers/${encodeURIComponent(generated.paper_id)}`);
+            if (!paperResponse.ok) continue;
+            const savedPaper: SavedPaper = await paperResponse.json();
+            // Generation records are timestamped independently from messages.
+            // Insert the card after the last message that existed at generation time,
+            // instead of appending every restored card to the end.
+            let insertAt = restored.messages.filter((item) =>
+              item.created_at && item.created_at <= generated.created_at,
+            ).length;
+            insertAt = Math.min(insertAt + insertedPaperCount, restoredMessages.length);
+            restoredMessages.splice(insertAt, 0, {
+              role: "agent", type: "paper_ready", paperId: savedPaper.paper_id,
+              version: savedPaper.version, preview: savedPaper.preview,
+              validationReport: savedPaper.validation_report,
+            });
+            insertedPaperCount += 1;
+          } catch {
+            // 历史文字仍可恢复；试卷读取失败不阻断会话恢复。
+          }
+        }
+        setMessages(restoredMessages);
+        setCurrentPaperId(restoredPaperId);
       } catch (e) {
         if (!cancelled) message.error(String(e));
       } finally {
@@ -308,21 +326,10 @@ export default function AgentWorkspace() {
     return () => { cancelled = true; };
   }, [conversationId]);
 
+  // 通知布局侧栏刷新选中状态及新产生的会话标题。
   useEffect(() => {
-    let cancelled = false;
-    const loadConversationHistory = async () => {
-      try {
-        const response = await fetch(`${API}/teacher-agent/conversations`);
-        if (!response.ok) throw new Error("历史会话加载失败");
-        const data: TeacherAgentConversationSummary[] = await response.json();
-        if (!cancelled) setConversationHistory(data);
-      } catch (error) {
-        if (!cancelled) message.error(String(error));
-      }
-    };
-    void loadConversationHistory();
-    return () => { cancelled = true; };
-  }, [conversationId, messages.length]);
+    window.dispatchEvent(new Event("teacher-agent:conversation-change"));
+  }, [conversationId]);
 
   const handleSelectConversation = useCallback((id: string) => {
     if (id === conversationId) return;
@@ -353,6 +360,16 @@ export default function AgentWorkspace() {
     setBlueprintId(null);
     setCurrentPaperId(null);
   }, []);
+
+  // 侧栏会话列表位于 App 布局中，通过浏览器事件同步当前会话。
+  useEffect(() => {
+    const syncConversation = () => {
+      const id = loadConversationId();
+      if (id !== conversationId) handleSelectConversation(id);
+    };
+    window.addEventListener("teacher-agent:conversation-change", syncConversation);
+    return () => window.removeEventListener("teacher-agent:conversation-change", syncConversation);
+  }, [conversationId, handleSelectConversation]);
 
   const call = async (path: string, body: unknown) => {
     const r = await fetch(`${API}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -811,45 +828,18 @@ export default function AgentWorkspace() {
 
   // ── render ──
   return (
-    <div style={{ display: "flex", height: "100%" }}>
-      <aside style={{ width: 250, flex: "0 0 250px", borderRight: "1px solid #f0f0f0", background: "#fafafa", overflow: "auto" }}>
-        <div style={{ padding: "16px 14px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography.Text strong>历史会话</Typography.Text>
-          <Button size="small" type="text" icon={<PlusOutlined />} onClick={handleNewConversation}>新建</Button>
-        </div>
-        {conversationHistory.length === 0 ? (
-          <Typography.Text type="secondary" style={{ display: "block", padding: "12px 14px" }}>暂无历史会话</Typography.Text>
-        ) : conversationHistory.map((item) => (
-          <button
-            key={item.conversation_id}
-            type="button"
-            onClick={() => handleSelectConversation(item.conversation_id)}
-            style={{
-              width: "100%", border: 0, borderBottom: "1px solid #f0f0f0", textAlign: "left",
-              padding: "12px 14px", cursor: "pointer",
-              background: item.conversation_id === conversationId ? "#e6f4ff" : "transparent",
-            }}
-          >
-            <Typography.Text ellipsis style={{ display: "block", maxWidth: 220 }}>{item.title}</Typography.Text>
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {new Date(item.last_message_at).toLocaleString()}
-            </Typography.Text>
-          </button>
-        ))}
-      </aside>
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minWidth: 0, maxWidth: 800, margin: "0 auto", padding: "0 24px" }}>
+    <div className="agent-workspace">
+      <div className="agent-chat-shell">
       {/* messages area */}
-      <div style={{ flex: 1, overflow: "auto", padding: "16px 0" }}>
+      <div className="agent-messages">
         {!restoringSession && messages.length === 0 && (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <RobotOutlined style={{ fontSize: 48, color: "#d9d9d9" }} />
-            <Typography.Title level={4} type="secondary" style={{ marginTop: 16 }}>
-              MathPaper Agent
-            </Typography.Title>
+          <div className="agent-empty-state">
+            <div className="agent-empty-mark"><RobotOutlined /></div>
+            <Typography.Title level={3}>从一个教学目标开始</Typography.Title>
             <Typography.Paragraph type="secondary">
-              我可以根据你的要求生成高等数学试卷。
+              告诉我章节、题量或难度，我来整理成可编辑的组卷方案。
             </Typography.Paragraph>
-            <Space wrap style={{ justifyContent: "center" }}>
+            <Space wrap className="agent-template-list">
               {TEMPLATES.map((t) => (
                 <Button key={t.label} size="small" onClick={() => setInput(t.prompt)}>
                   {t.label}
@@ -890,13 +880,11 @@ export default function AgentWorkspace() {
       </Modal>
 
       {/* input area */}
-      <div style={{ borderTop: "1px solid #f0f0f0", padding: "12px 0", background: "#fff" }}>
-        <Space style={{ marginBottom: 8 }}>
-          <Button size="small" icon={<PlusOutlined />} onClick={handleNewConversation}>
-            新建对话
-          </Button>
-        </Space>
-        <Space wrap style={{ marginBottom: 8 }}>
+      <div className="agent-composer">
+        <div className="agent-composer-actions">
+          <Button size="small" type="text" icon={<PlusOutlined />} onClick={handleNewConversation}>新建对话</Button>
+        </div>
+        <Space wrap className="agent-composer-templates">
           {TEMPLATES.map((t) => (
             <Button key={t.label} size="small" type="dashed" onClick={() => setInput(t.prompt)}>
               {t.label}
@@ -913,10 +901,9 @@ export default function AgentWorkspace() {
           autoSize={{ minRows: 2, maxRows: 6 }}
           disabled={loading || restoringSession}
         />
-        <div style={{ textAlign: "right", marginTop: 4 }}>
-          <Button type="primary" icon={<SendOutlined />} loading={loading} disabled={restoringSession || !input.trim()} onClick={() => void handleSend()}>
-            发送
-          </Button>
+        <div className="agent-send-row">
+          <Typography.Text type="secondary">Enter 发送 · Shift + Enter 换行</Typography.Text>
+          <Button type="primary" shape="circle" aria-label="发送" icon={<SendOutlined />} loading={loading} disabled={restoringSession || !input.trim()} onClick={() => void handleSend()} />
         </div>
       </div>
       </div>

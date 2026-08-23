@@ -4,6 +4,8 @@ const COMMANDS: Record<string, string> = {
   lim: "lim", sin: "sin", cos: "cos", tan: "tan", log: "log", ln: "ln",
   infty: "∞", to: "→", cdot: "·", times: "×", pi: "π", alpha: "α",
   beta: "β", delta: "δ", Delta: "Δ", theta: "θ", lambda: "λ",
+  left: "", right: "", quad: "", qquad: "",
+  mathrm: "", operatorname: "",
 };
 
 const escapeHtml = (value: string) => value
@@ -17,7 +19,17 @@ function atom(value: string, kind: "mi" | "mn" | "mo" = "mi") {
   return `<${kind}>${escapeHtml(value)}</${kind}>`;
 }
 
+function decodeMathEntities(value: string): string {
+  return value
+    .replaceAll("&gt;", ">")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&amp;", "&");
+}
+
 function parseLatex(source: string): string {
+  source = decodeMathEntities(source);
   let index = 0;
   const readGroup = () => {
     while (source[index] === " ") index += 1;
@@ -39,6 +51,7 @@ function parseLatex(source: string): string {
         return `<mfrac>${readGroup()}${readGroup()}</mfrac>`;
       }
       const value = COMMANDS[match[0]] ?? match[0];
+      if (value === "") return "";
       return atom(value, value.length > 1 && !COMMANDS[match[0]] ? "mi" : "mo");
     }
     const value = source[index++] ?? "";

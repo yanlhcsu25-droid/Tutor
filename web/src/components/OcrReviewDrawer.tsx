@@ -80,8 +80,8 @@ export default function OcrReviewDrawer({ open, onClose, initialSourceId }: Prop
     if (!knowledgeId) return "未设置";
     return knowledgeOptions.find((item) => item.knowledge_id === knowledgeId)?.name ?? "加载中…";
   };
-  const questionPages = source?.layout?.question_pages ?? [];
-  const solutionPages = source?.layout?.solution_pages ?? [];
+  const questionPages = source?.layout?.display_question_pages ?? source?.layout?.question_pages ?? [];
+  const solutionPages = source?.layout?.display_solution_pages ?? source?.layout?.solution_pages ?? [];
   const hasSeparatePages = source?.layout?.solution_mode === "separate" && solutionPages.length > 0;
   const visiblePdfPages = hasSeparatePages
     ? (pdfSection === "questions" ? questionPages : solutionPages)

@@ -28,16 +28,18 @@ class DocumentLayout:
     solution_pages: list[int] = field(default_factory=list)
 
     def validate(self, available_pages: set[int]) -> None:
+        # separate 模式允许两个页表都为空：表示稍后依据 OCR Markdown 自动识别答案区。
         questions = set(self.question_pages) if self.question_pages else available_pages
         solutions = set(self.solution_pages)
         missing = (questions | solutions) - available_pages
         if missing:
             raise ValueError(f"页码超出 PDF 范围：{sorted(missing)}")
         if self.solution_mode == "separate":
-            if not questions or not solutions:
-                raise ValueError("套卷模式必须同时指定题目页和答案页")
-            if questions & solutions:
-                raise ValueError("题目页和答案页不能重叠")
+            if self.question_pages and self.solution_pages:
+                if questions & solutions:
+                    raise ValueError("题目页和答案页不能重叠")
+            elif self.question_pages or self.solution_pages:
+                raise ValueError("自动识别模式不能只指定一类页码")
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -372,17 +374,33 @@ def match_questions_and_solutions(
     diagnostics = ImportDiagnostics()
     output: list[PlacedCandidate] = []
     all_keys = set(q_by_key) | set(s_by_key)
+    # 题目页常有章节标题（section_key），答案页通常没有。为 separate
+    # 套卷准备一个安全兜底：仅当标准化题号在两侧都唯一时允许跨 section 匹配。
+    q_by_number: dict[str, list[QuestionStub]] = {}
+    s_by_number: dict[str, list[SolutionCandidate]] = {}
+    for item in questions:
+        q_by_number.setdefault(normalize_match_number(item.candidate.original_number), []).append(item)
+    for item in solutions:
+        s_by_number.setdefault(normalize_match_number(item.key[1]), []).append(item)
     ambiguous = {key for key in all_keys if len(q_by_key.get(key, [])) != 1 or len(s_by_key.get(key, [])) > 1}
     diagnostics.ambiguous_keys = [f"{section or '-'}:{number}" for section, number in sorted(ambiguous, key=str)]
 
     unmatched_questions: list[QuestionStub] = []
     for question in questions:
         matches = s_by_key.get(question.key, [])
+        match_method = "exact_number"
+        # section_key 不一致时，仅使用唯一题号兜底；绝不按位置 zip。
+        if not matches:
+            number = normalize_match_number(question.candidate.original_number)
+            number_matches = s_by_number.get(number, [])
+            if len(q_by_number.get(number, [])) == 1 and len(number_matches) == 1:
+                matches = number_matches
+                match_method = "number_only"
         candidate = question.candidate
-        if len(q_by_key[question.key]) == 1 and len(matches) == 1:
+        if len(q_by_number.get(normalize_match_number(question.candidate.original_number), [])) == 1 and len(matches) == 1:
             candidate.answer = matches[0].answer
             candidate.analysis = matches[0].analysis
-            candidate.match_method = "exact_number"
+            candidate.match_method = match_method
             candidate.matched = True
             candidate.match_status = "matched"
             candidate.answer_page = matches[0].page_number
@@ -406,19 +424,71 @@ def match_questions_and_solutions(
             candidate.review_note = "题号重复或参考解答归属存在歧义，未自动匹配，请人工核对。"
 
     for solution in solutions:
-        if len(q_by_key.get(solution.key, [])) != 1 or len(s_by_key[solution.key]) != 1:
+        exact_question_matches = q_by_key.get(solution.key, [])
+        number = normalize_match_number(solution.key[1])
+        number_question_matches = q_by_number.get(number, [])
+        if (
+            (len(exact_question_matches) != 1 or len(s_by_key[solution.key]) != 1)
+            and not (len(number_question_matches) == 1 and len(s_by_number.get(number, [])) == 1)
+        ):
             diagnostics.unmatched_solutions.append(solution)
     return ImportResult(output, diagnostics)
+
+
+_ANSWER_SECTION_RE = re.compile(
+    r"(?im)^\s*(?:#{1,4}\s*)?(?:参考答案|参考解答|答案与解析|答案解析|试题答案|习题答案|答案|解析|解答)\s*[:：]?\s*$"
+)
+_ANSWER_PAGE_HINT_RE = re.compile(
+    r"(?im)(?:^\s*第\s*\d+\s*题\s*[:：]?|^\s*(?:解|证|解析)\s*[:：])"
+)
+
+
+def infer_separate_layout(pages: Sequence[tuple[int, str]]) -> DocumentLayout:
+    """从整份 OCR Markdown 推断题目页/答案页边界。
+
+    这是保守识别：优先使用“参考答案/答案与解析”等明确标题；没有标题时，
+    只接受同时具备答案页题号和“解/证/解析”特征的页面，避免把题目中的“答案”
+    误当成答案区。识别失败会明确报错，绝不按顺序强行配对。
+    """
+    ordered = sorted(pages, key=lambda item: item[0])
+    if len(ordered) < 2:
+        raise ValueError("自动识别答案区至少需要题目页和答案页")
+    scores: list[tuple[int, int]] = []
+    for number, markdown in ordered:
+        score = 0
+        if _ANSWER_SECTION_RE.search(markdown):
+            score += 5
+        if _ANSWER_PAGE_HINT_RE.search(markdown):
+            score += 2
+        # 答案页通常没有连续的题干式一级题号，且含多个“第N题”。
+        if len(re.findall(r"(?m)^\s*第\s*\d+\s*题", markdown)) >= 2:
+            score += 2
+        scores.append((number, score))
+    starts = [number for number, score in scores if score >= 5]
+    if not starts:
+        starts = [number for number, score in scores if score >= 4]
+    if not starts:
+        raise ValueError("未能根据 OCR Markdown 识别答案区，请确认答案页包含“参考答案/解析”或“第N题 解”标记")
+    solution_start = min(starts)
+    question_pages = [number for number, _ in ordered if number < solution_start]
+    solution_pages = [number for number, _ in ordered if number >= solution_start]
+    if not question_pages or not solution_pages:
+        raise ValueError(f"自动识别到答案区起始页为第{solution_start}页，但题目页或答案页为空")
+    return DocumentLayout("separate", question_pages, solution_pages)
 
 
 def import_document(pages: Sequence[tuple[int, str]], layout: DocumentLayout) -> ImportResult:
     available = {number for number, _ in pages}
     layout.validate(available)
     by_number = dict(pages)
-    question_numbers = layout.question_pages or sorted(available)
-    question_pages = [(number, by_number[number]) for number in question_numbers]
     if layout.solution_mode == "inline":
-        return ImportResult(split_pages_into_candidates(question_pages))
-    questions = extract_questions(question_pages)
-    solutions = extract_solutions([(number, by_number[number]) for number in layout.solution_pages])
+        question_numbers = layout.question_pages or sorted(available)
+        return ImportResult(split_pages_into_candidates(
+            [(number, by_number[number]) for number in question_numbers]
+        ))
+    effective_layout = layout
+    if not layout.question_pages and not layout.solution_pages:
+        effective_layout = infer_separate_layout(pages)
+    questions = extract_questions([(number, by_number[number]) for number in effective_layout.question_pages])
+    solutions = extract_solutions([(number, by_number[number]) for number in effective_layout.solution_pages])
     return match_questions_and_solutions(questions, solutions)

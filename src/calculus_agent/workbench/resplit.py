@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .database import WorkbenchDatabase
-from .import_pipeline import DocumentLayout, ImportDiagnostics, import_document
+from .import_pipeline import DocumentLayout, ImportDiagnostics, import_document, infer_separate_layout
 from .ocr import (
     RenderedDraft,
     page_has_continuation,
@@ -238,10 +238,14 @@ def build_plan(
     layout = DocumentLayout.from_dict(source.get("layout"), available_pages=sorted(new_texts))
     if layout.solution_mode == "separate":
         layout.validate(set(new_texts))
-        processed_pages = sorted(set(layout.question_pages + layout.solution_pages))
+        pipeline_layout = (
+            infer_separate_layout(list(new_texts.items()))
+            if not layout.question_pages and not layout.solution_pages
+            else layout
+        )
+        processed_pages = sorted(set(pipeline_layout.question_pages + pipeline_layout.solution_pages))
         start, end = min(processed_pages), max(processed_pages)
-        affected = list(layout.question_pages)
-        pipeline_layout = layout
+        affected = list(pipeline_layout.question_pages)
         pipeline_pages = [(number, new_texts[number]) for number in processed_pages]
     else:
         start, end = _resolve_range(old_texts, new_texts, target_page)

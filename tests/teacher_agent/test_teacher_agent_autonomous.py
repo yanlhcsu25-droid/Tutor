@@ -361,6 +361,7 @@ def test_followup_generation_inherits_validated_learning_context(session):
         "第三章 微分中值定理与导数的应用"
     ]
     assert "洛必达法则" in pending.request.knowledge_preferences
+    assert pending.request.required_knowledge_names == ["洛必达法则"]
 
 
 def test_teaching_design_cannot_complete_without_persisted_design(session):

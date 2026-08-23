@@ -10,7 +10,23 @@ async function request<T = unknown>(path: string, options: RequestInit = {}): Pr
     const detail = typeof data === "object" && data !== null && "detail" in data
       ? (data as Record<string, unknown>).detail
       : data;
-    throw new Error(String(detail ?? "请求失败"));
+    let readable = "请求失败";
+    if (Array.isArray(detail)) {
+      readable = detail.map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const value = item as Record<string, unknown>;
+          const location = Array.isArray(value.loc) ? value.loc.join(" → ") : "";
+          return `${location ? `${location}：` : ""}${String(value.msg ?? value.message ?? "参数错误")}`;
+        }
+        return String(item);
+      }).join("；");
+    } else if (typeof detail === "object" && detail !== null) {
+      readable = String((detail as Record<string, unknown>).msg ?? (detail as Record<string, unknown>).message ?? JSON.stringify(detail));
+    } else {
+      readable = String(detail ?? "请求失败");
+    }
+    throw new Error(readable);
   }
   return data as T;
 }
@@ -36,6 +52,9 @@ export const api = {
       body: body ? JSON.stringify(body) : undefined,
     }),
   delete: <T = unknown>(path: string) => request<T>(path, { method: "DELETE" }),
+  deleteWithBody: <T = unknown>(path: string, body: unknown) => request<T>(path, {
+    method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  }),
   upload: <T = unknown>(path: string, form: FormData) =>
     request<T>(path, { method: "POST", body: form }),
   text: async (path: string, body?: unknown): Promise<string> => {
@@ -50,6 +69,19 @@ export const api = {
 };
 
 // ── Workbench API（所有路径对应 /workbench 子应用）──────────────
+
+export const teacherAgent = {
+  listConversations: () => api.get<TeacherAgentConversationSummary[]>("/api/v1/teacher-agent/conversations"),
+  deleteConversations: (conversationIds: string[]) => api.deleteWithBody<{ deleted_count: number }>(
+    "/api/v1/teacher-agent/conversations", { conversation_ids: conversationIds },
+  ),
+};
+
+export interface TeacherAgentConversationSummary {
+  conversation_id: string;
+  last_message_at: string;
+  title: string;
+}
 
 export const wb = {
   // 来源
@@ -68,7 +100,11 @@ export const wb = {
     if (layout?.sourceFileId) form.append("source_file_id", layout.sourceFileId);
     form.append("ocr_mode", layout?.ocrMode ?? "mineru");
     form.append("solution_mode", layout?.solutionMode ?? "inline");
-    if (layout?.solutionMode === "separate") {
+    if (layout?.solutionMode === "separate"
+      && layout.questionPageStart != null
+      && layout.questionPageEnd != null
+      && layout.solutionPageStart != null
+      && layout.solutionPageEnd != null) {
       form.append("question_page_start", String(layout.questionPageStart));
       form.append("question_page_end", String(layout.questionPageEnd));
       form.append("solution_page_start", String(layout.solutionPageStart));
@@ -193,6 +229,8 @@ export interface WbSource {
     solution_mode?: "inline" | "separate";
     question_pages?: number[];
     solution_pages?: number[];
+    display_question_pages?: number[];
+    display_solution_pages?: number[];
     [key: string]: unknown;
   } | null;
   progress?: { current_page?: number; total_pages?: number; status?: string; error?: string; question_count?: number };
