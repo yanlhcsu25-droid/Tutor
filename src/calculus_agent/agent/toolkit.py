@@ -10,7 +10,9 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import Any
 
-from .tool_registry import AgentTool, ExecutedTool, execute_tool
+from calculus_agent.runtime.contracts import ToolResult
+
+from .tool_registry import AgentTool, execute_tool
 
 
 ToolDefinitionTransform = Callable[[AgentTool], dict]
@@ -64,16 +66,8 @@ class Toolkit:
         selected = names if names is not None else self.names(groups=groups)
         return [self.schema(name, transform=transform) for name in selected]
 
-    def execute(self, name: str, arguments: Any) -> ExecutedTool:
+    def execute(self, name: str, arguments: Any) -> ToolResult:
         tool = self._tools.get(name)
         if tool is None:
-            return ExecutedTool(
-                payload={
-                    "ok": False,
-                    "code": "unknown_tool",
-                    "message": f"不存在工具：{name}",
-                },
-                status="failed",
-                result_fields={"blocking_errors": ["unknown_tool"]},
-            )
+            return ToolResult.failure("unknown_tool", f"不存在工具：{name}")
         return execute_tool(tool, arguments)

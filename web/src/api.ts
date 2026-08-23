@@ -88,7 +88,6 @@ export const wb = {
   listSources: () => api.get<WbSourceList>("/workbench/api/sources"),
   uploadPdf: (file: File, layout?: {
     sourceFileId?: string;
-    ocrMode?: "mineru" | "ppstructure";
     solutionMode: "inline" | "separate";
     questionPageStart?: number;
     questionPageEnd?: number;
@@ -98,7 +97,6 @@ export const wb = {
     const form = new FormData();
     form.append("file", file);
     if (layout?.sourceFileId) form.append("source_file_id", layout.sourceFileId);
-    form.append("ocr_mode", layout?.ocrMode ?? "mineru");
     form.append("solution_mode", layout?.solutionMode ?? "inline");
     if (layout?.solutionMode === "separate"
       && layout.questionPageStart != null

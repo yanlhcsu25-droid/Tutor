@@ -4,23 +4,10 @@ from calculus_agent.workbench.import_pipeline import (
     normalize_match_number,
 )
 from calculus_agent.workbench.ocr import (
-    _page_recall_reordered_markdown,
     _selected_pages_for_layout,
     split_pages_into_candidates,
 )
 from calculus_agent.workbench.ocr import RawQuestion, _candidate_from_raw, split_candidate_subquestions
-
-
-def test_page_recall_reorders_side_by_side_question_anchors():
-    result = {"blocks": [
-        {"original_text": "1. 左题", "bbox": [100, 500, 180, 40]},
-        {"original_text": "A. 左选项", "bbox": [110, 560, 180, 40]},
-        {"original_text": "2. 右题", "bbox": [1100, 500, 180, 40]},
-        {"original_text": "A. 右选项", "bbox": [1110, 560, 180, 40]},
-    ]}
-    reordered = _page_recall_reordered_markdown(result)
-    assert reordered.index("1. 左题") < reordered.index("2. 右题")
-    assert reordered.index("左选项") < reordered.index("右题")
 
 
 def test_separate_layout_only_selects_question_and_solution_pages_for_ocr():

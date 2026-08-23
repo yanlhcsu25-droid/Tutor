@@ -1,0 +1,195 @@
+version: "0.1"
+
+suite:
+  name: reliability_failure_injection_v0
+  description: Deterministic failures for timeout, stale confirmation, supply, repetition, and malformed responses.
+
+defaults:
+  max_tool_rounds: 8
+  isolated_session: true
+
+cases:
+  - id: FI-001
+    category: error_handling
+    title: tool_timeout_is_not_success
+    setup:
+      current_paper: {question_count: 10, total_score: 100}
+    backend:
+      behavior: scripted
+      tool_fault:
+        tool: read_paper
+        code: tool_timeout
+        message: 工具调用超时。
+        status: failed
+      responses:
+        - tool_calls:
+            - id: timeout-1
+              type: function
+              function: {name: read_paper, arguments: "{}"}
+        - content: 工具超时，本轮未完成查询。
+    turns:
+      - user: 查询当前试卷。
+    expected: {status: failed}
+    forbidden:
+      response_claims: [查询成功, 已经查询到]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        require_trace: true
+        require_failed_tool: true
+
+  - id: FI-002
+    category: error_handling
+    title: stale_confirmation_is_rejected
+    setup:
+      pending_generation:
+        paper_type: chapter_test
+        scope_names: ["第一章 函数与极限"]
+        total_score: 100
+        question_count: 10
+    backend:
+      behavior: scripted
+      tool_fault:
+        tool: confirm_generation
+        code: stale_pending_version
+        message: 方案版本已经更新，请重新确认。
+        status: needs_clarification
+      responses:
+        - tool_calls:
+            - id: stale-1
+              type: function
+              function: {name: confirm_generation, arguments: "{}"}
+        - content: 方案版本已经更新，请重新确认。
+    turns:
+      - user: 确认旧版本方案。
+    expected: {status: waiting_confirmation}
+    forbidden:
+      response_claims: [已经生成, 生成成功]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        require_failed_tool: true
+
+  - id: FI-003
+    category: error_handling
+    title: insufficient_question_bank_is_recoverable
+    setup:
+      pending_generation:
+        paper_type: chapter_test
+        scope_names: ["第三章 导数与微分"]
+        total_score: 100
+        question_count: 20
+    backend:
+      behavior: scripted
+      tool_fault:
+        tool: confirm_generation
+        code: candidate_insufficient
+        message: 题库候选不足。
+        status: needs_clarification
+      responses:
+        - tool_calls:
+            - id: supply-1
+              type: function
+              function: {name: confirm_generation, arguments: "{}"}
+        - content: 题库候选不足，请调整范围或题量。
+    turns:
+      - user: 确认生成。
+    expected: {status: needs_clarification}
+    forbidden:
+      response_claims: [已经生成, 生成成功]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [needs_clarification]
+        require_failed_tool: true
+
+  - id: FI-004
+    category: error_handling
+    title: repeated_confirmation_without_pending_is_safe
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: repeat-1
+              type: function
+              function: {name: confirm_generation, arguments: "{}"}
+            - id: repeat-2
+              type: function
+              function: {name: confirm_generation, arguments: "{}"}
+        - content: 当前没有等待确认的方案。
+    turns:
+      - user: 再确认一次。
+    expected: {status: needs_clarification}
+    forbidden:
+      response_claims: [已经生成, 生成成功]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [needs_clarification]
+        require_failed_tool: true
+
+  - id: FI-005
+    category: error_handling
+    title: malformed_tool_arguments_fail_closed
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: malformed-1
+              type: function
+              function: {name: prepare_generation_plan, arguments: "{broken"}
+    turns:
+      - user: 第一章生成试卷。
+    expected: {status: failed}
+    forbidden:
+      response_claims: [已经生成, 生成成功]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        require_trace: true
+
+  - id: FI-006
+    category: error_handling
+    title: damaged_model_response_fail_closed
+    backend:
+      behavior: invalid_response
+      response: [not, an, object]
+    turns:
+      - user: 第一章生成试卷。
+    expected: {status: failed}
+    forbidden:
+      response_claims: [已经生成, 生成成功]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        require_trace: true
+
+  - id: FI-007
+    category: error_handling
+    title: malformed_tool_result_is_rejected
+    setup:
+      current_paper: {question_count: 10, total_score: 100}
+    backend:
+      behavior: scripted
+      tool_fault:
+        tool: read_paper
+        malformed_result: true
+      responses:
+        - tool_calls:
+            - id: malformed-result-1
+              type: function
+              function: {name: read_paper, arguments: "{}"}
+    turns:
+      - user: 查询当前试卷。
+    expected: {status: failed}
+    forbidden:
+      response_claims: [查询成功, 已经查询到]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        require_trace: true

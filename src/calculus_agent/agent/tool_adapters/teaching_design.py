@@ -294,6 +294,16 @@ def build_teaching_design_tools(context: Any) -> list[Any]:
             "draft",
             "awaiting_confirmation",
         }:
+            if active.source_user_message == context.user_message:
+                return ExecutedTool(
+                    payload={
+                        "ok": True,
+                        "confirmation_required": True,
+                        "teaching_design": active.model_dump(mode="json"),
+                    },
+                    status="waiting_confirmation",
+                    result_fields={"teaching_design": active},
+                )
             return failed(
                 "active_teaching_design_exists",
                 "当前已有未确认教学设计；应修改现有版本，而不是静默创建另一份设计。",

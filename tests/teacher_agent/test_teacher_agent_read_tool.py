@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from calculus_agent.agent.agent import run_teacher_agent
 from calculus_agent.agent.tool_registry import AgentExecutionContext, build_agent_tools
 from calculus_agent.agent.tools.read_tools import ReadCurrentPaperInput, read_current_paper
+from calculus_agent.papers.question_snapshot import capture_question_snapshot
 from calculus_agent.models import (
     AgentPendingReplacement,
     KnowledgeNode,
@@ -109,10 +110,31 @@ def _seed_paper(session, *, count: int = 5) -> Paper:
                 position=position,
                 score=position + 1,
                 locked=False,
+                question_snapshot_json=capture_question_snapshot(session, question.id),
             ),
         ])
     session.flush()
     return paper
+
+
+def test_paper_read_uses_immutable_question_snapshot(session):
+    paper = _seed_paper(session, count=1)
+    question = session.get(Question, "read-q1")
+    draft = session.get(QuestionDraft, "read-d1")
+    question.question_text = "题库修正后的题干 999"
+    question.final_answer = "新答案"
+    question.solution_json = {"solution_steps": ["新解析"]}
+    draft.options_json = ["A. 新选项"]
+    session.flush()
+
+    result = read_current_paper(
+        session,
+        current_paper_version_id=paper.id,
+        request=ReadCurrentPaperInput(positions=[1]),
+    )
+
+    assert result.questions[0].content == "第1题真实题干"
+    assert result.questions[0].options == ["A. 选项一", "B. 选项二"]
 
 
 def test_read_specific_question_returns_real_content_options_and_metadata(session):

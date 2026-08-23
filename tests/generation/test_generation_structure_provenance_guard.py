@@ -44,6 +44,16 @@ def test_default_generation_strips_model_invented_structure() -> None:
     assert "question_type_patches" not in guarded
 
 
+def test_repeated_behavior_cannot_be_inferred_as_long_term_teacher_preference() -> None:
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="prepare_generation_plan",
+        arguments={"paper_type": "chapter_test", "total_score": 100},
+        message="再出一套类似的。",
+    )
+
+    assert "total_score" not in guarded
+
+
 def test_explicit_total_score_keeps_score_but_not_invented_structure() -> None:
     guarded = _apply_explicit_opt_in_guards(
         tool_name="prepare_generation_plan",

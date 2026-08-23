@@ -32,7 +32,10 @@ class ToolLoop:
         if not isinstance(name, str) or not name:
             raise ValueError("agent_invalid_tool_call")
         raw = function.get("arguments", {})
-        arguments = json.loads(raw) if isinstance(raw, str) else raw
+        try:
+            arguments = json.loads(raw) if isinstance(raw, str) else raw
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise ValueError("agent_invalid_tool_arguments") from exc
         if not isinstance(arguments, dict):
             raise ValueError("agent_invalid_tool_arguments")
         return name, arguments

@@ -321,6 +321,8 @@ def read_current_paper(
     for item in selected:
         question = questions[item.question_id]
         draft = drafts.get(question.draft_id)
+        snapshot = item.question_snapshot_json or {}
+        question_text = snapshot.get("question_text", question.question_text)
 
         result_questions.append(
             CurrentPaperQuestion(
@@ -341,20 +343,20 @@ def read_current_paper(
                     [],
                 ),
                 preview=(
-                    _preview(question.question_text)
+                    _preview(question_text)
                     if overview
                     else None
                 ),
                 content=(
                     None
                     if overview
-                    else question.question_text
+                    else question_text
                 ),
                 options=(
                     []
                     if overview or draft is None
                     else list(
-                        draft.options_json or []
+                        snapshot.get("options", draft.options_json) or []
                     )
                 ),
             )

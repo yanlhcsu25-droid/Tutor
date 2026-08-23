@@ -392,8 +392,10 @@ export default function AgentWorkspace() {
     try {
       // Natural-language chat uses the Phase 2B Agent. The manual Blueprint
       // workspace continues to use /blueprints/parse independently.
+      const operationId = globalThis.crypto?.randomUUID?.() ?? `turn-${Date.now()}`;
       const r = await call("/teacher-agent/run", {
         message: text,
+        operation_id: operationId,
         conversation_id: conversationId,
         paper_id: currentPaperId,
         version_id: currentPaperId,

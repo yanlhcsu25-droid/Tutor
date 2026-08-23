@@ -35,13 +35,8 @@ def _final(message: str) -> dict:
     }
 
 
-def test_workspace_restore_passes_current_paper_to_read_tool(
-    session,
-    tmp_path,
-):
+def test_workspace_paper_is_not_an_implicit_operation_target(session, tmp_path):
     conversation_id = "workspace-restore-test"
-
-    # 准备 workspace
     WorkspaceService(session).update(
         conversation_id,
         {
@@ -49,16 +44,6 @@ def test_workspace_restore_passes_current_paper_to_read_tool(
             "current_version_id": "paper-test-001",
         },
     )
-    WorkspaceService(session).update(
-    conversation_id,
-    {
-        "current_paper_id": "paper-test-001",
-        "current_version_id": "paper-test-001",
-    },
-)
-
-# 不要 commit
-
     trace_dir = tmp_path / "agent-traces"
 
     result = run_teacher_agent(
@@ -67,18 +52,16 @@ def test_workspace_restore_passes_current_paper_to_read_tool(
         conversation_id=conversation_id,
         backend=_Backend(
             _tool("read_paper"),
-            _final("当前试卷读取完成。"),
+            _final("当前试卷读取失败。"),
         ),
         trace_recorder=AgentTraceRecorder(trace_dir),
     )
 
-    assert result.message == "当前试卷读取完成。"
-
+    assert result.status == "needs_clarification"
+    assert "no_current_paper" in result.blocking_errors
     trace = read_agent_traces(trace_dir)[0]
-
-    assert trace["paper_id"] == "paper-test-001"
-
-    assert trace["tool_calls"][0]["tool_name"] == "read_paper"
+    assert trace["paper_id"] is None
+    assert trace["tool_calls"][0]["result"]["code"] == "no_current_paper"
 
 def test_explicit_paper_context_has_priority_over_workspace(
     session,

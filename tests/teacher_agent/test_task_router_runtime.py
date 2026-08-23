@@ -49,7 +49,7 @@ def test_runtime_routes_direct_action_before_first_llm_call(session):
     assert "prepare_generation_plan" in _names(backend.requests[0])
 
 
-def test_runtime_routes_topic_only_teaching_planning_without_curriculum_tools(session):
+def test_runtime_artifact_request_cannot_end_as_prose_only_advice(session):
     backend = RecordingBackend()
 
     result = run_teacher_agent(
@@ -59,13 +59,13 @@ def test_runtime_routes_topic_only_teaching_planning_without_curriculum_tools(se
         backend=backend,
     )
 
-    assert result.status == "completed"
-    assert "当前任务模式：TEACHING_PLANNING" in _system_text(backend.requests[0])
+    assert result.status == "failed"
+    assert "teaching_design_not_created" in result.blocking_errors
+    assert "当前任务模式：TEACHING_DESIGN" in _system_text(backend.requests[0])
     names = _names(backend.requests[0])
     assert names == {
         "retrieve_curriculum_candidates",
         "select_teaching_scope",
-        "prepare_teaching_planning_draft",
     }
     assert "prepare_generation_plan" not in names
     assert "confirm_generation" not in names

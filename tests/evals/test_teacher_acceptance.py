@@ -68,6 +68,11 @@ def test_teacher_acceptance_suite_is_well_formed() -> None:
     assert {case.id for case in suite.cases} == EXPECTED_IDS
     assert len(suite.cases) == 10
     assert all(case.turns for case in suite.cases)
+    for case in suite.cases[:3]:
+        acceptance = next(item for item in case.graders if item["type"] == "acceptance")
+        assert "create_teaching_design" in acceptance["required_tools"]
+        assert "confirm_teaching_design" in acceptance["forbidden_tools"]
+        assert acceptance["statuses"] == ["waiting_confirmation"]
 
 
 @pytest.mark.skipif(

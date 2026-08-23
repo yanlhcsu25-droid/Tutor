@@ -125,6 +125,15 @@ class TeachingDesignWorkflow:
         service = TeachingDesignService(self.session)
         active = service.get_active(owner_key=owner_key, conversation_id=conversation_id)
         if active is not None and active.status in {"draft", "awaiting_confirmation"}:
+            if active.source_user_message == source_user_message:
+                return TeachingDesignWorkflowResult(
+                    ok=True,
+                    status="waiting_confirmation",
+                    teaching_design=active,
+                    curriculum_candidates=candidates,
+                    resolved_scope_names=scope_names,
+                    evidence_refs=evidence_refs,
+                )
             return self._failure(
                 "active_teaching_design_exists",
                 "当前已有未确认教学设计；应修改现有版本，而不是静默创建另一份设计。",

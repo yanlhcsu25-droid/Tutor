@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from calculus_agent.models import AdjustmentPlanRecord, KnowledgeNode, Paper, PaperBlueprintRecord, PaperItem, PaperOperationHistory, Question, QuestionKnowledgeLink, QuestionProfile
+from calculus_agent.papers.question_snapshot import capture_question_snapshot
 from calculus_agent.papers.workflow import _clone_version, _state_snapshot, validate_paper
 from calculus_agent.question_types import canonical_question_type
 
@@ -538,6 +539,9 @@ def confirm_adjust_paper(
                         position=-(100000 + add_index),
                         score=operation.score_after,
                         locked=False,
+                        question_snapshot_json=capture_question_snapshot(
+                            session, question.id
+                        ),
                     )
                     session.add(added)
                     additions_by_position[operation.position].append(added)
@@ -560,6 +564,9 @@ def confirm_adjust_paper(
                         replacement.question_type
                     )
                     clone.score = operation.score_after
+                    clone.question_snapshot_json = capture_question_snapshot(
+                        session, replacement.id
+                    )
                 else:
                     raise ValueError("unsupported_adjustment_operation")
             session.flush()

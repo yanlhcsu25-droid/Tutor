@@ -54,6 +54,7 @@ def test_teacher_agent_http_entry_delegates_to_phase2b_agent(monkeypatch, sessio
         conversation_id="human-entry-test",
         paper_id=None,
         version_id=None,
+        operation_id=None,
         backend=backend,
     )
 

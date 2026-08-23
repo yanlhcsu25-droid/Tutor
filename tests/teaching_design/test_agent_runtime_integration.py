@@ -15,6 +15,7 @@ from calculus_agent.models import (
     TeacherAgentSpan,
     Textbook,
 )
+from calculus_agent.teaching_design.models import TeachingDesignVersionRecord
 from calculus_agent.teaching_design.service import TeachingDesignService
 
 
@@ -42,6 +43,19 @@ def _call(name, arguments):
                         "arguments": arguments,
                     }
                 }
+            ],
+        }
+    }
+
+
+def _calls(*calls):
+    return {
+        "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {"id": f"call-{index}", "function": {"name": name, "arguments": arguments}}
+                for index, (name, arguments) in enumerate(calls, start=1)
             ],
         }
     }
@@ -126,15 +140,12 @@ def test_fresh_teaching_planning_request_exposes_design_creation_only(session):
         backend=backend,
     )
     surface = _tool_names(backend.requests[0])
-    assert "prepare_generation_plan" not in surface
-    assert "inspect_curriculum" in surface
-    assert "inspect_question_bank" in surface
-    assert "create_teaching_design" in surface
-    assert "search_teaching_design_history" not in surface
-    assert "activate_teaching_design" not in surface
+    assert surface == {
+        "inspect_curriculum", "inspect_question_bank", "create_teaching_design",
+    }
 
 
-def test_explicit_scoped_design_uses_single_workflow_entry_tool(session):
+def test_explicit_scoped_design_exposes_inspection_and_workflow_entry(session):
     _seed_curriculum(session)
     backend = ScriptedBackend([_text("我先为你整理教学设计需求。")])
 
@@ -145,7 +156,76 @@ def test_explicit_scoped_design_uses_single_workflow_entry_tool(session):
         backend=backend,
     )
 
-    assert _tool_names(backend.requests[0]) == {"create_teaching_design"}
+    assert _tool_names(backend.requests[0]) == {
+        "inspect_curriculum", "inspect_question_bank", "create_teaching_design",
+    }
+
+
+def test_hidden_tool_is_not_executable_in_teaching_design_stage(session):
+    _seed_curriculum(session)
+    backend = ScriptedBackend([
+        _call("prepare_generation_plan", {
+            "paper_type": "chapter_test", "scope_names": ["第一章"],
+        }),
+        _text("无法创建教学设计。"),
+    ])
+
+    result = run_teacher_agent(
+        session,
+        "请帮我设计一份第一章复习方案。",
+        conversation_id="tool-exposure-boundary",
+        backend=backend,
+    )
+
+    assert result.status == "failed"
+    assert "tool_not_exposed" in result.blocking_errors
+    trace = session.scalar(
+        select(TeacherAgentRunTrace).where(TeacherAgentRunTrace.run_id == result.run_id)
+    )
+    assert trace.tool_calls_json[0]["result"]["code"] == "tool_not_exposed"
+
+
+def test_persisted_operation_replays_without_duplicate_design(session):
+    _seed_curriculum(session)
+    content = _design_content() | {
+        "scope_names": ["第一章"],
+        "title": "第一章极限复习",
+        "objective": "帮助学生掌握极限基础。",
+    }
+    first_backend = ScriptedBackend([_call("create_teaching_design", {
+        "content": content,
+    })])
+
+    first = run_teacher_agent(
+        session,
+        "请帮我设计一份第一章复习方案，学生极限掌握不好。",
+        conversation_id="operation-replay",
+        operation_id="operation-replay-1",
+        backend=first_backend,
+    )
+    session.flush()
+    session.expire_all()
+    retry_backend = ScriptedBackend([])
+    replayed = run_teacher_agent(
+        session,
+        "请帮我设计一份第一章复习方案，学生极限掌握不好。",
+        conversation_id="operation-replay",
+        operation_id="operation-replay-1",
+        backend=retry_backend,
+    )
+
+    conflict = run_teacher_agent(
+        session,
+        "请创建另一份教学设计。",
+        conversation_id="operation-replay",
+        operation_id="operation-replay-1",
+        backend=retry_backend,
+    )
+
+    assert replayed == first
+    assert conflict.blocking_errors == ["operation_id_conflict"]
+    assert retry_backend.requests == []
+    assert session.query(TeachingDesignVersionRecord).count() == 1
 
 
 def test_workflow_entry_creates_design_after_one_semantic_tool_call(session):
@@ -156,7 +236,6 @@ def test_workflow_entry_creates_design_after_one_semantic_tool_call(session):
             "title": "第一章极限复习",
             "objective": "帮助学生掌握极限基础。",
         }}),
-        _text("已形成教学设计，请确认。"),
     ])
 
     result = run_teacher_agent(
@@ -169,8 +248,10 @@ def test_workflow_entry_creates_design_after_one_semantic_tool_call(session):
     assert result.status == "waiting_confirmation"
     assert result.teaching_design is not None
     assert result.teaching_design.content.scope_names == ["第1章"]
-    assert _tool_names(backend.requests[0]) == {"create_teaching_design"}
-    assert len(backend.requests) == 2
+    assert _tool_names(backend.requests[0]) == {
+        "inspect_curriculum", "inspect_question_bank", "create_teaching_design",
+    }
+    assert len(backend.requests) == 1
 
     trace = session.scalar(
         select(TeacherAgentRunTrace).where(TeacherAgentRunTrace.run_id == result.run_id)
@@ -185,10 +266,39 @@ def test_workflow_entry_creates_design_after_one_semantic_tool_call(session):
         .where(TeacherAgentSpan.span_type == "model_call")
         .order_by(TeacherAgentSpan.started_at)
     ))
-    # One tool-calling model round, followed only by result narration.
+    # The successful create Tool is a terminal confirmation boundary.
     assert model_spans[0].input_json["tool_round"] == 0
     assert model_spans[0].output_json["tool_calls"] == 1
     assert model_spans[0].output_json["tool_names"] == ["create_teaching_design"]
+
+
+def test_create_design_stops_same_response_before_confirmation(session):
+    _seed_curriculum(session)
+    backend = ScriptedBackend([
+        _calls(
+            ("create_teaching_design", {"content": _design_content() | {
+                "scope_names": ["第一章"],
+                "title": "第一章极限复习",
+                "objective": "帮助学生掌握极限基础。",
+            }}),
+            ("confirm_teaching_design", {}),
+        ),
+    ])
+
+    result = run_teacher_agent(
+        session,
+        "请帮我设计一份第一章复习方案。",
+        conversation_id="create-confirm-boundary",
+        backend=backend,
+    )
+
+    assert result.status == "waiting_confirmation"
+    trace = session.scalar(
+        select(TeacherAgentRunTrace).where(TeacherAgentRunTrace.run_id == result.run_id)
+    )
+    assert [call["tool_name"] for call in trace.tool_calls_json] == [
+        "create_teaching_design"
+    ]
 
 
 def test_real_conversation_revise_confirm_legacy_design_is_versioned_and_traceable(
@@ -273,7 +383,7 @@ def test_real_conversation_revise_confirm_legacy_design_is_versioned_and_traceab
     assert "revise_teaching_design" in _tool_names(revise_backend.requests[0])
     assert "confirm_teaching_design" not in _tool_names(revise_backend.requests[0])
     assert "create_teaching_design" not in _tool_names(revise_backend.requests[0])
-    assert revise_backend.requests[1][1] == []
+    assert len(revise_backend.requests) == 1
 
     confirm_backend = ScriptedBackend([
         _call("confirm_teaching_design", {}),

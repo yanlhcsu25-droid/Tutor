@@ -31,7 +31,7 @@ from calculus_agent.models import (
 )
 
 
-_CHAPTER_REF = re.compile(r"^第([一二三四五六七八九十百0-9]+)章(?:\s+.*)?$")
+_CHAPTER_REF = re.compile(r"^第([一二三四五六七八九十百0-9]+)章(?:\s*.*)?$")
 
 
 def _active_textbook_id(session: Session) -> str | None:

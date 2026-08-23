@@ -11,9 +11,6 @@ requires-python = ">=3.11,<3.15"
 dependencies = [
   "fastapi>=0.115",
   "ortools>=9.14,<10",
-  "paddlepaddle>=3.0",
-  "paddleocr>=3.0",
-  "paddlex[ocr]>=3.7",
   "pydantic-settings>=2.6",
   "python-multipart>=0.0.18",
   "pypdfium2>=5.0",

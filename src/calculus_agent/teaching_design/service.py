@@ -103,6 +103,18 @@ class TeachingDesignService:
         ready_for_confirmation: bool = True,
     ) -> TeachingDesignRead:
         validated = TeachingDesignContent.model_validate(content)
+        active = self.get_active(
+            owner_key=owner_key, conversation_id=conversation_id,
+        )
+        if (
+            active is not None
+            and active.status in {"draft", "awaiting_confirmation"}
+            and active.source_user_message == source_user_message
+        ):
+            # Replayed delivery of the same teacher request returns the existing
+            # immutable artifact instead of creating a duplicate version.
+            return active
+
         record = TeachingDesignVersionRecord(
             design_key=str(uuid.uuid4()),
             owner_key=owner_key,

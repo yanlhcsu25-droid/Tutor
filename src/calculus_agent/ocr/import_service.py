@@ -23,7 +23,6 @@ from calculus_agent.questions.chapter_assignment import (
 )
 
 from calculus_agent.models import (
-    CurriculumNode,
     KnowledgeNode,
     OcrImportDraft,
     Question,

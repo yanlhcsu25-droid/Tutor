@@ -264,7 +264,7 @@ def test_retrieval_selection_validation_continues_to_teaching_design(session, mo
     assert result.status == "waiting_confirmation"
     assert result.teaching_design is not None
     assert result.teaching_design.content.scope_names == ["第一章 函数与极限"]
-    assert backend.calls == 6
+    assert backend.calls == 5
     assert not result.blocking_errors
     assert all(term not in result.message for term in (
         "CurriculumNode",

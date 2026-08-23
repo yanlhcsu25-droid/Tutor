@@ -1,17 +1,9 @@
-"""OCR 服务层 — 上传、识别、审核、保存。
-
-流程：
-1. 上传图片/PDF → 保存到 uploads/ → 创建 OcrTask
-   - PDF: pypdfium2 逐页转 PNG，每页独立 OCR
-2. 通过子进程调用 PaddleOCR（避免内存崩溃）
-3. 前端展示原图 + OCR 结果对比 → 教师逐块审核/订正
-4. 保存 → 合并为 QuestionDraft
-"""
+"""Unified MinerU OCR service for uploads, review, and draft persistence."""
 
 import asyncio
 import hashlib
 import io
-import json
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -19,12 +11,10 @@ from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from calculus_agent.models import OcrBlock, OcrTask, QuestionDraft, Question, new_id
-from calculus_agent.ocr.doc_pipeline import parse_pdf_to_candidates, _TYPE_MAP
-from calculus_agent.ocr.pdf_preprocess import prepare_pdf_for_ocr, format_prepare_warning
+from calculus_agent.models import OcrBlock, OcrTask, QuestionDraft, Question
+from calculus_agent.ocr.mineru_adapter import content_blocks_to_pages, run_mineru
 
 UPLOADS_DIR = Path("uploads")
-_WORKER_SCRIPT = Path(__file__).resolve().parent / "ocr_worker.py"
 
 
 def _ensure_uploads() -> Path:
@@ -33,10 +23,7 @@ def _ensure_uploads() -> Path:
 
 
 def _save_upload(content: bytes, filename: str) -> Path:
-    uploads = _ensure_uploads()
-    ext = Path(filename).suffix.lower()
-    safe_name = f"{uuid.uuid4().hex}{ext}"
-    target = uploads / safe_name
+    target = _ensure_uploads() / f"{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
     target.write_bytes(content)
     return target
 
@@ -46,195 +33,88 @@ def _is_pdf(content: bytes) -> bool:
 
 
 def _pdf_to_page_images(content: bytes) -> list[bytes]:
-    """用 pypdfium2 将 PDF 逐页转为 PNG 图片字节。"""
     import pypdfium2 as pdfium
 
     pdf = pdfium.PdfDocument(content)
     pages: list[bytes] = []
-    for i in range(len(pdf)):
-        page = pdf[i]
-        bitmap = page.render(scale=2.0)  # 2x 提高清晰度
-        pil_image = bitmap.to_pil()
-        buf = io.BytesIO()
-        pil_image.save(buf, format="PNG")
-        pages.append(buf.getvalue())
-        page.close()
-    pdf.close()
+    try:
+        for page in pdf:
+            bitmap = page.render(scale=2.0)
+            image = bitmap.to_pil()
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            pages.append(buffer.getvalue())
+            page.close()
+    finally:
+        pdf.close()
     return pages
 
 
-async def _run_ocr_async(image_path: str) -> dict:
-    """异步子进程调用 PaddleOCR worker。"""
-    python = str(
-        Path(__file__).resolve().parents[3] / ".venv" / "bin" / "python"
+def _image_as_pdf(source: Path, target: Path) -> Path:
+    with Image.open(source) as image:
+        image.convert("RGB").save(target, format="PDF")
+    return target
+
+
+def _run_mineru_pages(pdf_path: Path) -> tuple[list[tuple[int, str]], dict]:
+    with tempfile.TemporaryDirectory(prefix="mineru-upload-") as output:
+        blocks, metrics = run_mineru(pdf_path, Path(output))
+    page_count = max(
+        (int(block.get("page_idx", -1)) for block in blocks), default=-1
+    ) + 1
+    return content_blocks_to_pages(blocks, tuple(range(1, page_count + 1))), metrics
+
+
+async def create_ocr_task_async(session: Session, content: bytes, filename: str) -> OcrTask:
+    """Run every image/PDF upload through MinerU and persist page Markdown blocks."""
+    source_path = _save_upload(content, filename)
+    is_pdf = _is_pdf(content)
+    pdf_path = source_path if is_pdf else _image_as_pdf(
+        source_path, source_path.with_suffix(".pdf")
     )
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            python, str(_WORKER_SCRIPT), image_path,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env={
-                **__import__("os").environ,
-                "PYTHONUNBUFFERED": "1",
-                "OMP_NUM_THREADS": "2",
-                "MKL_NUM_THREADS": "2",
-            },
-        )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=300)
-        if proc.returncode != 0:
-            err_msg = stderr.decode("utf-8", errors="replace")[:500] if stderr else "unknown"
-            return {
-                "status": "failed",
-                "engine": "paddleocr",
-                "warnings": [f"OCR worker exit code {proc.returncode}: {err_msg}"],
-                "blocks": [],
-            }
-        return json.loads(stdout.decode("utf-8"))
-    except asyncio.TimeoutError:
-        try:
-            proc.kill()
-        except Exception:
-            pass
-        return {
-            "status": "failed",
-            "engine": "paddleocr",
-            "warnings": ["OCR 识别超时（300s）"],
-            "blocks": [],
-        }
-    except json.JSONDecodeError:
-        return {
-            "status": "failed",
-            "engine": "paddleocr",
-            "warnings": ["OCR worker 返回数据格式错误"],
-            "blocks": [],
-        }
-
-
-def create_ocr_task(session: Session, content: bytes, filename: str) -> OcrTask:
-    """上传图片并创建 OCR 任务（立即返回，OCR 由后台 worker 异步处理）。"""
-    image_path = _save_upload(content, filename)
-
-    with Image.open(image_path) as img:
-        width, height = img.size
+    preview_bytes = _pdf_to_page_images(content) if is_pdf else [content]
+    preview_paths = [
+        str(_save_upload(page, f"page_{index}.png"))
+        for index, page in enumerate(preview_bytes, start=1)
+    ]
+    width = height = None
+    if preview_paths:
+        with Image.open(preview_paths[0]) as image:
+            width, height = image.size
 
     task = OcrTask(
         original_filename=filename,
-        image_path=str(image_path),
-        engine="paddleocr",
+        image_path=preview_paths[0] if preview_paths else str(source_path),
+        page_images_json=preview_paths,
+        engine="mineru",
         status="pending",
         image_width=width,
         image_height=height,
     )
     session.add(task)
-    return task
+    session.flush()
 
-
-def process_pending_task(session: Session, task_id: str) -> bool:
-    """对 pending 状态的 OCR 任务执行识别，更新结果并创建识别块。
-
-    应在后台线程/worker 中调用此函数。"""
-    task = session.get(OcrTask, task_id)
-    if task is None or task.status != "pending":
-        return False
-
-    result = asyncio.run(_run_ocr_async(task.image_path))
-
-    task.status = result["status"]
-    task.engine = result.get("engine", "paddleocr")
-    task.engine_version = result.get("engine_version")
-    task.duration_ms = result.get("duration_ms")
-    task.warnings_json = result.get("warnings", [])
-
-    for block_data in result.get("blocks", []):
-        bbox = block_data["bbox"]
+    pages, metrics = await asyncio.to_thread(_run_mineru_pages, pdf_path)
+    task.status = "completed"
+    task.engine = "mineru"
+    task.duration_ms = int(float(metrics.get("elapsed_seconds", 0)) * 1000)
+    task.warnings_json = []
+    for order, (page_number, markdown) in enumerate(pages):
+        if not markdown.strip():
+            continue
         session.add(OcrBlock(
             task_id=task.id,
-            block_order=block_data["block_order"],
-            page_number=block_data.get("page_number", 1),
-            block_type=block_data["block_type"],
-            bbox_x=bbox[0],
-            bbox_y=bbox[1],
-            bbox_w=bbox[2],
-            bbox_h=bbox[3],
-            original_text=block_data["original_text"],
-            original_latex=block_data.get("original_latex"),
-            confidence=block_data["confidence"],
+            block_order=order,
+            page_number=page_number,
+            block_type="markdown",
+            bbox_x=0,
+            bbox_y=0,
+            bbox_w=0,
+            bbox_h=0,
+            original_text=markdown,
+            confidence=1.0,
             review_status="pending",
         ))
-
-    return True
-
-
-async def create_ocr_task_async(session: Session, content: bytes, filename: str) -> OcrTask:
-    """上传图片/PDF、创建任务并执行 OCR（一站式接口）。
-
-    - 图片：直接 OCR
-    - PDF：PaddleOCR 原生支持，直接传 PDF 文件；pypdfium2 仅生成预览图
-    """
-    is_pdf = _is_pdf(content)
-
-    if is_pdf:
-        # 保存 PDF 原文件
-        pdf_path = _save_upload(content, filename)
-        prepared = prepare_pdf_for_ocr(pdf_path)
-        prepared.path.with_suffix(".preprocess.json").write_text(
-            json.dumps(prepared.metadata, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-
-        # 生成预览图（供前端展示）
-        page_paths: list[str] = []
-        first_width = first_height = 0
-        for idx, page_bytes in enumerate(_pdf_to_page_images(content)):
-            page_path = _save_upload(page_bytes, f"page_{idx + 1}.png")
-            page_paths.append(str(page_path))
-            if idx == 0:
-                with Image.open(page_path) as img:
-                    first_width, first_height = img.size
-
-        task = OcrTask(
-            original_filename=filename,
-            image_path=page_paths[0] if page_paths else str(pdf_path),
-            page_images_json=page_paths,
-            engine="paddleocr",
-            status="pending",
-            image_width=first_width or None,
-            image_height=first_height or None,
-        )
-        session.add(task)
-        session.flush()
-
-        # 直接把 PDF 丢给 PaddleOCR（原生支持多页）
-        result = await _run_ocr_async(str(prepared.path))
-        result.setdefault("warnings", []).append(format_prepare_warning(prepared.metadata))
-    else:
-        # 图片：原有逻辑
-        task = create_ocr_task(session, content, filename)
-        session.flush()
-        result = await _run_ocr_async(task.image_path)
-
-    task.status = result["status"]
-    task.engine = result.get("engine", "paddleocr")
-    task.engine_version = result.get("engine_version")
-    task.duration_ms = result.get("duration_ms")
-    task.warnings_json = result.get("warnings", [])
-
-    for block_data in result.get("blocks", []):
-        bbox = block_data["bbox"]
-        session.add(OcrBlock(
-            task_id=task.id,
-            block_order=block_data["block_order"],
-            page_number=block_data.get("page_number", 1),
-            block_type=block_data["block_type"],
-            bbox_x=bbox[0],
-            bbox_y=bbox[1],
-            bbox_w=bbox[2],
-            bbox_h=bbox[3],
-            original_text=block_data["original_text"],
-            original_latex=block_data.get("original_latex"),
-            confidence=block_data["confidence"],
-            review_status="pending",
-        ))
-
     return task
 
 
@@ -366,7 +246,7 @@ def _block_to_dict(block: OcrBlock) -> dict:
     }
 
 
-# --- 文档级 OCR（PPStructureV3 + 题目切分）---
+# --- 文档级 OCR（MinerU + 题目切分）---
 
 async def create_doc_ocr_task_async(
     session: Session,
@@ -375,40 +255,25 @@ async def create_doc_ocr_task_async(
     *,
     subject: str = "高等数学",
 ) -> dict:
-    """对教辅 PDF 运行 PPStructureV3，再按题切分入库。
-
-    返回：
-        {
-            "success_count": int,
-            "page_count": int,
-            "drafts": [{"draft_id": ..., "question_number": ..., "page": ...}, ...],
-        }
-
-    现有的 /ocr/upload 用于单题图片 OCR + 逐块审核；
-    本函数用于批量导入教辅 PDF → 自动拆题入库。
-    """
+    """Run MinerU, then split its page Markdown into reviewable questions."""
     pdf_path = _save_upload(content, filename)
-    prepared = prepare_pdf_for_ocr(pdf_path)
-    pdf_path.with_suffix(".preprocess.json").write_text(
-        json.dumps(prepared.metadata, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    pages, _metrics = await asyncio.to_thread(_run_mineru_pages, pdf_path)
+    from calculus_agent.workbench.ocr import split_pages_into_candidates
 
-    # 在线程池中执行 PPStructureV3（避免阻塞事件循环）
-    import concurrent.futures
-    loop = asyncio.get_running_loop()
-    candidates = await loop.run_in_executor(
-        concurrent.futures.ThreadPoolExecutor(max_workers=1),
-        lambda: parse_pdf_to_candidates(str(pdf_path), prepared_pdf=str(prepared.path)),
-    )
+    candidates = split_pages_into_candidates(pages)
 
     drafts: list[dict] = []
-    for candidate in candidates:
+    for placed in candidates:
+        candidate = placed.candidate
+        page_number = placed.page_number
         fingerprint = hashlib.sha256(
             candidate.body.encode("utf-8")
         ).hexdigest()
 
         # 未识别题型落 unknown（待人工），不静默当作计算题。
-        question_type_cn = _TYPE_MAP.get(candidate.question_type, "unknown")
+        question_type_cn = _WORKBENCH_TYPE_MAP.get(
+            candidate.question_type, "unknown"
+        )
 
         # 构建选项 JSON（适配 QuestionDraft.options_json 格式）
         options_json = [
@@ -420,7 +285,7 @@ async def create_doc_ocr_task_async(
 
         draft = QuestionDraft(
             source_name="ocr_doc",
-            source_item_id=f"{candidate.original_number}_p{candidate.page_number}",
+            source_item_id=f"{candidate.original_number}_p{page_number}",
             variant=1,
             subject=subject,
             language="zh-CN",
@@ -430,7 +295,7 @@ async def create_doc_ocr_task_async(
             options_json=options_json,
             solution_text=candidate.analysis or None,
             image_path=str(pdf_path),
-            source_topic=f"第{candidate.page_number}页",
+            source_topic=f"第{page_number}页",
             normalized_fingerprint=fingerprint,
             status="pending",
         )
@@ -451,14 +316,14 @@ async def create_doc_ocr_task_async(
             "draft_id": draft.id,
             "question_id": question.id,
             "question_number": candidate.original_number,
-            "page": candidate.page_number,
+            "page": page_number,
             "question_type": question_type_cn,
         })
 
     return {
         "success_count": len(drafts),
         "page_count": max(
-            (c.page_number for c in candidates), default=0
+            (item.page_number for item in candidates), default=0
         ),
         "drafts": drafts,
     }

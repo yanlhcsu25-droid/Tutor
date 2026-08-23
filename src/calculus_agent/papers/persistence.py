@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from calculus_agent.models import Paper, PaperBlueprintRecord, PaperItem
 from calculus_agent.schemas import PaperBlueprint, PaperPreviewRead
 from calculus_agent.agent.schemas import GenerationConstraints
+from calculus_agent.papers.question_snapshot import capture_question_snapshot
 
 
 class DraftPaperResult(BaseModel):
@@ -73,6 +74,9 @@ def create_paper_draft(
                         position=position,
                         score=item.score,
                         locked=item.locked,
+                        question_snapshot_json=capture_question_snapshot(
+                            session, item.question_id
+                        ),
                     )
                 )
             session.flush()

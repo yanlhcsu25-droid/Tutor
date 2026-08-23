@@ -21,18 +21,39 @@ def test_router_classifies_direct_action_generation_request():
     assert decision.route.clarification_needed is False
 
 
-def test_teaching_design_artifact_predicate_is_narrow():
-    assert requires_teaching_design_artifact("帮我设计复习方案") is True
-    assert requires_teaching_design_artifact("做一个教学设计") is True
-    assert requires_teaching_design_artifact("先分析一下怎么教") is False
-    assert requires_teaching_design_artifact("帮我安排复习") is False
+@pytest.mark.parametrize("message", [
+    "帮我设计一次复习方案",
+    "学生函数学得不好，帮我安排复习",
+    "帮我安排课程",
+    "制定一份教学计划",
+    "设计第三章教学方案",
+    "规划训练路径",
+])
+def test_teaching_design_artifact_predicate_covers_explicit_products(message):
+    assert requires_teaching_design_artifact(message) is True
+    route = decide_task(message).route
+    assert route.task_type == TaskType.TEACHING_DESIGN
+    assert route.artifact_required is True
+
+
+@pytest.mark.parametrize("message", [
+    "如何讲函数",
+    "极限怎么理解",
+    "讨论一下学习方法",
+])
+def test_teaching_advice_does_not_require_artifact(message):
+    assert requires_teaching_design_artifact(message) is False
+    route = decide_task(message).route
+    assert route.task_type == TaskType.INFORMATION_REQUEST
+    assert route.clarification_needed is False
 
 
 def test_router_classifies_teaching_planning_request():
     decision = decide_task("学生极限一直学不好，帮我安排复习")
 
     assert decision.source == "router"
-    assert decision.route.task_type == TaskType.TEACHING_PLANNING
+    assert decision.route.task_type == TaskType.TEACHING_DESIGN
+    assert decision.route.artifact_required is True
     assert decision.route.clarification_needed is False
 
 
@@ -111,6 +132,11 @@ def test_model_route_is_used_only_without_deterministic_override():
             TaskType.DIRECT_ACTION,
             {"prepare_generation_plan", "preview_paper_changes", "operate_paper_version"},
             {"inspect_curriculum", "create_teaching_design"},
+        ),
+        (
+            TaskType.TEACHING_DESIGN,
+            {"inspect_curriculum", "inspect_question_bank", "create_teaching_design"},
+            {"prepare_generation_plan", "confirm_generation", "preview_paper_changes"},
         ),
         (
             TaskType.TEACHING_PLANNING,

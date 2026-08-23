@@ -2,8 +2,8 @@
 
 设计原则：
 - Parser 与后续 RAG（Chunker/Retriever）完全解耦：只产出 ParsedDocument(markdown, source_file)。
-- 优先复用项目已验证的 MinerU 能力（src/calculus_agent/ocr/mineru_adapter.py），
-  不重新实现 OCR，不引入 PaddleOCR，不接视觉大模型。
+- 复用项目统一的 MinerU 能力（src/calculus_agent/ocr/mineru_adapter.py），
+  不重复实现 OCR，也不接视觉大模型。
 - 同时提供 MarkdownTextbookParser，便于直接摄入已解析好的教材 Markdown（测试 / 离线场景），
   以及未来替换解析器时无需改动 Chunker / Retriever。
 """

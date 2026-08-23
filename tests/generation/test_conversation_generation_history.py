@@ -136,6 +136,44 @@ def test_next_generation_in_same_conversation_excludes_history(session, monkeypa
     ]
 
 
+def test_second_paper_failure_keeps_first_and_does_not_lower_constraints(
+    session, monkeypatch,
+):
+    conversation_id = "generation-history-partial-ab"
+    store = _seed_pending(session, conversation_id)
+    monkeypatch.setattr(
+        generation_module,
+        "generate_paper_from_input",
+        _fake_generator(session, selected_question_id="question-a", observed_exclusions=[]),
+    )
+    first = GenerationService(
+        session=session, store=store, conversation_id=conversation_id,
+    ).confirm()
+
+    second_store = _seed_pending(session, conversation_id)
+    observed = []
+
+    def fail_generation(_session, request, *, excluded_question_ids=None):
+        observed.append(list(excluded_question_ids or []))
+        assert request.scope_names == ["第一章"]
+        return GeneratePaperToolResult(
+            ok=False,
+            blocking_errors=["insufficient_candidates"],
+            clarification_questions=["是否补充题库或明确调整约束？"],
+        )
+
+    monkeypatch.setattr(generation_module, "generate_paper_from_input", fail_generation)
+    second = GenerationService(
+        session=session, store=second_store, conversation_id=conversation_id,
+    ).confirm()
+
+    assert second.ok is False
+    assert session.get(Paper, first.paper_id) is not None
+    assert observed == [["question-a"]]
+    assert second_store.get_generation(conversation_id) is not None
+    assert historical_question_ids(session, conversation_id=conversation_id) == ["question-a"]
+
+
 def test_other_conversation_does_not_exclude_prior_questions(session, monkeypatch):
     first_store = _seed_pending(session, "generation-history-first")
     monkeypatch.setattr(

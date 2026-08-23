@@ -1,4 +1,3 @@
-from calculus_agent.ocr.engine import PaddleOcrEngine
 from calculus_agent.ocr.service import (
     create_ocr_task_async,
     create_doc_ocr_task_async,
@@ -8,7 +7,6 @@ from calculus_agent.ocr.service import (
 )
 
 __all__ = [
-    "PaddleOcrEngine",
     "create_ocr_task_async",
     "create_doc_ocr_task_async",
     "get_ocr_task",

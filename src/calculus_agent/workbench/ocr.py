@@ -8,24 +8,16 @@ import uuid
 import tempfile
 import time
 import os
-import subprocess
 import sys
-import pypdfium2 as pdfium
 from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Callable, Sequence
-from typing import Any, Iterable
+from typing import Any
 
 from .database import WorkbenchDatabase
 from .math_normalization import normalize_escaped_blank_markers
 from .markdown_schema import fixed_template
 from .question_type_classifier import OPTION_TOKEN_RE, extract_normalized_options, infer_question_type
-from calculus_agent.ocr.pdf_preprocess import (
-    FALLBACK_DPI,
-    PreparedPdf,
-    prepare_pdf_for_ocr,
-    render_pdf_page,
-)
 from calculus_agent.ocr.mineru_adapter import (
     MinerUCancelled,
     MinerUError,
@@ -79,7 +71,7 @@ PAREN_MAJOR_START_RE = re.compile(
     r"[（(]\s*(\d{1,3})\s*(?:[)）]|\$)[ \t]*(?=\S)"
 )
 
-# PaddleOCR 对教材题号前的小图标容易产生类似：
+# OCR 对教材题号前的小图标容易产生类似：
 #   $ 离 ^{*}7$ .当……
 #   $ 当 ^{*}8.$ 当……
 #   $ 灌 ^{*}10.$ .证明……
@@ -133,7 +125,7 @@ NOISE_LINE_RE = re.compile(
     r"(?:微信公众号|获取更多考研资源|配套课程请加QQ群|QQ群[:：]?\s*\d{5,})"
 )
 
-# PPStructure 会把页面中的图片写成 HTML / Markdown 图片标签。
+# OCR 会把页面中的图片写成 HTML / Markdown 图片标签。
 # 当前 MVP 暂不处理图片本身，统一替换成醒目的人工核对占位符，
 # 避免实时预览直接显示 <div><img ...> 这类源码。
 IMAGE_PLACEHOLDER = "[图片内容暂未解析，请人工核对原PDF]"
@@ -1007,133 +999,6 @@ def _split_independent_candidates(
     return children
 
 
-# ---------- PaddleOCR bbox ----------
-
-def _as_mapping(result: Any) -> dict[str, Any]:
-    for attribute in ("json", "to_dict"):
-        value = getattr(result, attribute, None)
-        if callable(value):
-            try:
-                value = value()
-            except Exception:
-                continue
-        if isinstance(value, str):
-            try:
-                value = json.loads(value)
-            except json.JSONDecodeError:
-                continue
-        if isinstance(value, dict):
-            return value
-    if isinstance(result, dict):
-        return result
-    return {}
-
-
-def _walk(value: Any) -> Iterable[dict[str, Any]]:
-    if isinstance(value, dict):
-        yield value
-        for child in value.values():
-            yield from _walk(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from _walk(child)
-
-
-def _ocr_blocks(result: Any) -> list[tuple[str, list[float]]]:
-    mapping = _as_mapping(result)
-    for item in _walk(mapping):
-        texts = item.get("rec_texts")
-        boxes = item.get("rec_boxes") or item.get("dt_polys")
-        if isinstance(texts, list) and isinstance(boxes, list) and len(texts) == len(boxes):
-            blocks: list[tuple[str, list[float]]] = []
-            for text, box in zip(texts, boxes):
-                if not isinstance(text, str) or not isinstance(box, (list, tuple)):
-                    continue
-                flat: list[float] = []
-                for value in box:
-                    if isinstance(value, (list, tuple)):
-                        flat.extend(float(number) for number in value)
-                    else:
-                        flat.append(float(value))
-                if len(flat) >= 4:
-                    xs = flat[0::2]
-                    ys = flat[1::2]
-                    blocks.append((text, [min(xs), min(ys), max(xs), max(ys)]))
-            if blocks:
-                return blocks
-    return []
-
-
-def _normalize_block_question_number(text: str) -> str:
-    """bbox 定位时也做同样的畸形题号修复。"""
-    return _normalize_question_line(text.strip())
-
-
-def _block_has_question_number(text: str, number: str) -> bool:
-    normalized = _normalize_block_question_number(text)
-    escaped = re.escape(number).replace(r"\.", r"[.．]")
-    return bool(re.match(rf"^[ \t]*{escaped}[、.．]", normalized))
-
-
-def _block_starts_any_question(text: str) -> bool:
-    normalized = _normalize_block_question_number(text)
-    return bool(QUESTION_START_RE.match(normalized))
-
-
-def _candidate_bboxes(
-    candidates: list[QuestionCandidate], result: Any
-) -> list[dict[str, float] | None]:
-    blocks = _ocr_blocks(result)
-    if not blocks:
-        return [None] * len(candidates)
-
-    page_width = max(box[2] for _, box in blocks)
-    page_height = max(box[3] for _, box in blocks)
-    output: list[dict[str, float] | None] = []
-    search_from = 0
-
-    for candidate in candidates:
-        start = next(
-            (
-                index
-                for index in range(search_from, len(blocks))
-                if _block_has_question_number(blocks[index][0], candidate.original_number)
-            ),
-            None,
-        )
-        if start is None:
-            output.append(None)
-            continue
-
-        end = len(blocks)
-        for index in range(start + 1, len(blocks)):
-            if _block_starts_any_question(blocks[index][0]):
-                end = index
-                break
-
-        search_from = end
-        boxes = [box for _, box in blocks[start:end]]
-        if not boxes:
-            output.append(None)
-            continue
-
-        x1 = min(box[0] for box in boxes)
-        y1 = min(box[1] for box in boxes)
-        x2 = max(box[2] for box in boxes)
-        y2 = max(box[3] for box in boxes)
-        output.append(
-            {
-                "x": x1,
-                "y": y1,
-                "width": x2 - x1,
-                "height": y2 - y1,
-                "page_width": page_width,
-                "page_height": page_height,
-            }
-        )
-    return output
-
-
 # ---------- 入库 ----------
 
 def render_drafts(placed: PlacedCandidate) -> list[RenderedDraft]:
@@ -1208,249 +1073,48 @@ def _persist_candidate(
     return len(drafts)
 
 
-def _run_lightweight_paddleocr_page(
-    image_path: Path, *, timeout_seconds: float
-) -> dict[str, Any]:
-    """Run the project's existing plain PaddleOCR worker for exactly one page."""
-    worker = Path(__file__).resolve().parents[1] / "ocr" / "ocr_worker.py"
-    python = Path(sys.executable)
-    environment = {
-        **os.environ,
-        "PYTHONUNBUFFERED": "1",
-        "OMP_NUM_THREADS": "2",
-        "MKL_NUM_THREADS": "2",
-    }
-    try:
-        completed = subprocess.run(
-            [str(python), str(worker), str(image_path)],
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-            env=environment,
-            check=False,
-        )
-    except subprocess.TimeoutExpired as error:
-        raise OCRPipelineError(
-            f"普通 PaddleOCR 单页识别超时（>{timeout_seconds:.0f}s）"
-        ) from error
-
-    payload: dict[str, Any] | None = None
-    for line in reversed(completed.stdout.splitlines()):
-        try:
-            candidate = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(candidate, dict) and "status" in candidate:
-            payload = candidate
-            break
-    if completed.returncode != 0 or payload is None or payload.get("status") != "succeeded":
-        detail = ""
-        if payload:
-            detail = str(payload.get("error") or "; ".join(payload.get("warnings", [])))
-        if not detail:
-            detail = completed.stderr.strip()[-1000:] or "worker 未返回有效结果"
-        raise OCRPipelineError(f"普通 PaddleOCR 单页识别失败：{detail}")
-    return payload
-
-
-def _lightweight_result_markdown(result: dict[str, Any]) -> str:
-    """Serialize reading-order OCR blocks as stable page Markdown/text."""
-    blocks = result.get("blocks", [])
-    lines = [
-        str(block.get("original_text", "")).strip()
-        for block in blocks
-        if str(block.get("original_text", "")).strip()
-    ]
-    return "\n\n".join(lines).strip() + ("\n" if lines else "")
-
-
-def _lightweight_result_adapter(result: dict[str, Any]) -> dict[str, Any]:
-    """Expose worker blocks in the mapping shape used by existing bbox helpers."""
-    texts: list[str] = []
-    boxes: list[list[float]] = []
-    for block in result.get("blocks", []):
-        bbox = block.get("bbox")
-        if not isinstance(bbox, list) or len(bbox) != 4:
-            continue
-        x, y, width, height = (float(value) for value in bbox)
-        texts.append(str(block.get("original_text", "")))
-        boxes.append([x, y, x + width, y + height])
-    return {
-        "res": {
-            "rec_texts": texts,
-            "rec_boxes": boxes,
-            "image_width": result.get("image_width"),
-            "image_height": result.get("image_height"),
-        }
-    }
-
-
-QUESTION_ANCHOR_RE = re.compile(r"^\s*(\d{1,3})[、.．]\s*")
-
-
-def _page_recall_reordered_markdown(result: dict[str, Any]) -> str:
-    """Reorder page-recall blocks by question anchors, preserving raw OCR.
-
-    Exam pages commonly place Q1/Q2 in two columns.  Global y/x reading order
-    interleaves those columns, so anchors establish column-local question
-    regions first; regions are emitted by numeric question number afterward.
-    """
-    blocks = []
-    for index, block in enumerate(result.get("blocks", [])):
-        text = str(block.get("original_text", "")).strip()
-        bbox = block.get("bbox")
-        if not text or not isinstance(bbox, list) or len(bbox) != 4:
-            continue
-        x, y, width, height = (float(value) for value in bbox)
-        blocks.append({"index": index, "text": text, "x": x, "y": y,
-                       "width": width, "height": height})
-
-    anchors = []
-    for block in blocks:
-        match = QUESTION_ANCHOR_RE.match(block["text"])
-        if match:
-            anchors.append({**block, "number": int(match.group(1))})
-    if not anchors:
-        return _lightweight_result_markdown(result)
-
-    # Anchor x-centers define column bands.  This keeps Q1's blocks away from
-    # Q2's blocks even when their vertical ranges overlap.
-    centers = sorted({round(item["x"] + item["width"] / 2, 1) for item in anchors})
-    bands = []
-    for index, center in enumerate(centers):
-        left = float("-inf") if index == 0 else (centers[index - 1] + center) / 2
-        right = float("inf") if index == len(centers) - 1 else (center + centers[index + 1]) / 2
-        bands.append((left, right, center))
-
-    def band_for(block: dict[str, Any]) -> float:
-        center = block["x"] + block["width"] / 2
-        return min(bands, key=lambda band: abs(center - band[2]))[2]
-
-    grouped: dict[int, list[dict[str, Any]]] = {id(item): [] for item in anchors}
-    preamble: list[dict[str, Any]] = []
-    for block in blocks:
-        band = band_for(block)
-        candidates = [
-            item for item in anchors
-            if band == band_for(item)
-            and item["y"] - 220 <= block["y"]
-            and block["y"] <= item["y"] + 5000
-        ]
-        if not candidates:
-            if block not in anchors:
-                preamble.append(block)
-            continue
-        anchor = max(candidates, key=lambda item: item["y"])
-        grouped[id(anchor)].append(block)
-
-    ordered_anchors = sorted(anchors, key=lambda item: (item["number"], item["y"], item["x"]))
-    lines: list[str] = []
-    lines.extend(item["text"] for item in sorted(preamble, key=lambda item: (item["y"], item["x"])))
-    for anchor in ordered_anchors:
-        region = grouped[id(anchor)]
-        region.sort(key=lambda item: (item["y"], item["x"]))
-        anchor_index = next(
-            (i for i, item in enumerate(region) if item["index"] == anchor["index"]), None
-        )
-        if anchor_index is not None:
-            region = [
-                region[anchor_index],
-                *region[:anchor_index],
-                *region[anchor_index + 1:],
-            ]
-        lines.extend(item["text"] for item in region)
-    return "\n\n".join(lines).strip() + ("\n" if lines else "")
-
 
 def run_ocr_into_database(
     pdf_path: Path,
     source_file_id: str,
     database: WorkbenchDatabase,
     *,
-    device: str = "cpu",
     raw_root: Path | None = None,
     layout: Any | None = None,
     diagnostics_out: list[Any] | None = None,
     progress_callback: Callable[[int, int, str], None] | None = None,
     cancel_callback: Callable[[], bool] | None = None,
-    page_timeout_seconds: float = 300.0,
-    rss_limit_mb: int = 8192,
-    ocr_mode: str = "mineru",
 ) -> tuple[int, int]:
-    """Unified OCR entry with MinerU as the preferred backend."""
-    preprocess_root = raw_root or Path("workbench_data/ocr_raw") / source_file_id
-    preprocess_root.mkdir(parents=True, exist_ok=True)
+    """Run the single supported OCR backend: MinerU."""
     selected_pages = _selected_pages_for_layout(layout)
     metrics: dict[str, Any] = {
         "source_file_id": source_file_id,
         "selected_pages": selected_pages,
         "started_at_monotonic": time.monotonic(),
     }
-    prepared: PreparedPdf | None = None
     try:
-        if ocr_mode == "mineru":
-            preprocess_started = time.monotonic()
-            with tempfile.TemporaryDirectory(prefix="mineru-pdf-") as mineru_dir:
-                mineru_pdf, page_number_map = prepare_selected_pdf(
-                    pdf_path,
-                    Path(mineru_dir) / "selected-pages.pdf",
-                    selected_pages or None,
-                )
-                metrics["selected_pages"] = list(page_number_map)
-                metrics["preprocess_seconds"] = time.monotonic() - preprocess_started
-                metrics["preprocess_kind"] = "lossless_page_selection"
-                if progress_callback:
-                    progress_callback(0, len(page_number_map), "mineru")
-                return _run_mineru_into_database(
-                    mineru_pdf,
-                    page_number_map,
-                    source_file_id,
-                    database,
-                    raw_root=raw_root,
-                    layout=layout,
-                    diagnostics_out=diagnostics_out,
-                    progress_callback=progress_callback,
-                    cancel_callback=cancel_callback,
-                    metrics=metrics,
-                )
-        if progress_callback and selected_pages:
-            progress_callback(0, len(selected_pages), "preparing")
-        preprocess_started = time.monotonic()
-        with tempfile.TemporaryDirectory(prefix="ocr-pdf-") as prepared_dir:
-            prepared = prepare_pdf_for_ocr(
-                pdf_path,
-                prepared_dir,
-                page_numbers=selected_pages or None,
+        with tempfile.TemporaryDirectory(prefix="mineru-pdf-") as mineru_dir:
+            mineru_pdf, page_number_map = prepare_selected_pdf(
+                pdf_path, Path(mineru_dir) / "selected-pages.pdf",
+                selected_pages or None,
             )
-            metrics["preprocess_seconds"] = time.monotonic() - preprocess_started
-            metrics["rss_after_preprocess_mb"] = _rss_mb()
+            metrics["selected_pages"] = list(page_number_map)
             if progress_callback:
-                progress_callback(0, len(prepared.page_numbers), "model_loading")
-            if ocr_mode == "page_recall":
-                result = _run_page_recall_into_database(
-                    prepared.path, source_file_id, database, raw_root=raw_root, layout=layout,
-                    diagnostics_out=diagnostics_out, progress_callback=progress_callback,
-                    cancel_callback=cancel_callback, page_number_map=prepared.page_numbers,
-                )
-            else:
-                if ocr_mode != "ppstructure":
-                    raise ValueError(f"不支持的 OCR 模式：{ocr_mode}")
-                result = _run_unified_ppstructure_into_database(
-                    prepared, source_file_id, database, device=device, raw_root=raw_root,
-                    layout=layout, diagnostics_out=diagnostics_out,
-                    progress_callback=progress_callback, cancel_callback=cancel_callback,
-                    metrics=metrics,
-                )
-        return result
+                progress_callback(0, len(page_number_map), "mineru")
+            return _run_mineru_into_database(
+                mineru_pdf, page_number_map, source_file_id, database,
+                raw_root=raw_root, layout=layout,
+                diagnostics_out=diagnostics_out,
+                progress_callback=progress_callback,
+                cancel_callback=cancel_callback, metrics=metrics,
+            )
     finally:
         metrics["total_seconds"] = time.monotonic() - metrics["started_at_monotonic"]
         metrics["rss_final_mb"] = _rss_mb()
         metrics.pop("started_at_monotonic", None)
-        if prepared is not None:
-            (preprocess_root / "preprocess.json").write_text(
-                json.dumps(prepared.metadata, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-        (preprocess_root / "timing.json").write_text(
+        output_root = raw_root or Path("workbench_data/ocr_raw") / source_file_id
+        output_root.mkdir(parents=True, exist_ok=True)
+        (output_root / "timing.json").write_text(
             json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
@@ -1529,394 +1193,3 @@ def _run_mineru_into_database(
             page_count=len(pages),
         )
     return len(pages), question_count
-
-
-def _run_page_recall_into_database(
-    pdf_path: Path,
-    source_file_id: str,
-    database: WorkbenchDatabase,
-    *,
-    raw_root: Path | None,
-    layout: Any | None,
-    diagnostics_out: list[Any] | None,
-    progress_callback: Callable[[int, int, str], None] | None,
-    cancel_callback: Callable[[], bool] | None,
-    page_number_map: Sequence[int] | None = None,
-) -> tuple[int, int]:
-    """逐页渲染 + 纯 PaddleOCR 召回；后续仍复用统一切题/匹配层。
-
-    This path intentionally does not instantiate PPStructureV3.  Its 1.5x
-    page rendering is isolated from the historical path so existing inline
-    and separate imports retain their previous OCR behavior.
-    """
-    if raw_root is None:
-        raw_root = Path("workbench_data/ocr_raw") / source_file_id
-    if raw_root.exists():
-        shutil.rmtree(raw_root)
-    raw_root.mkdir(parents=True, exist_ok=True)
-
-    document = pdfium.PdfDocument(str(pdf_path))
-    total_pages = len(document)
-    pages: list[tuple[int, str]] = []
-    bbox_by_page: dict[int, dict[str, dict[str, float] | None]] = {}
-    try:
-        with tempfile.TemporaryDirectory(prefix="page-recall-") as page_dir:
-            for processed_index in range(1, total_pages + 1):
-                page_number = (
-                    page_number_map[processed_index - 1]
-                    if page_number_map is not None else processed_index
-                )
-                if cancel_callback and cancel_callback():
-                    raise OCRPipelineError(
-                        "用户已取消 OCR（已保留已落盘页面）", page_count=len(pages)
-                    )
-                if progress_callback:
-                    progress_callback(processed_index, total_pages, "ocr")
-                page = document[processed_index - 1]
-                bitmap = page.render(scale=1.5)
-                image_path = Path(page_dir) / f"page_{page_number:04d}.png"
-                bitmap.to_pil().save(image_path, format="PNG", optimize=True)
-                del bitmap, page
-                result = _run_lightweight_paddleocr_page(
-                    image_path, timeout_seconds=300.0
-                )
-                raw_markdown = _lightweight_result_markdown(result)
-                markdown = _page_recall_reordered_markdown(result)
-                adapted = _lightweight_result_adapter(result)
-                (raw_root / f"page_{page_number:04d}.raw.json").write_text(
-                    json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-                )
-                (raw_root / f"page_{page_number:04d}.raw.md").write_text(
-                    raw_markdown, encoding="utf-8"
-                )
-                page_markdown = raw_root / f"page_{page_number:04d}.md"
-                page_markdown.write_text(markdown, encoding="utf-8")
-                database.upsert_page(source_file_id, page_number, markdown, reset_edited=True)
-                pages.append((page_number, markdown))
-
-                _, chunks = _raw_page_chunks(markdown)
-                page_candidates = [
-                    candidate for chunk in chunks
-                    if (candidate := _candidate_from_raw(chunk)) is not None
-                ]
-                bbox_list = _candidate_bboxes(page_candidates, adapted)
-                bbox_by_page[page_number] = {
-                    candidate.original_number: bbox
-                    for candidate, bbox in zip(page_candidates, bbox_list)
-                }
-                if progress_callback:
-                    progress_callback(processed_index, total_pages, "ocr_page_complete")
-    except OCRPipelineError:
-        raise
-    except Exception as error:
-        raise OCRPipelineError(
-            f"逐页召回 OCR 运行失败：{error}", page_count=len(pages)
-        ) from error
-    finally:
-        document.close()
-
-    if not pages:
-        raise OCRPipelineError("OCR没有解析到任何PDF页面", page_count=0)
-    if progress_callback:
-        progress_callback(len(pages), len(pages), "matching")
-
-    def bbox_provider(page_number: int, candidates: list[QuestionCandidate]):
-        mapping = bbox_by_page.get(page_number, {})
-        return [mapping.get(item.original_number) for item in candidates]
-
-    if layout is not None and getattr(layout, "solution_mode", "inline") == "separate":
-        from .import_pipeline import import_document
-        result = import_document(pages, layout)
-        placed_candidates = result.candidates
-        if diagnostics_out is not None:
-            diagnostics_out.append(result.diagnostics)
-    else:
-        placed_candidates = split_pages_into_candidates(pages, bbox_provider=bbox_provider)
-
-    question_count = sum(
-        _persist_candidate(database, source_file_id=source_file_id, placed=placed)
-        for placed in placed_candidates
-    )
-    if question_count == 0:
-        raise OCRPipelineError(
-            f"逐页召回 OCR 已完成，但题目切分结果为0。原始Markdown已保存在：{raw_root}",
-            page_count=len(pages),
-        )
-    return len(pages), question_count
-
-
-def _run_unified_ppstructure_into_database(
-    prepared: PreparedPdf,
-    source_file_id: str,
-    database: WorkbenchDatabase,
-    *,
-    device: str,
-    raw_root: Path | None,
-    layout: Any | None,
-    diagnostics_out: list[Any] | None,
-    progress_callback: Callable[[int, int, str], None] | None,
-    cancel_callback: Callable[[], bool] | None,
-    metrics: dict[str, Any],
-) -> tuple[int, int]:
-    """PPStructureV3 -> page Markdown -> layout-specific parser/matcher.
-
-    This is deliberately split into two phases: OCR never sees DocumentLayout
-    and never creates Drafts.  The same PPStructure instance handles all pages.
-    """
-    from paddleocr import PPStructureV3
-
-    if raw_root is None:
-        raw_root = Path("workbench_data/ocr_raw") / source_file_id
-    if raw_root.exists():
-        shutil.rmtree(raw_root)
-    raw_root.mkdir(parents=True, exist_ok=True)
-
-    total_pages = len(prepared.page_numbers)
-    pages: list[tuple[int, str]] = []
-    page_timings: list[dict[str, Any]] = []
-    try:
-        model_started = time.monotonic()
-        parser = PPStructureV3(
-            device=device,
-            use_doc_orientation_classify=False,
-            use_doc_unwarping=False,
-            use_textline_orientation=False,
-            use_seal_recognition=False,
-            use_table_recognition=False,
-            use_chart_recognition=False,
-        )
-        metrics["model_init_seconds"] = time.monotonic() - model_started
-        metrics["rss_after_model_init_mb"] = _rss_mb()
-        if cancel_callback and cancel_callback():
-            raise OCRPipelineError("用户已暂停 OCR", page_count=0)
-        for processed_index, (page_number, image_path) in enumerate(
-            zip(prepared.page_numbers, prepared.page_images), start=1
-        ):
-            if cancel_callback and cancel_callback():
-                raise OCRPipelineError(
-                    "用户已暂停 OCR（已保留已落盘页面）", page_count=len(pages)
-                )
-            if progress_callback:
-                progress_callback(processed_index, total_pages, "ocr")
-            page_started = time.monotonic()
-            page_markdown = raw_root / f"page_{page_number:04d}.md"
-            used_dpi = prepared.metadata["target_dpi"]
-            try:
-                markdown = _predict_ppstructure_page(parser, image_path, page_markdown)
-                if not markdown.strip():
-                    raise ValueError("OCR 返回了空 Markdown")
-            except Exception as first_error:
-                fallback_path = image_path.with_name(f"page_{page_number:04d}.fallback.jpg")
-                render_pdf_page(
-                    prepared.metadata["source_path"],
-                    page_number,
-                    fallback_path,
-                    dpi=FALLBACK_DPI,
-                )
-                _logger.warning(
-                    "第 %s 页快速 OCR 失败，使用 %s DPI 重试：%s",
-                    page_number, FALLBACK_DPI, first_error,
-                )
-                markdown = _predict_ppstructure_page(parser, fallback_path, page_markdown)
-                used_dpi = FALLBACK_DPI
-            database.upsert_page(source_file_id, page_number, markdown, reset_edited=True)
-            pages.append((page_number, markdown))
-            elapsed = time.monotonic() - page_started
-            page_timings.append({
-                "page": page_number,
-                "processed_index": processed_index,
-                "seconds": elapsed,
-                "dpi": used_dpi,
-                "markdown_chars": len(markdown),
-                "rss_mb": _rss_mb(),
-            })
-            metrics["pages"] = page_timings
-            _logger.info(
-                "OCR page %s (%s/%s) completed in %.1fs at %s DPI",
-                page_number, processed_index, total_pages, elapsed, used_dpi,
-            )
-            if progress_callback:
-                progress_callback(processed_index, total_pages, "ocr_page_complete")
-            if cancel_callback and cancel_callback():
-                raise OCRPipelineError(
-                    "用户已暂停 OCR（已保留已落盘页面）", page_count=len(pages)
-                )
-    except OCRPipelineError:
-        raise
-    except Exception as error:
-        raise OCRPipelineError(f"PPStructure OCR 运行失败：{error}", page_count=len(pages)) from error
-
-    if not pages:
-        raise OCRPipelineError("OCR没有解析到任何PDF页面", page_count=0)
-    if progress_callback:
-        progress_callback(len(pages), len(pages), "matching")
-
-    if layout is not None and getattr(layout, "solution_mode", "inline") == "separate":
-        from .import_pipeline import import_document
-        result = import_document(pages, layout)
-        placed_candidates = result.candidates
-        if diagnostics_out is not None:
-            diagnostics_out.append(result.diagnostics)
-    else:
-        placed_candidates = split_pages_into_candidates(pages)
-
-    question_count = 0
-    for placed in placed_candidates:
-        question_count += _persist_candidate(
-            database, source_file_id=source_file_id, placed=placed
-        )
-    if question_count == 0:
-        raise OCRPipelineError(
-            f"OCR已经完成，但题目切分结果为0。原始Markdown已保存在：{raw_root}",
-            page_count=len(pages),
-        )
-    return len(pages), question_count
-
-
-def _predict_ppstructure_page(parser: Any, image_path: Path, markdown_path: Path) -> str:
-    """Run one image through an existing PPStructure instance and persist Markdown."""
-    predictions = iter(parser.predict(input=str(image_path)))
-    result = next(predictions, None)
-    if result is None:
-        raise ValueError(f"OCR 没有返回页面结果：{image_path}")
-    result.save_to_markdown(markdown_path)
-    if not markdown_path.is_file():
-        raise ValueError(f"OCR 已返回结果，但没有生成 Markdown：{markdown_path}")
-    return markdown_path.read_text(encoding="utf-8")
-
-
-def _run_inline_ppstructure_into_database(
-    pdf_path: Path,
-    source_file_id: str,
-    database: WorkbenchDatabase,
-    *,
-    device: str,
-    raw_root: Path | None,
-    progress_callback: Callable[[int, int, str], None] | None,
-    cancel_callback: Callable[[], bool] | None,
-) -> tuple[int, int]:
-    """Original ordinary-exercise path, kept separate from suite matching."""
-    from paddleocr import PPStructureV3
-
-    parser = PPStructureV3(device=device)
-    page_count = 0
-    question_count = 0
-    pending: PendingQuestion | None = None
-    if raw_root is None:
-        raw_root = Path("workbench_data/ocr_raw") / source_file_id
-    if raw_root.exists():
-        shutil.rmtree(raw_root)
-    raw_root.mkdir(parents=True, exist_ok=True)
-
-    document = pdfium.PdfDocument(str(pdf_path))
-    total_pages = len(document)
-    document.close()
-    try:
-        predictions = parser.predict(input=str(pdf_path))
-        for page_count, result in enumerate(predictions, start=1):
-            if cancel_callback and cancel_callback():
-                raise OCRPipelineError(
-                    "用户已取消 OCR（已保留已落盘页面）", page_count=page_count - 1
-                )
-            if progress_callback:
-                progress_callback(page_count, total_pages, "ocr")
-            page_markdown = raw_root / f"page_{page_count:04d}.md"
-            result.save_to_markdown(page_markdown)
-            if not page_markdown.is_file():
-                raise OCRPipelineError(
-                    f"第 {page_count} 页 OCR 已返回结果，但没有生成 Markdown：{page_markdown}",
-                    page_count=page_count,
-                )
-            markdown = page_markdown.read_text(encoding="utf-8")
-            preamble, chunks = _raw_page_chunks(markdown)
-            page_candidates = [
-                candidate for chunk in chunks
-                if (candidate := _candidate_from_raw(chunk)) is not None
-            ]
-            bbox_by_number = {
-                candidate.original_number: bbox
-                for candidate, bbox in zip(
-                    page_candidates, _candidate_bboxes(page_candidates, result)
-                )
-            }
-            database.upsert_page(source_file_id, page_count, markdown, reset_edited=True)
-
-            print(
-                f"[OCR] page={page_count}, markdown_chars={len(markdown)}, "
-                f"question_starts={len(chunks)}, raw={page_markdown}"
-            )
-            if pending is not None and preamble and _should_join_cross_page(pending.raw, preamble):
-                pending.raw = f"{pending.raw}\n\n{preamble}".strip()
-
-            if chunks:
-                if pending is not None:
-                    candidate = _candidate_from_raw(RawQuestion(
-                        original_number=pending.original_number,
-                        raw=pending.raw,
-                        question_type=pending.question_type,
-                    ))
-                    if candidate is not None:
-                        question_count += _persist_candidate(
-                            database,
-                            source_file_id=source_file_id,
-                            placed=PlacedCandidate(
-                                pending.page_number, candidate, pending.bbox
-                            ),
-                        )
-                    pending = None
-
-                for chunk in chunks[:-1]:
-                    candidate = _candidate_from_raw(chunk)
-                    if candidate is not None:
-                        question_count += _persist_candidate(
-                            database,
-                            source_file_id=source_file_id,
-                            placed=PlacedCandidate(
-                                page_count,
-                                candidate,
-                                bbox_by_number.get(candidate.original_number),
-                            ),
-                        )
-
-                last = chunks[-1]
-                pending = PendingQuestion(
-                    original_number=last.original_number,
-                    raw=last.raw,
-                    question_type=last.question_type,
-                    page_number=page_count,
-                    bbox=bbox_by_number.get(last.original_number),
-                )
-            if progress_callback:
-                progress_callback(page_count, total_pages, "ocr_page_complete")
-
-        if progress_callback:
-            progress_callback(page_count, page_count, "matching")
-        if pending is not None:
-            candidate = _candidate_from_raw(RawQuestion(
-                original_number=pending.original_number,
-                raw=pending.raw,
-                question_type=pending.question_type,
-            ))
-            if candidate is not None:
-                question_count += _persist_candidate(
-                    database,
-                    source_file_id=source_file_id,
-                    placed=PlacedCandidate(
-                        pending.page_number, candidate, pending.bbox
-                    ),
-                )
-    except OCRPipelineError:
-        raise
-    except Exception as error:
-        raise OCRPipelineError(
-            f"PPStructure OCR 运行失败：{error}", page_count=page_count
-        ) from error
-    if page_count == 0:
-        raise OCRPipelineError("OCR没有解析到任何PDF页面", page_count=0)
-    if question_count == 0:
-        raise OCRPipelineError(
-            "OCR已经完成，但题目切分结果为0。"
-            f"原始Markdown已保存在：{raw_root}",
-            page_count=page_count,
-        )
-    return page_count, question_count

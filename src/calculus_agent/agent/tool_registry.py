@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
-from typing import Any, Callable, Literal
+from typing import Any, Callable
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 from sqlalchemy.orm import Session
 
+from calculus_agent.runtime.contracts import ToolResult
+
 from .conversation_state import DatabasePendingReplacementStore
+
+# Compatibility alias while domain adapters migrate to the canonical name.
+ExecutedTool = ToolResult
 
 
 class EmptyInput(BaseModel):
@@ -39,24 +44,12 @@ class AgentExecutionContext:
             self.workflow_trace(name)
 
 
-@dataclass
-class ExecutedTool:
-    payload: dict[str, Any]
-    status: Literal[
-        "completed",
-        "needs_clarification",
-        "waiting_confirmation",
-        "failed",
-    ]
-    result_fields: dict[str, Any] = field(default_factory=dict)
-
-
 @dataclass(frozen=True)
 class AgentTool:
     name: str
     description: str
     input_model: type[BaseModel]
-    execute: Callable[[BaseModel], ExecutedTool]
+    execute: Callable[[BaseModel], ToolResult]
 
     def definition(self) -> dict:
         return {
@@ -159,20 +152,15 @@ def normalize_tool_arguments(input_model: type[BaseModel], arguments: Any) -> An
     return _normalize_schema_value(arguments, schema, schema)
 
 
-def execute_tool(tool: AgentTool, arguments: Any) -> ExecutedTool:
+def execute_tool(tool: AgentTool, arguments: Any) -> ToolResult:
     """Normalize then validate every model-provided argument."""
     normalized = normalize_tool_arguments(tool.input_model, arguments or {})
     try:
         validated = tool.input_model.model_validate(normalized)
     except ValidationError as exc:
-        return ExecutedTool(
-            payload={
-                "ok": False,
-                "code": "invalid_tool_arguments",
-                "message": "工具参数未通过校验。",
-                "details": exc.errors(include_url=False),
-            },
-            status="failed",
-            result_fields={"blocking_errors": ["invalid_tool_arguments"]},
+        return ToolResult.failure(
+            "invalid_tool_arguments",
+            "工具参数未通过校验。",
+            details=exc.errors(include_url=False),
         )
     return tool.execute(validated)

@@ -26,13 +26,17 @@ def grade_acceptance(
     names = [_tool_name(item) for item in calls]
     names = [name for name in names if name]
 
-    # Tool calls are diagnostic evidence only.  Acceptance is outcome-first:
-    # internal orchestration may add, remove, or reorder observations without
-    # changing the business contract.  Only explicitly forbidden tools remain
-    # hard assertions.
+    # Required lifecycle tools are observable acceptance boundaries. Additional
+    # internal reads/retries may vary, but a write/confirm contract cannot pass
+    # when its authoritative Tool observation is absent.
     required = config.get("required_tools") or []
     any_required = config.get("must_include_any") or []
     forbidden = config.get("forbidden_tools") or []
+    missing_required = [name for name in required if name not in names]
+    if missing_required:
+        errors.append(f"required tools not called: {missing_required!r}")
+    if any_required and not any(name in names for name in any_required):
+        errors.append(f"none of required tools called: {any_required!r}")
     present_forbidden = [name for name in forbidden if name in names]
     if present_forbidden:
         errors.append(f"forbidden tools called: {present_forbidden!r}")

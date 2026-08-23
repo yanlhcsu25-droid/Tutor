@@ -87,8 +87,8 @@ export default function PaperWorkspace() {
 
   return <div>
     <section className="hero"><Typography.Title>高等数学备课 Agent</Typography.Title><Typography.Paragraph>从题目入库到智能组卷，再到答案解析与教学材料生成。</Typography.Paragraph></section>
-    <Card title={<><ScanOutlined /> 题目 OCR 入库</>} className="ocr-card" extra={<Tag color="green">PaddleOCR 本地识别</Tag>}>
-      <Typography.Paragraph type="secondary">上传题目图片，PaddleOCR 自动识别文字和公式，审核订正后一键入库。</Typography.Paragraph>
+    <Card title={<><ScanOutlined /> 题目 OCR 入库</>} className="ocr-card" extra={<Tag color="green">MinerU 识别</Tag>}>
+      <Typography.Paragraph type="secondary">上传题目图片或 PDF，MinerU 生成 Markdown，审核订正后一键入库。</Typography.Paragraph>
       <Row gutter={16}>
         <Col xs={24} md={8}>
           <Upload.Dragger accept=".jpg,.jpeg,.png,.webp,.bmp,.pdf" showUploadList={false} beforeUpload={ocrUpload} disabled={ocrLoading}>
@@ -99,7 +99,7 @@ export default function PaperWorkspace() {
           {!ocrResult && !ocrLoading && <Empty className="ocr-empty" description="上传图片或 PDF 后自动开始 OCR 识别" />}
         </Col>
         <Col xs={24} md={16}>
-          <Spin spinning={ocrLoading} tip="PaddleOCR 识别中...">
+          <Spin spinning={ocrLoading} tip="MinerU 识别中...">
             {ocrResult && (
               <div className="ocr-review">
                 <Row gutter={16}>

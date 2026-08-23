@@ -8,6 +8,7 @@ from calculus_agent.teaching_design.service import (
     StaleTeachingDesignError,
     TeachingDesignService,
 )
+from calculus_agent.teaching_design.models import TeachingDesignVersionRecord
 from calculus_agent.teaching_design.schemas import TeachingDesignContent
 
 
@@ -41,6 +42,22 @@ def _content(title: str = "第一到第三章期中复习") -> TeachingDesignCon
             "structure": ["知识框架", "重点讲解", "典型例题", "复习总结"],
         },
     )
+
+
+def test_replayed_create_request_returns_existing_pending_design(session):
+    service = TeachingDesignService(session)
+    values = {
+        "owner_key": "local-teacher",
+        "conversation_id": "idempotent-create",
+        "content": _content(),
+        "source_user_message": "帮我制定第一到第三章复习计划。",
+    }
+
+    first = service.create(**values, run_id="run-first")
+    replay = service.create(**values, run_id="run-retry")
+
+    assert replay.version_id == first.version_id
+    assert session.query(TeachingDesignVersionRecord).count() == 1
 
 
 def test_revision_is_immutable_and_traceable(session):
@@ -187,6 +204,10 @@ def test_recall_can_activate_historical_design_without_changing_status(session):
         conversation_id="conv-old",
         run_id="run-old-confirm",
     )
+
+    assert service.get_active(
+        owner_key="local-teacher", conversation_id="conv-new"
+    ) is None
 
     service.create(
         owner_key="local-teacher",

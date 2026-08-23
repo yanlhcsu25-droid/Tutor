@@ -238,7 +238,6 @@ async def upload_source(
     file: UploadFile = File(...),
     source_file_id: str | None = Form(None),
     solution_mode: str = Form("inline"),
-    ocr_mode: str = Form("mineru"),
     question_page_start: int | None = Form(None),
     question_page_end: int | None = Form(None),
     solution_page_start: int | None = Form(None),
@@ -249,8 +248,6 @@ async def upload_source(
         raise HTTPException(status_code=400, detail="第一版仅支持PDF文件")
     if solution_mode not in {"inline", "separate"}:
         raise HTTPException(status_code=400, detail="不支持的导入模式")
-    if ocr_mode not in {"mineru", "ppstructure", "page_recall"}:
-        raise HTTPException(status_code=400, detail="不支持的 OCR 方式")
     if solution_mode == "separate":
         # 套卷不再要求人工填写页码；OCR 完成后由 Markdown 内容自动识别答案区。
         # 保留旧字段以兼容旧客户端，但只接受“全部填写”这一旧格式，避免半套范围
@@ -308,7 +305,7 @@ async def upload_source(
     with _get_session() as session:
         db = _get_db(session)
         initial_layout = layout.to_dict()
-        initial_layout["ocr_mode"] = ocr_mode
+        initial_layout["ocr_mode"] = "mineru"
         initial_layout["progress"] = {
             "current_page": 0, "total_pages": actual_page_count, "status": "queued"
         }
@@ -316,7 +313,7 @@ async def upload_source(
         import_fingerprint = hashlib.sha256(json.dumps(
             {
                 "content_sha256": content_sha256,
-                "ocr_mode": ocr_mode,
+                "ocr_mode": "mineru",
                 "layout": layout.to_dict(),
             },
             ensure_ascii=False,
@@ -373,7 +370,6 @@ async def upload_source(
                     diagnostics_out=diagnostics,
                     progress_callback=report_progress,
                     cancel_callback=cancel_event.is_set,
-                    ocr_mode=ocr_mode,
                 )
                 session.commit()
                 return result
@@ -446,7 +442,7 @@ async def upload_source(
             question_before_answer = bool(answer_marker and re.search(r"(?m)^\s*\d{1,3}[、.．]", page[:answer_marker.start()]))
             saved_layout["display_question_pages"] = list(layout.question_pages) + ([first_solution_page] if question_before_answer and first_solution_page not in layout.question_pages else [])
             saved_layout["display_solution_pages"] = list(layout.solution_pages)
-        saved_layout["ocr_mode"] = ocr_mode
+        saved_layout["ocr_mode"] = "mineru"
         saved_layout["workflow_stage"] = "markdown_reviewing"
         db.save_source_layout(source_file_id, saved_layout)
         db.finish_source(source_file_id, page_count=actual_page_count)

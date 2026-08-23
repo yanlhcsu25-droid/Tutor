@@ -1,8 +1,4 @@
-"""文档级 OCR 管线 — PPStructureV3 解析 PDF → 按题切分。
-
-从 pp_structure_test/question_workbench/ocr.py 移植，适配 calculus_knowledge_agent 的
-QuestionDraft / Question 模型。
-"""
+"""MinerU Markdown → question candidate splitting."""
 
 from __future__ import annotations
 
@@ -10,13 +6,14 @@ import re
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from calculus_agent.ocr.pdf_preprocess import prepare_pdf_for_ocr
+
+from calculus_agent.ocr.mineru_adapter import content_blocks_to_pages, run_mineru
 
 
 def _repair_ocr_question_prefixes(markdown: str) -> str:
     """修复文档入口中常见的中文 OCR 题号前缀噪声。
 
-    Workbench 保持保守规则；文档级 PPStructure 输出则额外处理真实出现的
+    Workbench 保持保守规则；文档级 OCR 输出则额外处理真实出现的
     ``$ 得 ^*3$`` / ``河4.`` 形式，再交给统一切题器。
     """
     repaired: list[str] = []
@@ -164,39 +161,19 @@ def split_page_markdown(markdown: str, page_number: int) -> list[QuestionCandida
     return candidates
 
 
-def run_ppstructure(pdf_path: str, *, prepared_pdf: str | None = None) -> list[str]:
-    """Run the historical PPStructureV3 PDF-to-Markdown path."""
-    from paddleocr import PPStructureV3
-
-    prepared = prepare_pdf_for_ocr(pdf_path) if prepared_pdf is None else None
-    ocr_input = prepared.path if prepared is not None else Path(prepared_pdf)
-
-    parser = PPStructureV3(device="cpu")
-    pages: list[str] = []
-    with tempfile.TemporaryDirectory(prefix="doc-ocr-") as tmp_dir:
-        tmp_root = Path(tmp_dir)
-        for page_num, result in enumerate(parser.predict(input=str(ocr_input)), start=1):
-            page_md = tmp_root / f"page_{page_num:04d}.md"
-            result.save_to_markdown(page_md)
-            pages.append(page_md.read_text(encoding="utf-8"))
-    return pages
-
-
-def parse_pdf_to_candidates(
-    pdf_path: str, *, prepared_pdf: str | None = None
-) -> list[QuestionCandidate]:
-    """一站式：PDF → PPStructureV3 → 统一跨页切题。
-
-    文档级导入和 Workbench 必须使用同一套题目边界规则。此前这里逐页调用
-    本模块的旧实现，导致 OCR 噪声题号和跨页题目在 ``/ocr/upload-doc`` 路径
-    下重新出现。这里保留本模块的候选数据结构，但委托 Workbench 作为唯一
-    的切题实现。
-    """
-    pages = (
-        run_ppstructure(pdf_path)
-        if prepared_pdf is None
-        else run_ppstructure(pdf_path, prepared_pdf=prepared_pdf)
-    )
+def parse_pdf_to_candidates(pdf_path: str) -> list[QuestionCandidate]:
+    """Run MinerU once and delegate question boundaries to Workbench."""
+    source = Path(pdf_path)
+    with tempfile.TemporaryDirectory(prefix="mineru-doc-") as output:
+        blocks, _metrics = run_mineru(source, Path(output))
+    page_count = max(
+        (int(block.get("page_idx", -1)) for block in blocks), default=-1
+    ) + 1
+    pages = [
+        markdown for _, markdown in content_blocks_to_pages(
+            blocks, tuple(range(1, page_count + 1))
+        )
+    ]
     from calculus_agent.workbench.ocr import split_pages_into_candidates
 
     placed = split_pages_into_candidates(

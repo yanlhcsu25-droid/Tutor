@@ -18,6 +18,7 @@ from calculus_agent.models import (
     ValidationReport,
 )
 from calculus_agent.agent.schemas import GenerationConstraints
+from calculus_agent.papers.question_snapshot import capture_question_snapshot
 from calculus_agent.papers.selector import compose_paper
 from calculus_agent.schemas import (
     BlueprintCreateRead,
@@ -161,6 +162,7 @@ def create_paper(session: Session, blueprint_id: str) -> SavedPaperRead:
             position=position,
             score=item.score,
             locked=item.question_id in locked,
+            question_snapshot_json=capture_question_snapshot(session, item.question_id),
         ))
     record.status = "used"
     session.flush()
@@ -217,6 +219,10 @@ def replace_paper_item(session: Session, paper_id: str, item_id: str) -> SavedPa
                 position=old.position,
                 score=old.score,
                 locked=False if old.id == item_id else old.locked,
+                question_snapshot_json=(
+                    capture_question_snapshot(session, question_id)
+                    if old.id == item_id else dict(old.question_snapshot_json or {})
+                ),
             )
         )
     session.flush()
@@ -550,17 +556,18 @@ def _items(
             .limit(1)
         )
 
+        snapshot = item.question_snapshot_json or {}
         result.append(
             PaperItemRead(
                 item_id=item.id,
                 question_id=question.id,
-                question_text=question.question_text,
+                question_text=snapshot.get("question_text", question.question_text),
                 question_type=item.section,
                 score=item.score,
                 knowledge=knowledge,
-                final_answer=question.final_answer,
+                final_answer=snapshot.get("final_answer", question.final_answer),
                 solution_steps=(
-                    question.solution_json or {}
+                    snapshot.get("solution_json") or question.solution_json or {}
                 ).get("solution_steps", []),
                 has_image=bool(
                     draft and draft.image_path
@@ -678,6 +685,7 @@ def _clone_version(
             position=item.position,
             score=item.score,
             locked=item.locked,
+            question_snapshot_json=dict(item.question_snapshot_json or {}),
         )
         session.add(copy)
         cloned.append((item.id, copy))
@@ -704,6 +712,7 @@ def _state_snapshot(session: Session, paper: Paper) -> dict:
                 "position": item.position,
                 "score": item.score,
                 "locked": item.locked,
+                "question_snapshot": dict(item.question_snapshot_json or {}),
             }
             for item in records
         ],
@@ -724,6 +733,7 @@ def _restore_snapshot(session: Session, source: Paper, snapshot: dict) -> Paper:
                 position=item["position"],
                 score=item["score"],
                 locked=item["locked"],
+                question_snapshot_json=dict(item.get("question_snapshot") or {}),
             )
         )
     session.flush()

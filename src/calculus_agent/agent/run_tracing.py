@@ -28,6 +28,8 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
+
 from calculus_agent.models import TeacherAgentSpan, TeacherAgentRunTrace, new_id
 from calculus_agent.agent.trace_log import redact_trace_value
 
@@ -47,14 +49,19 @@ class TeacherAgentRunManager:
         paper_id: str | None,
         user_input: str,
         agent_name: str = "teacher_agent",
+        run_id: str | None = None,
+        request_fingerprint: str | None = None,
     ) -> None:
         self.session = session
         self.conversation_id = conversation_id
         self.paper_id = paper_id
         self.user_input = user_input
         self.agent_name = agent_name
+        self.requested_run_id = run_id
+        self.request_fingerprint = request_fingerprint
         self.run_id: str | None = None
         self.row: TeacherAgentRunTrace | None = None
+        self.conflict = False
         self._started_at = datetime.now(UTC)
         self._monotonic = time.perf_counter()
 
@@ -62,20 +69,26 @@ class TeacherAgentRunManager:
 
     def create(self) -> "TeacherAgentRunManager":
         try:
-            row = TeacherAgentRunTrace(
-                run_id=new_id(),
-                conversation_id=self.conversation_id,
-                paper_id=self.paper_id,
-                user_message=self.user_input,
-                agent_name=self.agent_name,
-                status="received",
-                started_at=self._started_at,
-                result_status="running",
-            )
-            self.session.add(row)
-            self.session.flush()
+            with self.session.begin_nested():
+                row = TeacherAgentRunTrace(
+                    run_id=self.requested_run_id or new_id(),
+                    conversation_id=self.conversation_id,
+                    paper_id=self.paper_id,
+                    user_message=self.user_input,
+                    agent_name=self.agent_name,
+                    status="received",
+                    started_at=self._started_at,
+                    result_status="running",
+                    request_fingerprint=self.request_fingerprint,
+                )
+                self.session.add(row)
+                self.session.flush()
             self.row = row
             self.run_id = row.run_id
+        except IntegrityError:
+            self.row = None
+            self.run_id = self.requested_run_id
+            self.conflict = True
         except Exception:
             self.row = None
             self.run_id = None
@@ -98,6 +111,7 @@ class TeacherAgentRunManager:
         state_after: Any | None = None,
         paper_id: str | None = None,
         error: dict[str, Any] | None = None,
+        result_json: dict[str, Any] | None = None,
     ) -> None:
         if self.row is None:
             return
@@ -112,6 +126,8 @@ class TeacherAgentRunManager:
                 self.row.paper_id = paper_id
             if state_after is not None:
                 self.row.state_after_json = redact_trace_value(state_after)
+            if result_json is not None:
+                self.row.result_json = result_json
             if error:
                 # Genuine technical error only. Business failures (normal return
                 # with status="failed", e.g. insufficient_candidates / model

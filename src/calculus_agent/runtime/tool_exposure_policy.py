@@ -45,7 +45,12 @@ class ToolExposurePolicy:
     def initial_tools(self, context: ToolExposureContext) -> list[str]:
         if not context.has_current_paper:
             names = ["prepare_generation_plan", *context.environment_tool_names, *context.design_tool_names]
-            if context.task_type == TaskType.TEACHING_PLANNING:
+            if context.task_type == TaskType.DIRECT_ACTION:
+                names.extend((
+                    "read_paper", "analyze_paper", "preview_paper_changes",
+                    "operate_paper_version",
+                ))
+            if context.task_type in {TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING}:
                 names.append("create_teaching_design")
             if context.pending_generation:
                 names.extend(("confirm_generation", "discard_pending_plan"))
@@ -60,7 +65,10 @@ class ToolExposurePolicy:
             name for name in names
             if name not in _TEACHING_DESIGN_TOOLS
             or (context.legacy_teaching_design_active and name in context.design_tool_names)
-            or (context.task_type == TaskType.TEACHING_PLANNING and name == "create_teaching_design")
+            or (
+                context.task_type in {TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING}
+                and name == "create_teaching_design"
+            )
         ]
         if context.pending_teaching_design_action is not None:
             allowed = {
@@ -73,14 +81,22 @@ class ToolExposurePolicy:
         strong_state = any((context.pending_generation, context.pending_paper_change,
                             context.pending_replacement, context.has_current_paper,
                             context.legacy_teaching_design_active))
-        if (not strong_state and context.task_type == TaskType.TEACHING_PLANNING
+        if (not strong_state and context.task_type == TaskType.TEACHING_DESIGN
                 and (context.teaching_design_artifact_requested or ("设计" in context.message and "复习方案" in context.message))
                 and context.has_explicit_curriculum_scope):
-            names = ["create_teaching_design"]
-        elif not strong_state and context.task_type in {TaskType.TEACHING_PLANNING, TaskType.INFORMATION_REQUEST}:
+            names = [
+                "inspect_curriculum", "inspect_question_bank",
+                "create_teaching_design",
+            ]
+        elif not strong_state and context.task_type in {
+            TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING,
+            TaskType.INFORMATION_REQUEST,
+        }:
             allowed = set(tool_surface_for(context.task_type).allowed_tools)
             names = [name for name in names if name in allowed]
-            if context.task_type == TaskType.TEACHING_PLANNING and not context.has_explicit_curriculum_scope:
+            if context.task_type in {
+                TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING,
+            } and not context.has_explicit_curriculum_scope:
                 names = ["retrieve_curriculum_candidates", "select_teaching_scope", *([] if context.teaching_design_artifact_requested else ["prepare_teaching_planning_draft"])]
 
         if context.pending_generation:
@@ -103,9 +119,12 @@ class ToolExposurePolicy:
 
     def post_inspection_tools(self, context: ToolExposureContext) -> list[str]:
         names = ["prepare_generation_plan", *context.environment_tool_names, *context.design_tool_names]
-        if context.task_type == TaskType.TEACHING_PLANNING:
+        if context.task_type in {TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING}:
             names.append("create_teaching_design")
-        if context.task_type in {TaskType.TEACHING_PLANNING, TaskType.INFORMATION_REQUEST}:
+        if context.task_type in {
+            TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING,
+            TaskType.INFORMATION_REQUEST,
+        }:
             allowed = set(tool_surface_for(context.task_type).allowed_tools)
             names = [name for name in names if name in allowed]
         return self._available(names, context)

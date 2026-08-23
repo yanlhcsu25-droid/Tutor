@@ -15,7 +15,7 @@ def _data(**changes):
         result_values={"blocking_errors": [], "warnings": []}, turn_error=None,
         current_stage="response_parse", trace_calls=[], pending_query_possible=False,
         pending_action_in_store=False, teaching_design_artifact_requested=False,
-        active_design=None,
+        active_design=None, active_task_status=None,
     )
     values.update(changes)
     return FinalizationInput(**values)
@@ -35,6 +35,15 @@ def test_persisted_pending_state_normalizes_to_waiting_confirmation():
         runtime_policy=_RuntimePolicy(),
     )
     assert result.status == "waiting_confirmation"
+
+
+def test_scope_selected_workflow_cannot_complete_without_artifact():
+    data = _data(active_task_status="scope_selected")
+
+    result = normalize_finalization(data=data, runtime_policy=_RuntimePolicy())
+
+    assert result.status == "failed"
+    assert "teaching_design_workflow_incomplete" in data.result_values["blocking_errors"]
 
 
 def test_cross_paper_dedup_warning_replaces_unsafe_final_claim():

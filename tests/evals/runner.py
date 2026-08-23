@@ -1,8 +1,11 @@
+# ruff: noqa: E402
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
+import subprocess
 import sys
 import tempfile
 import traceback
@@ -34,6 +37,8 @@ from calculus_agent.agent.schemas import (
     GeneratePaperInput,
 )
 from calculus_agent.config import get_settings
+from calculus_agent.runtime import ToolResult, get_variant
+from calculus_agent.runtime.variants import AgentVariant, STATE_POLICY
 
 from tests.conftest import create_isolated_test_session
 from tests.evals.case_loader import (
@@ -154,9 +159,35 @@ def create_eval_backend(case: EvalCase):
 
     backend_config = case.backend or {}
 
+    if backend_config.get("behavior") == "scripted":
+        responses = list(backend_config.get("responses") or [])
+
+        class ScriptedBackend:
+            model = "eval-scripted-backend"
+            temperature = 0
+
+            def complete(self, messages, tools, **kwargs):
+                if not responses:
+                    return {"message": {"role": "assistant", "content": "未完成操作。"}}
+                response = responses.pop(0)
+                return {"message": response.get("message", response)}
+
+        return ScriptedBackend()
+
+    if backend_config.get("behavior") == "invalid_response":
+        class InvalidResponseBackend:
+            model = "eval-invalid-response-backend"
+            temperature = 0
+
+            def complete(self, messages, tools, **kwargs):
+                return {"message": backend_config.get("response")}
+
+        return InvalidResponseBackend()
+
     if backend_config.get("behavior") == "tool_failure":
         class ToolFailureBackend:
             model = "eval-tool-failure-backend"
+            temperature = 0
             calls = 0
 
             def complete(self, messages, tools, **kwargs):
@@ -197,6 +228,7 @@ def create_eval_backend(case: EvalCase):
 
         class RaisingBackend:
             model = "eval-raising-backend"
+            temperature = 0
 
             def complete(
                 self,
@@ -1327,8 +1359,33 @@ def run_graders(
 # ============================================================
 
 
+def create_tool_fault_injector(case: EvalCase):
+    """Build an eval-only Tool boundary fault from declarative case data."""
+    config = (case.backend or {}).get("tool_fault")
+    if not isinstance(config, dict):
+        return None
+
+    target = config.get("tool")
+
+    def inject(name: str, arguments: dict[str, Any]) -> ToolResult:
+        if target and name != target:
+            raise AssertionError(f"unexpected_tool_for_fault:{name}")
+        if config.get("malformed_result"):
+            return {"ok": True}  # type: ignore[return-value]
+        code = str(config.get("code") or "injected_tool_failure")
+        return ToolResult.failure(
+            code,
+            str(config.get("message") or code),
+            status=config.get("status") or "failed",
+        )
+
+    return inject
+
+
 def run_case(
     case: EvalCase,
+    *,
+    variant: AgentVariant = STATE_POLICY,
 ) -> dict[str, Any]:
 
     conversation_id = (
@@ -1435,6 +1492,8 @@ def run_case(
                 version_id=fixture_context.version_id,
                 backend=backend,
                 trace_recorder=AgentTraceRecorder(trace_dir),
+                variant=variant,
+                tool_fault_injector=create_tool_fault_injector(case),
             )
 
             session.commit()
@@ -1450,7 +1509,6 @@ def run_case(
                     paper_id=fixture_context.paper_id,
                 )
             )
-            run_id = getattr(result, "run_id", None)
             model_spans = load_model_spans(
                 session,
                 getattr(result, "run_id", None),
@@ -1534,12 +1592,17 @@ def run_case(
 
         return {
             "case_id": case.id,
+            "variant": variant.name,
             "category": case.category,
             "title": case.title,
             "conversation_id": (
                 conversation_id
             ),
             "passed": passed,
+            "run_metadata": {
+                "model_id": getattr(backend, "model", type(backend).__name__),
+                "temperature": getattr(backend, "temperature", 0),
+            },
             "expected": case.expected,
             "actual": actual,
             "graders": grader_results,
@@ -1555,6 +1618,7 @@ def run_case(
 
         return {
             "case_id": case.id,
+            "variant": variant.name,
             "category": case.category,
             "title": case.title,
             "conversation_id": (
@@ -1583,9 +1647,30 @@ def run_case(
 # ============================================================
 
 
+def _git_sha() -> str | None:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def _git_dirty() -> bool | None:
+    try:
+        return bool(subprocess.check_output(
+            ["git", "status", "--porcelain"], cwd=ROOT, text=True,
+        ).strip())
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
 def write_report(
     results: list[dict[str, Any]],
     output_path: Path,
+    *,
+    variant: AgentVariant = STATE_POLICY,
+    dataset_path: Path | None = None,
 ) -> None:
 
     output_path.parent.mkdir(
@@ -1601,10 +1686,26 @@ def write_report(
 
     failed = len(results) - passed
 
+    models = sorted({
+        str((result.get("run_metadata") or {}).get("model_id"))
+        for result in results
+        if (result.get("run_metadata") or {}).get("model_id")
+    })
+    dataset_bytes = dataset_path.read_bytes() if dataset_path and dataset_path.exists() else b""
     payload = {
-        "generated_at": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "metadata": {
+            "git_sha": _git_sha(),
+            "git_dirty": _git_dirty(),
+            "variant": variant.name,
+            "variant_config": asdict(variant),
+            "model_ids": models,
+            "temperature": 0,
+            "dataset_path": (
+                str(dataset_path.resolve().relative_to(ROOT)) if dataset_path else None
+            ),
+            "dataset_version": hashlib.sha256(dataset_bytes).hexdigest()[:12] if dataset_bytes else None,
+        },
         "summary": {
             "cases": len(results),
             "passed": passed,
@@ -1727,12 +1828,18 @@ def parse_args():
         type=Path,
         default=DEFAULT_REPORT,
     )
+    parser.add_argument(
+        "--variant",
+        choices=("state-policy", "tool-agent", "prompt-only"),
+        default="state-policy",
+    )
 
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    variant = get_variant(args.variant)
 
     suite = load_eval_suite(
         args.cases_file
@@ -1766,7 +1873,7 @@ def main() -> int:
     results = []
 
     for case in cases:
-        result = run_case(case)
+        result = run_case(case, variant=variant)
 
         results.append(result)
 
@@ -1799,6 +1906,8 @@ def main() -> int:
     write_report(
         results,
         args.report,
+        variant=variant,
+        dataset_path=args.cases_file,
     )
 
     print()

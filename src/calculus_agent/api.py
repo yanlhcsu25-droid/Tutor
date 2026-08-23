@@ -192,6 +192,7 @@ class TeacherAgentRunRequest(BaseModel):
     conversation_id: str = Field(min_length=1, max_length=120)
     paper_id: str | None = None
     version_id: str | None = None
+    operation_id: str | None = Field(default=None, min_length=1, max_length=36)
 
 
 class PendingGenerationCardPatchRequest(BaseModel):
@@ -310,6 +311,7 @@ def run_teacher_agent_endpoint(
         conversation_id=request.conversation_id,
         paper_id=request.paper_id,
         version_id=request.version_id,
+        operation_id=request.operation_id,
         backend=build_teacher_agent_backend(settings),
     )
 
@@ -2040,7 +2042,6 @@ def publish_draft(
 # --- OCR 端点 ---
 
 from fastapi import File, UploadFile
-import asyncio
 
 OCR_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
 OCR_PDF_TYPES = {"application/pdf"}
@@ -2122,11 +2123,10 @@ async def upload_doc_and_split(
     subject: str = "高等数学",
     session: Session = Depends(get_session),
 ) -> dict:
-    """上传教辅 PDF → PPStructureV3 解析 → 按题号切分入库。
+    """上传教辅 PDF → MinerU Markdown → 按题号切分入库。
 
-    与 /ocr/upload 的区别：
-    - /ocr/upload：单图/PDF → PaddleOCR 文字识别 → 逐块审核 → 手动合并
-    - /ocr/upload-doc：教辅 PDF → PPStructureV3 版式解析 → 自动按题切分
+    `/ocr/upload` 用于逐页 Markdown 审核；本入口用于自动按题切分。
+    两个入口统一使用 MinerU。
     """
     if file.content_type and file.content_type not in OCR_PDF_TYPES:
         raise HTTPException(

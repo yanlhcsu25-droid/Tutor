@@ -60,7 +60,6 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
   const [deletingId, setDeletingId] = useState("");
   const [loadError, setLoadError] = useState("");
   const [solutionMode, setSolutionMode] = useState<"inline" | "separate">("inline");
-  const [ocrMode, setOcrMode] = useState<"mineru" | "ppstructure">("mineru");
   const [preview, setPreview] = useState<{ sourceId: string; page: number; total: number; markdown: string } | null>(null);
 
   const refresh = useCallback(async () => {
@@ -133,7 +132,6 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
     try {
       const result: WbUploadResult = await wb.uploadPdf(file, {
         sourceFileId,
-        ocrMode,
         solutionMode,
       });
       message.success(result.deduplicated ? "已找到相同的历史 PDF" : `OCR 完成，识别 ${result.question_count} 道题`);
@@ -190,18 +188,7 @@ export default function PdfImportPanel({ open, onReady, onSelectExisting }: Prop
           <Radio.Button value="inline">普通习题</Radio.Button>
           <Radio.Button value="separate">套卷</Radio.Button>
         </Radio.Group>
-        <Space size="small">
-          <Typography.Text>识别引擎</Typography.Text>
-          <Select
-            value={ocrMode}
-            onChange={setOcrMode}
-            style={{ width: 220 }}
-            options={[
-              { value: "mineru", label: "MinerU（推荐）" },
-              { value: "ppstructure", label: "Paddle PPStructure（兼容）" },
-            ]}
-          />
-        </Space>
+        <Typography.Text type="secondary">识别引擎：MinerU</Typography.Text>
         {solutionMode === "separate" && (
           <Typography.Text type="secondary">将根据 OCR Markdown 自动识别“参考答案/解析”区域并按题号匹配</Typography.Text>
         )}

@@ -275,6 +275,7 @@ class PaperItem(Base):
     position: Mapped[int] = mapped_column(Integer)
     score: Mapped[float] = mapped_column(Float)
     locked: Mapped[bool] = mapped_column(default=False)
+    question_snapshot_json: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class PaperOperationHistory(Base):
@@ -390,6 +391,10 @@ class TeacherAgentRunTrace(Base):
     error_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_stage: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    request_fingerprint: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    result_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class TeacherAgentSpan(Base):
@@ -633,7 +638,7 @@ class OcrTask(Base):
     original_filename: Mapped[str] = mapped_column(String(500))
     image_path: Mapped[str] = mapped_column(Text)
     page_images_json: Mapped[list] = mapped_column(JSON, default=list)
-    engine: Mapped[str] = mapped_column(String(40), default="paddleocr")
+    engine: Mapped[str] = mapped_column(String(40), default="mineru")
     engine_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
     image_width: Mapped[int | None] = mapped_column(Integer, nullable=True)

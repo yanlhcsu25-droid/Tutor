@@ -1,19 +1,19 @@
 """Autonomous tool-calling Teacher Agent with deterministic business tools."""
 
+import hashlib
 import json
 import logging
-import re
 from datetime import UTC, datetime
 from typing import Any, Literal, Protocol
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from calculus_agent.config import Settings
 from calculus_agent.models import TeacherAgentRunTrace
 from calculus_agent.runtime.backend import BailianChatBackend
-from calculus_agent.papers.addressing import QuestionAddress
 from calculus_agent.application.teaching_design_execution import (
     TeachingDesignPaperGenerationResult,
 )
@@ -31,7 +31,6 @@ from calculus_agent.agent.conversation_state import (
 )
 from calculus_agent.agent.context_builder import AgentContextBuilder
 from calculus_agent.agent.langfuse_tracing import (
-    llm_generation_span,
     safe_update as _langfuse_update,
     teacher_turn_span,
     tool_observation_span,
@@ -52,7 +51,6 @@ from calculus_agent.agent.task_router import (
     TaskType,
     decide_task,
     has_explicit_curriculum_scope,
-    requires_teaching_design_artifact,
 )
 from calculus_agent.agent.trace_log import AgentTraceRecorder, redact_trace_value
 from calculus_agent.agent.tool_registry import AgentExecutionContext, build_agent_tools
@@ -70,17 +68,24 @@ from calculus_agent.agent.tools.read_tools import ReadCurrentPaperResult
 from calculus_agent.agent.tools.replacement_tools import ApplyReplacementResult, ReplacementDryRunResult
 from calculus_agent.agent.tools.version_tools import VersionOperationResult
 from calculus_agent.runtime.tool_loop import ToolLoop
+from calculus_agent.runtime.contracts import RuntimeErrorInfo, ToolResult
 from calculus_agent.runtime.observation_projection import observation_size_metrics
 from calculus_agent.runtime.policies import AgentRuntimePolicy
 from calculus_agent.runtime.grounding_policy import GroundingPolicy
 from calculus_agent.runtime.tool_exposure_policy import ToolExposureContext, ToolExposurePolicy
 from calculus_agent.runtime.model_turn import prepare_model_turn
 from calculus_agent.runtime.model_turn_executor import execute_model_turn
-from calculus_agent.runtime.finalization_policy import FinalizationInput, normalize_finalization
+from calculus_agent.runtime.finalization_policy import (
+    FinalizationInput, FinalizationPolicy,
+)
+from calculus_agent.runtime.runtime import AgentRuntime, UserTurn
 from calculus_agent.runtime.tool_execution import (
-    execute_tool, normalize_tool_calls, prepare_tool_call, trace_entry,
+    ToolExecutor, exposed_tool_names, merge_result_fields, normalize_tool_calls,
+    trace_entry,
 )
 from calculus_agent.runtime.response_policy import ResponsePolicy
+from calculus_agent.runtime.request_guards import _apply_explicit_opt_in_guards
+from calculus_agent.runtime.variants import AgentVariant, STATE_POLICY
 from calculus_agent.runtime.paper_request import (
     _apply_question_reference_hints,
     _explicit_question_addresses,
@@ -88,20 +93,14 @@ from calculus_agent.runtime.paper_request import (
     _paper_read_messages,
 )
 
+# Historical private import retained by the facade.
+_merge_result_fields = merge_result_fields
+
 logger = logging.getLogger(__name__)
 
 
 QUESTION_OPERATION_SKILL = "paper_question_operations"
 TEACHING_DESIGN_SKILL = "teaching_design"
-
-
-_PENDING_CONFIRMATION_WRITING_TOOLS: frozenset[str] = frozenset({
-    "prepare_generation_plan",
-    "preview_paper_changes",
-    "create_teaching_design",
-    "revise_teaching_design",
-})
-
 
 
 class ChatBackend(Protocol):
@@ -173,36 +172,6 @@ def build_teacher_agent_backend(settings: Settings) -> ChatBackend | None:
     )
 
 
-def _assistant_message(raw: dict) -> dict:
-    message = raw.get("message", raw)
-    if not isinstance(message, dict):
-        raise ValueError("agent_invalid_model_response")
-    return message
-
-
-def _tool_arguments(call: dict) -> tuple[str, dict]:
-    function = call.get("function") or {}
-    name = function.get("name")
-    if not isinstance(name, str) or not name:
-        raise ValueError("agent_invalid_tool_call")
-    raw = function.get("arguments", {})
-    arguments = json.loads(raw) if isinstance(raw, str) else raw
-    if not isinstance(arguments, dict):
-        raise ValueError("agent_invalid_tool_arguments")
-    return name, arguments
-
-
-def _merge_result_fields(target: dict[str, Any], values: dict[str, Any]) -> None:
-    for key, value in values.items():
-        if key in {"warnings", "blocking_errors", "clarification_questions"}:
-            existing = target.setdefault(key, [])
-            for item in value:
-                if item not in existing:
-                    existing.append(item)
-        elif value is not None:
-            target[key] = value
-
-
 def _tool_definition_for_context(tool: Any, *, pending_generation: bool) -> dict:
     """Return the model-visible Tool schema for the current structured state.
 
@@ -236,233 +205,6 @@ def _tool_definition_for_context(tool: Any, *, pending_generation: bool) -> dict
         "fields because Python merges them from the pending source of truth."
     )
     return definition
-
-
-
-_KNOWLEDGE_CONSTRAINT_TARGET = r"(?:知识点|考点)"
-_KNOWLEDGE_PRESERVE_ACTION = (
-    r"(?:保持|保留|不变|别变|不要变|"
-    r"不动|别动|不要动|"
-    r"不改|别改|不要改|"
-    r"不调整|别调整|不要调整)"
-)
-_KNOWLEDGE_CONSTRAINT_GAP = r"[^。！？,，；;]{0,6}"
-
-_PRESERVE_KNOWLEDGE_POINTS_PATTERN = re.compile(
-    rf"{_KNOWLEDGE_CONSTRAINT_TARGET}"
-    rf"{_KNOWLEDGE_CONSTRAINT_GAP}"
-    rf"{_KNOWLEDGE_PRESERVE_ACTION}"
-    rf"|{_KNOWLEDGE_PRESERVE_ACTION}"
-    rf"{_KNOWLEDGE_CONSTRAINT_GAP}"
-    rf"(?:原)?{_KNOWLEDGE_CONSTRAINT_TARGET}"
-)
-
-
-_TOTAL_SCORE_PATTERNS = (
-    # "总分100" / "满分 100 分" / "总分保持90分"
-    re.compile(
-        r"(?:总分|满分|卷面(?:总)?分)"
-        r"[^。！？,，；;]{0,8}?"
-        r"\d{1,3}\s*分?"
-    ),
-    # "100分的试卷" / "100分制考试"
-    re.compile(
-        r"\d{1,3}\s*分(?:制|的)?\s*(?:试卷|卷子|测试|考试)"
-    ),
-    # Follow-up shorthand such as "90分就可以" / "90即可".
-    re.compile(
-        r"^\s*\d{1,3}\s*分?\s*(?:就可以|即可|可以|就行|行)?[。！？]?\s*$"
-    ),
-)
-
-
-
-def _explicit_preserve_knowledge_points_requested(message: str) -> bool:
-    """Return True only for an explicit teacher request to preserve KP/考点."""
-    return _PRESERVE_KNOWLEDGE_POINTS_PATTERN.search(message) is not None
-
-
-
-def _explicit_total_score_requested(message: str) -> bool:
-    """Return True only when the teacher explicitly states a paper total score.
-
-    This is provenance validation for a hard business constraint. A model-added
-    default (for example total_score=100) must not silently become
-    teacher_explicit.
-    """
-    return any(pattern.search(message) is not None for pattern in _TOTAL_SCORE_PATTERNS)
-
-
-_EXPLICIT_QUESTION_COUNT_PATTERNS = (
-    re.compile(r"(?:共|总共|一共|合计|总计)\s*\d{1,3}\s*(?:道|题)"),
-    re.compile(r"(?:题量|总题数|题目数量)\s*[:：]?\s*\d{1,3}"),
-    re.compile(
-        r"^\s*\d{1,3}\s*(?:道|题)\s*"
-        r"(?:就可以|即可|可以|就行|行)?[。！？]?\s*$"
-    ),
-)
-
-_EXPLICIT_QUESTION_TYPE_COUNT_PATTERNS = (
-    # "计算题5道" / "计算题 5" — Arabic digits may omit the unit.
-    re.compile(
-        r"(?:选择题|填空题|计算题|证明题)"
-        r"[^。！？,，；;]{0,8}?"
-        r"\d{1,3}\s*(?:道|题)?"
-    ),
-    # "计算题五道" / "计算题十题" — Chinese numerals MUST carry a unit.
-    # This avoids false positives such as "计算题多一点".
-    re.compile(
-        r"(?:选择题|填空题|计算题|证明题)"
-        r"[^。！？,，；;]{0,8}?"
-        r"[一二三四五六七八九十两]+\s*(?:道|题)"
-    ),
-    # "5道计算题" / "五道计算题"
-    re.compile(
-        r"(?:\d{1,3}|[一二三四五六七八九十两]+)"
-        r"\s*(?:道|题)\s*"
-        r"(?:选择题|填空题|计算题|证明题)"
-    ),
-)
-
-
-def _explicit_question_count_requested(message: str) -> bool:
-    """High-confidence evidence that the teacher stated the whole-paper count."""
-    return any(
-        pattern.search(message) is not None
-        for pattern in _EXPLICIT_QUESTION_COUNT_PATTERNS
-    )
-
-
-def _explicit_question_type_structure_requested(message: str) -> bool:
-    """High-confidence evidence that the teacher stated per-type counts.
-
-    The model may reason about a sensible structure, but exact counts are
-    executable business constraints. If the teacher did not state them, the
-    deterministic paper-type template must remain authoritative.
-    """
-    return any(
-        pattern.search(message) is not None
-        for pattern in _EXPLICIT_QUESTION_TYPE_COUNT_PATTERNS
-    )
-
-
-def _apply_question_reference_hints(
-    *,
-    tool_name: str,
-    arguments: dict[str, Any],
-    addresses: list[QuestionAddress],
-    positions: list[int],
-) -> dict[str, Any]:
-    """Fill only missing references from deterministic positive hints.
-
-    Hints never decide semantic intent. For paper changes, only a single
-    unresolved target may be filled from a single high-confidence address.
-    """
-    updated = dict(arguments)
-
-    if tool_name == "read_paper":
-        if not updated.get("addresses") and not updated.get("positions"):
-            if addresses:
-                updated["addresses"] = [
-                    address.model_dump(mode="json")
-                    for address in addresses
-                ]
-            elif positions:
-                updated["positions"] = list(positions)
-        return updated
-
-    if tool_name != "preview_paper_changes" or len(addresses) != 1:
-        return updated
-
-    raw_operations = updated.get("operations")
-    if not isinstance(raw_operations, list):
-        return updated
-
-    operations = [
-        dict(operation) if isinstance(operation, dict) else operation
-        for operation in raw_operations
-    ]
-    target_types = {
-        "replace_question",
-        "remove_question",
-        "change_question_score",
-    }
-    unresolved = [
-        index
-        for index, operation in enumerate(operations)
-        if isinstance(operation, dict)
-        and operation.get("type") in target_types
-        and operation.get("target") is None
-    ]
-    if len(unresolved) != 1:
-        return updated
-
-    index = unresolved[0]
-    operations[index]["target"] = addresses[0].model_dump(mode="json")
-    updated["operations"] = operations
-    return updated
-
-
-def _apply_explicit_opt_in_guards(
-    *,
-    tool_name: str,
-    arguments: dict[str, Any],
-    message: str,
-) -> dict[str, Any]:
-    """Enforce model arguments that require explicit teacher provenance."""
-    updated = dict(arguments)
-
-    if tool_name == "prepare_generation_plan":
-        # Hard/defaultable generation fields need teacher provenance.
-        # Presence in an LLM Tool Call only proves that the model supplied the
-        # field; it does NOT prove that the teacher requested it.
-        if (
-            "total_score" in updated
-            and not _explicit_total_score_requested(message)
-        ):
-            updated.pop("total_score", None)
-
-        if (
-            "question_count" in updated
-            and not _explicit_question_count_requested(message)
-        ):
-            updated.pop("question_count", None)
-
-        if not _explicit_question_type_structure_requested(message):
-            # Exact per-type counts/scores are executable structure. When the
-            # teacher did not state a structure, discard model-invented values
-            # and let the deterministic paper-type template compile defaults.
-            updated.pop("question_type_requirements", None)
-            updated.pop("question_type_patches", None)
-
-    if (
-        tool_name != "preview_paper_changes"
-        or _explicit_preserve_knowledge_points_requested(message)
-    ):
-        return updated
-
-    raw_operations = updated.get("operations")
-    if not isinstance(raw_operations, list):
-        return updated
-
-    changed = False
-    operations: list[Any] = []
-    for raw in raw_operations:
-        if not isinstance(raw, dict):
-            operations.append(raw)
-            continue
-        operation = dict(raw)
-        if (
-            operation.get("type") == "replace_question"
-            and operation.get("preserve_knowledge_points") is True
-        ):
-            operation["preserve_knowledge_points"] = False
-            changed = True
-        operations.append(operation)
-
-    if changed:
-        updated["operations"] = operations
-    return updated
 
 
 
@@ -517,7 +259,38 @@ def _build_turn_output_emitter(turn_span: Any) -> Any:
     return emit
 
 
-def run_teacher_agent(
+def _replayed_operation_result(
+    row: TeacherAgentRunTrace,
+    request_fingerprint: str,
+) -> TeacherAgentResult:
+    if row.request_fingerprint != request_fingerprint:
+        return TeacherAgentResult(
+            status="failed",
+            message="operation_id 已用于其他请求。",
+            run_id=row.run_id,
+            blocking_errors=["operation_id_conflict"],
+        )
+    if row.result_json is None:
+        return TeacherAgentResult(
+            status="needs_clarification",
+            message="该请求正在处理中，请稍后使用相同 operation_id 查询。",
+            run_id=row.run_id,
+            blocking_errors=["operation_in_progress"],
+        )
+    try:
+        result = TeacherAgentResult.model_validate(row.result_json)
+    except Exception:
+        return TeacherAgentResult(
+            status="failed",
+            message="已保存的操作结果无法读取。",
+            run_id=row.run_id,
+            blocking_errors=["operation_result_invalid"],
+        )
+    result.run_id = row.run_id
+    return result
+
+
+def _run_teacher_agent_turn(
     session: Session,
     user_message: str,
     *,
@@ -529,24 +302,40 @@ def run_teacher_agent(
     backend: ChatBackend | None = None,
     max_tool_rounds: int = 8,
     trace_recorder: AgentTraceRecorder | None = None,
+    variant: AgentVariant = STATE_POLICY,
+    tool_fault_injector: Any = None,
+    operation_id: str | None = None,
 ) -> TeacherAgentResult:
     """Run LLM → tool observation → LLM until a final natural-language answer."""
     message = user_message.strip() if isinstance(user_message, str) else ""
     policy = AgentRuntimePolicy(max_tool_rounds=max_tool_rounds)
-    teaching_design_artifact_requested = requires_teaching_design_artifact(message)
+    teaching_design_artifact_requested = False
+    if operation_id is not None and not (1 <= len(operation_id) <= 36):
+        return TeacherAgentResult(
+            status="failed",
+            message="operation_id 长度必须为 1 到 36 个字符。",
+            blocking_errors=["invalid_operation_id"],
+        )
+    request_fingerprint = hashlib.sha256(json.dumps(
+        {
+            "conversation_id": conversation_id,
+            "owner_key": owner_key,
+            "paper_id": paper_id,
+            "version_id": version_id,
+            "message": message,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    ).encode()).hexdigest()
+    if operation_id is not None:
+        existing_run = session.scalar(select(TeacherAgentRunTrace).where(
+            TeacherAgentRunTrace.run_id == operation_id
+        ))
+        if existing_run is not None:
+            return _replayed_operation_result(existing_run, request_fingerprint)
 
-    # Restore workspace paper context before creating trace and agent context.
-    # paper_id/version_id passed by API are optional hints.
-    # Conversation workspace is the source of truth when they are missing.
-    if conversation_id and (paper_id is None or version_id is None):
-        from calculus_agent.agent.state import WorkspaceService
-
-        workspace = WorkspaceService(session).get(conversation_id)
-
-        if workspace is not None:
-            paper_id = paper_id or workspace.current_paper_id
-            version_id = version_id or workspace.current_version_id
-
+    # Paper operations require an explicit target from the current request/UI.
+    # Persisted workspace state is never promoted into an executable Paper fact.
     trace_recorder = trace_recorder or AgentTraceRecorder()
 
     trace_recorder.start(
@@ -560,7 +349,21 @@ def run_teacher_agent(
         conversation_id,
         paper_id,
         message,
+        run_id=operation_id,
+        request_fingerprint=request_fingerprint if operation_id else None,
     ).create()
+    if run_manager.conflict:
+        existing_run = session.scalar(select(TeacherAgentRunTrace).where(
+            TeacherAgentRunTrace.run_id == operation_id
+        ))
+        if existing_run is not None:
+            return _replayed_operation_result(existing_run, request_fingerprint)
+        return TeacherAgentResult(
+            status="needs_clarification",
+            message="该请求正在处理中，请稍后重试。",
+            run_id=operation_id,
+            blocking_errors=["operation_in_progress"],
+        )
     run_id = run_manager.run_id
     agent_span = (
         run_manager.add_span("agent", "teacher_agent_run") if run_manager.row is not None else None
@@ -583,6 +386,7 @@ def run_teacher_agent(
                 error=error,
             )
             _emit_turn_output(result, error)
+            result.run_id = run_id
             run_manager.finalize(
                 status=result.status,
                 final_response=result.message,
@@ -594,18 +398,21 @@ def run_teacher_agent(
                 ),
                 paper_id=context.paper_id if context is not None else paper_id,
                 error=error,
+                result_json=result.model_dump(mode="json"),
             )
             run_manager.update_span(
                 agent_span,
                 status="error" if error is not None else "success",
                 output={"status": result.status, "message": result.message},
             )
-            result.run_id = run_id
             return result
 
         explicit_question_addresses = _explicit_question_addresses(message)
         explicit_question_positions = _explicit_question_positions(message)
-        history_store = DatabaseConversationHistoryStore(session) if conversation_id else None
+        history_store = (
+            DatabaseConversationHistoryStore(session)
+            if variant.persistent_state and conversation_id else None
+        )
         recent_messages: list[dict[str, str]] = []
         if history_store and conversation_id:
             try:
@@ -626,7 +433,9 @@ def run_teacher_agent(
             _persist_final_message(history_store, conversation_id, result.message)
             return finish(result)
 
-        store = state_store or (DatabasePendingReplacementStore(session) if conversation_id else None)
+        store = (
+            state_store or (DatabasePendingReplacementStore(session) if conversation_id else None)
+        ) if variant.persistent_state else None
         context = AgentExecutionContext(
             session=session,
             conversation_id=conversation_id,
@@ -638,8 +447,11 @@ def run_teacher_agent(
             user_message=message,
             workflow_trace=trace_recorder.set_task_workflow,
         )
-        tools = build_agent_tools(context)
+        tools = build_agent_tools(context) if variant.tools_enabled else {}
         toolkit = Toolkit(tools.values())
+        tool_executor = ToolExecutor(
+            toolkit, session=session, fault_injector=tool_fault_injector,
+        )
         working_memory = (
             store.get_memory(conversation_id)
             if store and conversation_id and hasattr(store, "get_memory") else None
@@ -702,6 +514,21 @@ def run_teacher_agent(
                 active_teaching_design=legacy_teaching_design_active,
             ),
         )
+        teaching_design_artifact_requested = task_decision.route.artifact_required
+        continuing_generation = bool(
+            working_memory
+            and working_memory.active_task.get("type") == "generation"
+            and working_memory.active_task.get("status") in {
+                "drafting", "awaiting_scope", "awaiting_confirmation",
+            }
+        )
+        if continuing_generation and not (
+            pending_adjustment or pending or has_current_paper
+        ):
+            task_decision.route.task_type = TaskType.DIRECT_ACTION
+            task_decision.route.artifact_required = False
+            task_decision.route.reason = "continuing conversation generation draft"
+
         continuing_teaching_planning = bool(
             working_memory
             and working_memory.active_task.get("type") == "teaching_planning"
@@ -719,11 +546,8 @@ def run_teacher_agent(
         )
         if (
             not has_strong_business_state
-            and task_decision.route.task_type == TaskType.TEACHING_PLANNING
-            and (
-                teaching_design_artifact_requested
-                or ("设计" in message and "复习方案" in message)
-            )
+            and task_decision.route.task_type == TaskType.TEACHING_DESIGN
+            and teaching_design_artifact_requested
             and has_explicit_curriculum_scope(message)
         ):
             # The Tool owns the fixed evidence-before-create workflow.
@@ -804,7 +628,9 @@ def run_teacher_agent(
         teaching_design_skill_active = legacy_teaching_design_active
 
         teaching_topic_only = (
-            task_decision.route.task_type == TaskType.TEACHING_PLANNING
+            task_decision.route.task_type in {
+                TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING,
+            }
             and not has_explicit_curriculum_scope(message)
             and not has_strong_business_state
         )
@@ -868,7 +694,7 @@ def run_teacher_agent(
                 ),
             ])
 
-        messages, serialized_context, initial_context_metrics = context_builder.build(
+        messages, serialized_context, _ = context_builder.build(
             message=message,
             recent_messages=recent_messages,
             dynamic_context=dynamic_context,
@@ -945,6 +771,7 @@ def run_teacher_agent(
                 forced_response = None
                 if (
                     _round == 0
+                    and variant.confirmation_guard
                     and pending_teaching_design_intent is not None
                     and pending_teaching_design_intent.action == "cancel"
                 ):
@@ -976,7 +803,7 @@ def run_teacher_agent(
                     if not isinstance(content, str) or not content.strip():
                         raise ValueError("agent_missing_final_response")
                     if response_policy.contains_leaked_tool_protocol(content):
-                        if malformed_response_retried:
+                        if malformed_response_retried or not variant.recovery_policy:
                             final_text = "模型未能返回有效的工具调用格式，本轮没有执行任何操作。"
                             turn_status = "failed"
                             result_values["blocking_errors"].append("agent_invalid_tool_protocol")
@@ -996,7 +823,7 @@ def run_teacher_agent(
                         malformed_response_retried = True
                         continue
 
-                    if response_policy.requires_pending_paper_change_recheck(
+                    if variant.confirmation_guard and response_policy.requires_pending_paper_change_recheck(
                         pending_adjustment=bool(pending_adjustment),
                         trace_calls=trace_calls,
                         already_rechecked=pending_paper_change_rechecked,
@@ -1028,7 +855,12 @@ def run_teacher_agent(
                         pending_paper_change_rechecked = True
                         continue
 
-                    if pending_state_at_turn_start and not trace_calls and not pending_state_rechecked:
+                    if (
+                        variant.confirmation_guard
+                        and pending_state_at_turn_start
+                        and not trace_calls
+                        and not pending_state_rechecked
+                    ):
                         if pending_generation:
                             pending_guard = (
                                 "当前存在待确认组卷方案。教师明确接受时调用 confirm_generation；"
@@ -1072,7 +904,12 @@ def run_teacher_agent(
                         ]
                         pending_state_rechecked = True
                         continue
-                    if pending_state_at_turn_start and not trace_calls and pending_state_rechecked:
+                    if (
+                        variant.confirmation_guard
+                        and pending_state_at_turn_start
+                        and not trace_calls
+                        and pending_state_rechecked
+                    ):
                         final_text = (
                             "当前待确认方案仍未改变，本轮没有可靠执行确认或取消操作。"
                             "你可以让我重新展示方案，或再次明确确认/取消。"
@@ -1084,7 +921,7 @@ def run_teacher_agent(
                     # direct-generation requests from stopping before the editable
                     # blueprint, while also preventing environment-only questions
                     # from being accidentally turned into generation requests.
-                    if response_policy.requires_post_inspection_recheck(
+                    if variant.recovery_policy and response_policy.requires_post_inspection_recheck(
                         has_current_paper=has_current_paper,
                         pending=bool(pending),
                         pending_adjustment=bool(pending_adjustment),
@@ -1135,7 +972,8 @@ def run_teacher_agent(
                         observed_read_versions=observed_paper_read_versions,
                     )
                     if (
-                        paper_state_at_turn_start
+                        variant.grounding_guard
+                        and paper_state_at_turn_start
                         and grounding.read_required
                         and (
                             not trace_calls
@@ -1179,15 +1017,19 @@ def run_teacher_agent(
                     paper_change_intent = response_policy.paper_change_intent(
                         message, paper_state_at_turn_start=paper_state_at_turn_start,
                     )
-                    has_preview = any(
-                        call["tool_name"] == "preview_paper_changes"
-                        and (call.get("result") or {}).get("ok") for call in trace_calls
+                    has_preview = response_policy.successful_observation(
+                        trace_calls, "preview_paper_changes"
                     )
-                    has_confirmation = any(
-                        call["tool_name"] == "confirm_paper_changes"
-                        and (call.get("result") or {}).get("ok") for call in trace_calls
+                    has_confirmation = response_policy.successful_observation(
+                        trace_calls, "confirm_paper_changes"
                     )
-                    if paper_change_intent and grounding.requires_current_paper_evidence and not has_preview and not has_confirmation:
+                    if (
+                        variant.grounding_guard
+                        and paper_change_intent
+                        and grounding.requires_current_paper_evidence
+                        and not has_preview
+                        and not has_confirmation
+                    ):
                         if not paper_change_reprompted:
                             paper_change_reprompted = True
                             messages.append({"role": "user", "content": (
@@ -1202,7 +1044,8 @@ def run_teacher_agent(
                         final_text = "当前试卷已读取，但本轮没有生成修改预览，因此不能声明修改已完成。"
                         break
                     if (
-                        teaching_design_artifact_requested
+                        variant.confirmation_guard
+                        and teaching_design_artifact_requested
                         and post_inspection_intent_rechecked
                         and not any(
                             call["tool_name"] == "create_teaching_design"
@@ -1239,7 +1082,7 @@ def run_teacher_agent(
                 })
                 for call in normalized_calls:
                     current_stage = "tool_arguments_parse"
-                    name, call_id, arguments = prepare_tool_call(
+                    name, call_id, arguments = tool_executor.prepare(
                         call,
                         addresses=explicit_question_addresses,
                         positions=explicit_question_positions,
@@ -1252,7 +1095,12 @@ def run_teacher_agent(
                         and pending_teaching_design_intent.action == "revise"
                         and name == "confirm_teaching_design"
                     )
-                    tool = None if blocked_confirmation else tools.get(name)
+                    registered_tool = tools.get(name)
+                    tool_exposed = name in exposed_tool_names(definitions)
+                    tool = (
+                        registered_tool
+                        if not blocked_confirmation and tool_exposed else None
+                    )
                     tool_span = run_manager.add_span(
                         "tool_call", name,
                         parent_span_id=agent_span.span_id if agent_span is not None else None,
@@ -1267,13 +1115,15 @@ def run_teacher_agent(
                     )
                     generation_patch_retry_needed = False
                     tool_execution_status: str | None = None
+                    observed_version_id = context.version_id or context.paper_id
                     if blocked_confirmation:
-                        execution_payload = {
-                            "ok": False,
-                            "code": "pending_design_revision_requires_revise",
-                            "message": "本轮包含新的教学要求，不能确认当前教学设计；请先修改。",
-                        }
-                        tool_execution_status = "needs_clarification"
+                        blocked_result = ToolResult.failure(
+                            "pending_design_revision_requires_revise",
+                            "本轮包含新的教学要求，不能确认当前教学设计；请先修改。",
+                            status="needs_clarification",
+                        )
+                        execution_payload = blocked_result.payload
+                        tool_execution_status = blocked_result.status
                         turn_status = "needs_clarification"
                         result_values["clarification_questions"].append(
                             "本轮包含新的教学要求，请先修改教学设计。"
@@ -1282,13 +1132,45 @@ def run_teacher_agent(
                             "pending_design_revision_requires_revise"
                         )
                     elif tool is None:
-                        execution_payload = {
-                            "ok": False,
-                            "code": "unknown_tool",
-                            "message": f"不存在工具：{name}",
-                        }
-                        turn_status = "failed"
-                        result_values["blocking_errors"].append("unknown_tool")
+                        unavailable_code = None
+                        if name == "confirm_generation" and not pending_generation:
+                            unavailable_code = "no_pending_generation"
+                        elif name == "confirm_paper_changes" and not (
+                            pending or pending_adjustment
+                        ):
+                            unavailable_code = "no_pending_action"
+                        elif name == "confirm_teaching_design" and not active_teaching_design:
+                            unavailable_code = "no_active_teaching_design"
+                        elif name in {
+                            "read_paper", "analyze_paper", "preview_paper_changes",
+                            "operate_paper_version",
+                        } and not (context.paper_id or context.version_id):
+                            unavailable_code = "no_current_paper"
+
+                        code = (
+                            "unknown_tool" if registered_tool is None
+                            else unavailable_code or "tool_not_exposed"
+                        )
+                        message_text = (
+                            f"不存在工具：{name}"
+                            if registered_tool is None
+                            else f"当前工作流阶段不允许或无法调用工具：{name}"
+                        )
+                        missing_result = ToolResult.failure(
+                            code,
+                            message_text,
+                            status=(
+                                "needs_clarification"
+                                if unavailable_code is not None else "failed"
+                            ),
+                        )
+                        if code == "tool_not_exposed":
+                            terminal_tool_boundary_reached = True
+                            final_text = message_text
+                        execution_payload = missing_result.payload
+                        tool_execution_status = missing_result.status
+                        turn_status = missing_result.status
+                        result_values["blocking_errors"].append(code)
                         run_manager.update_span(
                             tool_span, status="success",
                             output=redact_trace_value({
@@ -1300,11 +1182,10 @@ def run_teacher_agent(
                             ended_at=datetime.now(UTC),
                         )
                     else:
-                        observed_version_id = context.version_id or context.paper_id
                         current_stage = "tool_execution"
                         with tool_observation_span(name, arguments) as _lf_tool:
                             try:
-                                execution = execute_tool(toolkit, name, arguments)
+                                execution = tool_executor.execute(name, arguments)
                             except Exception as exc:
                                 _langfuse_update(_lf_tool, level="ERROR", status_message=str(exc))
                                 run_manager.update_span(
@@ -1322,7 +1203,7 @@ def run_teacher_agent(
                         execution_payload = execution.payload
                         tool_execution_status = execution.status
                         turn_status = execution.status
-                        _merge_result_fields(result_values, execution.result_fields)
+                        merge_result_fields(result_values, execution.result_fields)
                         if execution_payload.get("code") == "invalid_tool_arguments":
                             signature = (name, "invalid_tool_arguments")
                             if signature == last_tool_validation_failure:
@@ -1359,6 +1240,7 @@ def run_teacher_agent(
                                 result_values["clarification_questions"] = []
                             elif (
                                 pending_generation
+                                and variant.recovery_policy
                                 and not generation_patch_retried
                                 and "generation_partial_patch_required"
                                 in (execution_payload.get("blocking_errors") or [])
@@ -1385,7 +1267,13 @@ def run_teacher_agent(
                             # Hard runtime confirmation boundary: after proposing
                             # a new design version, the same teacher turn cannot
                             # auto-confirm it even if the model tries to continue.
-                            definitions = []
+                            if variant.confirmation_guard:
+                                definitions = []
+                                terminal_tool_boundary_reached = True
+                                turn_status = "waiting_confirmation"
+                                final_text = (
+                                    "教学设计已创建并保存，当前等待教师确认。"
+                                )
                     memory_after_tool = _working_memory_snapshot(store, conversation_id)
                     runtime_state_after_tool = build_runtime_state_snapshot(
                         session,
@@ -1425,6 +1313,7 @@ def run_teacher_agent(
                     if (
                         name == "read_paper"
                         and execution_payload.get("ok")
+                        and variant.grounding_guard
                         and paper_change_requested
                         and not paper_change_reprompted
                     ):
@@ -1515,24 +1404,28 @@ def run_teacher_agent(
                 raise RuntimeError("agent_tool_round_limit")
         except Exception as exc:
             turn_status = "failed"
-            code = str(exc) if str(exc).startswith("agent_") else "agent_execution_failed"
-            if code not in result_values["blocking_errors"]:
-                result_values["blocking_errors"].append(code)
-            turn_error = {
-                "error_code": code,
-                "error_type": type(exc).__name__,
-                "error_message": str(exc),
-                "error_stage": current_stage,
-            }
-            logger.exception("Teacher Agent turn failed at stage=%s code=%s", current_stage, code)
+            error_info = RuntimeErrorInfo.from_exception(exc, stage=current_stage)
+            if error_info.error_code not in result_values["blocking_errors"]:
+                result_values["blocking_errors"].append(error_info.error_code)
+            turn_error = error_info.as_dict()
+            logger.exception(
+                "Teacher Agent turn failed at stage=%s code=%s",
+                current_stage,
+                error_info.error_code,
+            )
             final_text = "Teacher Agent 暂时无法完成这次请求，请稍后重试。"
 
         pending_query_possible = bool(store and conversation_id)
         pending_action_in_store = False
         active_design_after_turn = None
+        active_task_status_after_turn = None
         if pending_query_possible:
             active_design_after_turn = active_teaching_design_snapshot(
                 session, owner_key=owner_key, conversation_id=conversation_id,
+            )
+            active_task_status_after_turn = (
+                store.get_memory(conversation_id).active_task.get("status")
+                if hasattr(store, "get_memory") else None
             )
             pending_action_in_store = bool(
                 store.get(conversation_id)
@@ -1544,23 +1437,23 @@ def run_teacher_agent(
                     in {"draft", "awaiting_confirmation"}
                 )
             )
-        finalization = normalize_finalization(
-            data=FinalizationInput(
-                status=turn_status,
-                final_text=final_text,
-                result_values=result_values,
-                turn_error=turn_error,
-                current_stage=current_stage,
-                trace_calls=trace_calls,
-                pending_query_possible=pending_query_possible,
-                pending_action_in_store=pending_action_in_store,
-                teaching_design_artifact_requested=teaching_design_artifact_requested,
-                active_design=active_design_after_turn,
-            ),
-            runtime_policy=policy,
+        finalization_input = FinalizationInput(
+            status=turn_status,
+            final_text=final_text,
+            result_values=result_values,
+            turn_error=turn_error,
+            current_stage=current_stage,
+            trace_calls=trace_calls,
+            pending_query_possible=pending_query_possible,
+            pending_action_in_store=pending_action_in_store,
+            teaching_design_artifact_requested=teaching_design_artifact_requested,
+            active_design=active_design_after_turn,
+            active_task_status=active_task_status_after_turn,
         )
-        turn_status = finalization.status
-        final_text = finalization.final_text
+        if variant.confirmation_guard:
+            finalization = FinalizationPolicy(policy).finalize(finalization_input)
+            turn_status = finalization.status
+            final_text = finalization.final_text
 
         trace.tool_calls_json = trace_calls
         trace.final_response = final_text
@@ -1578,3 +1471,41 @@ def run_teacher_agent(
             message=final_text,
             **result_values,
         ), error=turn_error)
+
+
+def run_teacher_agent(
+    session: Session,
+    user_message: str,
+    *,
+    conversation_id: str | None = None,
+    owner_key: str = DEFAULT_TEACHER_OWNER_KEY,
+    paper_id: str | None = None,
+    version_id: str | None = None,
+    state_store: PendingReplacementStore | None = None,
+    backend: ChatBackend | None = None,
+    max_tool_rounds: int = 8,
+    trace_recorder: AgentTraceRecorder | None = None,
+    variant: AgentVariant = STATE_POLICY,
+    tool_fault_injector: Any = None,
+    operation_id: str | None = None,
+) -> TeacherAgentResult:
+    """Compatibility function backed by the explicit ``AgentRuntime`` API."""
+    runtime = AgentRuntime(
+        session,
+        coordinator=_run_teacher_agent_turn,
+        backend=backend,
+        state_store=state_store,
+        max_tool_rounds=max_tool_rounds,
+        trace_recorder=trace_recorder,
+        default_owner_key=DEFAULT_TEACHER_OWNER_KEY,
+        variant=variant,
+        tool_fault_injector=tool_fault_injector,
+    )
+    return runtime.run(UserTurn(
+        message=user_message,
+        conversation_id=conversation_id,
+        owner_key=owner_key,
+        paper_id=paper_id,
+        version_id=version_id,
+        operation_id=operation_id,
+    ))

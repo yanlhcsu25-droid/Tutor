@@ -22,6 +22,7 @@ class TaskType(str, Enum):
     """
 
     DIRECT_ACTION = "DIRECT_ACTION"
+    TEACHING_DESIGN = "TEACHING_DESIGN"
     TEACHING_PLANNING = "TEACHING_PLANNING"
     INFORMATION_REQUEST = "INFORMATION_REQUEST"
 
@@ -38,6 +39,7 @@ class TaskRoute(BaseModel):
 
     task_type: TaskType
     confidence: float = Field(ge=0.0, le=1.0)
+    artifact_required: bool = False
     clarification_needed: bool = False
     clarification_question: str | None = Field(default=None, max_length=300)
     reason: str = Field(min_length=1, max_length=500)
@@ -48,6 +50,8 @@ class TaskRoute(BaseModel):
             raise ValueError("clarification_question is required when clarification_needed")
         if not self.clarification_needed and self.clarification_question:
             raise ValueError("clarification_question must be empty unless clarification is needed")
+        if self.artifact_required != (self.task_type == TaskType.TEACHING_DESIGN):
+            raise ValueError("artifact_required must match the teaching-design task type")
         return self
 
 
@@ -160,7 +164,7 @@ def tool_surface_for(task_type: TaskType) -> ToolSurface:
                 *UNIFIED_SCOPE_TOOLS,
             ])),
         )
-    if task_type == TaskType.TEACHING_PLANNING:
+    if task_type in {TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING}:
         return ToolSurface(
             task_type=task_type,
             allowed_tools=(
@@ -192,17 +196,20 @@ _PAPER_OPERATION_RE = re.compile(
 )
 
 _DIRECT_ACTION_RE = re.compile(
-    r"出(?:一套|个)?|生成|组卷|测试卷|练习卷|巩固卷|作业|期中|期末|测验|考试卷"
+    r"出(?:一套|个)?|来(?:一)?套|生成|组卷|测试卷|练习卷|练习题|巩固卷|"
+    r"作业|期中|期末|测验|考试卷|重点覆盖"
 )
 
 _TEACHING_PLANNING_RE = re.compile(
-    r"安排复习|复习方案|教学设计|教学方案|怎么教|如何教|讲课|备课|教学重点|"
+    r"安排复习|复习方案|教学设计|教学方案|讲课安排|备课计划|"
     r"学生[^，。；]*(学不好|总错|不会|薄弱|理解不了|掌握不好)|"
     r"帮我设计[^，。；]*(复习|课|教学)"
 )
 
 _INFORMATION_REQUEST_RE = re.compile(
-    r"为什么|是什么|解释|讲讲|说明|有多少|多少道|题库|供给|有哪些|查询|查一下|覆盖情况|章节.*内容"
+    r"为什么|是什么|解释|讲讲|说明|怎么理解|如何理解|怎么教|如何教|怎么讲|如何讲|"
+    r"学习方法|教学方法|教学重点|有多少|多少道|题库|供给|有哪些|"
+    r"查询|查一下|覆盖情况|章节.*内容"
 )
 
 _AMBIGUOUS_PREP_RE = re.compile(r"准备(?:一下)?|复习(?:一下)?|看看(?:学生)?")
@@ -214,8 +221,10 @@ _EXPLICIT_CURRICULUM_SCOPE_RE = re.compile(
 
 
 _TEACHING_DESIGN_ARTIFACT_RE = re.compile(
-    r"(?:设计|制定|做|形成|创建)(?:一个|一份|个)?"
-    r"(?:新的)?(?:复习方案|教学设计|教学方案)"
+    r"(?:设计|制定|做|形成|创建)[^，。；！？]{0,16}"
+    r"(?:复习计划|复习方案|教学计划|教学设计|教学方案|训练路径)"
+    r"|安排[^，。；！？]{0,12}(?:复习|课程)"
+    r"|规划[^，。；！？]{0,12}(?:复习|课程|训练路径)"
     r"|教学设计"
 )
 
@@ -338,10 +347,15 @@ def deterministic_route(message: str, *, state: RoutingState) -> WorkflowDecisio
 def classify_message(message: str) -> TaskRoute:
     """Conservative semantic classifier used when no model route is supplied."""
 
-    if _TEACHING_PLANNING_RE.search(message):
+    artifact_required = requires_teaching_design_artifact(message)
+    if artifact_required or _TEACHING_PLANNING_RE.search(message):
         return TaskRoute(
-            task_type=TaskType.TEACHING_PLANNING,
+            task_type=(
+                TaskType.TEACHING_DESIGN
+                if artifact_required else TaskType.TEACHING_PLANNING
+            ),
             confidence=0.86,
+            artifact_required=artifact_required,
             clarification_needed=False,
             reason="teaching planning or student-learning goal wording",
         )

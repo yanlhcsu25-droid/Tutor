@@ -55,7 +55,24 @@ Tutor 的核心约束：
 - Trace payload 在存储边界 JSON-safe，Trace 失败不应成为业务事实；
 - Tool Observation Projection 减少模型上下文中的运行时与审计字段；
 - Context Stability Eval 观测上下文体积、工具轮次和延迟；
-- Teacher Acceptance Eval 覆盖 TeachingDesign、Generation、Paper 修改、Pending Cancel、题库不足和 Tool failure。
+- Teacher Acceptance Eval 覆盖 TeachingDesign、Generation、Paper 修改、Pending Cancel、题库不足和 Tool failure；
+- 同一 Runtime 通过 `AgentVariant` 配置运行 `state-policy`、`tool-agent`、`prompt-only`，不复制 Agent；
+- 7 个确定性失败注入覆盖工具超时、旧版本确认、题库不足、重复确认、参数损坏、模型返回损坏和 ToolResult 损坏；
+- 可复现对照见 [`docs/agent_reliability_benchmark.md`](docs/agent_reliability_benchmark.md)，失败注入见 [`docs/agent_reliability_failure_injection.md`](docs/agent_reliability_failure_injection.md)；分数只从原始报告生成。
+
+```bash
+for variant in state-policy tool-agent prompt-only; do
+  RUN_LIVE_LLM=1 uv run python -m tests.evals.runner \
+    --cases-file tests/evals/cases/teacher_acceptance_v0.yaml \
+    --variant "$variant" --report "tests/evals/reports/$variant.json"
+done
+uv run python -m calculus_agent.evaluations.reliability_report \
+  state-policy=tests/evals/reports/state-policy.json \
+  tool-agent=tests/evals/reports/tool-agent.json \
+  prompt-only=tests/evals/reports/prompt-only.json \
+  --json-output tests/evals/reports/reliability_latest.json \
+  --markdown-output docs/agent_reliability_benchmark.md
+```
 
 ## Architecture
 
@@ -88,6 +105,30 @@ SQLite + SQLAlchemy
        ├── Conversation Workspace / Working Memory
        ├── Pending actions
        └── Run / Span traces
+```
+
+### Agent turn pipeline
+
+```text
+UserTurn
+  → deterministic task routing + context projection
+  → model decision (natural-language answer or proposed Tool calls)
+  → ToolExecutor validation and execution
+  → program-owned lifecycle/state transition
+  → FinalizationPolicy false-success guard
+  → trace and final result persistence
+```
+
+The model chooses among visible Tools and supplies structured arguments. Python
+owns Tool visibility, argument provenance guards, Preview/Confirm boundaries,
+database mutation, grounding, retry limits, and final status acceptance. A turn
+is capped by `AgentRuntimePolicy.max_tool_rounds` (default: 8).
+
+Public entry point:
+
+```python
+runtime = AgentRuntime(session, coordinator=coordinator, default_owner_key="local_teacher")
+result = runtime.run(UserTurn(message="生成第一章测试卷"))
 ```
 
 ## Quick Start

@@ -19,12 +19,25 @@ class FinalizationInput:
     pending_action_in_store: bool
     teaching_design_artifact_requested: bool
     active_design: dict[str, Any] | None
+    active_task_status: str | None
 
 
 @dataclass(frozen=True)
 class FinalizationDecision:
     status: Status
     final_text: str
+
+
+class FinalizationPolicy:
+    """Accept or reject a final answer from deterministic execution evidence."""
+
+    def __init__(self, runtime_policy: Any) -> None:
+        self.runtime_policy = runtime_policy
+
+    def finalize(self, evidence: FinalizationInput) -> FinalizationDecision:
+        return normalize_finalization(
+            data=evidence, runtime_policy=self.runtime_policy,
+        )
 
 
 def _successful_pending_confirmation_tool_observed(trace_calls: list[dict[str, Any]]) -> bool:
@@ -58,6 +71,17 @@ def normalize_finalization(*, data: FinalizationInput, runtime_policy: Any) -> F
     final_text = data.final_text
     errors = data.result_values["blocking_errors"]
     warnings = data.result_values["warnings"]
+    design_calls = [
+        item for item in data.trace_calls
+        if item.get("tool_name") in {
+            "create_teaching_design", "revise_teaching_design",
+        }
+    ]
+    design_tool_succeeded = any(
+        isinstance(item.get("result"), dict)
+        and item["result"].get("ok") is True
+        for item in design_calls
+    )
 
     if data.turn_error is not None:
         if _recoverable_post_tool_narration_failure(data):
@@ -84,21 +108,11 @@ def normalize_finalization(*, data: FinalizationInput, runtime_policy: Any) -> F
     elif (
         data.pending_query_possible
         and status == "waiting_confirmation"
-        # A create/revise Tool call is an authoritative confirmation boundary;
-        # retain it even if the state snapshot is temporarily stale.
-        and not any(
-            call.get("tool_name") in {"create_teaching_design", "revise_teaching_design"}
-            for call in data.trace_calls
-        )
+        # A create/revise call is an authoritative confirmation boundary,
+        # even if the state snapshot is temporarily stale.
+        and not design_calls
     ):
         status = "completed"
-
-    design_tool_succeeded = any(
-        item.get("tool_name") in {"create_teaching_design", "revise_teaching_design"}
-        and isinstance(item.get("result"), dict)
-        and item["result"].get("ok") is True
-        for item in data.trace_calls
-    )
     if (
         status == "completed" and design_tool_succeeded
         and (not data.active_design or data.active_design.get("status") != "confirmed")
@@ -106,12 +120,6 @@ def normalize_finalization(*, data: FinalizationInput, runtime_policy: Any) -> F
         status = "waiting_confirmation"
 
     if data.teaching_design_artifact_requested and status == "completed":
-        design_tool_succeeded = any(
-            item.get("tool_name") in {"create_teaching_design", "revise_teaching_design"}
-            and isinstance(item.get("result"), dict)
-            and item["result"].get("ok") is True
-            for item in data.trace_calls
-        )
         design_persisted = bool(
             data.active_design
             and data.active_design.get("version_id")
@@ -125,6 +133,15 @@ def normalize_finalization(*, data: FinalizationInput, runtime_policy: Any) -> F
         elif data.active_design and data.active_design.get("status") != "confirmed":
             # A freshly created/revised design remains a confirmation boundary.
             status = "waiting_confirmation"
+
+    if status == "completed" and data.active_task_status == "scope_selected":
+        status = "failed"
+        if "teaching_design_workflow_incomplete" not in errors:
+            errors.append("teaching_design_workflow_incomplete")
+        final_text = (
+            "教学范围已经选择，但教学规划流程尚未创建业务产物，"
+            "因此本轮不能标记为完成。请重试创建教学设计。"
+        )
 
     if "avoid_previous_paper_questions_unsupported" in warnings:
         final_text = (

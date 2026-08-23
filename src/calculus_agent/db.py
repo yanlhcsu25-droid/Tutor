@@ -69,6 +69,36 @@ def create_schema(database_url: str) -> None:
             "ON paper (teaching_design_version_id)"
         )
 
+    trace_columns = {
+        item["name"]
+        for item in inspect(engine).get_columns("teacher_agent_run_trace")
+    }
+    with engine.begin() as connection:
+        if "request_fingerprint" not in trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace "
+                "ADD COLUMN request_fingerprint VARCHAR(64)"
+            )
+        if "result_json" not in trace_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE teacher_agent_run_trace ADD COLUMN result_json JSON"
+            )
+        connection.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS "
+            "ix_teacher_agent_run_trace_request_fingerprint "
+            "ON teacher_agent_run_trace (request_fingerprint)"
+        )
+
+    paper_item_columns = {
+        item["name"] for item in inspect(engine).get_columns("paper_item")
+    }
+    with engine.begin() as connection:
+        if "question_snapshot_json" not in paper_item_columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE paper_item ADD COLUMN question_snapshot_json JSON "
+                "NOT NULL DEFAULT '{}'"
+            )
+
     # Phase 2C adjustment plan: the table itself is created by metadata;
     # existing local databases need the additive applied-version column.
     if "adjustment_plan" in inspect(engine).get_table_names():

@@ -6,7 +6,7 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const els = {
   sourceSelect: $('source-select'), pdfInput: $('pdf-input'), upload: $('upload-button'),
-  solutionMode: $('solution-mode'), ocrMode: $('ocr-mode'), separateRanges: $('separate-ranges'),
+  solutionMode: $('solution-mode'), separateRanges: $('separate-ranges'),
   questionPageStart: $('question-page-start'), questionPageEnd: $('question-page-end'),
   solutionPageStart: $('solution-page-start'), solutionPageEnd: $('solution-page-end'),
   placeholderUpload: $('placeholder-upload'), submit: $('submit-button'),
@@ -215,7 +215,6 @@ async function uploadPdf(file) {
   if (!file) return;
   const form = new FormData(); form.append('file', file);
   form.append('solution_mode', els.solutionMode.value);
-  form.append('ocr_mode', els.ocrMode.value);
   if (els.solutionMode.value === 'separate') {
     const fields = [els.questionPageStart, els.questionPageEnd, els.solutionPageStart, els.solutionPageEnd];
     if (fields.some(input => !input.value || Number(input.value) < 1)) {

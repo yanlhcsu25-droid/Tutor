@@ -195,6 +195,8 @@ def test_runner_forwards_fixture_paper_ids_to_agent(monkeypatch):
         backend=None,
         max_tool_rounds=8,
         trace_recorder=None,
+        variant=None,
+        tool_fault_injector=None,
     ):
         captured["paper_id"] = paper_id
         captured["version_id"] = version_id

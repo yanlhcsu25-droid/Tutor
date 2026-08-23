@@ -27,8 +27,11 @@ cases:
     graders:
       - type: state
       - type: acceptance
+        required_tools:
+          - create_teaching_design
         forbidden_tools:
           - prepare_generation_plan
+          - confirm_teaching_design
         statuses:
           - waiting_confirmation
         require_trace: true
@@ -43,8 +46,11 @@ cases:
     graders:
       - type: state
       - type: acceptance
+        required_tools:
+          - create_teaching_design
         forbidden_tools:
           - prepare_generation_plan
+          - confirm_teaching_design
         statuses:
           - waiting_confirmation
         require_trace: true
@@ -59,8 +65,11 @@ cases:
     graders:
       - type: state
       - type: acceptance
+        required_tools:
+          - create_teaching_design
         forbidden_tools:
           - prepare_generation_plan
+          - confirm_teaching_design
         statuses:
           - waiting_confirmation
         require_trace: true

@@ -46,7 +46,7 @@ class RepeatingInspectionBackend:
         }
 
 
-def test_repeated_same_tool_validation_failure_stops_after_one_retry(session):
+def test_unexposed_tool_stops_immediately_before_argument_retry(session):
     backend = RepeatingInvalidArgumentsBackend()
 
     result = run_teacher_agent(
@@ -56,9 +56,9 @@ def test_repeated_same_tool_validation_failure_stops_after_one_retry(session):
         backend=backend,
     )
 
-    assert backend.calls == 2
+    assert backend.calls == 1
     assert result.status == "failed"
-    assert result.blocking_errors == ["invalid_tool_arguments"]
+    assert result.blocking_errors == ["tool_not_exposed"]
     assert "agent_tool_round_limit" not in result.blocking_errors
 
 

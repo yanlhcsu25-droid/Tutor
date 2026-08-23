@@ -18,15 +18,21 @@ from calculus_agent.runtime import agent_runtime as _runtime
 from calculus_agent.runtime.agent_runtime import (
     ChatBackend,
     TeacherAgentResult,
-    _apply_explicit_opt_in_guards,
+    build_teacher_agent_backend,
+    run_teacher_agent,
+)
+from calculus_agent.runtime.tool_execution import (  # noqa: F401
+    merge_result_fields as _merge_result_fields,
+)
+from calculus_agent.runtime.paper_request import (  # noqa: F401
     _apply_question_reference_hints,
-    _explicit_preserve_knowledge_points_requested,
     _explicit_question_addresses,
     _explicit_question_positions,
     _paper_read_messages,
-    _merge_result_fields,
-    build_teacher_agent_backend,
-    run_teacher_agent,
+)
+from calculus_agent.runtime.request_guards import (  # noqa: F401
+    _apply_explicit_opt_in_guards,
+    _explicit_preserve_knowledge_points_requested,
 )
 
 def __getattr__(name: str):
