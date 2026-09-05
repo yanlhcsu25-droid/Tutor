@@ -34,7 +34,6 @@ from calculus_agent.knowledge.classification import (
 )
 from calculus_agent.models import (
     CurriculumNode,
-    KnowledgeNode,
     Paper,
     PaperItem,
     Question,
@@ -122,11 +121,55 @@ class ReinforcementService:
     ) -> ReinforcementResult:
         context = self.build_context(paper_id, items)
         patch = self.compile_patch(context)
-        preview = self.generation_service.preview(
-            patch,
-            replace_existing_pending=True,
-        )
+        preview = self._preflight(patch)
+        if preview.ok:
+            preview = self.generation_service.preview(
+                patch,
+                replace_existing_pending=True,
+            )
         return ReinforcementResult(context=context, patch=patch, preview=preview)
+
+    def _preflight(self, patch: GenerationPlanPatch) -> GenerationPlanPreview:
+        """Check the same candidate constraints as confirmation without writing state."""
+        # Local imports keep this domain service independent at module-load time
+        # from the Tool registry that constructs it.
+        from calculus_agent.agent.tools.paper_tools import (
+            build_structured_generation_request,
+        )
+        from calculus_agent.papers.selector import compose_paper_with_evidence
+
+        request, warnings, errors, questions = build_structured_generation_request(
+            self.session, patch,
+        )
+        if request is None:
+            return GenerationPlanPreview(
+                ok=False,
+                request=patch,
+                warnings=warnings,
+                blocking_errors=errors,
+                clarification_questions=questions,
+            )
+
+        candidate_preview, _evidence = compose_paper_with_evidence(
+            self.session, request,
+        )
+        if candidate_preview.feasible:
+            return GenerationPlanPreview(ok=True, request=patch)
+
+        unsatisfied = [
+            f"constraint_unsatisfied:{warning}"
+            for warning in candidate_preview.warnings
+        ]
+        return GenerationPlanPreview(
+            ok=False,
+            request=patch,
+            warnings=[*warnings, *candidate_preview.warnings],
+            blocking_errors=["insufficient_candidates", *unsatisfied],
+            clarification_questions=[
+                "当前题库无法满足这份强化卷的知识点和题量约束；"
+                "请减少强化知识点、补充题库，或调整练习范围。"
+            ],
+        )
 
     def build_context(
         self,

@@ -14,13 +14,11 @@ from fastapi.testclient import TestClient
 from calculus_agent.api import import_textbook_directory
 from calculus_agent.db import build_session_factory, create_schema
 from calculus_agent.models import (
-    CurriculumNode,
     KnowledgeNode,
     OcrImportDraft,
     OcrImportSource,
     Textbook,
 )
-from calculus_agent.workbench import app as workbench_app
 from calculus_agent.workbench.chapter_filter import (
     chapter_display_label,
     filter_questions_by_chapter,
@@ -214,7 +212,7 @@ def test_endpoint_chapter_filter_and_chapters_list(tmp_path) -> None:
     factory = build_session_factory(db_url)
     with factory.begin() as s:
         _seed(s)
-        ch1_id = list_top_level_chapters(s)[0].id  # 第一章（sort_order 最小）
+        list_top_level_chapters(s)[0].id  # 确认第一章可读取（sort_order 最小）
 
     import calculus_agent.workbench.app as app_module
     old_factory = app_module._session_factory

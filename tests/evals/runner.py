@@ -165,8 +165,10 @@ def create_eval_backend(case: EvalCase):
         class ScriptedBackend:
             model = "eval-scripted-backend"
             temperature = 0
+            calls = 0
 
             def complete(self, messages, tools, **kwargs):
+                self.calls += 1
                 if not responses:
                     return {"message": {"role": "assistant", "content": "未完成操作。"}}
                 response = responses.pop(0)
@@ -1370,6 +1372,8 @@ def create_tool_fault_injector(case: EvalCase):
     def inject(name: str, arguments: dict[str, Any]) -> ToolResult:
         if target and name != target:
             raise AssertionError(f"unexpected_tool_for_fault:{name}")
+        if config.get("exception"):
+            raise TimeoutError(str(config.get("message") or "tool_timeout"))
         if config.get("malformed_result"):
             return {"ok": True}  # type: ignore[return-value]
         code = str(config.get("code") or "injected_tool_failure")
@@ -1401,6 +1405,7 @@ def run_case(
     seed_success_question_bank(session)
 
     turn_results: list[dict] = []
+    backend_call_deltas: list[int] = []
 
     try:
         # ----------------------------------------------------
@@ -1482,6 +1487,7 @@ def run_case(
             # 只有这里才进入真实 Agent / LLM
             # ------------------------------------------------
 
+            backend_calls_before = int(getattr(backend, "calls", 0) or 0)
             result = run_teacher_agent(
                 session,
                 user_message,
@@ -1494,8 +1500,15 @@ def run_case(
                 trace_recorder=AgentTraceRecorder(trace_dir),
                 variant=variant,
                 tool_fault_injector=create_tool_fault_injector(case),
+                operation_id=(
+                    turn.get("operation_id")
+                    or (case.invoke or {}).get("operation_id")
+                ),
             )
 
+            backend_call_deltas.append(
+                int(getattr(backend, "calls", 0) or 0) - backend_calls_before
+            )
             session.commit()
             session.expire_all()
 
@@ -1560,6 +1573,9 @@ def run_case(
             result=result,
             paper_id=fixture_context.paper_id,
         )
+
+        actual["backend_calls"] = getattr(backend, "calls", None)
+        actual["backend_call_deltas"] = backend_call_deltas
 
         actual["before"] = (
             before_last_turn

@@ -480,11 +480,13 @@ def _resolved_knowledge_priority_weights(
 def _difficulty(
     level: str | None,
 ) -> tuple[list[int], list[int], list[int]]:
+    if level is None:
+        return [1, 2, 3, 4, 5], [3], [2, 4, 1, 5]
     return {
         "easy": ([1, 2, 3], [1, 2], [3]),
         "normal": ([2, 3, 4], [3], [2, 4]),
         "hard": ([3, 4, 5], [4, 5], [3]),
-    }[level or "normal"]
+    }[level]
 
 
 def build_structured_generation_request(
@@ -903,6 +905,7 @@ def build_structured_generation_request(
                     else 100
                 )
             ),
+            question_count=request.question_count,
             difficulty=(
                 request.difficulty_level
                 or "normal"

@@ -9,7 +9,7 @@ CASE_FILE = Path(__file__).parent / "cases" / "reliability_failure_injection_v0.
 
 def test_failure_injection_suite_fails_closed_without_live_model():
     suite = load_eval_suite(CASE_FILE)
-    assert len(suite.cases) == 7
+    assert len(suite.cases) == 20
 
     results = [run_case(case) for case in suite.cases]
 

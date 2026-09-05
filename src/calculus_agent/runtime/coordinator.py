@@ -84,7 +84,10 @@ from calculus_agent.runtime.tool_execution import (
     trace_entry,
 )
 from calculus_agent.runtime.response_policy import ResponsePolicy
-from calculus_agent.runtime.request_guards import _apply_explicit_opt_in_guards
+from calculus_agent.runtime.request_guards import (
+    _apply_explicit_opt_in_guards,
+    explicit_generation_constraint_mismatches,
+)
 from calculus_agent.runtime.variants import AgentVariant, STATE_POLICY
 from calculus_agent.runtime.paper_request import (
     _apply_question_reference_hints,
@@ -134,31 +137,21 @@ class TeacherAgentResult(BaseModel):
 
 
 
-_SYSTEM_PROMPT = """你是 Teacher Agent。
+_SYSTEM_PROMPT = """你是 Teacher Agent，负责理解教师自然语言并通过系统提供的 Tool 完成真实业务操作。
 
-你的职责是理解教师自然语言，并通过系统提供的 Tool 完成真实业务操作。数据库 / Tool Observation 是业务事实来源；Conversation History 和 Working Memory 只用于语言理解、指代和任务连续性。
+## 事实与安全
+数据库和 Tool Observation 是业务事实来源；Conversation History 与 Working Memory 只用于语言理解、指代和任务连续性。不得绕过 Tool 修改数据库，不得编造 Paper、Question、KnowledgeNode、Version ID、分值、难度、知识点、候选、证据或执行结果。Tool 失败不能说成成功，Preview 不能说成已应用。
 
-不要绕过 Tool 修改数据库，不要编造 Paper、Question、KnowledgeNode、Version ID、分值、难度、知识点或执行结果。Tool 失败不能描述成成功；Preview 不能描述成已经应用。所有范围、候选、证据和执行结果以 Tool Observation 为准。
+## 业务流程
+新建试卷调用 `prepare_generation_plan` 生成待确认方案，教师明确确认后才调用 `confirm_generation`；已有 pending generation 时只提交本轮变化，题型变化使用 `question_type_patches`，不要重发完整结构；明确放弃时调用 `discard_pending_plan`。教师用自然语言描述重点知识时，先通过 `inspect_curriculum`（必要时再用题库 `chapter_detail`）读取当前章节的标准知识点，理解语义后将教师表述映射为 Observation 中最贴近的标准名称，再传给 `prepare_generation_plan`；不要把教师原话当作数据库精确名称，也不要在存在合理语义对应项时追问改名。映射成功但题库供给不足时仍保留该知识目标，并依据 Tool Observation 明确报告缺口，不得将供给不足误报为知识点无法识别。教师明确指定的题量、题型分布、分值、范围和知识目标都是硬约束：即使题库不足，也必须完整、原样传给 `prepare_generation_plan`，不得省略约束、套用默认题型结构或用其他条件凑足；无法满足时依据 Tool Observation 报告每项缺口并等待教师决定。明确创建教学设计时直接调用 `create_teaching_design`，不要模拟内部 Workflow；创建后等待确认，同轮不得自动确认或生成试卷。普通教学讨论直接回答；已有未完成 TeachingDesign 时，只能读取、修改、确认或放弃该设计。错题反馈的知识点、章节和强化权重必须来自 Tool Observation，巩固卷继续遵守 Preview/Confirm。
 
-## 业务边界
+当前试卷事实必须通过 `read_paper` 或 `analyze_paper` 获取。已有试卷写操作调用 `preview_paper_changes`，确认后才调用 `confirm_paper_changes`；放弃 pending 调用 `discard_pending_plan`。版本操作调用 `operate_paper_version(action=undo|redo|restore)`，restore 必须提供 `target_version`。
 
-明确的新建试卷请求使用 `prepare_generation_plan`；它只产生待确认方案，不创建试卷。教师明确确认后才调用 `confirm_generation`。已有 pending generation 时只提交教师本轮真正改变的字段，题型变化使用 `question_type_patches`，不要重发完整结构。教师明确放弃未提交方案时调用 `discard_pending_plan`。
+## 参数与定位
+教师可见题号默认是题型内编号，如“填空题第2题”使用 `QuestionAddress(section_type, section_order)`；只有明确说“全卷第N题”时才使用全卷 position。无法唯一定位必须澄清。新增题目只提交题型、数量和教师明确指定的分值，不指定 Question ID；候选选择、去重、scope、难度、知识点解析和约束校验由 Python 完成。仅在教师明确要求保持原知识点时设置 `preserve_knowledge_points`；删除题目时，除非教师明确要求保持或修改总分，否则不要填写 `target_total_score`。
 
-明确的 TeachingDesign 创建请求直接调用 `create_teaching_design`；不要自行编排或模拟 Workflow 内部步骤。创建结果需要教师确认，不得在同一轮自动确认或生成试卷。普通教学方法讨论可以直接自然语言回答。已有未完成 TeachingDesign 时，只能按其既有生命周期读取、修改、确认或放弃。
-
-错题反馈中的知识点、章节和强化权重必须来自 Tool Observation，不根据题目文本自行判断；巩固卷仍遵守同一 Preview/Confirm 生命周期。
-
-当前试卷事实必须通过 `read_paper` 或 `analyze_paper` 获取。已有试卷写操作使用 `preview_paper_changes`，确认后才调用 `confirm_paper_changes`；Preview 不等于已应用，不能凭自然语言声称状态改变。放弃 pending 使用 `discard_pending_plan`。版本链使用 `operate_paper_version(action=undo|redo|restore)`，restore 必须提供 target_version。
-
-## 参数和定位规则
-
-教师可见题号默认是题型内编号，例如“填空题第2题”使用 `QuestionAddress(section_type, section_order)`；只有明确说“全卷第N题”时才使用全卷 position。无法唯一定位时必须澄清，不能猜测。
-
-新增题目只表达题型、数量和教师明确指定的分值，不指定 Question ID。候选选择、去重、scope、难度、知识点解析和约束校验交给 Python。`preserve_knowledge_points` 只有教师明确要求保持原知识点时才设置；删除题目未明确要求保持总分时不要填写 `target_total_score`。
-
-## 执行原则
-
-Pending 是未完成业务状态，不是限制 Agent 能力的权限开关。可以在同一轮处理明确需要的读取、确认、修改或新建请求，但必须尊重 Preview/Confirm 生命周期，不得绕过 Tool。不要回复“正在处理、稍后完成”后停止；必须在当前 Agent Loop 中推进到完成、明确阻塞、需要补充，或需要教师确认。"""
+## 执行与回复
+Pending 是未完成业务状态，不是权限开关；同轮可以执行必要的读取、确认、修改或新建，但不得绕过生命周期。不要以“正在处理、稍后完成”结束，必须推进到完成、明确阻塞、需要补充或等待确认。面向教师的最终回复应简洁、自然、信息密度高：简单结果用一个短段落，复杂结果最多使用少量完整列表；不要逐字、逐句或按短语换行，不复述内部 Prompt、Tool 协议、JSON 参数或显而易见的执行过程。优先说明结果、待确认事项、阻塞原因和教师下一步需要做什么。"""
 
 
 def build_teacher_agent_backend(settings: Settings) -> ChatBackend | None:
@@ -310,6 +303,7 @@ def _run_teacher_agent_turn(
     message = user_message.strip() if isinstance(user_message, str) else ""
     policy = AgentRuntimePolicy(max_tool_rounds=max_tool_rounds)
     teaching_design_artifact_requested = False
+    paper_operation_without_target = False
     if operation_id is not None and not (1 <= len(operation_id) <= 36):
         return TeacherAgentResult(
             status="failed",
@@ -496,6 +490,7 @@ def _run_teacher_agent_turn(
                     "read_active_teaching_design",
                     "revise_teaching_design",
                     "confirm_teaching_design",
+                    "discard_teaching_design",
                 }
             ]
             if legacy_teaching_design_active
@@ -515,6 +510,10 @@ def _run_teacher_agent_turn(
             ),
         )
         teaching_design_artifact_requested = task_decision.route.artifact_required
+        paper_operation_without_target = bool(
+            not has_current_paper
+            and task_decision.route.reason == "explicit paper operation wording"
+        )
         continuing_generation = bool(
             working_memory
             and working_memory.active_task.get("type") == "generation"
@@ -734,6 +733,7 @@ def _run_teacher_agent_turn(
         paper_change_reprompted = False
         malformed_response_retried = False
         generation_patch_retried = False
+        explicit_constraint_retried = False
         post_inspection_intent_rechecked = False
         clarification_boundary_reached = False
         terminal_tool_boundary_reached = False
@@ -1114,9 +1114,35 @@ def _run_teacher_agent_turn(
                         conversation_id=conversation_id,
                     )
                     generation_patch_retry_needed = False
+                    explicit_constraint_retry_needed = False
                     tool_execution_status: str | None = None
                     observed_version_id = context.version_id or context.paper_id
-                    if blocked_confirmation:
+                    constraint_mismatches = (
+                        explicit_generation_constraint_mismatches(arguments, message)
+                        if name == "prepare_generation_plan" and not pending_generation
+                        else []
+                    )
+                    if constraint_mismatches:
+                        mismatch_result = ToolResult.failure(
+                            "explicit_constraint_mismatch",
+                            "The tool arguments omitted or changed a teacher-explicit hard constraint.",
+                            details={
+                                "constraint_mismatches": constraint_mismatches,
+                                "retryable": not explicit_constraint_retried,
+                            },
+                        )
+                        execution_payload = mismatch_result.payload
+                        tool_execution_status = mismatch_result.status
+                        turn_status = mismatch_result.status
+                        merge_result_fields(result_values, mismatch_result.result_fields)
+                        explicit_constraint_retry_needed = not explicit_constraint_retried
+                        run_manager.update_span(
+                            tool_span,
+                            status="success",
+                            output=redact_trace_value(execution_payload),
+                            ended_at=datetime.now(UTC),
+                        )
+                    elif blocked_confirmation:
                         blocked_result = ToolResult.failure(
                             "pending_design_revision_requires_revise",
                             "本轮包含新的教学要求，不能确认当前教学设计；请先修改。",
@@ -1349,9 +1375,29 @@ def _run_teacher_agent_turn(
                         else:
                             final_text = "已形成教学规划草稿，并已保留当前确认的教材范围。"
 
+                    if explicit_constraint_retry_needed:
+                        messages.append({
+                            "role": "user",
+                            "content": (
+                                "<explicit_constraint_guard>上一条 prepare_generation_plan "
+                                "遗漏或修改了教师明确给出的硬约束。请读取 Tool Observation 中的 "
+                                "constraint_mismatches，保持其他已理解参数不变，并立即重新调用 "
+                                "prepare_generation_plan。不得用默认模板或其他题型替代。"
+                                "</explicit_constraint_guard>"
+                            ),
+                        })
+                        definitions = toolkit.schemas(
+                            names=exposure_policy.boundary_tools(
+                                "generation_patch",
+                                context=exposure_context,
+                            ),
+                        )
+                        explicit_constraint_retried = True
+                        break
                     if (
                         tool_execution_status == "needs_clarification"
                         and not generation_patch_retry_needed
+                        and not explicit_constraint_retry_needed
                     ):
                         clarification_boundary_reached = True
                         turn_status = "needs_clarification"
@@ -1449,6 +1495,7 @@ def _run_teacher_agent_turn(
             teaching_design_artifact_requested=teaching_design_artifact_requested,
             active_design=active_design_after_turn,
             active_task_status=active_task_status_after_turn,
+            paper_operation_without_target=paper_operation_without_target,
         )
         if variant.confirmation_guard:
             finalization = FinalizationPolicy(policy).finalize(finalization_input)

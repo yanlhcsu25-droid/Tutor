@@ -1,8 +1,5 @@
-import sys
-import types
 from pathlib import Path
 
-from calculus_agent.ocr.pdf_preprocess import PreparedPdf
 from calculus_agent.workbench import ocr as ocr_module
 from calculus_agent.workbench.import_pipeline import DocumentLayout
 

@@ -203,17 +203,20 @@ export function clearStoredConversationId(): void {
 }
 
 function GenerationPlanCard({
-  title, initialSections, loading, disabled, onUpdate, onConfirm,
+  title, initialSections, totalQuestions: plannedQuestionCount, totalScore: plannedTotalScore, loading, disabled, onUpdate, onConfirm,
 }: {
-  title: string; initialSections: GenerationSection[]; loading: boolean; disabled?: boolean;
+  title: string; initialSections: GenerationSection[]; totalQuestions: number; totalScore: number; loading: boolean; disabled?: boolean;
   onUpdate: (patches: GenerationPlanPatch[]) => void; onConfirm: () => void;
 }) {
   const [sections, setSections] = useState(initialSections);
   const changed = JSON.stringify(sections) !== JSON.stringify(initialSections);
-  const totalQuestions = sections.reduce((sum, item) => sum + item.count, 0);
-  const totalScore = sections.every((item) => item.score_each != null)
+  const hasEditableSections = sections.length > 0;
+  const totalQuestions = hasEditableSections
+    ? sections.reduce((sum, item) => sum + item.count, 0)
+    : plannedQuestionCount;
+  const totalScore = hasEditableSections && sections.every((item) => item.score_each != null)
     ? sections.reduce((sum, item) => sum + item.count * Number(item.score_each), 0)
-    : null;
+    : plannedTotalScore;
   const update = () => {
     const patches = sections.flatMap((item, index) => {
       const original = initialSections[index];
@@ -226,7 +229,8 @@ function GenerationPlanCard({
   };
   return (
     <Card size="small" title={<span>📋 待确认组卷方案 — {title}</span>} style={{ maxWidth: 560, background: "#fafafa" }}>
-      <Typography.Paragraph>共 {totalQuestions} 题{totalScore != null ? `，${totalScore} 分` : ""}</Typography.Paragraph>
+      <Typography.Paragraph>共 {totalQuestions} 题，{totalScore} 分</Typography.Paragraph>
+      {!hasEditableSections && <Typography.Text type="secondary">本方案按错题知识点定向组题；如需调整题量或题型，请直接说明要求。</Typography.Text>}
       {sections.map((section, index) => (
         <Row key={section.question_type} gutter={8} align="middle" style={{ marginBottom: 8 }}>
           <Col flex="100px"><Tag>{section.question_type}</Tag></Col>
@@ -236,7 +240,7 @@ function GenerationPlanCard({
       ))}
       <Divider style={{ margin: "12px 0" }} />
       <Space>
-        <Button size="small" disabled={disabled || !changed} loading={loading} onClick={update}>更新方案</Button>
+        <Button size="small" disabled={disabled || !hasEditableSections || !changed} loading={loading} onClick={update}>更新方案</Button>
         <Button type="primary" size="small" loading={loading} disabled={disabled || changed} onClick={onConfirm}>确认并组卷</Button>
       </Space>
       {changed && <Typography.Text type="warning" style={{ display: "block", marginTop: 8 }}>方案已修改，请先更新方案并重新校验。</Typography.Text>}
@@ -276,7 +280,7 @@ export default function AgentWorkspace() {
         ));
         const pending = restored.pending_generation;
         const sections = pending?.request.question_type_requirements ?? [];
-        if (pending && sections.length) {
+        if (pending) {
           restoredMessages.push({
             role: "agent",
             type: "generation_plan",
@@ -445,7 +449,10 @@ export default function AgentWorkspace() {
       setMessages((prev) => [...prev, {
         role: "agent",
         type: agent.status === "failed" ? "error" : "reply",
-        text: agent.message + (agent.clarification_questions?.length ? ` ${agent.clarification_questions.join(" ")}` : ""),
+        text: [
+          agent.message,
+          ...(agent.clarification_questions ?? []).filter((question) => !agent.message.includes(question)),
+        ].filter(Boolean).join(" "),
       }]);
       return;
 
@@ -689,6 +696,8 @@ export default function AgentWorkspace() {
           <GenerationPlanCard
             title={msg.title}
             initialSections={msg.sections}
+            totalQuestions={msg.total_questions}
+            totalScore={msg.total_score}
             loading={loading || restoringSession}
             disabled={msg.disabled || idx !== latestPlanIndex}
             onUpdate={(patches) => void handlePlanUpdate(patches, msg.pending_version)}

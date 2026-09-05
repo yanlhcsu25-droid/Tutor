@@ -1,6 +1,6 @@
 from calculus_agent.models import KnowledgeNode, Question, QuestionDraft, QuestionKnowledgeLink
 from calculus_agent.papers.selector import compose_paper
-from calculus_agent.schemas import KnowledgeQuota, PaperBlueprint
+from calculus_agent.schemas import KnowledgeQuota, PaperBlueprint, SectionRequirement
 
 
 def _question(
@@ -74,6 +74,38 @@ def test_compose_paper_satisfies_explicit_constraints(session):
     assert result.total_score == 100
     assert len(result.items) == 3
     assert not result.warnings
+
+
+def test_infeasible_section_preview_does_not_fill_with_wrong_question_type(session):
+    knowledge = KnowledgeNode(
+        node_type="concept", name="导数", normalized_name="导数", review_status="approved"
+    )
+    session.add(knowledge)
+    session.flush()
+    calculation = _question(session, 1, "计算题", knowledge)
+    _question(session, 2, "选择题", knowledge)
+    session.flush()
+
+    result = compose_paper(
+        session,
+        PaperBlueprint(
+            total_questions=2,
+            total_score=20,
+            question_type_counts={"计算题": 2},
+            sections=[
+                SectionRequirement(
+                    question_type="计算题",
+                    count=2,
+                    score_per_question=10,
+                    total_score=20,
+                )
+            ],
+        ),
+    )
+
+    assert result.feasible is False
+    assert [item.question_id for item in result.items] == [calculation.id]
+    assert {item.question_type for item in result.items} == {"计算题"}
 
 
 def test_compose_paper_excludes_dataset_demo_and_test_sources(session):

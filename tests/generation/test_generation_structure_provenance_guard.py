@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from calculus_agent.agent.agent import _apply_explicit_opt_in_guards
+from calculus_agent.runtime.request_guards import (
+    explicit_generation_constraint_omissions,
+)
 
 
 def _invented_generation_args() -> dict:
@@ -27,6 +30,89 @@ def _invented_generation_args() -> dict:
             },
         ],
     }
+
+
+def test_all_one_type_reports_omitted_tool_constraint() -> None:
+    omissions = explicit_generation_constraint_omissions(
+        {"question_count": 8},
+        "共8题，全部为计算题，难度逐步递增。",
+    )
+
+    assert omissions == [{
+        "field": "question_type_requirements",
+        "expected": [{"question_type": "计算题", "count": 8}],
+    }]
+
+
+def test_all_one_type_accepts_matching_tool_constraint() -> None:
+    omissions = explicit_generation_constraint_omissions(
+        {
+            "question_count": 8,
+            "question_type_requirements": [
+                {"question_type": "计算题", "count": 8},
+            ],
+        },
+        "共8题，全部为计算题。",
+    )
+
+    assert omissions == []
+
+
+def test_explicit_mixed_distribution_reports_changed_tool_constraint() -> None:
+    omissions = explicit_generation_constraint_omissions(
+        {
+            "question_count": 8,
+            "question_type_requirements": [
+                {"question_type": "选择题", "count": 5},
+                {"question_type": "计算题", "count": 3},
+            ],
+        },
+        "共8题，选择题4道，计算题4道。",
+    )
+
+    assert omissions == [{
+        "field": "question_type_requirements",
+        "expected": [
+            {"question_type": "选择题", "count": 4},
+            {"question_type": "计算题", "count": 4},
+        ],
+    }]
+
+
+def test_explicit_mixed_distribution_accepts_matching_tool_constraint() -> None:
+    omissions = explicit_generation_constraint_omissions(
+        {
+            "question_count": 8,
+            "question_type_requirements": [
+                {"question_type": "选择题", "count": 4},
+                {"question_type": "计算题", "count": 4},
+            ],
+        },
+        "共8题，4道选择题，四道计算题。",
+    )
+
+    assert omissions == []
+
+
+def test_mixed_distribution_uses_explicit_whole_paper_total() -> None:
+    arguments = {
+        "question_count": 10,
+        "question_type_requirements": [
+            {"question_type": "计算题", "count": 10},
+            {"question_type": "证明题", "count": 3},
+        ],
+    }
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="prepare_generation_plan",
+        arguments=arguments,
+        message="生成10道计算题、3道证明题，共13题。",
+    )
+
+    assert guarded["question_count"] == 13
+    assert explicit_generation_constraint_omissions(
+        guarded,
+        "生成10道计算题、3道证明题，共13题。",
+    ) == []
 
 
 def test_default_generation_strips_model_invented_structure() -> None:
@@ -104,6 +190,17 @@ def test_explicit_whole_paper_count_keeps_question_count() -> None:
     )
 
     assert guarded["question_count"] == 12
+
+
+def test_explicit_compact_count_and_score_restore_model_omissions() -> None:
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="prepare_generation_plan",
+        arguments={"paper_type": "midterm", "scope_names": ["第一章", "第二章"]},
+        message="第一章和第二章生成一套12题100分期中练习卷。",
+    )
+
+    assert guarded["question_count"] == 12
+    assert guarded["total_score"] == 100
 
 
 def test_pending_numeric_type_patch_is_preserved() -> None:

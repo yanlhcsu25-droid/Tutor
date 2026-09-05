@@ -43,7 +43,14 @@ class GeneratePaperInput(BaseModel):
     audience: str | None = Field(default=None, max_length=100)
     question_count: int | None = Field(default=None, ge=1, le=100)
     total_score: int | None = Field(default=None, ge=1, le=300)
-    question_type_requirements: list[QuestionTypeRequirement] | None = None
+    question_type_requirements: list[QuestionTypeRequirement] | None = Field(
+        default=None,
+        description=(
+            "Teacher-explicit question-type distribution. Preserve every stated "
+            "type and count exactly; never omit or substitute them because observed "
+            "supply is short."
+        ),
+    )
     knowledge_preferences: list[str] | None = None
     required_knowledge_names: list[str] | None = None
     knowledge_priority_weights: dict[str, int] | None = None
@@ -219,6 +226,7 @@ class RequirementBlueprint(BaseModel):
     paper_type: Literal["chapter_test", "homework", "midterm", "final"]
     scope: list[str] = Field(default_factory=list)
     total_score: int | None = Field(default=100, ge=1, le=300)
+    question_count: int | None = Field(default=None, ge=1, le=200)
     difficulty: Literal["easy", "normal", "hard"] = "normal"
     duration: int | None = Field(default=None, ge=1, le=600)
     preferences: RequirementPreferences = Field(default_factory=RequirementPreferences)

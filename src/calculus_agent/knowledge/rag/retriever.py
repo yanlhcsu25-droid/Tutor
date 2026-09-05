@@ -12,7 +12,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 
 from calculus_agent.knowledge.rag.chunker import StructureAwareChunker
 from calculus_agent.knowledge.rag.embedding import EmbeddingProvider

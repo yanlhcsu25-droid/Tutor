@@ -88,6 +88,30 @@ def _sections(
     ]
 
 
+def _resize_sections(
+    sections: list[SectionRequirement], target_count: int,
+) -> list[SectionRequirement]:
+    """Scale default section counts by largest remainder, preserving all types."""
+    if target_count < len(sections):
+        return sections
+    original_total = sum(section.count for section in sections)
+    remaining = target_count - len(sections)
+    quotas = [section.count * remaining / original_total for section in sections]
+    counts = [1 + int(value) for value in quotas]
+    for index in sorted(
+        range(len(sections)), key=lambda item: (quotas[item] % 1, -item),
+        reverse=True,
+    )[:target_count - sum(counts)]:
+        counts[index] += 1
+    return [
+        section.model_copy(update={
+            "count": count,
+            "total_score": count * section.score_per_question,
+        })
+        for section, count in zip(sections, counts)
+    ]
+
+
 def _rebalance_sections_to_total(
     sections: list[SectionRequirement],
     *,
@@ -222,6 +246,9 @@ def build_paper_blueprint(
     else:
         sections = _sections(CHAPTER_TEST_TEMPLATE)
         total_score = requirement.total_score or 100
+
+    if requirement.question_count is not None:
+        sections = _resize_sections(sections, requirement.question_count)
 
     default_total = sum(section.total_score for section in sections)
     if not isclose(default_total, total_score):

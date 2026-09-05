@@ -50,7 +50,7 @@ def test_creates_mistake_prep_and_ranks_matching_questions(session):
     )
     session.add(knowledge)
     session.flush()
-    closest = _question(session, number=1, knowledge=knowledge)
+    _question(session, number=1, knowledge=knowledge)
     _question(session, number=2, knowledge=knowledge)
 
     result = create_mistake_prep(

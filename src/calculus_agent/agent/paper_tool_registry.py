@@ -249,7 +249,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         ),
         AgentTool(
             "prepare_generation_plan",
-            "Create or patch a validated plan for a NEW paper without selecting or mutating questions. This is the generation preview boundary.",
+            "Create or patch a validated plan for a NEW paper without selecting or mutating questions. knowledge_preferences must use canonical knowledge names observed from inspect_curriculum/question-bank tools, not unverified teacher wording. Preserve teacher-explicit question types/counts and semantically mapped goals exactly even when observed supply is insufficient; report the shortage instead of substituting another question type. This is the generation preview boundary.",
             GenerationPlanPatch,
             prepare_generation,
         ),

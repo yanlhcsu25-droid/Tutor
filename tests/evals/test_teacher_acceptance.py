@@ -17,6 +17,8 @@ REPORT_FILE = Path(__file__).parent / "reports" / "teacher_acceptance_v0.json"
 EXPECTED_IDS = {
     "TD-001", "TD-002", "TD-003", "GEN-001", "GEN-002",
     "GEN-003", "MOD-001", "MOD-002", "PENDING-001", "ERR-001",
+    "TD-004", "TD-005", "TD-006", "TD-007", "TD-008", "TD-009",
+    "GEN-004", "GEN-005", "GEN-006", "MOD-003", "MOD-004",
 }
 
 
@@ -66,7 +68,7 @@ def test_teacher_acceptance_suite_is_well_formed() -> None:
     suite = load_eval_suite(CASE_FILE)
     assert suite.name == "teacher_acceptance_v0"
     assert {case.id for case in suite.cases} == EXPECTED_IDS
-    assert len(suite.cases) == 10
+    assert len(suite.cases) == 21
     assert all(case.turns for case in suite.cases)
     for case in suite.cases[:3]:
         acceptance = next(item for item in case.graders if item["type"] == "acceptance")

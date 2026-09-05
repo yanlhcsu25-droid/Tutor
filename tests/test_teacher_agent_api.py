@@ -11,7 +11,35 @@ from calculus_agent.agent.schemas import GeneratePaperInput, QuestionTypeRequire
 from calculus_agent.agent.state import WorkspaceService
 from calculus_agent.agent.tools.paper_tools import GeneratePaperToolResult, PaperSummary
 from calculus_agent.config import Settings
+from calculus_agent.models import TeacherAgentRunTrace
+from calculus_agent.schemas import AgentRunRequest
 from calculus_agent.teaching_design import TeachingDesignContent, TeachingDesignService
+
+
+def test_legacy_agent_run_endpoint_creates_uuid_scoped_conversation(monkeypatch, session):
+    def fake_run(session_arg, message, **kwargs):
+        conversation_id = kwargs["conversation_id"]
+        assert conversation_id.startswith("legacy-api-")
+        run = TeacherAgentRunTrace(
+            run_id="legacy-run",
+            conversation_id=conversation_id,
+            user_message=message,
+            status="completed",
+            result_status="completed",
+            final_response="已完成。",
+            tool_calls_json=[],
+        )
+        session_arg.add(run)
+        session_arg.flush()
+        return TeacherAgentResult(status="completed", message="已完成。", run_id=run.run_id)
+
+    monkeypatch.setattr(api, "run_teacher_agent", fake_run)
+    monkeypatch.setattr(api, "build_teacher_agent_backend", Mock(return_value=Mock()))
+
+    result = api.create_agent_run(AgentRunRequest(request="查询当前试卷"), session, Settings())
+
+    assert result.run_id == "legacy-run"
+    assert result.status == "completed"
 
 
 def test_teacher_agent_http_entry_delegates_to_phase2b_agent(monkeypatch, session):

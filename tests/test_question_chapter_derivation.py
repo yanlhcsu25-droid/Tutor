@@ -6,7 +6,6 @@ whenever knowledge links are written.
 """
 import uuid
 
-from sqlalchemy import select
 
 from calculus_agent.api import (
     FormalQuestionUpdateRequest,

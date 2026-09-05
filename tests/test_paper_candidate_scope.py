@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
 
 from calculus_agent.agent.schemas import GenerationConstraints
 from calculus_agent.models import (

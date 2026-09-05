@@ -15,6 +15,20 @@ def test_chapter_requirement_uses_existing_default_structure():
     assert "scope_not_enforced_by_existing_paper_blueprint" in result.warnings
 
 
+def test_explicit_total_count_resizes_default_structure_deterministically():
+    result = build_paper_blueprint(RequirementBlueprint(
+        paper_type="midterm", scope=["第一章", "第二章"],
+        question_count=12, total_score=100,
+    ))
+
+    assert result.ok
+    assert result.paper_blueprint.total_questions == 12
+    assert result.paper_blueprint.total_score == 100
+    assert result.paper_blueprint.question_type_counts == {
+        "选择题": 5, "填空题": 3, "计算题": 4,
+    }
+
+
 def test_homework_uses_five_question_compatible_blueprint():
     result = build_paper_blueprint(parse_teacher_requirement("给第一节出一套课后练习"))
     assert result.ok is True

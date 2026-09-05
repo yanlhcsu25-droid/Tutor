@@ -8,7 +8,6 @@ from calculus_agent.agent.tool_registry import (
 )
 from calculus_agent.agent.paper_change_service import PaperChangeRequest
 from calculus_agent.agent.tools.analysis_tools import (
-    PaperAdjustmentPreview,
     _build_removal_operations,
 )
 from calculus_agent.models import (
@@ -18,7 +17,6 @@ from calculus_agent.models import (
     Question,
     QuestionDraft,
 )
-from calculus_agent.papers.addressing import QuestionAddress
 
 
 def _item(position: int, score: float, section: str = "选择题") -> PaperItem:

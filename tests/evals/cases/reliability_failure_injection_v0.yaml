@@ -193,3 +193,312 @@ cases:
       - type: acceptance
         statuses: [failed]
         require_trace: true
+
+  - id: FI-008
+    category: capability_boundary
+    title: hidden_registered_tool_is_rejected
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: hidden-1
+              type: function
+              function: {name: activate_teaching_design, arguments: '{"version_id":"x"}'}
+    turns:
+      - user: 如何讲函数？
+    expected:
+      status: failed
+      result: {blocking_errors: [tool_not_exposed]}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        required_error_codes: [tool_not_exposed]
+        tool_counts: {activate_teaching_design: 1}
+
+  - id: FI-009
+    category: capability_boundary
+    title: unknown_tool_is_rejected
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: unknown-1
+              type: function
+              function: {name: totally_unknown_tool, arguments: "{}"}
+        - content: 不存在该工具。
+    turns:
+      - user: 如何讲函数？
+    expected:
+      status: failed
+      result: {blocking_errors: [unknown_tool]}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        required_error_codes: [unknown_tool]
+
+  - id: FI-010
+    category: target_boundary
+    title: paper_read_without_explicit_target_fails_closed
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: no-paper-1
+              type: function
+              function: {name: read_paper, arguments: "{}"}
+        - content: 当前没有明确的试卷目标。
+    turns:
+      - user: 查询当前试卷。
+    expected:
+      status: needs_clarification
+      result: {blocking_errors: [no_current_paper]}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [needs_clarification]
+        required_error_codes: [no_current_paper]
+
+  - id: FI-011
+    category: confirmation_boundary
+    title: paper_confirmation_without_pending_is_safe
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: no-pending-paper-1
+              type: function
+              function: {name: confirm_paper_changes, arguments: "{}"}
+        - content: 当前没有待确认的试卷修改。
+    turns:
+      - user: 确认修改。
+    expected:
+      status: needs_clarification
+      result: {blocking_errors: [no_pending_action]}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [needs_clarification]
+        required_error_codes: [no_pending_action]
+
+  - id: FI-012
+    category: confirmation_boundary
+    title: design_confirmation_without_active_design_is_safe
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: no-design-1
+              type: function
+              function: {name: confirm_teaching_design, arguments: "{}"}
+        - content: 当前没有待确认的教学设计。
+    turns:
+      - user: 确认教学设计。
+    expected:
+      status: needs_clarification
+      result: {blocking_errors: [no_active_teaching_design]}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [needs_clarification]
+        required_error_codes: [no_active_teaching_design]
+
+  - id: FI-013
+    category: error_handling
+    title: raised_tool_timeout_fails_and_rolls_back_turn
+    setup:
+      current_paper: {question_count: 10, total_score: 100}
+    backend:
+      behavior: scripted
+      tool_fault:
+        tool: read_paper
+        exception: true
+        message: simulated_read_timeout
+      responses:
+        - tool_calls:
+            - id: raised-timeout-1
+              type: function
+              function: {name: read_paper, arguments: "{}"}
+    turns:
+      - user: 查询当前试卷。
+    expected:
+      status: failed
+      error: {code: agent_execution_failed, type: TimeoutError, stage: tool_execution}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        require_trace: true
+
+  - id: FI-014
+    category: error_handling
+    title: raised_model_exception_fails_closed
+    backend:
+      behavior: raise
+      exception: {message: simulated_model_timeout}
+    turns:
+      - user: 第一章生成试卷。
+    expected:
+      status: failed
+      error: {code: agent_execution_failed, type: RuntimeError, stage: llm_call}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        require_trace: true
+
+  - id: FI-015
+    category: idempotency
+    title: same_operation_id_replays_without_second_model_call
+    invoke: {operation_id: replay-operation-15}
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: replay-preview-1
+              type: function
+              function:
+                name: prepare_generation_plan
+                arguments: '{"paper_type":"chapter_test","scope_names":["第一章"],"question_count":10,"total_score":100}'
+    turns:
+      - user: 第一章生成10题100分测试卷。
+      - user: 第一章生成10题100分测试卷。
+    expected:
+      status: waiting_confirmation
+      pending_generation: {question_count: 10, total_score: 100, pending_version: 1}
+      backend_calls: 2
+      backend_call_deltas: [2, 0]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [prepare_generation_plan]
+        tool_counts: {prepare_generation_plan: 1}
+        max_backend_calls: 2
+
+  - id: FI-016
+    category: idempotency
+    title: operation_id_payload_conflict_is_rejected
+    invoke: {operation_id: conflict-operation-16}
+    backend:
+      behavior: scripted
+      responses:
+        - content: 这是普通教学建议。
+    turns:
+      - user: 如何讲函数？
+      - user: 如何讲极限？
+    expected:
+      status: failed
+      result: {blocking_errors: [operation_id_conflict]}
+      backend_calls: 1
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        max_backend_calls: 1
+
+  - id: FI-017
+    category: idempotency
+    title: oversized_operation_id_is_rejected_before_model
+    invoke: {operation_id: operation-id-that-is-deliberately-longer-than-thirty-six-characters}
+    backend:
+      behavior: scripted
+      responses:
+        - content: 不应调用模型。
+    turns:
+      - user: 第一章生成试卷。
+    expected:
+      status: failed
+      result: {blocking_errors: [invalid_operation_id]}
+      backend_calls: 0
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        max_backend_calls: 0
+
+  - id: FI-018
+    category: idempotency
+    title: duplicate_mutation_in_one_model_response_keeps_one_pending_version
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: duplicate-preview-1
+              type: function
+              function:
+                name: prepare_generation_plan
+                arguments: '{"paper_type":"chapter_test","scope_names":["第一章"],"question_count":10,"total_score":100}'
+            - id: duplicate-preview-2
+              type: function
+              function:
+                name: prepare_generation_plan
+                arguments: '{"paper_type":"chapter_test","scope_names":["第一章"],"question_count":10,"total_score":100}'
+        - content: 方案已保存，等待确认。
+    turns:
+      - user: 第一章生成10题100分测试卷。
+    expected:
+      status: waiting_confirmation
+      pending_generation: {pending_version: 1, question_count: 10, total_score: 100}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        tool_counts: {prepare_generation_plan: 2}
+
+  - id: FI-019
+    category: confirmation_boundary
+    title: create_then_confirm_design_same_turn_is_blocked
+    backend:
+      behavior: scripted
+      responses:
+        - tool_calls:
+            - id: create-design-1
+              type: function
+              function:
+                name: create_teaching_design
+                arguments: '{"content":{"title":"第一章复习","objective":"复习极限基础","scope_names":["第一章"],"teaching_priorities":["极限基础"]}}'
+            - id: confirm-design-1
+              type: function
+              function: {name: confirm_teaching_design, arguments: "{}"}
+    turns:
+      - user: 帮我设计第一章复习方案。
+    expected: {status: waiting_confirmation}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [create_teaching_design]
+        forbidden_tools: [confirm_teaching_design]
+        tool_counts: {create_teaching_design: 1}
+
+  - id: FI-020
+    category: error_handling
+    title: design_creation_failure_does_not_claim_success
+    backend:
+      behavior: scripted
+      tool_fault:
+        tool: create_teaching_design
+        code: design_store_unavailable
+        message: 教学设计存储暂不可用。
+        status: failed
+      responses:
+        - tool_calls:
+            - id: failed-design-1
+              type: function
+              function:
+                name: create_teaching_design
+                arguments: '{"content":{"title":"第一章复习","objective":"复习极限基础","scope_names":["第一章"],"teaching_priorities":["极限基础"]}}'
+        - content: 教学设计未创建。
+    turns:
+      - user: 帮我设计第一章复习方案。
+    expected: {status: failed}
+    forbidden:
+      response_claims: [已创建, 创建成功]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [failed]
+        required_error_codes: [design_store_unavailable]
+        require_failed_tool: true

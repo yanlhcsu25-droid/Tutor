@@ -11,14 +11,13 @@ from calculus_agent.generation_diagnosis.schemas import (
 )
 from calculus_agent.models import KnowledgeNode, Question, QuestionDraft, QuestionKnowledgeLink, QuestionProfile
 from calculus_agent.question_types import (
-    ALLOWED_QUESTION_TYPES,
     PAPER_QUESTION_TYPES,
     canonical_question_type,
 )
 from calculus_agent.schemas import ConstraintCheck, PaperBlueprint, PaperItemRead, PaperPreviewRead
 from calculus_agent.agent.schemas import GenerationConstraints, PaperGenerationRequest
 from calculus_agent.questions.eligibility import (
-    EXCLUDED_PAPER_SOURCE_NAMES,
+    EXCLUDED_PAPER_SOURCE_NAMES as EXCLUDED_PAPER_SOURCE_NAMES,
     paper_candidate_statement,
 )
 
@@ -97,10 +96,16 @@ def compose_paper_with_evidence(
         # useful for humans/validation, but supply diagnosis uses `evidence`
         # above rather than reverse-engineering preview items or warning text.
         selected, seen = [], set()
+        configured_types = set(blueprint.question_type_counts)
         for row in [*required, *eligible]:
             if (
                 row[0].id not in seen
                 and len(selected) < blueprint.total_questions
+                and (
+                    not configured_types
+                    or canonical_question_type(row[0].question_type)
+                    in configured_types
+                )
             ):
                 selected.append(row)
                 seen.add(row[0].id)

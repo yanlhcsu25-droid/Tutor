@@ -48,6 +48,13 @@ def test_teaching_advice_does_not_require_artifact(message):
     assert route.clarification_needed is False
 
 
+def test_design_artifact_wins_over_embedded_exam_wording():
+    decision = decide_task("帮我设计第一章和第二章的期中复习方案。")
+
+    assert decision.route.task_type == TaskType.TEACHING_DESIGN
+    assert decision.route.artifact_required
+
+
 def test_router_classifies_teaching_planning_request():
     decision = decide_task("学生极限一直学不好，帮我安排复习")
 

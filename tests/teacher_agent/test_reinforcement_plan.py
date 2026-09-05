@@ -24,7 +24,6 @@ from calculus_agent.agent.schemas import (
     PrepareReinforcementPlanInput,
 )
 from calculus_agent.agent.services.reinforcement import (
-    ReinforcementContext,
     ReinforcementError,
     ReinforcementService,
     reinforcement_weight,
@@ -44,6 +43,7 @@ from calculus_agent.models import (
     Textbook,
 )
 from calculus_agent.papers.addressing import QuestionAddress
+from calculus_agent.schemas import PaperPreviewRead
 
 
 # ── lightweight model seed helpers ───────────────────────────────────────────
@@ -461,6 +461,32 @@ def test_tool_prepare_reinforcement_plan_waiting_confirmation(session):
     assert {"等价无穷小", "极限运算法则"} <= names
 
 
+def test_reinforcement_supply_failure_does_not_create_pending_plan(session, monkeypatch):
+    p = _rich_paper(session)
+    context = _make_context(session, p.id, "conv-supply-failure")
+    from calculus_agent.papers import selector
+
+    monkeypatch.setattr(selector, "compose_paper_with_evidence", lambda *_args: (
+        PaperPreviewRead(
+            title="强化卷", total_score=40, items=[], constraints=[],
+            warnings=["未满足约束：题目总数"], feasible=False,
+        ),
+        None,
+    ))
+
+    result = build_paper_tools(context)["prepare_reinforcement_plan"].execute(
+        PrepareReinforcementPlanInput.model_validate({"items": [
+            {"address": {"section_type": "选择题", "section_order": 1}},
+        ]})
+    )
+
+    assert result.status == "needs_clarification"
+    assert result.result_fields["blocking_errors"] == [
+        "insufficient_candidates", "constraint_unsatisfied:未满足约束：题目总数",
+    ]
+    assert context.state_store.get_generation("conv-supply-failure") is None
+
+
 def test_tool_prepare_then_confirm_creates_paper_b(session):
     p = _rich_paper(session)
     ctx = _make_context(session, p.id, "conv-tool-2")
@@ -798,6 +824,15 @@ def test_cross_chapter_wrong_question_expands_scope_and_compiles_hard_knowledge_
         paper,
         question,
         1,
+    )
+    # A second eligible candidate makes the two-target reinforcement plan
+    # supply-feasible; the source item alone is insufficient for two questions.
+    _question(
+        session,
+        "q-cross-chapter-candidate",
+        "计算题",
+        c3.id,
+        [prerequisite.id, target.id],
     )
 
     conversation_id = "conv-cross-chapter-reinforcement"

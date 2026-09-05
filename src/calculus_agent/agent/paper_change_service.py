@@ -281,7 +281,7 @@ class PaperChangeService:
                 if profiles[question.id] == change.target_difficulty
             ]
             unavailable = "target_difficulty_candidate_not_found"
-            key = lambda question: (
+            key = lambda question: (  # noqa: E731
                 -len(knowledge[question.id].intersection(target_knowledge)),
                 question.id,
             )
@@ -294,7 +294,7 @@ class PaperChangeService:
                     if profiles[question.id] < current_difficulty
                 ]
                 unavailable = "no_easier_candidate"
-                key = lambda question: (
+                key = lambda question: (  # noqa: E731
                     current_difficulty - profiles[question.id],
                     -len(knowledge[question.id].intersection(target_knowledge)),
                     question.id,
@@ -306,7 +306,7 @@ class PaperChangeService:
                     if profiles[question.id] > current_difficulty
                 ]
                 unavailable = "no_harder_candidate"
-                key = lambda question: (
+                key = lambda question: (  # noqa: E731
                     profiles[question.id] - current_difficulty,
                     -len(knowledge[question.id].intersection(target_knowledge)),
                     question.id,
@@ -318,7 +318,7 @@ class PaperChangeService:
                     if profiles[question.id] == current_difficulty
                 ]
                 unavailable = "same_difficulty_candidate_not_found"
-                key = lambda question: (
+                key = lambda question: (  # noqa: E731
                     -len(knowledge[question.id].intersection(target_knowledge)),
                     question.id,
                 )

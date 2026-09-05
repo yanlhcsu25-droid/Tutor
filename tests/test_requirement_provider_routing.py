@@ -5,6 +5,7 @@ from fastapi import HTTPException
 import pytest
 
 from calculus_agent.requirements.parser import OpenAICompatibleRequirementParser
+from calculus_agent.models import Paper
 from calculus_agent.papers.workflow import save_blueprint
 from calculus_agent.schemas import NaturalLanguagePaperRequest, PaperBlueprint, SectionRequirement
 
@@ -80,6 +81,44 @@ def test_conversation_modification_uses_saved_blueprint_as_base(session, monkeyp
     assert result.blueprint.question_type_counts == {
         "选择题": 3, "填空题": 3, "计算题": 4, "证明题": 3,
     }
+
+
+def test_restore_named_paper_version_uses_persisted_paper_model(session):
+    base = save_blueprint(session, PaperBlueprint(total_questions=1, total_score=10))
+    original = Paper(
+        id="paper-v1",
+        blueprint_id=base.blueprint_id,
+        root_paper_id="paper-v1",
+        version=1,
+        title="原卷",
+        total_score=10,
+        validation_status="passed",
+    )
+    current = Paper(
+        id="paper-v2",
+        blueprint_id=base.blueprint_id,
+        root_paper_id="paper-v1",
+        parent_version_id="paper-v1",
+        version=2,
+        title="修改卷",
+        total_score=10,
+        validation_status="passed",
+    )
+    session.add_all([original, current])
+    session.flush()
+
+    result = api.parse_blueprint(
+        NaturalLanguagePaperRequest(
+            requirement="恢复到版本1",
+            base_blueprint_id=base.blueprint_id,
+            current_paper_id=current.id,
+        ),
+        session,
+        Settings(_env_file=None),
+    )
+
+    assert result.agent_message == "已恢复为试卷版本 3。"
+    assert result.paper_result["version"] == 3
 
 
 def test_ambiguous_conversation_returns_clarification_without_model_key(

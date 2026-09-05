@@ -304,7 +304,7 @@ def test_migration_rewrites_raw_types_and_keeps_ids(session):
 
 def test_migration_is_idempotent(session):
     k = _knowledge(session)
-    questions = [_question(session, i + 1, t, k) for i, t in enumerate(
+    _questions = [_question(session, i + 1, t, k) for i, t in enumerate(
         ["proof", "calculation", "fill_blank", "selection", "解答题"])]
     session.flush()
     execute_migration(session)

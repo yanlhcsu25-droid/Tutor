@@ -330,6 +330,9 @@ def deterministic_route(message: str, *, state: RoutingState) -> WorkflowDecisio
             ),
         )
 
+    if requires_teaching_design_artifact(message):
+        return None
+
     if _DIRECT_ACTION_RE.search(message):
         return WorkflowDecision(
             source="deterministic_operation",

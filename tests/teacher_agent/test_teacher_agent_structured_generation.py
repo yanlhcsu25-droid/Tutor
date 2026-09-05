@@ -180,6 +180,7 @@ def test_complex_structured_input_builds_existing_blueprint_without_raw_parser(s
         "structured-limit", "structured-law", "structured-small",
     ]
     assert request.constraints.audience == "大一"
+    assert request.constraints.allowed_difficulty_levels == [1, 2, 3, 4, 5]
     assert "difficulty_progression_is_soft" in warnings
     assert "diversity_preference_is_soft" in warnings
 
@@ -334,6 +335,37 @@ def test_missing_knowledge_name_returns_structured_error(session):
     assert errors == ["knowledge_unknown"]
     assert questions
     assert "不存在的知识点" in questions[0]
+
+
+def test_omitted_explicit_type_constraint_is_retried_in_same_turn(session):
+    _scope(session)
+    backend = _Backend(
+        _tool(
+            '{"paper_type":"chapter_exercise","scope_names":["第一章"],'
+            '"question_count":8}'
+        ),
+        _tool(
+            '{"paper_type":"chapter_exercise","scope_names":["第一章"],'
+            '"question_count":8,"question_type_requirements":'
+            '[{"question_type":"计算题","count":8}]}'
+        ),
+        _final("已保留8道计算题的硬约束，请确认方案。"),
+    )
+
+    result = run_teacher_agent(
+        session,
+        "第一章专项训练，共8题，全部为计算题。",
+        conversation_id="explicit-type-retry",
+        backend=backend,
+    )
+
+    assert result.status == "waiting_confirmation"
+    assert result.generation_preview is not None
+    assert [
+        (item.question_type, item.count)
+        for item in result.generation_preview.sections
+    ] == [("计算题", 8)]
+    assert "explicit_constraint_mismatch" not in result.blocking_errors
 
 
 def test_llm_generation_request_creates_preview_without_composing(session):

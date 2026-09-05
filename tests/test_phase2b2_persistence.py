@@ -1,5 +1,4 @@
 from calculus_agent.agent import build_paper_blueprint, parse_teacher_requirement
-from calculus_agent.agent.tools.paper_tools import generate_paper_tool
 from calculus_agent.papers.persistence import create_paper_draft
 from calculus_agent.papers.selector import compose_paper
 from calculus_agent.models import Paper, PaperBlueprintRecord, PaperItem

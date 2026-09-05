@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 import hashlib
 import re
+import uuid
 from datetime import UTC, datetime
 
 from calculus_agent.question_types import ALLOWED_QUESTION_TYPES, canonical_question_type
@@ -10,10 +11,10 @@ from calculus_agent.questions.chapter_assignment import (
 )
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import delete, exists, false, func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from calculus_agent.config import Settings, get_settings
@@ -32,12 +33,10 @@ from calculus_agent.knowledge.chapter import (
     resolve_question_chapter,
     resolve_questions_chapters,
 )
-from calculus_agent.workbench.chapter_filter import chapter_filter_knowledge_id_sets
 from calculus_agent.knowledge.steward import DraftNotFoundError, process_draft
 from calculus_agent.knowledge.classification import (
     confirm_question_knowledge,
     classify_knowledge_points,
-    ensure_calculus_taxonomy,
     suggest_question_knowledge,
 )
 from calculus_agent.models import (
@@ -51,6 +50,7 @@ from calculus_agent.models import (
     KnowledgeNode,
     OcrImportDraft,
     OcrImportSource,
+    Paper,
     Question,
     QuestionProfile,
     QuestionKnowledgeLink,
@@ -69,7 +69,6 @@ from calculus_agent.agent.agent import (
 )
 from calculus_agent.agent.identity import DEFAULT_TEACHER_OWNER_KEY
 from calculus_agent.agent.conversation_state import (
-    DatabaseConversationHistoryStore,
     DatabasePendingReplacementStore,
     PendingGenerationStaleError,
 )
@@ -528,7 +527,6 @@ def get_teacher_agent_session(
     session: Session = Depends(get_session),
 ) -> TeacherAgentSessionRead:
     """Recover messages plus pointers to current business state."""
-    history = DatabaseConversationHistoryStore(session).list_messages(conversation_id)
     store = DatabasePendingReplacementStore(session)
     pending = store.get_generation(conversation_id)
     workspace = WorkspaceService(session).get(conversation_id)
@@ -2040,8 +2038,6 @@ def publish_draft(
 
 
 # --- OCR 端点 ---
-
-from fastapi import File, UploadFile
 
 OCR_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
 OCR_PDF_TYPES = {"application/pdf"}

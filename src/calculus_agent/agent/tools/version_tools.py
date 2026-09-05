@@ -55,7 +55,7 @@ def run_version_operation(
             result = restore_paper_version(session, version_id, target.id)
     except WorkflowNotFoundError:
         return VersionOperationResult(ok=False, blocking_errors=["version_not_found"], **base)
-    except BlueprintStateError as exc:
+    except BlueprintStateError:
         code = "nothing_to_undo" if intent.action == "undo" else "nothing_to_redo" if intent.action == "redo" else "version_operation_failed"
         return VersionOperationResult(ok=False, blocking_errors=[code], **base)
     return VersionOperationResult(ok=True, current_version_id=result.paper_id, **base)

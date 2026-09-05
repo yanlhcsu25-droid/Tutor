@@ -41,6 +41,38 @@ def grade_acceptance(
     if present_forbidden:
         errors.append(f"forbidden tools called: {present_forbidden!r}")
 
+    expected_order = config.get("tool_order") or []
+    cursor = 0
+    for name in names:
+        if cursor < len(expected_order) and name == expected_order[cursor]:
+            cursor += 1
+    if cursor != len(expected_order):
+        errors.append(
+            f"tool order not observed: expected subsequence={expected_order!r}, "
+            f"actual={names!r}"
+        )
+
+    for name, expected_count in (config.get("tool_counts") or {}).items():
+        actual_count = names.count(name)
+        if actual_count != expected_count:
+            errors.append(
+                f"tool count mismatch for {name}: "
+                f"expected={expected_count}, actual={actual_count}"
+            )
+
+    observed_codes = {
+        result.get("code")
+        for item in calls
+        for result in [item.get("result") or item.get("output_json") or {}]
+        if isinstance(result, dict) and result.get("code")
+    }
+    missing_codes = [
+        code for code in (config.get("required_error_codes") or [])
+        if code not in observed_codes
+    ]
+    if missing_codes:
+        errors.append(f"required Tool error codes not observed: {missing_codes!r}")
+
     allowed_statuses = config.get("statuses") or []
     if allowed_statuses and actual.get("status") not in allowed_statuses:
         errors.append(
@@ -67,6 +99,13 @@ def grade_acceptance(
             errors.append(
                 f"paper changed before confirmation: before={before!r}, after={after!r}"
             )
+
+    max_backend_calls = config.get("max_backend_calls")
+    if max_backend_calls is not None and actual.get("backend_calls", 0) > max_backend_calls:
+        errors.append(
+            f"backend call limit exceeded: max={max_backend_calls}, "
+            f"actual={actual.get('backend_calls')}"
+        )
 
     if config.get("require_confirmation"):
         if "confirm_generation" not in names and "confirm_paper_changes" not in names:

@@ -252,3 +252,200 @@ cases:
           - failed
         require_trace: true
         require_failed_tool: true
+
+  - id: TD-004
+    category: consultation
+    title: ordinary_teaching_consultation_stays_conversational
+    turns:
+      - user: "函数概念一般怎么讲学生更容易理解？"
+    expected:
+      status: completed
+    graders:
+      - type: state
+      - type: acceptance
+        forbidden_tools:
+          - create_teaching_design
+          - prepare_generation_plan
+          - confirm_teaching_design
+        statuses: [completed]
+        require_trace: true
+
+  - id: TD-005
+    category: teaching_design
+    title: multi_chapter_review_creates_design_only
+    turns:
+      - user: "帮我设计第一章和第二章的期中复习方案。"
+    expected:
+      status: waiting_confirmation
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools: [create_teaching_design]
+        forbidden_tools: [prepare_generation_plan, confirm_teaching_design]
+        statuses: [waiting_confirmation]
+        require_trace: true
+
+  - id: TD-006
+    category: teaching_design
+    title: explicit_training_path_is_a_design_artifact
+    turns:
+      - user: "为基础薄弱的学生制定第一章极限训练路径。"
+    expected:
+      status: waiting_confirmation
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools: [create_teaching_design]
+        forbidden_tools: [prepare_generation_plan, confirm_teaching_design]
+        statuses: [waiting_confirmation]
+        require_trace: true
+
+  - id: TD-007
+    category: teaching_design
+    title: attached_chapter_topic_resolves_deterministically
+    turns:
+      - user: "帮我设计第三章导数强化教学方案。"
+    expected:
+      status: waiting_confirmation
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools: [create_teaching_design]
+        forbidden_tools: [confirm_teaching_design]
+        statuses: [waiting_confirmation]
+        require_trace: true
+
+  - id: TD-008
+    category: confirmation
+    title: pending_design_can_be_confirmed_next_turn
+    setup:
+      teaching_design:
+        title: 第一章极限复习
+        objective: 巩固极限基础
+        scope_names: ["第一章 函数与极限"]
+    turns:
+      - user: "确认这个教学设计。"
+    expected:
+      status: completed
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools: [confirm_teaching_design]
+        forbidden_tools: [create_teaching_design]
+        statuses: [completed]
+        require_trace: true
+
+  - id: TD-009
+    category: pending
+    title: pending_design_can_be_discarded
+    setup:
+      teaching_design:
+        title: 第一章极限复习
+        objective: 巩固极限基础
+        scope_names: ["第一章 函数与极限"]
+    turns:
+      - user: "放弃这个教学设计。"
+    expected:
+      status: completed
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools: [discard_teaching_design]
+        forbidden_tools: [confirm_teaching_design]
+        statuses: [completed]
+        require_trace: true
+
+  - id: GEN-004
+    category: generation
+    title: difficulty_constraint_is_kept_in_preview
+    turns:
+      - user: "第一章生成10题100分的基础测试卷，难度要简单。"
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        question_count: 10
+        total_score: 100
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools: [prepare_generation_plan]
+        forbidden_tools: [confirm_generation]
+        statuses: [waiting_confirmation]
+        require_trace: true
+
+  - id: GEN-005
+    category: generation
+    title: multi_chapter_generation_waits_for_confirmation
+    turns:
+      - user: "第一章和第二章生成一套12题100分期中练习卷。"
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        question_count: 12
+        total_score: 100
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools: [prepare_generation_plan]
+        forbidden_tools: [confirm_generation]
+        statuses: [waiting_confirmation]
+        require_trace: true
+
+  - id: GEN-006
+    category: generation_reliability
+    title: explicit_mixed_type_shortage_preserves_teacher_constraints
+    turns:
+      - user: "请帮我生成第二章导数与微分专项训练，面向大一学生，10道计算题、3道证明题，共13题，难度逐步递增。"
+      - user: "确认"
+    expected:
+      status: needs_clarification
+      pending_generation:
+        question_count: 13
+        question_type_requirements:
+          - question_type: "计算题"
+            count: 10
+          - question_type: "证明题"
+            count: 3
+    forbidden:
+      response_claims:
+        - "已经生成"
+        - "已成功生成"
+    graders:
+      - type: state
+      - type: acceptance
+        required_tools: [confirm_generation]
+        statuses: [needs_clarification]
+        require_failed_tool: true
+        require_trace: true
+
+  - id: MOD-003
+    category: target_boundary
+    title: paper_query_without_target_requires_clarification
+    turns:
+      - user: "当前试卷第一题是什么？"
+    expected:
+      status: needs_clarification
+      result: {blocking_errors: [no_current_paper]}
+    graders:
+      - type: state
+      - type: acceptance
+        forbidden_tools: [prepare_generation_plan]
+        statuses: [needs_clarification]
+        require_trace: true
+
+  - id: MOD-004
+    category: paper_read
+    title: explicit_current_paper_can_be_analyzed_without_mutation
+    setup:
+      current_paper: {question_count: 10, total_score: 100}
+    turns:
+      - user: "分析一下这张试卷的题型和总分。"
+    expected:
+      status: completed
+    graders:
+      - type: state
+      - type: acceptance
+        must_include_any: [read_paper, analyze_paper]
+        forbidden_tools: [preview_paper_changes, confirm_paper_changes]
+        statuses: [completed]
+        require_trace: true

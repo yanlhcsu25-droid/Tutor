@@ -23,7 +23,6 @@ from calculus_agent.models import (
 from scripts.migrate_orphaned_knowledge_links import (
     build_mapping,
     execute_migration,
-    print_preview,
 )
 
 
@@ -202,7 +201,6 @@ def orphaned_setup(session):
 
 def test_preview_does_not_write(session, orphaned_setup):
     old_kn = orphaned_setup["old_kn"]
-    question = orphaned_setup["question"]
 
     link_before = session.scalar(
         select(func.count()).select_from(QuestionKnowledgeLink).where(
@@ -263,7 +261,7 @@ def test_multi_match_needs_review(session, orphaned_setup):
     # Create a second directory KN with the same name but different curriculum
     book2 = _make_textbook(session, "高数下册")
     cn2 = _make_curriculum(session, book2.id, "2.3", "函数的极限")
-    kn2 = _make_directory_kn(session, "函数的极限", cn2.id)
+    _make_directory_kn(session, "函数的极限", cn2.id)
 
     valid = _valid_curriculum_ids(session)
     preview = build_mapping(session, valid)
@@ -312,7 +310,6 @@ def test_link_migration(session, orphaned_setup):
 # ── Test 6: Mixed-link dedup ────────────────────────────────────
 
 def test_mixed_link_dedup(session, orphaned_setup):
-    old_kn = orphaned_setup["old_kn"]
     new_kn = orphaned_setup["new_kn"]
     question = orphaned_setup["question"]
 

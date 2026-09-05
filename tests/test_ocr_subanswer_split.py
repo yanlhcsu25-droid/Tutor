@@ -7,7 +7,6 @@
 跨页 resplit / pending / preamble、Markdown schema 的其它部分、QuestionBank、发布状态机。
 """
 
-import pytest
 
 from calculus_agent.workbench.ocr import (
     PlacedCandidate,
@@ -267,19 +266,7 @@ def test_subanswer_two_rounds_of_numbers_degrades():
     - 有明确审核备注。
     """
     # 第一套 (1)(2)(3)(4) 是本题答案；第二套 (1)(2)(3)(4)(5) 是另一道大题的，
-    # 被错误合并进同一个 candidate 的参考解答。
-    answer = (
-        "解(1) 第1题答案一；\n"
-        "(2) 第1题答案二；\n"
-        "(3) 第1题答案三；\n"
-        "(4) 第1题答案四；\n"
-        "(5) 第2题答案一；\n"
-        "(6) 第2题答案二；\n"
-        "(7) 第2题答案三；\n"
-        "(8) 第2题答案四；\n"
-        "(9) 第2题答案五。"
-    )
-    # 注意：这里用“连续编号”模拟两套不同大题内容被合并，但关键点在于——
+    # 被错误合并进同一个 candidate 的参考解答。关键点在于——
     # 第一套 (1)-(4) 的答案与第二套 (1)-(4) 的答案被写成重复编号时：
     dup_answer = (
         "解(1) 第一套答案一；\n"
@@ -369,10 +356,8 @@ def test_real_badcase_preserved_after_resplit_is_no_worse():
     这对应“初始错误 OCR 下，第3/4题可以不是独立题，但原始唯一文本不能被
     自动答案切分删除”的要求。修复后 Q3/Q4 文本应保留在 #2 的参考解答中。
     """
-    import re
 
     from calculus_agent.workbench.ocr import split_pages_into_candidates, render_drafts
-    from calculus_agent.workbench.markdown_schema import parse_markdown
 
     from pathlib import Path
 

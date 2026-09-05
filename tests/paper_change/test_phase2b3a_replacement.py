@@ -1,3 +1,5 @@
+# ruff: noqa: E702, F841
+
 import json
 
 from sqlalchemy import func, select
