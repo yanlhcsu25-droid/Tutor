@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  Button, Input, Space, Spin, Tag, Typography, message, Row, Col,
-  InputNumber, Statistic, Card, Divider, Drawer, Modal,
+  Button, Input, Space, Spin, Tag, Typography, message,
+  Statistic, Card, Divider, Drawer, Modal,
 } from "antd";
 import {
   ArrowDownOutlined, ArrowUpOutlined, FilePdfOutlined,
@@ -10,6 +10,11 @@ import {
 } from "@ant-design/icons";
 
 import MarkdownMath from "./MarkdownMath";
+import GenerationPlanCard, {
+  type GenerationPlanPatch,
+  type GenerationSection,
+} from "./GenerationPlanCard";
+import { GENERATION_TEMPLATES } from "../generationTemplates";
 import {
   downloadPaperPdf,
   openPaperPdf,
@@ -82,72 +87,6 @@ const formatApiDetail = (detail: unknown): string => {
   return "请求失败";
 };
 
-// ── templates ──
-const TEMPLATES = [
-  {
-    label: "章节练习",
-    prompt: `帮我生成一套【函数与极限】章节练习。
-
-面向学生：大一
-题目总数：10 题
-题目总分：100 分
-
-重点覆盖：
-- 函数极限
-- 极限运算法则
-- 无穷小
-
-题型与分值：
-选择题 2 道 × 5 分 = 10 分
-填空题 1 道 × 5 分 = 5 分
-计算题 5 道 × 13 分 = 65 分
-证明题 2 道 × 10 分 = 20 分
-
-希望题目从基础逐渐过渡到需要一定思考的题，避免大量重复套路题。`,
-  },
-  {
-    label: "专项训练",
-    prompt: `帮我生成一套导数运算专项训练。
-
-面向大一学生，共8题。
-
-重点覆盖：
-- 基本初等函数求导
-- 复合函数求导
-- 隐函数求导
-
-全部为计算题，难度逐步递增。`,
-  },
-  {
-    label: "期中复习",
-    prompt: `帮我生成一套期中复习试卷。
-
-面向大一学生，共15题。
-
-覆盖：
-- 函数与极限
-- 导数与微分
-- 微分中值定理
-
-题型：选择题5道、填空题3道、计算题7道。`,
-  },
-  {
-    label: "模拟考试",
-    prompt: `帮我生成一套高等数学上册模拟考试卷。
-
-面向大一学生，共20题，满分100分。
-
-题型分布：
-- 选择题5道（每题3分）
-- 填空题5道（每题3分）
-- 计算题6道（每题5分）
-- 证明题2道（每题10分）
-- 综合题2道（每题10分）
-
-覆盖全部上册核心知识点。`,
-  },
-];
-
 // ── chat message type ──
 type ChatMessage =
   | { role: "user"; text: string }
@@ -159,8 +98,6 @@ type ChatMessage =
   | { role: "agent"; type: "paper_ready"; paperId: string; version: number; preview: Preview; validationReport: ValidationReport }
   | { role: "agent"; type: "error"; text: string };
 
-type GenerationSection = { question_type: string; count: number; score_each?: number | null; total_score?: number | null };
-type GenerationPlanPatch = { question_type: string; count?: number; score_each?: number };
 type TeacherAgentSession = {
   conversation_id: string;
   messages: { role: string; content: string; created_at?: string | null }[];
@@ -200,52 +137,6 @@ export function clearStoredConversationId(): void {
   } catch {
     // The new tab will generate an in-memory id when storage is unavailable.
   }
-}
-
-function GenerationPlanCard({
-  title, initialSections, totalQuestions: plannedQuestionCount, totalScore: plannedTotalScore, loading, disabled, onUpdate, onConfirm,
-}: {
-  title: string; initialSections: GenerationSection[]; totalQuestions: number; totalScore: number; loading: boolean; disabled?: boolean;
-  onUpdate: (patches: GenerationPlanPatch[]) => void; onConfirm: () => void;
-}) {
-  const [sections, setSections] = useState(initialSections);
-  const changed = JSON.stringify(sections) !== JSON.stringify(initialSections);
-  const hasEditableSections = sections.length > 0;
-  const totalQuestions = hasEditableSections
-    ? sections.reduce((sum, item) => sum + item.count, 0)
-    : plannedQuestionCount;
-  const totalScore = hasEditableSections && sections.every((item) => item.score_each != null)
-    ? sections.reduce((sum, item) => sum + item.count * Number(item.score_each), 0)
-    : plannedTotalScore;
-  const update = () => {
-    const patches = sections.flatMap((item, index) => {
-      const original = initialSections[index];
-      const patch: GenerationPlanPatch = { question_type: item.question_type };
-      if (item.count !== original.count) patch.count = item.count;
-      if (item.score_each !== original.score_each && item.score_each != null) patch.score_each = item.score_each;
-      return Object.keys(patch).length > 1 ? [patch] : [];
-    });
-    onUpdate(patches);
-  };
-  return (
-    <Card size="small" title={<span>📋 待确认组卷方案 — {title}</span>} style={{ maxWidth: 560, background: "#fafafa" }}>
-      <Typography.Paragraph>共 {totalQuestions} 题，{totalScore} 分</Typography.Paragraph>
-      {!hasEditableSections && <Typography.Text type="secondary">本方案按错题知识点定向组题；如需调整题量或题型，请直接说明要求。</Typography.Text>}
-      {sections.map((section, index) => (
-        <Row key={section.question_type} gutter={8} align="middle" style={{ marginBottom: 8 }}>
-          <Col flex="100px"><Tag>{section.question_type}</Tag></Col>
-          <Col><InputNumber min={1} max={100} value={section.count} addonAfter="题" onChange={(value) => setSections((items) => items.map((item, i) => i === index ? { ...item, count: value ?? 1 } : item))} /></Col>
-          <Col><InputNumber min={0.5} max={300} step={0.5} value={section.score_each ?? undefined} placeholder="每题分值" addonAfter="分/题" onChange={(value) => setSections((items) => items.map((item, i) => i === index ? { ...item, score_each: value } : item))} /></Col>
-        </Row>
-      ))}
-      <Divider style={{ margin: "12px 0" }} />
-      <Space>
-        <Button size="small" disabled={disabled || !hasEditableSections || !changed} loading={loading} onClick={update}>更新方案</Button>
-        <Button type="primary" size="small" loading={loading} disabled={disabled || changed} onClick={onConfirm}>确认并组卷</Button>
-      </Space>
-      {changed && <Typography.Text type="warning" style={{ display: "block", marginTop: 8 }}>方案已修改，请先更新方案并重新校验。</Typography.Text>}
-    </Card>
-  );
 }
 
 export default function AgentWorkspace() {
@@ -851,7 +742,7 @@ export default function AgentWorkspace() {
               告诉我章节、题量或难度，我来整理成可编辑的组卷方案。
             </Typography.Paragraph>
             <Space wrap className="agent-template-list">
-              {TEMPLATES.map((t) => (
+              {GENERATION_TEMPLATES.map((t) => (
                 <Button key={t.label} size="small" onClick={() => setInput(t.prompt)}>
                   {t.label}
                 </Button>
@@ -896,7 +787,7 @@ export default function AgentWorkspace() {
           <Button size="small" type="text" icon={<PlusOutlined />} onClick={handleNewConversation}>新建对话</Button>
         </div>
         <Space wrap className="agent-composer-templates">
-          {TEMPLATES.map((t) => (
+          {GENERATION_TEMPLATES.map((t) => (
             <Button key={t.label} size="small" type="dashed" onClick={() => setInput(t.prompt)}>
               {t.label}
             </Button>
