@@ -17,6 +17,7 @@ data/external/
 uploads/
 workbench_data/
 logs/
+# Raw evaluation runs are local/CI artifacts. Commit reviewed summaries under docs/.
 tests/evals/reports/*.json
 *.preprocess.json
 web/node_modules/
