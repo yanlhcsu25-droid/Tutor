@@ -1,22 +1,27 @@
-import { useState } from "react";
-import { Layout, Menu, Typography, Modal, Button, Space } from "antd";
+import { lazy, Suspense, useState } from "react";
+import { Layout, Menu, Modal, Spin } from "antd";
 import {
-  RobotOutlined, FilePdfOutlined, BookOutlined,
+  FilePdfOutlined, BookOutlined,
   DatabaseOutlined, PlusOutlined, ThunderboltOutlined,
 } from "@ant-design/icons";
 import AgentWorkspace, { clearStoredConversationId } from "./components/AgentWorkspace";
-import OcrReviewDrawer from "./components/OcrReviewDrawer";
-import QuestionBankDrawer from "./components/QuestionBankDrawer";
-import PdfImportPanel from "./components/PdfImportPanel";
-import TextbookDrawer from "./components/TextbookDrawer";
-import AdminConsole from "./components/AdminConsole";
 import SidebarConversations from "./components/SidebarConversations";
+
+const AdminConsole = lazy(() => import("./components/AdminConsole"));
+const OcrReviewDrawer = lazy(() => import("./components/OcrReviewDrawer"));
+const QuestionBankDrawer = lazy(() => import("./components/QuestionBankDrawer"));
+const PdfImportPanel = lazy(() => import("./components/PdfImportPanel"));
+const TextbookDrawer = lazy(() => import("./components/TextbookDrawer"));
 
 const { Sider, Content } = Layout;
 
 export default function App() {
   if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/")) {
-    return <AdminConsole />;
+    return (
+      <Suspense fallback={<Spin fullscreen tip="正在加载管理后台" />}>
+        <AdminConsole />
+      </Suspense>
+    );
   }
 
   // ── drawers / modals ──
@@ -89,28 +94,44 @@ export default function App() {
         footer={null}
         width={760}
       >
-        <PdfImportPanel
-          open={pdfUploadOpen}
-          onReady={handlePdfImportReady}
-          onSelectExisting={handleSelectExistingPdf}
-        />
+        {pdfUploadOpen && (
+          <Suspense fallback={<Spin tip="正在加载 PDF 导入" />}>
+            <PdfImportPanel
+              open={pdfUploadOpen}
+              onReady={handlePdfImportReady}
+              onSelectExisting={handleSelectExistingPdf}
+            />
+          </Suspense>
+        )}
       </Modal>
 
       {/* OCR Review Fullscreen Drawer */}
-      <OcrReviewDrawer
-        open={ocrReviewOpen}
-        initialSourceId={ocrSourceId}
-        onClose={() => {
-          setOcrReviewOpen(false);
-          setOcrSourceId(null);
-        }}
-      />
+      {ocrReviewOpen && (
+        <Suspense fallback={<Spin fullscreen tip="正在加载 OCR 审核" />}>
+          <OcrReviewDrawer
+            open={ocrReviewOpen}
+            initialSourceId={ocrSourceId}
+            onClose={() => {
+              setOcrReviewOpen(false);
+              setOcrSourceId(null);
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Question Bank Drawer */}
-      <QuestionBankDrawer open={questionBankOpen} onClose={() => setQuestionBankOpen(false)} />
+      {questionBankOpen && (
+        <Suspense fallback={<Spin fullscreen tip="正在加载题库" />}>
+          <QuestionBankDrawer open={questionBankOpen} onClose={() => setQuestionBankOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Textbook Drawer */}
-      <TextbookDrawer open={textbookOpen} onClose={() => setTextbookOpen(false)} />
+      {textbookOpen && (
+        <Suspense fallback={<Spin fullscreen tip="正在加载教材目录" />}>
+          <TextbookDrawer open={textbookOpen} onClose={() => setTextbookOpen(false)} />
+        </Suspense>
+      )}
     </Layout>
   );
 }
