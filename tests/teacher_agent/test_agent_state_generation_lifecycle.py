@@ -283,6 +283,7 @@ def test_confirm_failure_transitions_to_failed(session, monkeypatch):
     state = RuntimeStateService(session).get(conversation_id)
     assert state.phase == "failed"
     assert state.task_type == "generation"
+    assert DatabasePendingReplacementStore(session).get_generation(conversation_id) is not None
 
 
 def test_confirm_out_of_band_phase_does_not_break_generation(session, monkeypatch):

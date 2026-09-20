@@ -284,6 +284,80 @@ def test_pending_card_version_rejects_stale_update(session):
         raise AssertionError("stale card update unexpectedly overwrote the pending plan")
 
 
+def test_pending_card_version_rejects_stale_confirmation(session):
+    _scope(session)
+    conversation_id = "pending-stale-confirm"
+    original = _seed_pending(session, conversation_id)
+    api.update_pending_generation_from_card(
+        api.PendingGenerationCardPatchRequest(
+            conversation_id=conversation_id,
+            expected_version=original.pending_version,
+            question_type_patches=[QuestionTypePatch(question_type="证明题", count=3)],
+        ),
+        session,
+    )
+    latest = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+
+    with patch(
+        "calculus_agent.agent.services.generation.generate_paper_from_input"
+    ) as generate:
+        try:
+            api.confirm_pending_generation_from_card(
+                api.PendingGenerationConfirmRequest(
+                    conversation_id=conversation_id,
+                    expected_version=original.pending_version,
+                ),
+                session,
+            )
+        except api.HTTPException as exc:
+            assert exc.status_code == 409
+            assert exc.detail == {
+                "code": "stale_pending_plan",
+                "current_version": latest.pending_version,
+            }
+        else:
+            raise AssertionError("stale confirmation unexpectedly executed")
+
+    generate.assert_not_called()
+    assert (
+        DatabasePendingReplacementStore(session)
+        .get_generation(conversation_id)
+        .pending_version
+        == latest.pending_version
+    )
+
+
+def test_failed_card_confirmation_preserves_pending_for_retry(session):
+    _scope(session)
+    conversation_id = "pending-failed-confirm"
+    pending = _seed_pending(session, conversation_id)
+    failed = GeneratePaperToolResult(
+        ok=False,
+        blocking_errors=["insufficient_candidates"],
+        needs_clarification=True,
+        clarification_questions=["请减少题量。"],
+    )
+
+    with patch(
+        "calculus_agent.agent.services.generation.generate_paper_from_input",
+        return_value=failed,
+    ):
+        response = api.confirm_pending_generation_from_card(
+            api.PendingGenerationConfirmRequest(
+                conversation_id=conversation_id,
+                expected_version=pending.pending_version,
+            ),
+            session,
+        )
+
+    saved = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    assert response.status == "needs_clarification"
+    assert response.paper.blocking_errors == ["insufficient_candidates"]
+    assert saved is not None
+    assert saved.pending_version == pending.pending_version
+    assert saved.request == pending.request
+
+
 def test_session_restore_reads_the_latest_card_updated_pending_plan(session):
     _scope(session)
     conversation_id = "pending-session-restore"

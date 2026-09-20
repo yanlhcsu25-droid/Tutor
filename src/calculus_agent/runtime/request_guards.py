@@ -25,8 +25,9 @@ _QUESTION_COUNT_PATTERNS = (
     re.compile(r"^\s*\d{1,3}\s*(?:道|题)\s*(?:就可以|即可|可以|就行|行)?[。！？]?\s*$"),
 )
 _EXPLICIT_GENERATION_COUNT = re.compile(
-    r"(?:生成|出|来|一套|共|总共|一共)[^。！？,，；;0-9]{0,10}"
-    r"(?P<count>\d{1,3})\s*(?:道|题)"
+    r"(?:生成|出|来|一套|共|总共|一共)"
+    r"[^。！？,，；;0-9一二三四五六七八九十两]{0,10}"
+    r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)"
 )
 _EXPLICIT_GENERATION_SCORE = re.compile(
     r"(?P<score>\d{1,3})\s*分(?:制|的)?\s*"
@@ -56,7 +57,7 @@ _QUESTION_TYPE_COUNT_PATTERNS = (
 
 def _explicit_generation_count(message: str) -> int | None:
     matches = list(_EXPLICIT_GENERATION_COUNT.finditer(message))
-    return int(matches[-1].group("count")) if matches else None
+    return _count_value(matches[-1].group("count")) if matches else None
 
 
 def _count_value(raw: str) -> int:
