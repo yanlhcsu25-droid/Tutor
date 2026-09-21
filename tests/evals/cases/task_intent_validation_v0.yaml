@@ -1,0 +1,114 @@
+version: "0.1"
+suite:
+  name: task_intent_validation_v0
+  split: validation
+  description: 100条冻结教师意图路由集；用于评估顶层工作流分类，不评估Tool参数或最终业务成功率。
+  labels: [DIRECT_ACTION, TEACHING_DESIGN, TEACHING_PLANNING, INFORMATION_REQUEST]
+cases:
+  # DIRECT_ACTION: 25
+  - {id: INT-DIR-001, expected: DIRECT_ACTION, text: "帮我出一套第一章测试卷。"}
+  - {id: INT-DIR-002, expected: DIRECT_ACTION, text: "生成10道函数极限练习题。"}
+  - {id: INT-DIR-003, expected: DIRECT_ACTION, text: "来套导数与微分的章节练习。"}
+  - {id: INT-DIR-004, expected: DIRECT_ACTION, text: "组一份高数期中试卷，满分100。"}
+  - {id: INT-DIR-005, expected: DIRECT_ACTION, text: "准备一份第三章测验，8道题。"}
+  - {id: INT-DIR-006, expected: DIRECT_ACTION, text: "给学生布置一份极限作业。"}
+  - {id: INT-DIR-007, expected: DIRECT_ACTION, text: "做一套隐函数求导专项训练卷。"}
+  - {id: INT-DIR-008, expected: DIRECT_ACTION, text: "期末考试卷按20题100分生成。"}
+  - {id: INT-DIR-009, expected: DIRECT_ACTION, text: "重点覆盖复合函数求导，出8道计算题。"}
+  - {id: INT-DIR-010, expected: DIRECT_ACTION, text: "把当前卷第3题换简单一点。"}
+  - {id: INT-DIR-011, expected: DIRECT_ACTION, text: "删除选择题第2题。"}
+  - {id: INT-DIR-012, expected: DIRECT_ACTION, text: "在这份卷子里增加两道证明题。"}
+  - {id: INT-DIR-013, expected: DIRECT_ACTION, text: "计算题第1题改成更难的。"}
+  - {id: INT-DIR-014, expected: DIRECT_ACTION, text: "撤销刚才对试卷的修改。"}
+  - {id: INT-DIR-015, expected: DIRECT_ACTION, text: "恢复到试卷版本1。"}
+  - {id: INT-DIR-016, expected: DIRECT_ACTION, text: "重做上一次撤销的改卷操作。"}
+  - {id: INT-DIR-017, expected: DIRECT_ACTION, text: "分析当前这套卷的题型分布。"}
+  - {id: INT-DIR-018, expected: DIRECT_ACTION, text: "读一下这张试卷的第5题。"}
+  - {id: INT-DIR-019, expected: DIRECT_ACTION, text: "总分调整到120分。", state: {has_pending: true}}
+  - {id: INT-DIR-020, expected: DIRECT_ACTION, text: "难度再降低一点。", state: {has_pending: true}}
+  - {id: INT-DIR-021, expected: DIRECT_ACTION, text: "就按这个方案生成吧。", state: {has_pending: true}}
+  - {id: INT-DIR-022, expected: DIRECT_ACTION, text: "这个方案不要了。", state: {has_pending: true}}
+  - {id: INT-DIR-023, expected: DIRECT_ACTION, text: "章节范围再加上第三章。", state: {has_pending: true}}
+  - {id: INT-DIR-024, expected: DIRECT_ACTION, text: "确认。", state: {has_pending: true}}
+  - {id: INT-DIR-025, expected: DIRECT_ACTION, text: "把证明题减少到1道。", state: {has_pending: true}}
+
+  # TEACHING_DESIGN: 25
+  - {id: INT-DES-001, expected: TEACHING_DESIGN, text: "帮我设计一份第一章复习方案。"}
+  - {id: INT-DES-002, expected: TEACHING_DESIGN, text: "为导数单元制定教学计划。"}
+  - {id: INT-DES-003, expected: TEACHING_DESIGN, text: "做一个期中复习方案。"}
+  - {id: INT-DES-004, expected: TEACHING_DESIGN, text: "形成一份函数极限教学设计。"}
+  - {id: INT-DES-005, expected: TEACHING_DESIGN, text: "创建第二章的教学方案。"}
+  - {id: INT-DES-006, expected: TEACHING_DESIGN, text: "请设计复合函数求导复习计划。"}
+  - {id: INT-DES-007, expected: TEACHING_DESIGN, text: "制定一条高数期末复习路径。"}
+  - {id: INT-DES-008, expected: TEACHING_DESIGN, text: "帮我做一份薄弱知识点训练路径。"}
+  - {id: INT-DES-009, expected: TEACHING_DESIGN, text: "规划第一章到第三章的复习课程。"}
+  - {id: INT-DES-010, expected: TEACHING_DESIGN, text: "安排一下导数章节的复习课程。"}
+  - {id: INT-DES-011, expected: TEACHING_DESIGN, text: "为大一学生设计极限专题课。"}
+  - {id: INT-DES-012, expected: TEACHING_DESIGN, text: "设计一套隐函数求导教学方案。"}
+  - {id: INT-DES-013, expected: TEACHING_DESIGN, text: "制定针对挂科学生的复习计划。"}
+  - {id: INT-DES-014, expected: TEACHING_DESIGN, text: "创建微分中值定理的训练路径。"}
+  - {id: INT-DES-015, expected: TEACHING_DESIGN, text: "做一个两周高数复习计划。"}
+  - {id: INT-DES-016, expected: TEACHING_DESIGN, text: "帮我形成考前冲刺教学设计。"}
+  - {id: INT-DES-017, expected: TEACHING_DESIGN, text: "规划一套从基础到提高的复习课程。"}
+  - {id: INT-DES-018, expected: TEACHING_DESIGN, text: "为函数连续性制定教学方案。"}
+  - {id: INT-DES-019, expected: TEACHING_DESIGN, text: "设计第一章复习计划并标出重点。"}
+  - {id: INT-DES-020, expected: TEACHING_DESIGN, text: "请创建导数应用的教学计划。"}
+  - {id: INT-DES-021, expected: TEACHING_DESIGN, text: "帮我安排期末复习课程。"}
+  - {id: INT-DES-022, expected: TEACHING_DESIGN, text: "做一份适合基础薄弱班的教学设计。"}
+  - {id: INT-DES-023, expected: TEACHING_DESIGN, text: "制定三个课时的极限复习方案。"}
+  - {id: INT-DES-024, expected: TEACHING_DESIGN, text: "形成可执行的导数复习计划。"}
+  - {id: INT-DES-025, expected: TEACHING_DESIGN, text: "设计一条覆盖定义、计算和应用的训练路径。"}
+
+  # TEACHING_PLANNING: 25
+  - {id: INT-PLN-001, expected: TEACHING_PLANNING, text: "学生函数极限学得不好。"}
+  - {id: INT-PLN-002, expected: TEACHING_PLANNING, text: "班里很多人总在导数计算上出错。"}
+  - {id: INT-PLN-003, expected: TEACHING_PLANNING, text: "学生不会判断极限是否存在。"}
+  - {id: INT-PLN-004, expected: TEACHING_PLANNING, text: "大家对隐函数求导掌握不好。"}
+  - {id: INT-PLN-005, expected: TEACHING_PLANNING, text: "复合函数这块学生比较薄弱。"}
+  - {id: INT-PLN-006, expected: TEACHING_PLANNING, text: "学生理解不了微分中值定理。"}
+  - {id: INT-PLN-007, expected: TEACHING_PLANNING, text: "学生总错在洛必达法则的使用条件。"}
+  - {id: INT-PLN-008, expected: TEACHING_PLANNING, text: "我想带学生复习一下第一章。"}
+  - {id: INT-PLN-009, expected: TEACHING_PLANNING, text: "期中前准备一下函数与极限。"}
+  - {id: INT-PLN-010, expected: TEACHING_PLANNING, text: "帮我看看学生导数基础薄弱的问题。"}
+  - {id: INT-PLN-011, expected: TEACHING_PLANNING, text: "学生对连续和可导的关系理解不了。"}
+  - {id: INT-PLN-012, expected: TEACHING_PLANNING, text: "班级在高阶导数上失分很多。"}
+  - {id: INT-PLN-013, expected: TEACHING_PLANNING, text: "学生不会用导数研究单调性。"}
+  - {id: INT-PLN-014, expected: TEACHING_PLANNING, text: "这一届学生极限计算很薄弱。"}
+  - {id: INT-PLN-015, expected: TEACHING_PLANNING, text: "我想先梳理一下第二章怎么复习。"}
+  - {id: INT-PLN-016, expected: TEACHING_PLANNING, text: "准备一下期末复习。"}
+  - {id: INT-PLN-017, expected: TEACHING_PLANNING, text: "学生对导数定义掌握不好。"}
+  - {id: INT-PLN-018, expected: TEACHING_PLANNING, text: "学生总把复合函数和隐函数求导混淆。"}
+  - {id: INT-PLN-019, expected: TEACHING_PLANNING, text: "想复习一下微分的应用。"}
+  - {id: INT-PLN-020, expected: TEACHING_PLANNING, text: "看看学生在第一章有哪些薄弱点。"}
+  - {id: INT-PLN-021, expected: TEACHING_PLANNING, text: "学生不会做参数方程求导。"}
+  - {id: INT-PLN-022, expected: TEACHING_PLANNING, text: "准备一下导数计算这部分。"}
+  - {id: INT-PLN-023, expected: TEACHING_PLANNING, text: "学生在证明题上总错。"}
+  - {id: INT-PLN-024, expected: TEACHING_PLANNING, text: "我想复习一下上册重点。"}
+  - {id: INT-PLN-025, expected: TEACHING_PLANNING, text: "学生对函数性质掌握不好。"}
+
+  # INFORMATION_REQUEST: 25
+  - {id: INT-INF-001, expected: INFORMATION_REQUEST, text: "导数的定义是什么？"}
+  - {id: INT-INF-002, expected: INFORMATION_REQUEST, text: "解释一下函数连续的含义。"}
+  - {id: INT-INF-003, expected: INFORMATION_REQUEST, text: "为什么可导一定连续？"}
+  - {id: INT-INF-004, expected: INFORMATION_REQUEST, text: "怎么理解微分中值定理？"}
+  - {id: INT-INF-005, expected: INFORMATION_REQUEST, text: "讲讲复合函数的链式法则。"}
+  - {id: INT-INF-006, expected: INFORMATION_REQUEST, text: "隐函数求导应该怎么教？"}
+  - {id: INT-INF-007, expected: INFORMATION_REQUEST, text: "极限这一章有哪些知识点？"}
+  - {id: INT-INF-008, expected: INFORMATION_REQUEST, text: "题库里第二章有多少道题？"}
+  - {id: INT-INF-009, expected: INFORMATION_REQUEST, text: "查一下证明题的供给情况。"}
+  - {id: INT-INF-010, expected: INFORMATION_REQUEST, text: "第一章包含哪些内容？"}
+  - {id: INT-INF-011, expected: INFORMATION_REQUEST, text: "说明一下洛必达法则的使用条件。"}
+  - {id: INT-INF-012, expected: INFORMATION_REQUEST, text: "高阶导数有什么教学重点？"}
+  - {id: INT-INF-013, expected: INFORMATION_REQUEST, text: "如何讲清楚导数的几何意义？"}
+  - {id: INT-INF-014, expected: INFORMATION_REQUEST, text: "查询当前题库的章节覆盖情况。"}
+  - {id: INT-INF-015, expected: INFORMATION_REQUEST, text: "函数单调性和导数有什么关系？"}
+  - {id: INT-INF-016, expected: INFORMATION_REQUEST, text: "讲一下无穷小的比较方法。"}
+  - {id: INT-INF-017, expected: INFORMATION_REQUEST, text: "第二章计算题有多少道？"}
+  - {id: INT-INF-018, expected: INFORMATION_REQUEST, text: "怎么向学生解释左导数和右导数？"}
+  - {id: INT-INF-019, expected: INFORMATION_REQUEST, text: "教材里参数方程求导在哪一节？"}
+  - {id: INT-INF-020, expected: INFORMATION_REQUEST, text: "有哪些题覆盖复合函数求导？"}
+  - {id: INT-INF-021, expected: INFORMATION_REQUEST, text: "为什么连续不一定可导？"}
+  - {id: INT-INF-022, expected: INFORMATION_REQUEST, text: "说明导数与微分的区别。"}
+  - {id: INT-INF-023, expected: INFORMATION_REQUEST, text: "查一下题库难度分布。"}
+  - {id: INT-INF-024, expected: INFORMATION_REQUEST, text: "如何理解函数的局部线性化？"}
+  - {id: INT-INF-025, expected: INFORMATION_REQUEST, text: "当前教材一共有多少章？"}

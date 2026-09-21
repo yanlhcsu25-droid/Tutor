@@ -192,17 +192,19 @@ _PAPER_OPERATION_RE = re.compile(
     r"(换|替换|删除|删掉|去掉|新增|增加|加)(?:[^，。；]*)题"
     r"|第\s*(?:\d+|[一二三四五六七八九十]+)\s*题"
     r"|选择题第|填空题第|计算题第|证明题第"
-    r"|撤销|重做|恢复到|版本|分析(?:这|当前)?(?:套)?卷|读(?:一下)?(?:这|第)"
+    r"|撤销|重做|恢复到|版本|分析[^，。；]{0,8}卷|读(?:一下)?(?:这|第)"
 )
 
 _DIRECT_ACTION_RE = re.compile(
-    r"出(?:一套|个)?|来(?:一)?套|生成|组卷|测试卷|练习卷|练习题|巩固卷|"
-    r"作业|期中|期末|测验|考试卷|重点覆盖"
+    r"出(?=一套|个|份|题|\d|[一二三四五六七八九十两])|来(?:一)?套|生成|组卷|"
+    r"测试卷|练习卷|训练卷|练习题|巩固卷|作业|期中|期末|测验|考试卷|重点覆盖"
 )
 
 _TEACHING_PLANNING_RE = re.compile(
     r"安排复习|复习方案|教学设计|教学方案|讲课安排|备课计划|"
-    r"学生[^，。；]*(学不好|总错|不会|薄弱|理解不了|掌握不好)|"
+    r"(?:学生|班里|班级|大家)[^，。；]*"
+    r"(学不好|学得不好|总错|出错|失分|不会|薄弱|理解不了|掌握不好|混淆)|"
+    r"期中前准备一下|(?:期中前)?准备一下[^，。；]*复习|"
     r"帮我设计[^，。；]*(复习|课|教学)"
 )
 
@@ -222,7 +224,7 @@ _EXPLICIT_CURRICULUM_SCOPE_RE = re.compile(
 
 _TEACHING_DESIGN_ARTIFACT_RE = re.compile(
     r"(?:设计|制定|做|形成|创建)[^，。；！？]{0,16}"
-    r"(?:复习计划|复习方案|教学计划|教学设计|教学方案|训练路径)"
+    r"(?:复习计划|复习方案|复习路径|教学计划|教学设计|教学方案|训练路径|专题课)"
     r"|安排[^，。；！？]{0,12}(?:复习|课程)"
     r"|规划[^，。；！？]{0,12}(?:复习|课程|训练路径)"
     r"|教学设计"
@@ -330,7 +332,10 @@ def deterministic_route(message: str, *, state: RoutingState) -> WorkflowDecisio
             ),
         )
 
-    if requires_teaching_design_artifact(message):
+    if (
+        requires_teaching_design_artifact(message)
+        or _TEACHING_PLANNING_RE.search(message)
+    ):
         return None
 
     if _DIRECT_ACTION_RE.search(message):
