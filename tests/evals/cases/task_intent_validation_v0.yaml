@@ -2,7 +2,13 @@ version: "0.1"
 suite:
   name: task_intent_validation_v0
   split: validation
-  description: 100条冻结教师意图路由集；用于评估顶层工作流分类，不评估Tool参数或最终业务成功率。
+  description: 100条冻结的Contract/Regression路由集；评估deterministic与heuristic fallback，不代表LLM Accuracy。
+  label_policy:
+    DIRECT_ACTION: 用户要求执行组卷、改卷、读卷、版本或确认操作。
+    TEACHING_DESIGN: 用户明确要求形成可执行、可保存的教学设计、计划、课程或训练路径 artifact。
+    TEACHING_PLANNING: 用户表达学情问题、备课意图或模糊复习需求，但尚未明确要求形成设计 artifact。
+    INFORMATION_REQUEST: 用户咨询知识、教材、题库或一般教学方法，不要求形成教学设计 artifact。
+  context_policy: 上下文使用RoutingState真实字段；current_paper用于省略试卷宾语的操作表达，pending字段分别表示对应业务草稿。
   labels: [DIRECT_ACTION, TEACHING_DESIGN, TEACHING_PLANNING, INFORMATION_REQUEST]
 cases:
   # DIRECT_ACTION: 25
@@ -22,15 +28,15 @@ cases:
   - {id: INT-DIR-014, expected: DIRECT_ACTION, text: "撤销刚才对试卷的修改。"}
   - {id: INT-DIR-015, expected: DIRECT_ACTION, text: "恢复到试卷版本1。"}
   - {id: INT-DIR-016, expected: DIRECT_ACTION, text: "重做上一次撤销的改卷操作。"}
-  - {id: INT-DIR-017, expected: DIRECT_ACTION, text: "分析当前这套卷的题型分布。"}
-  - {id: INT-DIR-018, expected: DIRECT_ACTION, text: "读一下这张试卷的第5题。"}
-  - {id: INT-DIR-019, expected: DIRECT_ACTION, text: "总分调整到120分。", state: {has_pending: true}}
-  - {id: INT-DIR-020, expected: DIRECT_ACTION, text: "难度再降低一点。", state: {has_pending: true}}
-  - {id: INT-DIR-021, expected: DIRECT_ACTION, text: "就按这个方案生成吧。", state: {has_pending: true}}
-  - {id: INT-DIR-022, expected: DIRECT_ACTION, text: "这个方案不要了。", state: {has_pending: true}}
-  - {id: INT-DIR-023, expected: DIRECT_ACTION, text: "章节范围再加上第三章。", state: {has_pending: true}}
-  - {id: INT-DIR-024, expected: DIRECT_ACTION, text: "确认。", state: {has_pending: true}}
-  - {id: INT-DIR-025, expected: DIRECT_ACTION, text: "把证明题减少到1道。", state: {has_pending: true}}
+  - {id: INT-DIR-017, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "分析一下题型分布。", state: {current_paper: true}}
+  - {id: INT-DIR-018, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "讲一下这里的第三问。", state: {current_paper: true}}
+  - {id: INT-DIR-019, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "总分调整到120分。", state: {pending_generation: true}}
+  - {id: INT-DIR-020, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "难度再降低一点。", state: {pending_paper_change: true}}
+  - {id: INT-DIR-021, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "就按这个方案生成吧。", state: {pending_generation: true}}
+  - {id: INT-DIR-022, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "这个方案不要了。", state: {active_teaching_design: true}}
+  - {id: INT-DIR-023, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "章节范围再加上第三章。", state: {pending_generation: true}}
+  - {id: INT-DIR-024, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "确认。", state: {pending_replacement: true}}
+  - {id: INT-DIR-025, expected: DIRECT_ACTION, expected_source: deterministic_state, text: "把证明题减少到1道。", state: {pending_paper_change: true}}
 
   # TEACHING_DESIGN: 25
   - {id: INT-DES-001, expected: TEACHING_DESIGN, text: "帮我设计一份第一章复习方案。"}

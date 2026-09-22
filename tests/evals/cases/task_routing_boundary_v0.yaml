@@ -1,0 +1,18 @@
+version: "0.1"
+suite:
+  name: task_routing_boundary_v0
+  description: Semantic ambiguity, negation, mixed intent, and strong-state routing boundaries.
+cases:
+  - {id: ROUTE-B01, text: "学生这里总是出错。", expected: TEACHING_PLANNING, allowed: [TEACHING_PLANNING, INFORMATION_REQUEST], clarification_allowed: true}
+  - {id: ROUTE-B02, text: "学生总丢分，但先别出卷。", expected: TEACHING_PLANNING, allowed: [TEACHING_PLANNING, INFORMATION_REQUEST], clarification_allowed: true}
+  - {id: ROUTE-B03, text: "我不是让你改卷，我想知道学生为什么做错。", expected: INFORMATION_REQUEST}
+  - {id: ROUTE-B04, text: "期中前想针对一下。", expected: TEACHING_PLANNING, clarification_required: true}
+  - {id: ROUTE-B05, text: "这部分应该怎么处理？", expected: TEACHING_PLANNING, clarification_required: true}
+  - {id: ROUTE-B06, text: "帮我准备一下。", expected: TEACHING_PLANNING, clarification_required: true}
+  - {id: ROUTE-B07, text: "给我讲讲怎么复习第一章。", expected: INFORMATION_REQUEST}
+  - {id: ROUTE-B08, text: "学生这里不会，给他出10道题。", expected: DIRECT_ACTION}
+  - id: ROUTE-B09
+    text: "这套卷先不用改，你觉得难度怎么样？"
+    expected: DIRECT_ACTION
+    expected_source: deterministic_state
+    state: {current_paper: true}

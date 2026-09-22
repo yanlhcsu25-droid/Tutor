@@ -84,7 +84,8 @@ class RoutingState(BaseModel):
 RouteSource = Literal[
     "deterministic_state",
     "deterministic_operation",
-    "router",
+    "llm_router",
+    "heuristic_fallback",
 ]
 
 
@@ -194,10 +195,16 @@ _PAPER_OPERATION_RE = re.compile(
     r"|选择题第|填空题第|计算题第|证明题第"
     r"|撤销|重做|恢复到|版本|分析[^，。；]{0,8}卷|读(?:一下)?(?:这|第)"
 )
+_CURRENT_PAPER_OPERATION_RE = re.compile(
+    r"分析(?:一下)?(?:题型|难度|知识点|结构|分值)(?:分布|覆盖)?"
+    r"|(?:题型|难度|知识点|结构|分值)(?:怎么样|如何|分布|覆盖)"
+    r"|讲(?:一下)?(?:这里的|其中的)?第[一二三四五六七八九十0-9]+问"
+)
 
 _DIRECT_ACTION_RE = re.compile(
     r"出(?=一套|个|份|题|\d|[一二三四五六七八九十两])|来(?:一)?套|生成|组卷|"
-    r"测试卷|练习卷|训练卷|练习题|巩固卷|作业|期中|期末|测验|考试卷|重点覆盖"
+    r"测试卷|练习卷|训练卷|练习题|巩固卷|作业|"
+    r"(?:期中|期末)(?:试卷|考试卷|测验)|测验|考试卷|重点覆盖"
 )
 
 _TEACHING_PLANNING_RE = re.compile(
@@ -272,9 +279,12 @@ class TaskRouter:
             return override
 
         if model_route is not None:
-            return WorkflowDecision(route=model_route, source="router")
+            return WorkflowDecision(route=model_route, source="llm_router")
 
-        return WorkflowDecision(route=classify_message(normalized), source="router")
+        return WorkflowDecision(
+            route=classify_message(normalized),
+            source="heuristic_fallback",
+        )
 
 
 _DEFAULT_ROUTER = TaskRouter()
@@ -310,7 +320,10 @@ def deterministic_route(message: str, *, state: RoutingState) -> WorkflowDecisio
             ),
         )
 
-    if state.current_paper and _PAPER_OPERATION_RE.search(message):
+    if state.current_paper and (
+        _PAPER_OPERATION_RE.search(message)
+        or _CURRENT_PAPER_OPERATION_RE.search(message)
+    ):
         return WorkflowDecision(
             source="deterministic_state",
             route=TaskRoute(
@@ -331,12 +344,6 @@ def deterministic_route(message: str, *, state: RoutingState) -> WorkflowDecisio
                 reason="explicit paper operation wording",
             ),
         )
-
-    if (
-        requires_teaching_design_artifact(message)
-        or _TEACHING_PLANNING_RE.search(message)
-    ):
-        return None
 
     if _DIRECT_ACTION_RE.search(message):
         return WorkflowDecision(

@@ -52,6 +52,7 @@ class BailianChatBackend:
         *,
         tool_choice: str | dict = "auto",
         response_format: dict | None = None,
+        timeout: float | None = None,
     ) -> dict:
         optional_payload = {}
         if tools:
@@ -77,7 +78,7 @@ class BailianChatBackend:
                 "Content-Type": "application/json",
             },
         )
-        with urlopen(request, timeout=self.timeout) as response:
+        with urlopen(request, timeout=self.timeout if timeout is None else timeout) as response:
             body = json.loads(response.read().decode())
         choice = body["choices"][0]
         return {
@@ -85,3 +86,17 @@ class BailianChatBackend:
             "finish_reason": choice.get("finish_reason"),
             "model": body.get("model"),
         }
+
+    def complete_structured(
+        self,
+        messages: list[dict],
+        schema: dict,
+    ) -> dict:
+        """Request JSON and let the caller validate it against ``schema``."""
+        del schema  # Provider JSON mode does not guarantee schema enforcement.
+        return self.complete(
+            messages,
+            [],
+            response_format={"type": "json_object"},
+            timeout=min(self.timeout, 30),
+        )

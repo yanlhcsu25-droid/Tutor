@@ -58,7 +58,7 @@ def test_design_artifact_wins_over_embedded_exam_wording():
 def test_router_classifies_teaching_planning_request():
     decision = decide_task("学生极限一直学不好，帮我安排复习")
 
-    assert decision.source == "router"
+    assert decision.source == "heuristic_fallback"
     assert decision.route.task_type == TaskType.TEACHING_DESIGN
     assert decision.route.artifact_required is True
     assert decision.route.clarification_needed is False
@@ -67,7 +67,7 @@ def test_router_classifies_teaching_planning_request():
 def test_router_classifies_information_request_not_knowledge_query():
     decision = decide_task("为什么洛必达法则不能随便用")
 
-    assert decision.source == "router"
+    assert decision.source == "heuristic_fallback"
     assert decision.route.task_type == TaskType.INFORMATION_REQUEST
     assert decision.route.clarification_needed is False
 
@@ -75,7 +75,7 @@ def test_router_classifies_information_request_not_knowledge_query():
 def test_ambiguous_preparation_request_asks_clarification():
     decision = decide_task("帮我准备一下第三章")
 
-    assert decision.source == "router"
+    assert decision.source == "heuristic_fallback"
     assert decision.route.task_type == TaskType.TEACHING_PLANNING
     assert decision.route.confidence < 0.7
     assert decision.route.clarification_needed is True
@@ -128,7 +128,7 @@ def test_model_route_is_used_only_without_deterministic_override():
     assert overridden.route.task_type == TaskType.DIRECT_ACTION
 
     accepted = decide_task("极限的定义是什么", model_route=model_route)
-    assert accepted.source == "router"
+    assert accepted.source == "llm_router"
     assert accepted.route is model_route
 
 

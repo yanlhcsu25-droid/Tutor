@@ -1,4 +1,4 @@
-"""Frozen 100-case validation set for top-level Teacher Agent routing."""
+"""Versioned 100-case validation set for top-level Teacher Agent routing."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from calculus_agent.agent.task_router import RoutingState, decide_task
 
 
 CASE_FILE = Path(__file__).parent / "cases" / "task_intent_validation_v0.yaml"
+CASE_FILE_SHA256 = "9f8d326420471961f25b1afd6e7499caf03eba50c23b0af47b7b9fd0034b351a"
 LABELS = {
     "DIRECT_ACTION",
     "TEACHING_DESIGN",
@@ -28,17 +29,19 @@ def _load_cases() -> list[dict]:
 
 def _state(raw: dict | None) -> RoutingState:
     raw = raw or {}
-    return RoutingState(
-        pending_generation=bool(raw.get("has_pending")),
-        current_paper=bool(raw.get("current_paper")),
-    )
+    return RoutingState(**{
+        field: bool(raw.get(field))
+        for field in RoutingState.model_fields
+    })
 
 
 def _metrics(cases: list[dict]) -> dict:
     confusion: dict[str, Counter] = defaultdict(Counter)
     mistakes: list[dict] = []
+    source_mistakes: list[dict] = []
     for case in cases:
-        actual = decide_task(case["text"], state=_state(case.get("state"))).route.task_type.value
+        decision = decide_task(case["text"], state=_state(case.get("state")))
+        actual = decision.route.task_type.value
         expected = case["expected"]
         confusion[expected][actual] += 1
         if actual != expected:
@@ -47,6 +50,13 @@ def _metrics(cases: list[dict]) -> dict:
                 "text": case["text"],
                 "expected": expected,
                 "actual": actual,
+            })
+        expected_source = case.get("expected_source")
+        if expected_source is not None and decision.source != expected_source:
+            source_mistakes.append({
+                "id": case["id"],
+                "expected": expected_source,
+                "actual": decision.source,
             })
 
     per_label: dict[str, dict[str, float]] = {}
@@ -67,16 +77,30 @@ def _metrics(cases: list[dict]) -> dict:
         "per_label": per_label,
         "confusion": {label: dict(confusion[label]) for label in sorted(LABELS)},
         "mistakes": mistakes,
+        "source_mistakes": source_mistakes,
     }
 
 
-def test_intent_validation_dataset_is_frozen_balanced_and_unique() -> None:
+def test_intent_validation_dataset_is_balanced_and_context_explicit() -> None:
     cases = _load_cases()
 
+    assert hashlib.sha256(CASE_FILE.read_bytes()).hexdigest() == CASE_FILE_SHA256
     assert len(cases) == 100
     assert len({case["id"] for case in cases}) == 100
     assert len({case["text"] for case in cases}) == 100
     assert Counter(case["expected"] for case in cases) == Counter({label: 25 for label in LABELS})
+    state_fields = {
+        field
+        for case in cases
+        for field in (case.get("state") or {})
+    }
+    assert state_fields == {
+        "pending_generation",
+        "pending_paper_change",
+        "pending_replacement",
+        "current_paper",
+        "active_teaching_design",
+    }
 
 
 def test_task_router_meets_validation_quality_gate() -> None:
@@ -88,6 +112,7 @@ def test_task_router_meets_validation_quality_gate() -> None:
         item["recall"] >= 0.80
         for item in metrics["per_label"].values()
     ), metrics
+    assert metrics["source_mistakes"] == [], metrics
 
 
 if __name__ == "__main__":

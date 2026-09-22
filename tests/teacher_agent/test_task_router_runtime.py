@@ -1,3 +1,5 @@
+import json
+
 from calculus_agent.agent.agent import run_teacher_agent
 from calculus_agent.agent.conversation_state import (
     DatabasePendingReplacementStore,
@@ -16,6 +18,21 @@ class RecordingBackend:
         return {"message": {"content": self.text}}
 
 
+class StructuredRecordingBackend(RecordingBackend):
+    def __init__(self, route=None, *, route_error=None, text="已收到。"):
+        super().__init__(text)
+        self.route = route
+        self.route_error = route_error
+        self.routing_requests = []
+
+    def complete_structured(self, messages, schema):
+        self.routing_requests.append((messages, schema))
+        if self.route_error is not None:
+            raise self.route_error
+        content = self.route if isinstance(self.route, str) else json.dumps(self.route)
+        return {"message": {"content": content}}
+
+
 def _names(request):
     return {
         item["function"]["name"]
@@ -31,6 +48,78 @@ def _system_text(request):
         for item in request[0]
         if item.get("role") == "system"
     )
+
+
+def test_runtime_semantic_route_drives_tool_surface(session):
+    backend = StructuredRecordingBackend({
+        "task_type": "TEACHING_PLANNING",
+        "confidence": 0.94,
+        "artifact_required": False,
+        "clarification_needed": False,
+        "reason": "learning problem with generation explicitly declined",
+    })
+
+    run_teacher_agent(
+        session,
+        "学生总丢分，但先别出卷。",
+        conversation_id="runtime-semantic-route",
+        backend=backend,
+    )
+
+    assert len(backend.routing_requests) == 1
+    assert "当前任务模式：TEACHING_PLANNING" in _system_text(backend.requests[0])
+    assert '"source": "llm_router"' in _system_text(backend.requests[0])
+    assert "prepare_generation_plan" not in _names(backend.requests[0])
+
+
+def test_runtime_deterministic_override_skips_semantic_router(session):
+    backend = StructuredRecordingBackend(route_error=AssertionError("must not route"))
+
+    run_teacher_agent(
+        session,
+        "第三章出10题测试卷",
+        conversation_id="runtime-deterministic-first",
+        backend=backend,
+    )
+
+    assert backend.routing_requests == []
+    assert "当前任务模式：DIRECT_ACTION" in _system_text(backend.requests[0])
+
+
+def test_runtime_invalid_semantic_route_falls_back_without_crashing(session):
+    backend = StructuredRecordingBackend("not-json")
+
+    run_teacher_agent(
+        session,
+        "为什么洛必达法则不能随便用？",
+        conversation_id="runtime-route-fallback",
+        backend=backend,
+    )
+
+    assert len(backend.routing_requests) == 1
+    assert '"source": "heuristic_fallback"' in _system_text(backend.requests[0])
+    assert "当前任务模式：INFORMATION_REQUEST" in _system_text(backend.requests[0])
+
+
+def test_runtime_ambiguous_semantic_route_exposes_no_tools(session):
+    backend = StructuredRecordingBackend({
+        "task_type": "TEACHING_PLANNING",
+        "confidence": 0.6,
+        "artifact_required": False,
+        "clarification_needed": True,
+        "clarification_question": "您希望先讨论复习思路，还是直接生成练习？",
+        "reason": "both planning and generation are plausible",
+    })
+
+    run_teacher_agent(
+        session,
+        "期中前想针对一下。",
+        conversation_id="runtime-route-clarification",
+        backend=backend,
+    )
+
+    assert backend.requests[0][1] == []
+    assert "不要调用会改变业务状态的 Tool" in _system_text(backend.requests[0])
 
 
 def test_runtime_routes_direct_action_before_first_llm_call(session):

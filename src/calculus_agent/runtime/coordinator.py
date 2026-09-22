@@ -46,10 +46,14 @@ from calculus_agent.agent.tool_adapters.teaching_design import teaching_design_t
 from calculus_agent.agent.tool_adapters.teaching_environment import (
     environment_inspection_tool_names,
 )
+from calculus_agent.agent.semantic_router import resolve_semantic_task_route
 from calculus_agent.agent.task_router import (
     RoutingState,
+    TaskRoute,
     TaskType,
+    WorkflowDecision,
     decide_task,
+    deterministic_route,
     has_explicit_curriculum_scope,
 )
 from calculus_agent.agent.trace_log import AgentTraceRecorder, redact_trace_value
@@ -499,20 +503,12 @@ def _run_teacher_agent_turn(
         environment_definition_names = (
             environment_inspection_tool_names()
         )
-        task_decision = decide_task(
-            message,
-            state=RoutingState(
-                pending_generation=bool(pending_generation),
-                pending_paper_change=bool(pending_adjustment),
-                pending_replacement=bool(pending),
-                current_paper=has_current_paper,
-                active_teaching_design=legacy_teaching_design_active,
-            ),
-        )
-        teaching_design_artifact_requested = task_decision.route.artifact_required
-        paper_operation_without_target = bool(
-            not has_current_paper
-            and task_decision.route.reason == "explicit paper operation wording"
+        routing_state = RoutingState(
+            pending_generation=bool(pending_generation),
+            pending_paper_change=bool(pending_adjustment),
+            pending_replacement=bool(pending),
+            current_paper=has_current_paper,
+            active_teaching_design=legacy_teaching_design_active,
         )
         continuing_generation = bool(
             working_memory
@@ -520,24 +516,50 @@ def _run_teacher_agent_turn(
             and working_memory.active_task.get("status") in {
                 "drafting", "awaiting_scope", "awaiting_confirmation",
             }
+            and not (pending_adjustment or pending or has_current_paper)
         )
-        if continuing_generation and not (
-            pending_adjustment or pending or has_current_paper
-        ):
-            task_decision.route.task_type = TaskType.DIRECT_ACTION
-            task_decision.route.artifact_required = False
-            task_decision.route.reason = "continuing conversation generation draft"
-
         continuing_teaching_planning = bool(
             working_memory
             and working_memory.active_task.get("type") == "teaching_planning"
             and working_memory.active_task.get("status") in {"awaiting_scope", "drafted"}
+            and not (
+                pending_generation or pending_adjustment or pending or has_current_paper
+            )
         )
-        if continuing_teaching_planning and not (
-            pending_generation or pending_adjustment or pending or has_current_paper
-        ):
-            task_decision.route.task_type = TaskType.TEACHING_PLANNING
-            task_decision.route.reason = "continuing conversation teaching-planning draft"
+        deterministic_decision = deterministic_route(message, state=routing_state)
+        if deterministic_decision is None and continuing_generation:
+            deterministic_decision = WorkflowDecision(
+                source="deterministic_state",
+                route=TaskRoute(
+                    task_type=TaskType.DIRECT_ACTION,
+                    confidence=1.0,
+                    reason="continuing conversation generation draft",
+                ),
+            )
+        elif deterministic_decision is None and continuing_teaching_planning:
+            deterministic_decision = WorkflowDecision(
+                source="deterministic_state",
+                route=TaskRoute(
+                    task_type=TaskType.TEACHING_PLANNING,
+                    confidence=1.0,
+                    reason="continuing conversation teaching-planning draft",
+                ),
+            )
+        model_route = (
+            resolve_semantic_task_route(message, backend=backend)
+            if deterministic_decision is None
+            else None
+        )
+        task_decision = deterministic_decision or decide_task(
+            message,
+            state=routing_state,
+            model_route=model_route,
+        )
+        teaching_design_artifact_requested = task_decision.route.artifact_required
+        paper_operation_without_target = bool(
+            not has_current_paper
+            and task_decision.route.reason == "explicit paper operation wording"
+        )
 
         has_strong_business_state = bool(
             pending_generation or pending_adjustment or pending or has_current_paper
@@ -572,7 +594,12 @@ def _run_teacher_agent_turn(
         )
         definition_names = exposure_policy.initial_tools(exposure_context)
         definitions = toolkit.schemas(
-            names=definition_names,
+            names=(
+                []
+                if task_decision.source == "llm_router"
+                and task_decision.route.clarification_needed
+                else definition_names
+            ),
             transform=lambda tool: _tool_definition_for_context(
                 tool, pending_generation=bool(pending_generation),
             ),
