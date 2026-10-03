@@ -2,7 +2,7 @@ version: '1'
 name: tutor_agent_golden_smoke_v1
 status: frozen
 split: development
-dataset_sha: f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34
+dataset_sha: 10087d9f769af1b0d3df8ad0ecefa53583a3361ab39cfa14b64811f4664453ca
 execution:
   provider: siliconflow
   model: Qwen/Qwen3.5-35B-A3B
@@ -12,8 +12,8 @@ versions:
 freeze_lock:
   human_reviewed: true
   reviewed_at: '2026-10-03T11:21:07Z'
-  frozen_at: '2026-10-03T16:42:30Z'
-  code_git_sha: 4ca727e098e6db01ae37b4474610c45a9b11558c
+  frozen_at: '2026-10-03T17:10:35Z'
+  code_git_sha: 93c552499502913c1628e83398931941f231728b
 required_distribution:
   easy: 6
   medium: 9

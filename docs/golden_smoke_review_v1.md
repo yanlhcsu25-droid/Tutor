@@ -1,9 +1,9 @@
 # Golden Smoke v1 — 人工审核清单
 
-- YAML file SHA256: `b093f1748e66c8c4381a444777a0e34bfad7f4cf8e80a3a06386edf6112f03af`
-- Manifest dataset SHA256: `f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34`
+- YAML file SHA256: `d9b0312b95e88b63e78255c6b2212a9c3434369fbad008bcd7a7efd63310eeb2`
+- Manifest dataset SHA256: `10087d9f769af1b0d3df8ad0ecefa53583a3361ab39cfa14b64811f4664453ca`
 - 状态：`frozen`；未经版本升级不得修改 Dataset 或 Contract。
-- Code Git SHA：`4ca727e098e6db01ae37b4474610c45a9b11558c`（targeted regressions passed）
+- Code Git SHA：`93c552499502913c1628e83398931941f231728b`（preview artifact oracle）
 - Provider / Model：`siliconflow` / `Qwen/Qwen3.5-35B-A3B`
 - 分布：Easy 6 / Medium 9 / Hard 5。
 
