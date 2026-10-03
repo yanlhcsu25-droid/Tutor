@@ -228,6 +228,33 @@ def test_agent_reads_bounded_whole_paper_overview(session, message):
     assert "共5题" in result.message
 
 
+def test_analysis_does_not_replace_required_current_version_read(session):
+    paper = _seed_paper(session)
+    backend = _Backend(
+        _tool("analyze_paper"),
+        _final("这套卷满分12分。"),
+        _tool("read_paper"),
+        _final("这套卷满分12分。"),
+    )
+
+    result = run_teacher_agent(
+        session,
+        "这套卷满分多少？",
+        conversation_id="analysis-then-read",
+        paper_id=paper.id,
+        version_id=paper.id,
+        backend=backend,
+    )
+
+    assert result.status == "completed"
+    trace = session.scalars(select(TeacherAgentRunTrace).where(
+        TeacherAgentRunTrace.conversation_id == "analysis-then-read"
+    )).one()
+    assert [call["tool_name"] for call in trace.tool_calls_json] == [
+        "analyze_paper", "read_paper",
+    ]
+
+
 def test_read_without_current_paper_fails_without_generation(session):
     backend = _Backend(
         _tool("read_paper", '{"positions":[1]}'),

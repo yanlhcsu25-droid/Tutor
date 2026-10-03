@@ -1158,7 +1158,8 @@ def _response_facts(message: str) -> dict[str, Any]:
     distribution = {
         question_type: int(count)
         for question_type, count in re.findall(
-            r"(选择题|填空题|计算题|证明题)\s*(?:共|有)?\s*(\d+)\s*道", message
+            r"(选择题|填空题|计算题|证明题)\s*(?:共|有)?\s*(\d+)\s*(?:道\s*题?|题)",
+            message,
         )
     }
     if distribution:

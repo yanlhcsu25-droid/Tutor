@@ -778,7 +778,6 @@ def _run_teacher_agent_turn(
                 message, paper_state_at_turn_start=paper_state_at_turn_start,
             )
         )
-        paper_version_at_turn_start = context.version_id or context.paper_id
         observed_paper_read_versions: set[str] = set()
         paper_change_reprompted = False
         malformed_response_retried = False
@@ -1025,11 +1024,19 @@ def _run_teacher_agent_turn(
                         variant.grounding_guard
                         and paper_state_at_turn_start
                         and grounding.read_required
-                        and (
-                            not trace_calls
-                            or current_paper_version_id != paper_version_at_turn_start
+                    ):
+                        failed_read_observed = any(
+                            call.get("tool_name") == "read_paper"
+                            and isinstance(call.get("result"), dict)
+                            and call["result"].get("ok") is False
+                            for call in trace_calls
                         )
-                    ): 
+                        if failed_read_observed:
+                            turn_status = "failed"
+                            final_text = (
+                                "本轮读取当前试卷失败，因此不能可靠回答这项 Paper 事实。"
+                            )
+                            break
                         # A model that ignored the deterministic read boundary may
                         # not get a prose-only escape hatch. The boundary lives in
                         # message history (not a retry flag) and is version-scoped,
@@ -1331,7 +1338,10 @@ def _run_teacher_agent_turn(
                                     exposure_context
                                 )
                             )
-                        if name == "read_paper" and execution_payload.get("ok"):
+                        if (
+                            name in {"read_paper", "prepare_reinforcement_plan"}
+                            and execution_payload.get("ok")
+                        ):
                             observed_paper_read_versions.add(observed_version_id)
                         if (
                             name in {

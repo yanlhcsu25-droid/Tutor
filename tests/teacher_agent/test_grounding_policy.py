@@ -1,3 +1,5 @@
+import pytest
+
 from calculus_agent.papers.addressing import QuestionAddress
 from calculus_agent.runtime.grounding_policy import GroundingPolicy
 
@@ -28,6 +30,22 @@ def test_old_version_read_is_not_fresh():
     )
     assert decision.requires_current_paper_evidence
     assert not decision.has_fresh_observation
+    assert decision.read_required
+
+
+@pytest.mark.parametrize("message", [
+    "这套卷满分多少？不要修改。",
+    "当前卷各种题型分别有多少题？",
+])
+def test_paper_summary_queries_require_current_version_read(message):
+    decision = GroundingPolicy.evaluate(
+        message=message,
+        addresses=[],
+        positions=[],
+        current_version_id="v1",
+        observed_read_versions=set(),
+    )
+
     assert decision.read_required
 
 

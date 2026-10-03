@@ -5,7 +5,7 @@ from calculus_agent.agent.identity import DEFAULT_TEACHER_OWNER_KEY
 from calculus_agent.teaching_design.schemas import TeachingDesignContent
 from calculus_agent.teaching_design.service import TeachingDesignService
 from tests.evals.case_loader import EvalCase, load_eval_suite
-from tests.evals.runner import collect_actual_state, run_case, write_report
+from tests.evals.runner import _response_facts, collect_actual_state, run_case, write_report
 
 
 def _tool_call(name, arguments):
@@ -17,6 +17,17 @@ def _tool_call(name, arguments):
             "type": "function",
             "function": {"name": name, "arguments": json.dumps(arguments, ensure_ascii=False)},
         }],
+    }
+
+
+def test_response_facts_accepts_common_question_type_count_units():
+    assert _response_facts(
+        "选择题 4 题，填空题2道，计算题 3 道题，证明题1题。"
+    )["question_type_counts"] == {
+        "选择题": 4,
+        "填空题": 2,
+        "计算题": 3,
+        "证明题": 1,
     }
 
 
@@ -99,6 +110,30 @@ def test_runner_projects_unified_pending_paper_change():
 
     assert result["passed"], result
     assert result["actual"]["pending_paper_change"]["exists"] is True
+
+
+def test_golden_read_cases_require_current_version_read_after_analysis():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+    responses = {
+        "SMOKE-READ-02": "这套卷满分是100分。",
+        "SMOKE-READ-03": "选择题 4 题，填空题 2 题，计算题 3 题，证明题 1 题。",
+    }
+
+    for case_id, final_message in responses.items():
+        case = next(item for item in suite.cases if item.id == case_id)
+        case.backend = {"behavior": "scripted", "responses": [
+            _tool_call("analyze_paper", {}),
+            {"role": "assistant", "content": final_message},
+            _tool_call("read_paper", {}),
+            {"role": "assistant", "content": final_message},
+        ]}
+
+        result = run_case(case)
+
+        assert result["passed"], result
+        assert [call["name"] for call in result["actual"]["trace"]["tool_calls"]] == [
+            "analyze_paper", "read_paper",
+        ]
 
 
 def test_pending_count_patch_inherits_unmentioned_constraints():
