@@ -1153,6 +1153,27 @@ def _paper_db_snapshot(session, paper_id: str | None) -> dict[str, Any] | None:
     }
 
 
+def _preview_paper_change_snapshot(session, plan_id: str | None) -> dict[str, Any] | None:
+    if not plan_id:
+        return None
+    from calculus_agent.models import AdjustmentPlanRecord
+
+    plan = session.get(AdjustmentPlanRecord, plan_id)
+    if plan is None:
+        return None
+    after = decode_json_value(plan.after_summary_json) or {}
+    operations = decode_json_value(plan.operations_json) or []
+    return {
+        "persisted": True,
+        "plan_id": plan.id,
+        "base_paper_version_id": plan.base_paper_version_id,
+        "status": plan.status,
+        "question_count": after.get("question_count"),
+        "total_score": after.get("score_total"),
+        "operations": operations,
+    }
+
+
 def _response_facts(message: str) -> dict[str, Any]:
     facts: dict[str, Any] = {}
     normalized = message.replace("**", "").replace("`", "")
@@ -1307,6 +1328,9 @@ def collect_actual_state(
 
     store = _generation_store(session)
     pending_adjustment_id = store.get_adjustment(conversation_id)
+    preview_paper_change = _preview_paper_change_snapshot(
+        session, pending_adjustment_id
+    )
     active_design = active_teaching_design_snapshot(
         session,
         owner_key=DEFAULT_TEACHER_OWNER_KEY,
@@ -1342,6 +1366,7 @@ def collect_actual_state(
             {"exists": True, "plan_id": pending_adjustment_id}
             if pending_adjustment_id else None
         ),
+        "preview_paper_change": preview_paper_change,
         "teaching_design": teaching_design,
         "active_teaching_design": teaching_design,
         "response_facts": _response_facts(str(message)),

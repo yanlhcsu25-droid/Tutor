@@ -111,19 +111,23 @@ def _latest_paper(snapshot: dict[str, Any]) -> tuple[dict[str, Any] | None, list
 
 
 def _claim_errors(message: str, snapshot: dict[str, Any]) -> list[str]:
-    paper, items = _latest_paper(snapshot)
-    if paper is None:
+    preview = snapshot.get("preview_paper_change") or {}
+    paper, items = _latest_paper(snapshot.get("business_state") or {})
+    if paper is None and not preview:
         return []
     errors: list[str] = []
+    expected_count = preview.get("question_count") if preview else len(items)
+    expected_score = preview.get("total_score") if preview else paper.get("total_score")
+    source = "preview" if preview else "persisted"
     question_match = _QUESTION_CLAIM.search(message)
-    if question_match and int(question_match.group(1)) != len(items):
+    if question_match and int(question_match.group(1)) != expected_count:
         errors.append(
-            f"reply question count={question_match.group(1)}, persisted={len(items)}"
+            f"reply question count={question_match.group(1)}, {source}={expected_count}"
         )
     score_match = _SCORE_CLAIM.search(message)
-    if score_match and not isclose(float(score_match.group(1)), float(paper.get("total_score") or 0), abs_tol=0.01):
+    if score_match and not isclose(float(score_match.group(1)), float(expected_score or 0), abs_tol=0.01):
         errors.append(
-            f"reply total score={score_match.group(1)}, persisted={paper.get('total_score')}"
+            f"reply total score={score_match.group(1)}, {source}={expected_score}"
         )
     distribution = Counter(str(item.get("section")) for item in items)
     for question_type, count in _TYPE_CLAIM.findall(message):
@@ -173,7 +177,13 @@ def grade_content_consistency(case, actual: dict[str, Any]) -> dict[str, Any]:
         )
         errors.extend(f"{prefix}: {error}" for error in _teaching_design_errors(snapshot))
         message = str((turn.get("result") or {}).get("message") or "")
-        errors.extend(f"{prefix}: {error}" for error in _claim_errors(message, snapshot))
+        errors.extend(
+            f"{prefix}: {error}"
+            for error in _claim_errors(message, {
+                "business_state": snapshot,
+                **(turn.get("state") or {}),
+            })
+        )
 
     return {
         "grader": "content_consistency",

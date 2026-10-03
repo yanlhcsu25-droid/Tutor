@@ -322,7 +322,14 @@ cases:
     turns: [{user: "删除全卷第5题，先给我看修改预览。"}]
     expected:
       status: waiting_confirmation
+      paper_db: {persisted: true, question_count: 10, total_score: 100}
       pending_paper_change: {exists: true}
+      preview_paper_change:
+        persisted: true
+        question_count: 9
+        total_score: 90
+        operations:
+          - {type: remove_question, position: 5}
     preserve: [no_auto_confirm]
     graders:
       - type: state

@@ -82,6 +82,28 @@ def test_runner_projects_paper_db_and_response_facts():
     }
 
 
+def test_runner_projects_preview_artifact_separately_from_persisted_paper():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+    case = next(item for item in suite.cases if item.id == "SMOKE-MODIFY-01")
+    case.backend = {"behavior": "scripted", "responses": [
+        _tool_call("read_paper", {}),
+        _tool_call("preview_paper_changes", {"operations": [{
+            "type": "remove_question",
+            "target": {"section_type": "填空题", "section_order": 1},
+        }]}),
+        {"role": "assistant", "content": "删除后共9题，总分90分，请确认。"},
+    ]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["paper_db"]["total_score"] == 100
+    preview = result["actual"]["preview_paper_change"]
+    assert preview["question_count"] == 9
+    assert preview["total_score"] == 90
+    assert preview["operations"][0]["position"] == 5
+
+
 def test_runner_projects_unified_pending_paper_change():
     case = EvalCase(
         id="projection-change",
