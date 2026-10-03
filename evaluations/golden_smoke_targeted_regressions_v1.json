@@ -1,0 +1,134 @@
+{
+  "record_type": "golden_smoke_targeted_regression_history",
+  "baseline": "golden_smoke_baseline_v1",
+  "dataset_sha": "f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34",
+  "artifacts": [
+    {
+      "path": "tests/evals/reports/targeted-p0-clarification-20261003T160726Z.json",
+      "sha256": "e5d142d911fefef63ac880f84d5ee7fa3ba773aa427ea304a7912c23907cc6ba",
+      "git_sha": "79a8ad3d6c44a392cb7d0553105b22b17c8ef908",
+      "summary": {
+        "cases": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      }
+    },
+    {
+      "path": "tests/evals/reports/targeted-generation-pending-20261003T160746Z.json",
+      "sha256": "f99d99481cd183a09e85347ed65224dce5448a6cbbca617ca8eedeb4dff736ba",
+      "git_sha": "79a8ad3d6c44a392cb7d0553105b22b17c8ef908",
+      "summary": {
+        "cases": 8,
+        "passed": 7,
+        "failed": 1,
+        "pass_rate": 0.875
+      }
+    },
+    {
+      "path": "tests/evals/reports/targeted-multi01-20261003T161905Z.json",
+      "sha256": "6c8c5d8834f01f81b88b1bfa7d1ddd1b854b1585d0fc1f6968b98a2bb74ed00e",
+      "git_sha": "c967cc5e329301fd0c6a7b25d42666479a62dacc",
+      "summary": {
+        "cases": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      }
+    },
+    {
+      "path": "tests/evals/reports/targeted-read-20261003T161943Z.json",
+      "sha256": "693eeec7a48c6c87141836f3e03c8b4c49c02cb7de763f69134e8c16367b62a1",
+      "git_sha": "c967cc5e329301fd0c6a7b25d42666479a62dacc",
+      "summary": {
+        "cases": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      }
+    },
+    {
+      "path": "tests/evals/reports/targeted-read03-20261003T162250Z.json",
+      "sha256": "b750270333c93b5514c12a4cbf3728afff2a21018b55edeb27c522ba1d9a9a3d",
+      "git_sha": "1eb4d30c9b447460251d3ff45ba57013c9d2b55e",
+      "summary": {
+        "cases": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      }
+    },
+    {
+      "path": "tests/evals/reports/targeted-teaching-20261003T162322Z.json",
+      "sha256": "9814bfa264b111860e213e8ec2fd8b4c26374be7171e8999562532bf43a3b318",
+      "git_sha": "1eb4d30c9b447460251d3ff45ba57013c9d2b55e",
+      "summary": {
+        "cases": 3,
+        "passed": 1,
+        "failed": 2,
+        "pass_rate": 0.3333333333333333
+      }
+    },
+    {
+      "path": "tests/evals/reports/targeted-teaching-followup-20261003T163206Z.json",
+      "sha256": "77bc28a366715098dcd533620ea57a1c48149e1c4605ee0a35fbe180b7ebaec0",
+      "git_sha": "8a5703cee58bf215961eba055ae7b2e8781e68c7",
+      "summary": {
+        "cases": 2,
+        "passed": 1,
+        "failed": 1,
+        "pass_rate": 0.5
+      }
+    }
+  ],
+  "latest_outcomes": {
+    "ambiguous_address_side_effect": {
+      "status": "passed",
+      "cases": [
+        "SMOKE-CLARIFY-01"
+      ]
+    },
+    "generation_constraint_preservation": {
+      "status": "passed",
+      "cases": [
+        "SMOKE-GEN-01",
+        "SMOKE-GEN-02",
+        "SMOKE-GEN-03",
+        "SMOKE-GEN-04",
+        "SMOKE-MULTI-02"
+      ]
+    },
+    "pending_patch_inheritance": {
+      "status": "passed_after_followup",
+      "cases": [
+        "SMOKE-PENDING-01",
+        "SMOKE-PENDING-03",
+        "SMOKE-MULTI-01"
+      ]
+    },
+    "read_grounding": {
+      "status": "passed_after_followup",
+      "cases": [
+        "SMOKE-READ-02",
+        "SMOKE-READ-03"
+      ]
+    },
+    "consultation_routing": {
+      "status": "passed_after_followup",
+      "cases": [
+        "SMOKE-CONSULT-01"
+      ]
+    },
+    "teaching_design": {
+      "status": "partially_verified_provider_blocked",
+      "passed": [
+        "SMOKE-TEACH-02"
+      ],
+      "provider_blocked": [
+        "SMOKE-TEACH-01"
+      ],
+      "note": "Post-fix deterministic lesson_count regression passes; live follow-up timed out before create_teaching_design."
+    }
+  },
+  "full_golden_rerun_performed": false
+}
