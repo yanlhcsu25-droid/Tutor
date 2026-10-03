@@ -63,6 +63,9 @@ _EXPLICIT_TYPE_COUNT_PATTERNS = (
         rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
     ),
 )
+_EXPLICIT_LESSON_COUNT_PATTERN = re.compile(
+    r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*课时"
+)
 _EXPLICIT_ASSESSMENT_SCORE_PATTERN = re.compile(
     r"总分|满分|每题|\d{1,3}\s*分"
 )
@@ -235,15 +238,22 @@ def _apply_explicit_opt_in_guards(
         if provenance:
             updated["constraint_provenance"] = provenance
 
-    if (
-        tool_name in {"create_teaching_design", "revise_teaching_design"}
-        and _EXPLICIT_ASSESSMENT_SCORE_PATTERN.search(message) is None
-    ):
+    if tool_name in {"create_teaching_design", "revise_teaching_design"}:
         container_key = "content" if tool_name == "create_teaching_design" else "patch"
         container = updated.get(container_key)
         if isinstance(container, dict):
+            lesson_match = _EXPLICIT_LESSON_COUNT_PATTERN.search(message)
+            if lesson_match is not None:
+                container = {
+                    **container,
+                    "lesson_count": _count_value(lesson_match.group("count")),
+                }
+                updated[container_key] = container
             assessment = container.get("assessment_plan")
-            if isinstance(assessment, dict):
+            if (
+                isinstance(assessment, dict)
+                and _EXPLICIT_ASSESSMENT_SCORE_PATTERN.search(message) is None
+            ):
                 requirements = assessment.get("question_type_requirements")
                 if isinstance(requirements, list):
                     sanitized = {

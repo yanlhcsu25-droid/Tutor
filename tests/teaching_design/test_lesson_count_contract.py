@@ -20,7 +20,6 @@ def test_unrequested_invalid_assessment_scores_do_not_block_design_contract():
             "title": "第一章复习",
             "objective": "巩固函数与极限",
             "scope_names": ["第一章 函数与极限"],
-            "lesson_count": 2,
             "assessment_plan": {
                 "total_score": 100,
                 "question_count": 2,

@@ -192,6 +192,21 @@ def test_runtime_pending_state_overrides_task_router(session):
     assert "confirm_generation" in _names(backend.requests[0])
 
 
+def test_negated_teaching_artifact_consultation_exposes_no_business_tools(session):
+    backend = RecordingBackend("高阶导数教学应强调递推结构和符号规律。")
+
+    result = run_teacher_agent(
+        session,
+        "暂时不要建教学设计，先讲讲高阶导数的教学重点。",
+        conversation_id="consultation-only",
+        backend=backend,
+    )
+
+    assert result.status == "completed"
+    assert len(backend.requests) == 1
+    assert _names(backend.requests[0]) == set()
+
+
 def test_runtime_ambiguous_paper_operation_fails_closed_before_model(session):
     backend = RecordingBackend()
 

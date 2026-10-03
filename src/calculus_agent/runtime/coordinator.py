@@ -607,11 +607,18 @@ def _run_teacher_agent_turn(
             has_explicit_curriculum_scope=has_explicit_curriculum_scope(message),
         )
         definition_names = exposure_policy.initial_tools(exposure_context)
+        consultation_only = (
+            task_decision.route.reason
+            == "explicitly negated teaching artifact; consultation only"
+        )
         definitions = toolkit.schemas(
             names=(
                 []
-                if task_decision.source == "llm_router"
-                and task_decision.route.clarification_needed
+                if consultation_only
+                or (
+                    task_decision.source == "llm_router"
+                    and task_decision.route.clarification_needed
+                )
                 else definition_names
             ),
             transform=lambda tool: _tool_definition_for_context(
