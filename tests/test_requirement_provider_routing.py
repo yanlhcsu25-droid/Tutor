@@ -5,6 +5,7 @@ from fastapi import HTTPException
 import pytest
 
 from calculus_agent.requirements.parser import OpenAICompatibleRequirementParser
+from calculus_agent.runtime.coordinator import build_teacher_agent_backend
 from calculus_agent.models import Paper
 from calculus_agent.papers.workflow import save_blueprint
 from calculus_agent.schemas import NaturalLanguagePaperRequest, PaperBlueprint, SectionRequirement
@@ -33,6 +34,22 @@ def test_blueprint_parser_uses_only_siliconflow():
     assert parser.base_url == "https://silicon.example/v1"
     assert parser.model == "cloud-test"
     assert parser.timeout == 55
+
+
+def test_teacher_agent_backend_records_siliconflow_provider_identity():
+    settings = Settings(
+        _env_file=None,
+        SILICONFLOW_API_KEY="test-key",
+        SILICONFLOW_BASE_URL="https://silicon.example/v1",
+        SILICONFLOW_AGENT_MODEL="cloud-test",
+    )
+
+    backend = build_teacher_agent_backend(settings)
+
+    assert backend is not None
+    assert backend.provider == "siliconflow"
+    assert backend.backend_adapter == "BailianChatBackend"
+    assert backend.protocol == "openai_compatible"
 
 
 def test_identical_requirement_reuses_local_cache(session, monkeypatch):

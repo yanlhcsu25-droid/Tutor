@@ -147,15 +147,6 @@ def grade_constraints(
         actual.get("generation") or {}
     )
 
-    if not before_generation:
-        return {
-            "grader": "constraint_preservation",
-            "passed": False,
-            "errors": [
-                "baseline generation state unavailable"
-            ],
-        }
-
     simple_fields = {
         "paper_type", "scope_names", "question_count", "total_score",
         "knowledge_preferences", "difficulty_level", "difficulty_ratio",
@@ -164,8 +155,18 @@ def grade_constraints(
     aliases = {
         "scope": "scope_names",
         "difficulty": "difficulty_level",
-        "no_repeat": "diversity_preference",
     }
+    needs_baseline = any(
+        aliases.get(rule, rule) in simple_fields
+        or rule in {"unspecified_question_types", "unspecified_constraints"}
+        for rule in preserve
+    )
+    if needs_baseline and not before_generation:
+        return {
+            "grader": "constraint_preservation",
+            "passed": False,
+            "errors": ["baseline generation state unavailable"],
+        }
 
     for rule in preserve:
         field = aliases.get(rule, rule)

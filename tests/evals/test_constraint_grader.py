@@ -55,6 +55,20 @@ def test_unspecified_question_type_fields_cannot_be_lost():
     assert any("计算题.score_each should be preserved" in error for error in result["errors"])
 
 
+def test_non_baseline_safety_rules_work_for_initial_preview():
+    actual = {
+        "before": {"generation": {}},
+        "generation": {"question_count": 5},
+        "evaluated_turns": [{"state": {"trace": {"tool_calls": []}}}],
+    }
+
+    result = grade_constraints(
+        _case(preserve=["no_auto_confirm", "no-repeat"]), actual,
+    )
+
+    assert result["passed"]
+
+
 def test_no_auto_confirm_rejects_confirmation_tool():
     actual = {
         "before": {"generation": {"question_count": 10}},

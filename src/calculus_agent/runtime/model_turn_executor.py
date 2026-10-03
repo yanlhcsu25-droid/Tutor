@@ -50,7 +50,14 @@ def execute_model_turn(
             else:
                 completion = ToolLoop.run_result(backend, messages, definitions)
                 response = completion.message
-                metadata = {**completion.metadata, "model_called": True}
+                metadata = {
+                    **completion.metadata,
+                    "model_called": True,
+                    "backend_adapter": getattr(
+                        backend, "backend_adapter", type(backend).__name__
+                    ),
+                    "protocol": getattr(backend, "protocol", None),
+                }
             ended_at = datetime.now(UTC)
             span_output = {
                 "tool_calls": len(response.get("tool_calls") or []),
@@ -72,7 +79,19 @@ def execute_model_turn(
         except Exception as exc:
             safe_update(langfuse_span, level="ERROR", status_message=str(exc))
             run_manager.update_span(
-                model_span, status="error", output={"error": str(exc)},
+                model_span,
+                status="error",
+                output={
+                    "error": str(exc),
+                    "model_called": forced_response is None,
+                    "actual_usage_available": False,
+                    "provider": getattr(backend, "provider", None),
+                    "model": getattr(backend, "model", None),
+                    "backend_adapter": getattr(
+                        backend, "backend_adapter", type(backend).__name__
+                    ),
+                    "protocol": getattr(backend, "protocol", None),
+                },
                 ended_at=datetime.now(UTC),
             )
             raise

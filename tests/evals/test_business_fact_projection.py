@@ -36,12 +36,18 @@ def test_report_serializes_nested_datetime(tmp_path):
 
     write_report([{
         "passed": True,
-        "run_metadata": {},
+        "run_metadata": {"model_id": "test-model"},
+        "provider": "siliconflow",
+        "backend_adapter": "BailianChatBackend",
+        "protocol": "openai_compatible",
         "actual": {"created_at": datetime(2026, 10, 3, tzinfo=UTC)},
     }], report)
 
     payload = json.loads(report.read_text(encoding="utf-8"))
     assert payload["results"][0]["actual"]["created_at"] == "2026-10-03 00:00:00+00:00"
+    assert payload["metadata"]["providers"] == ["siliconflow"]
+    assert payload["metadata"]["backend_adapters"] == ["BailianChatBackend"]
+    assert payload["metadata"]["protocols"] == ["openai_compatible"]
 
 
 def test_runner_projects_paper_db_and_response_facts():

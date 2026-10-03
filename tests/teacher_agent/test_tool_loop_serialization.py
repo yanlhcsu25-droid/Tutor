@@ -1,12 +1,26 @@
 import json
 
 from calculus_agent.agent.trace_log import redact_trace_value
+from calculus_agent.runtime.backend import BailianChatBackend
 from calculus_agent.runtime.observation_projection import (
     observation_size_metrics,
     project_tool_observation,
 )
 from calculus_agent.runtime.tool_execution import trace_entry
 from calculus_agent.runtime.tool_loop import ToolLoop
+
+
+def test_openai_compatible_adapter_has_explicit_provider_identity():
+    backend = BailianChatBackend(
+        api_key="test",
+        base_url="https://silicon.example/v1",
+        model="test-model",
+        provider="siliconflow",
+    )
+
+    assert backend.provider == "siliconflow"
+    assert backend.backend_adapter == "BailianChatBackend"
+    assert backend.protocol == "openai_compatible"
 
 
 class _UsageBackend:

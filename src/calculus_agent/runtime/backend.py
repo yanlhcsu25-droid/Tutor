@@ -37,14 +37,23 @@ class OllamaChatBackend:
 
 
 class BailianChatBackend:
-    """Expose Bailian's OpenAI-compatible response in the internal chat shape."""
+    """Expose an OpenAI-compatible response in the internal chat shape."""
 
     provider = "bailian"
+    backend_adapter = "BailianChatBackend"
+    protocol = "openai_compatible"
 
     def __init__(
-        self, *, api_key: str, base_url: str, model: str, timeout: float = 120
+        self,
+        *,
+        api_key: str,
+        base_url: str,
+        model: str,
+        timeout: float = 120,
+        provider: str = "bailian",
     ) -> None:
         self.api_key = api_key
+        self.provider = provider
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout

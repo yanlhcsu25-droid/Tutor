@@ -167,6 +167,7 @@ def build_teacher_agent_backend(settings: Settings) -> ChatBackend | None:
         base_url=settings.siliconflow_base_url,
         model=settings.siliconflow_agent_model,
         timeout=settings.siliconflow_timeout_seconds,
+        provider="siliconflow",
     )
 
 

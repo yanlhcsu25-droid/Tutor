@@ -39,6 +39,15 @@ def test_honest_failure_is_not_false_success():
     assert grade_outcome_integrity(None, actual)["passed"]
 
 
+def test_pending_plan_language_is_not_a_paper_completion_claim():
+    actual = {"evaluated_turns": [_turn(
+        status="waiting_confirmation",
+        message="已生成第一章试卷方案，请确认后生成正式试卷。",
+    )]}
+
+    assert grade_outcome_integrity(None, actual)["passed"]
+
+
 def test_paper_claim_requires_persisted_change():
     assert not grade_outcome_integrity(None, {
         "evaluated_turns": [_turn(message="试卷已生成。")],

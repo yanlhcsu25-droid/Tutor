@@ -577,6 +577,7 @@ def build_knowledge_llm_backend() -> ChatBackend | None:
         base_url=settings.siliconflow_base_url,
         model=settings.siliconflow_agent_model,
         timeout=settings.siliconflow_timeout_seconds,
+        provider="siliconflow",
     )
 
 

@@ -1677,6 +1677,7 @@ def parse_blueprint(
                 base_url=settings.siliconflow_base_url,
                 model=settings.siliconflow_agent_model,
                 timeout=settings.siliconflow_timeout_seconds,
+                provider="siliconflow",
             )
             try:
                 action, message, updated = PaperConversationAgent(backend).decide(

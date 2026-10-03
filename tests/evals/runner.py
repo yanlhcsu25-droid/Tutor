@@ -1064,6 +1064,13 @@ def aggregate_model_usage(model_spans: list[dict[str, Any]]) -> dict[str, Any]:
             str(output["provider"]) for output in calls if output.get("provider")
         }),
         "models": sorted({str(output["model"]) for output in calls if output.get("model")}),
+        "backend_adapters": sorted({
+            str(output["backend_adapter"])
+            for output in calls if output.get("backend_adapter")
+        }),
+        "protocols": sorted({
+            str(output["protocol"]) for output in calls if output.get("protocol")
+        }),
     }
 
 
@@ -1753,6 +1760,7 @@ def run_case(
             int(((turn_result.get("state") or {}).get("trace") or {}).get("latency_ms") or 0)
             for turn_result in turn_results
         )
+        runtime_error = actual.get("error") or {}
 
         return {
             "case_id": case.id,
@@ -1804,6 +1812,7 @@ def run_case(
                 else "side_effect_violation" if side_effect_violation
                 else "clarification_contract" if not clarification_grade["passed"]
                 else "grounding" if outcome_grade["false_success"] or not content_grade["passed"]
+                else "provider_failure" if runtime_error.get("stage") == "llm_call"
                 else "evaluator_gap" if any(
                     grader.get("skipped") for grader in grader_results
                 )
@@ -1813,11 +1822,21 @@ def run_case(
             "provider": (
                 case_usage["providers"][0] if len(case_usage["providers"]) == 1 else None
             ),
+            "backend_adapter": (
+                case_usage["backend_adapters"][0]
+                if len(case_usage["backend_adapters"]) == 1 else None
+            ),
+            "protocol": (
+                case_usage["protocols"][0]
+                if len(case_usage["protocols"]) == 1 else None
+            ),
             "fixture_version": "eval-fixture-v1",
             "grader_version": "grader-v1",
             "run_metadata": {
                 "model_id": getattr(backend, "model", type(backend).__name__),
                 "provider": case_usage["providers"],
+                "backend_adapter": case_usage["backend_adapters"],
+                "protocol": case_usage["protocols"],
                 "temperature": getattr(backend, "temperature", 0),
             },
             "expected": case.expected,
@@ -1865,6 +1884,10 @@ def run_case(
             "failure_type": "fixture_issue",
             "model": getattr(locals().get("backend"), "model", None),
             "provider": getattr(locals().get("backend"), "provider", None),
+            "backend_adapter": getattr(
+                locals().get("backend"), "backend_adapter", None
+            ),
+            "protocol": getattr(locals().get("backend"), "protocol", None),
             "fixture_version": "eval-fixture-v1",
             "grader_version": "grader-v1",
             "expected": case.expected,
@@ -1933,6 +1956,16 @@ def write_report(
         for result in results
         if (result.get("run_metadata") or {}).get("model_id")
     })
+    providers = sorted({
+        str(result["provider"]) for result in results if result.get("provider")
+    })
+    backend_adapters = sorted({
+        str(result["backend_adapter"])
+        for result in results if result.get("backend_adapter")
+    })
+    protocols = sorted({
+        str(result["protocol"]) for result in results if result.get("protocol")
+    })
     dataset_bytes = dataset_path.read_bytes() if dataset_path and dataset_path.exists() else b""
     git_sha = _git_sha()
     dataset_sha = hashlib.sha256(dataset_bytes).hexdigest() if dataset_bytes else None
@@ -1952,6 +1985,9 @@ def write_report(
             "variant": variant.name,
             "variant_config": asdict(variant),
             "model_ids": models,
+            "providers": providers,
+            "backend_adapters": backend_adapters,
+            "protocols": protocols,
             "temperature": 0,
             "dataset_path": (
                 str(dataset_path.resolve().relative_to(ROOT)) if dataset_path else None
