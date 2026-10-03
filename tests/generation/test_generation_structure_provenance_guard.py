@@ -203,6 +203,31 @@ def test_explicit_compact_count_and_score_restore_model_omissions() -> None:
     assert guarded["total_score"] == 100
 
 
+def test_compact_generation_count_and_score_are_both_preserved() -> None:
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="prepare_generation_plan",
+        arguments={
+            "scope_names": ["第一章 函数与极限"],
+            "question_count": 6,
+            "total_score": 60,
+        },
+        message="第一章出6题60分。",
+    )
+
+    assert guarded["question_count"] == 6
+    assert guarded["total_score"] == 60
+
+
+def test_pending_question_count_patch_is_preserved() -> None:
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="prepare_generation_plan",
+        arguments={"question_count": 7},
+        message="题数改成7题，其他条件不变。",
+    )
+
+    assert guarded["question_count"] == 7
+
+
 def test_pending_numeric_type_patch_is_preserved() -> None:
     patches = [
         {"question_type": "计算题", "count": 5},

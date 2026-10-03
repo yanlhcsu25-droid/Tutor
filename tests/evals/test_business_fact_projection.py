@@ -101,6 +101,40 @@ def test_runner_projects_unified_pending_paper_change():
     assert result["actual"]["pending_paper_change"]["exists"] is True
 
 
+def test_pending_count_patch_inherits_unmentioned_constraints():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+    case = next(item for item in suite.cases if item.id == "SMOKE-PENDING-01")
+    case.backend = {"behavior": "scripted", "responses": [
+        _tool_call("prepare_generation_plan", {"question_count": 7}),
+        {"role": "assistant", "content": "题数已改为7题，其他条件不变。"},
+    ]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["pending_generation"]["total_score"] == 100
+
+
+def test_compact_score_survives_preview_and_confirmation():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+    case = next(item for item in suite.cases if item.id == "SMOKE-MULTI-02")
+    case.backend = {"behavior": "scripted", "responses": [
+        _tool_call("prepare_generation_plan", {
+            "scope_names": ["第一章 函数与极限"],
+            "question_count": 6,
+            "total_score": 60,
+        }),
+        {"role": "assistant", "content": "已创建6题60分方案，请确认。"},
+        _tool_call("confirm_generation", {}),
+        {"role": "assistant", "content": "已生成6题，总分60分。"},
+    ]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["paper_db"]["total_score"] == 60
+
+
 def test_ambiguous_address_golden_case_passes_without_model_call():
     suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
     case = next(item for item in suite.cases if item.id == "SMOKE-CLARIFY-01")

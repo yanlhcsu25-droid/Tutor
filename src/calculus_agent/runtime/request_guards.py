@@ -21,7 +21,7 @@ _TOTAL_SCORE_PATTERNS = (
 )
 _QUESTION_COUNT_PATTERNS = (
     re.compile(r"(?:共|总共|一共|合计|总计)\s*\d{1,3}\s*(?:道|题)"),
-    re.compile(r"(?:题量|总题数|题目数量)\s*[:：]?\s*\d{1,3}"),
+    re.compile(r"(?:题量|题数|总题数|题目数量)[^。！？,，；;]{0,8}?\d{1,3}\s*(?:道|题)?"),
     re.compile(r"^\s*\d{1,3}\s*(?:道|题)\s*(?:就可以|即可|可以|就行|行)?[。！？]?\s*$"),
 )
 _EXPLICIT_GENERATION_COUNT = re.compile(
@@ -32,6 +32,12 @@ _EXPLICIT_GENERATION_COUNT = re.compile(
 _EXPLICIT_GENERATION_SCORE = re.compile(
     r"(?P<score>\d{1,3})\s*分(?:制|的)?\s*"
     r"(?:期中|期末|试卷|卷子|测试|考试|练习卷|测试卷)"
+)
+_COMPACT_GENERATION_COUNT_SCORE = re.compile(
+    r"(?:生成|出|来|组卷)"
+    r"[^。！？,，；;]{0,20}?"
+    r"(?:\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)"
+    r"\s*[,，]?\s*(?P<score>\d{1,3})\s*分"
 )
 _ALL_QUESTION_TYPE_PATTERN = re.compile(
     r"(?:全部|均|全都|都是|全是)\s*(?:为|是)?\s*"
@@ -71,6 +77,14 @@ def _count_value(raw: str) -> int:
         left, right = raw.split("十", 1)
         return digits.get(left, 1) * 10 + digits.get(right, 0)
     return digits[raw]
+
+
+def _explicit_generation_score(message: str) -> int | None:
+    for pattern in (_EXPLICIT_GENERATION_SCORE, _COMPACT_GENERATION_COUNT_SCORE):
+        match = pattern.search(message)
+        if match is not None:
+            return int(match.group("score"))
+    return None
 
 
 def _explicit_question_type_counts(message: str) -> dict[str, int]:
@@ -138,13 +152,13 @@ def _apply_explicit_opt_in_guards(
     updated = dict(arguments)
     if tool_name == "prepare_generation_plan":
         explicit_count = _explicit_generation_count(message)
-        score_match = _EXPLICIT_GENERATION_SCORE.search(message)
+        explicit_score = _explicit_generation_score(message)
         if explicit_count is not None:
             updated["question_count"] = explicit_count
-        if score_match:
-            updated["total_score"] = int(score_match.group("score"))
+        if explicit_score is not None:
+            updated["total_score"] = explicit_score
         if "total_score" in updated and not (
-            score_match or _matches_any(message, _TOTAL_SCORE_PATTERNS)
+            explicit_score is not None or _matches_any(message, _TOTAL_SCORE_PATTERNS)
         ):
             updated.pop("total_score", None)
         if "question_count" in updated and not (
