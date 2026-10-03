@@ -1,10 +1,11 @@
 import json
+from datetime import UTC, datetime
 
-from tests.evals.case_loader import EvalCase, load_eval_suite
 from calculus_agent.agent.identity import DEFAULT_TEACHER_OWNER_KEY
 from calculus_agent.teaching_design.schemas import TeachingDesignContent
 from calculus_agent.teaching_design.service import TeachingDesignService
-from tests.evals.runner import collect_actual_state, run_case
+from tests.evals.case_loader import EvalCase, load_eval_suite
+from tests.evals.runner import collect_actual_state, run_case, write_report
 
 
 def _tool_call(name, arguments):
@@ -17,6 +18,19 @@ def _tool_call(name, arguments):
             "function": {"name": name, "arguments": json.dumps(arguments, ensure_ascii=False)},
         }],
     }
+
+
+def test_report_serializes_nested_datetime(tmp_path):
+    report = tmp_path / "report.json"
+
+    write_report([{
+        "passed": True,
+        "run_metadata": {},
+        "actual": {"created_at": datetime(2026, 10, 3, tzinfo=UTC)},
+    }], report)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["results"][0]["actual"]["created_at"] == "2026-10-03 00:00:00+00:00"
 
 
 def test_runner_projects_paper_db_and_response_facts():

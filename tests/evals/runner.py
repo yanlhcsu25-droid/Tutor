@@ -1973,7 +1973,7 @@ def write_report(
 
     output_path.write_text(
         json.dumps(
-            payload,
+            to_jsonable(payload),
             ensure_ascii=False,
             indent=2,
         ),
@@ -2128,6 +2128,12 @@ def main() -> int:
         result = run_case(case, variant=variant)
 
         results.append(result)
+        write_report(
+            results,
+            args.report,
+            variant=variant,
+            dataset_path=args.cases_file,
+        )
 
         print_result(result)
 
@@ -2153,13 +2159,6 @@ def main() -> int:
     print(f"Failed:    {failed}")
     print(
         f"Pass rate: {pass_rate:.1f}%"
-    )
-
-    write_report(
-        results,
-        args.report,
-        variant=variant,
-        dataset_path=args.cases_file,
     )
 
     print()

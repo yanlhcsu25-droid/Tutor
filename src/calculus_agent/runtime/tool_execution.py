@@ -4,6 +4,7 @@ import json
 from typing import Any
 from uuid import uuid4
 
+from calculus_agent.agent.trace_log import redact_trace_value
 from calculus_agent.runtime.contracts import ToolResult
 from calculus_agent.runtime.tool_loop import ToolLoop
 
@@ -156,4 +157,4 @@ def trace_entry(
             "ok": bool(payload.get("ok")),
             "code": payload.get("code"),
         }
-    return entry
+    return redact_trace_value(entry)

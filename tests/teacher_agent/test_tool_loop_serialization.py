@@ -5,6 +5,7 @@ from calculus_agent.runtime.observation_projection import (
     observation_size_metrics,
     project_tool_observation,
 )
+from calculus_agent.runtime.tool_execution import trace_entry
 from calculus_agent.runtime.tool_loop import ToolLoop
 
 
@@ -96,6 +97,21 @@ def test_trace_payload_serializes_exception_values():
     payload = redact_trace_value({"ok": False, "error": ValueError("bad input")})
 
     assert json.dumps(payload) == '{"ok": false, "error": "bad input"}'
+
+
+def test_persisted_trace_entry_serializes_nested_validation_error():
+    entry = trace_entry(
+        call_id="call-invalid",
+        name="create_teaching_design",
+        arguments={},
+        payload={
+            "ok": False,
+            "details": [{"ctx": {"error": ValueError("scores must match")}}],
+        },
+    )
+
+    assert json.dumps(entry)
+    assert entry["result"]["details"][0]["ctx"]["error"] == "scores must match"
 
 
 def test_tool_observation_preserves_normal_payload():
