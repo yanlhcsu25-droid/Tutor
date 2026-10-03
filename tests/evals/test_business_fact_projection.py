@@ -151,6 +151,8 @@ def test_explicit_type_distribution_is_restored_before_pending_persistence():
         result = run_case(case)
 
         assert result["passed"], result
+        provenance = result["actual"]["pending_generation"]["constraint_provenance"]
+        assert provenance["question_type_requirements"]["teacher_explicit"] is True
 
 
 def test_golden_read_cases_require_current_version_read_after_analysis():
@@ -196,6 +198,28 @@ def test_pending_patches_restore_explicit_field_and_inherit_the_rest():
         assert result["passed"], result
         pending = result["actual"]["pending_generation"]
         assert {key: pending[key] for key in fields} == fields
+
+
+def test_multi_turn_whole_count_patch_rebuilds_only_system_type_split():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+    case = next(item for item in suite.cases if item.id == "SMOKE-MULTI-01")
+    case.backend = {"behavior": "scripted", "responses": [
+        _tool_call("prepare_generation_plan", {
+            "scope_names": ["第一章 函数与极限"],
+            "question_count": 8,
+            "total_score": 80,
+        }),
+        {"role": "assistant", "content": "已创建8题80分方案。"},
+        _tool_call("prepare_generation_plan", {"question_count": 6}),
+        {"role": "assistant", "content": "已改为6题，总分保持80分。"},
+    ]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    pending = result["actual"]["pending_generation"]
+    assert pending["question_count"] == 6
+    assert pending["total_score"] == 80
 
 
 def test_compact_score_survives_preview_and_confirmation():

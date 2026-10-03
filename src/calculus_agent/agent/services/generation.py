@@ -428,6 +428,8 @@ class GenerationService:
     ) -> GenerationPlanPreview:
         patch = GenerationPlanPatch.model_validate(raw_patch)
         patch_values = patch.model_dump(exclude_unset=True)
+        if "constraint_provenance" in patch.model_fields_set:
+            patch_values["constraint_provenance"] = patch.constraint_provenance
         unsupported = patch_values.pop("avoid_previous_paper_questions", None)
 
         existing_pending = self._pending()
@@ -507,6 +509,43 @@ class GenerationService:
             base_request = GeneratePaperInput()
 
         if merge_pending:
+            whole_count_only = (
+                "question_count" in patch.model_fields_set
+                and "question_type_requirements" not in patch.model_fields_set
+                and "question_type_patches" not in patch.model_fields_set
+            )
+            if whole_count_only and base_request.question_type_requirements:
+                provenance = base_request.constraint_provenance.get(
+                    "question_type_requirements"
+                )
+                teacher_owned_distribution = bool(
+                    provenance
+                    and (
+                        provenance.get("teacher_explicit", False)
+                        if isinstance(provenance, dict)
+                        else provenance.teacher_explicit
+                    )
+                )
+                if teacher_owned_distribution:
+                    return GenerationPlanPreview(
+                        ok=False,
+                        request=merge_pending.request,
+                        total_questions=merge_pending.request.question_count,
+                        total_score=merge_pending.request.total_score,
+                        sections=merge_pending.request.question_type_requirements or [],
+                        blocking_errors=[
+                            "question_count_conflicts_explicit_type_distribution"
+                        ],
+                        clarification_questions=[
+                            "当前题型分布是教师明确约束。请说明各题型分别调整为多少题。"
+                        ],
+                    )
+                # A system-generated type split is not a teacher constraint.
+                # Rebuild it deterministically for the new whole-paper count.
+                base_request = base_request.model_copy(update={
+                    "question_type_requirements": None,
+                })
+
             if (
                 "question_type_requirements" in patch.model_fields_set
                 and "question_type_patches" not in patch.model_fields_set

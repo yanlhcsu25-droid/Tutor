@@ -178,10 +178,21 @@ def _apply_explicit_opt_in_guards(
     if tool_name == "prepare_generation_plan":
         explicit_count = _explicit_generation_count(message)
         explicit_score = _explicit_generation_score(message)
+        provenance = dict(updated.get("constraint_provenance") or {})
+
+        def mark_teacher_explicit(field: str) -> None:
+            provenance[field] = {
+                "source": "teacher_message",
+                "teacher_explicit": True,
+                "strength": "hard",
+            }
+
         if explicit_count is not None:
             updated["question_count"] = explicit_count
+            mark_teacher_explicit("question_count")
         if explicit_score is not None:
             updated["total_score"] = explicit_score
+            mark_teacher_explicit("total_score")
         if "total_score" in updated and not (
             explicit_score is not None or _matches_any(message, _TOTAL_SCORE_PATTERNS)
         ):
@@ -214,12 +225,15 @@ def _apply_explicit_opt_in_guards(
                 for question_type, count in explicit_type_counts.items()
             ]
             updated.pop("question_type_patches", None)
+            mark_teacher_explicit("question_type_requirements")
         elif not (
             _matches_any(message, _QUESTION_TYPE_COUNT_PATTERNS)
             or _ALL_QUESTION_TYPE_PATTERN.search(message)
         ):
             updated.pop("question_type_requirements", None)
             updated.pop("question_type_patches", None)
+        if provenance:
+            updated["constraint_provenance"] = provenance
 
     if (
         tool_name in {"create_teaching_design", "revise_teaching_design"}
