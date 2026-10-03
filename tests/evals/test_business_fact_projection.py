@@ -22,7 +22,7 @@ def _tool_call(name, arguments):
 
 def test_response_facts_accepts_common_question_type_count_units():
     assert _response_facts(
-        "选择题 4 题，填空题2道，计算题 3 道题，证明题1题。"
+        "**选择题**：4 题，填空题2道，计算题 3 道题，证明题1题。"
     )["question_type_counts"] == {
         "选择题": 4,
         "填空题": 2,

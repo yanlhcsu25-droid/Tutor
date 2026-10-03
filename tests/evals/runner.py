@@ -1155,8 +1155,14 @@ def _paper_db_snapshot(session, paper_id: str | None) -> dict[str, Any] | None:
 
 def _response_facts(message: str) -> dict[str, Any]:
     facts: dict[str, Any] = {}
-    question = re.search(r"(?:共|总共|一共|包含|有)\s*(\d+)\s*(?:道)?题", message)
-    score = re.search(r"(?:总分|满分)\s*(?:为|是|共)?\s*(\d+(?:\.\d+)?)\s*分", message)
+    normalized = message.replace("**", "").replace("`", "")
+    question = re.search(
+        r"(?:共|总共|一共|包含|有)\s*(\d+)\s*(?:道)?题", normalized
+    )
+    score = re.search(
+        r"(?:总分|满分)\s*(?:为|是|共)?\s*(\d+(?:\.\d+)?)\s*分",
+        normalized,
+    )
     if question:
         facts["question_count"] = int(question.group(1))
     if score:
@@ -1165,8 +1171,9 @@ def _response_facts(message: str) -> dict[str, Any]:
     distribution = {
         question_type: int(count)
         for question_type, count in re.findall(
-            r"(选择题|填空题|计算题|证明题)\s*(?:共|有)?\s*(\d+)\s*(?:道\s*题?|题)",
-            message,
+            r"(选择题|填空题|计算题|证明题)\s*[:：]?\s*(?:共|有)?\s*"
+            r"(\d+)\s*(?:道\s*题?|题)",
+            normalized,
         )
     }
     if distribution:
