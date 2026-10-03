@@ -1,0 +1,137 @@
+import json
+
+from tests.evals.case_loader import EvalCase, load_eval_suite
+from calculus_agent.agent.identity import DEFAULT_TEACHER_OWNER_KEY
+from calculus_agent.teaching_design.schemas import TeachingDesignContent
+from calculus_agent.teaching_design.service import TeachingDesignService
+from tests.evals.runner import collect_actual_state, run_case
+
+
+def _tool_call(name, arguments):
+    return {
+        "role": "assistant",
+        "content": None,
+        "tool_calls": [{
+            "id": f"call-{name}",
+            "type": "function",
+            "function": {"name": name, "arguments": json.dumps(arguments, ensure_ascii=False)},
+        }],
+    }
+
+
+def test_runner_projects_paper_db_and_response_facts():
+    case = EvalCase(
+        id="projection-read",
+        category="paper",
+        title="read count",
+        setup={"current_paper": {"question_count": 10, "total_score": 100}},
+        turns=[{"user": "当前这套卷总共有几道题？"}],
+        expected={
+            "status": "completed",
+            "paper_db": {"persisted": True, "question_count": 10, "total_score": 100},
+            "response_facts": {"question_count": 10},
+        },
+        backend={"behavior": "scripted", "responses": [
+            _tool_call("read_paper", {}),
+            {"role": "assistant", "content": "当前试卷共10题，总分100分。"},
+        ]},
+        graders=[
+            {"type": "state"},
+            {"type": "acceptance", "required_tools": ["read_paper"]},
+        ],
+    )
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["paper_db"]["question_count"] == 10
+    assert result["actual"]["response_facts"] == {
+        "question_count": 10,
+        "total_score": 100,
+    }
+
+
+def test_runner_projects_unified_pending_paper_change():
+    case = EvalCase(
+        id="projection-change",
+        category="paper",
+        title="replace preview",
+        setup={"current_paper": {"question_count": 10, "total_score": 100}},
+        turns=[{"user": "把第3道计算题换简单一点，先预览。"}],
+        expected={
+            "status": "waiting_confirmation",
+            "pending_paper_change": {"exists": True},
+        },
+        backend={"behavior": "scripted", "responses": [
+            _tool_call("read_paper", {}),
+            _tool_call("preview_paper_changes", {
+                "operations": [{
+                    "type": "replace_question",
+                    "target": {"section_type": "计算题", "section_order": 3},
+                    "difficulty_direction": "easier",
+                }],
+            }),
+            {"role": "assistant", "content": "已创建替换预览，请确认。"},
+        ]},
+        graders=[
+            {"type": "state"},
+            {"type": "acceptance", "required_tools": [
+                "read_paper", "preview_paper_changes",
+            ]},
+        ],
+    )
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["pending_paper_change"]["exists"] is True
+
+
+def test_runner_grades_tool_lifecycle_across_multiple_turns():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+    case = next(item for item in suite.cases if item.id == "SMOKE-GEN-04")
+    case.backend = {"behavior": "scripted", "responses": [
+        _tool_call("prepare_generation_plan", {
+            "scope_names": ["第一章 函数与极限"],
+            "question_count": 6,
+            "total_score": 60,
+            "question_type_requirements": [{"question_type": "计算题", "count": 6}],
+        }),
+        {"role": "assistant", "content": "方案已保留全部约束，请确认。"},
+        _tool_call("confirm_generation", {}),
+        {"role": "assistant", "content": "计算题供给不足，不能放宽约束。"},
+    ]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert [call["name"] for call in result["actual"]["trace"]["tool_calls"]] == [
+        "prepare_generation_plan", "confirm_generation",
+    ]
+
+
+def test_runner_projects_active_teaching_design_and_lesson_count(session):
+    TeachingDesignService(session).create(
+        owner_key=DEFAULT_TEACHER_OWNER_KEY,
+        conversation_id="projection-design",
+        content=TeachingDesignContent(
+            title="第一章复习",
+            objective="巩固函数与极限",
+            scope_names=["第一章 函数与极限"],
+            lesson_count=2,
+        ),
+        run_id="run-design",
+        source_user_message="安排两课时",
+        ready_for_confirmation=True,
+    )
+
+    actual = collect_actual_state(
+        session=session,
+        conversation_id="projection-design",
+        result=None,
+    )
+
+    assert actual["active_teaching_design"]["persisted"] is True
+    assert actual["active_teaching_design"]["status"] == "awaiting_confirmation"
+    assert actual["active_teaching_design"]["scope_names"] == ["第一章 函数与极限"]
+    assert actual["active_teaching_design"]["lesson_count"] == 2

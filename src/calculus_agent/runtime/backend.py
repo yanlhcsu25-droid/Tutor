@@ -8,6 +8,8 @@ class ChatBackend(Protocol):
 
 
 class OllamaChatBackend:
+    provider = "ollama"
+
     def __init__(self, *, base_url: str, model: str, timeout: float = 120) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -36,6 +38,8 @@ class OllamaChatBackend:
 
 class BailianChatBackend:
     """Expose Bailian's OpenAI-compatible response in the internal chat shape."""
+
+    provider = "bailian"
 
     def __init__(
         self, *, api_key: str, base_url: str, model: str, timeout: float = 120
@@ -85,6 +89,11 @@ class BailianChatBackend:
             "message": choice["message"],
             "finish_reason": choice.get("finish_reason"),
             "model": body.get("model"),
+            "provider": self.provider,
+            "usage": body.get("usage"),
+            "id": body.get("id"),
+            "created": body.get("created"),
+            "system_fingerprint": body.get("system_fingerprint"),
         }
 
     def complete_structured(

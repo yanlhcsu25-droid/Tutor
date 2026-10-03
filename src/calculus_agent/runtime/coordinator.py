@@ -1443,6 +1443,8 @@ def _run_teacher_agent_turn(
                             or (execution_payload.get("clarification_questions") or [""])[0]
                             or "请补充必要信息后继续。"
                         )
+                        if not result_values["clarification_questions"]:
+                            result_values["clarification_questions"].append(final_text)
                         break
                     if generation_patch_retry_needed:
                         # Recover once inside the same Agent turn instead of asking the

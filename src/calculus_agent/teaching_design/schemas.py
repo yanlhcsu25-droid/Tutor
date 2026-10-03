@@ -118,6 +118,7 @@ class TeachingDesignContent(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     objective: str = Field(min_length=1, max_length=5000)
     scope_names: list[str] = Field(min_length=1)
+    lesson_count: int | None = Field(default=None, ge=1, le=100)
 
     knowledge_plan: list[KnowledgePlanItem] = Field(default_factory=list)
     teaching_priorities: list[str] = Field(default_factory=list)
@@ -150,6 +151,7 @@ class TeachingDesignPatch(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     objective: str | None = Field(default=None, min_length=1, max_length=5000)
     scope_names: list[str] | None = None
+    lesson_count: int | None = Field(default=None, ge=1, le=100)
     knowledge_plan: list[KnowledgePlanItem] | None = None
     teaching_priorities: list[str] | None = None
     teaching_sequence: list[TeachingStep] | None = None

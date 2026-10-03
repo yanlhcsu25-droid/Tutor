@@ -1,0 +1,88 @@
+version: '1'
+name: tutor_agent_golden_smoke_v1
+status: review_required
+split: development
+dataset_sha: f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34
+execution:
+  provider: siliconflow
+  model: Qwen/Qwen3.5-35B-A3B
+versions:
+  fixture: eval-fixture-v1
+  grader: grader-v1
+freeze_lock:
+  human_reviewed: true
+  reviewed_at: '2026-10-03T11:21:07Z'
+  code_git_sha: null
+required_distribution:
+  easy: 6
+  medium: 9
+  hard: 5
+budget:
+  max_model_calls: 100
+  max_total_tokens: 500000
+cases:
+- case_id: SMOKE-GEN-01
+  difficulty: easy
+  source_case_id: EVAL-002
+- case_id: SMOKE-GEN-02
+  difficulty: medium
+  source_case_id: EVAL-011
+- case_id: SMOKE-GEN-03
+  difficulty: medium
+  source_case_id: EVAL-015
+- case_id: SMOKE-GEN-04
+  difficulty: hard
+  source_case_id: EVAL-046
+- case_id: SMOKE-PENDING-01
+  difficulty: easy
+  source_case_id: EVAL-072
+- case_id: SMOKE-PENDING-02
+  difficulty: easy
+  source_case_id: EVAL-095
+- case_id: SMOKE-PENDING-03
+  difficulty: medium
+  source_case_id: EVAL-082
+- case_id: SMOKE-PENDING-04
+  difficulty: hard
+  source_case_id: EVAL-113
+- case_id: SMOKE-READ-01
+  difficulty: easy
+  source_case_id: EVAL-126
+- case_id: SMOKE-READ-02
+  difficulty: easy
+  source_case_id: EVAL-117
+- case_id: SMOKE-READ-03
+  difficulty: medium
+  source_case_id: EVAL-118
+- case_id: SMOKE-MODIFY-01
+  difficulty: medium
+  source_case_id: EVAL-141
+- case_id: SMOKE-MODIFY-02
+  difficulty: medium
+  source_case_id: EVAL-142
+- case_id: SMOKE-MODIFY-03
+  difficulty: medium
+  source_case_id: EVAL-144
+- case_id: SMOKE-TEACH-01
+  difficulty: medium
+  source_case_id: EVAL-208
+- case_id: SMOKE-TEACH-02
+  difficulty: medium
+  source_case_id: EVAL-197
+- case_id: SMOKE-CONSULT-01
+  difficulty: easy
+  source_case_id: EVAL-219
+- case_id: SMOKE-CLARIFY-01
+  difficulty: hard
+  source_case_id: EVAL-151
+- case_id: SMOKE-MULTI-01
+  difficulty: hard
+  source_case_id: EVAL-291
+- case_id: SMOKE-MULTI-02
+  difficulty: hard
+  source_case_id: EVAL-279
+freeze_requirements:
+- human_expected_review
+- clean_git_sha
+- model_and_provider_locked
+- fixture_and_grader_versions_locked

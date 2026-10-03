@@ -8,6 +8,51 @@ from calculus_agent.runtime.observation_projection import (
 from calculus_agent.runtime.tool_loop import ToolLoop
 
 
+class _UsageBackend:
+    provider = "test-provider"
+    model = "test-model"
+
+    def complete(self, messages, tools):
+        return {
+            "message": {"role": "assistant", "content": "done"},
+            "model": self.model,
+            "usage": {
+                "prompt_tokens": 11,
+                "completion_tokens": 7,
+                "total_tokens": 18,
+                "prompt_tokens_details": {"cached_tokens": 3},
+                "completion_tokens_details": {"reasoning_tokens": 2},
+            },
+        }
+
+
+def test_tool_loop_keeps_return_contract_and_exposes_real_usage_separately():
+    backend = _UsageBackend()
+
+    assert ToolLoop.run(backend, [], []) == {"role": "assistant", "content": "done"}
+    completion = ToolLoop.run_result(backend, [], [])
+
+    assert completion.message == {"role": "assistant", "content": "done"}
+    assert completion.metadata == {
+        "input_tokens": 11,
+        "output_tokens": 7,
+        "total_tokens": 18,
+        "cached_tokens": 3,
+        "reasoning_tokens": 2,
+        "actual_usage_available": True,
+        "provider": "test-provider",
+        "model": "test-model",
+        "provider_usage_raw": {
+            "prompt_tokens": 11,
+            "completion_tokens": 7,
+            "total_tokens": 18,
+            "prompt_tokens_details": {"cached_tokens": 3},
+            "completion_tokens_details": {"reasoning_tokens": 2},
+        },
+        "provider_metadata": None,
+    }
+
+
 def test_tool_observation_projection_removes_runtime_internals():
     payload = {
         "ok": True,

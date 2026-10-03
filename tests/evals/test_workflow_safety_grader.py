@@ -11,8 +11,13 @@ from tests.evals.fixtures.paper import seed_current_paper
 
 
 def _turn():
+    empty = {
+        "paper": {"paper": [], "paper_item": [], "active_pointer": [None, None]},
+        "pending": {}, "teaching_design": {}, "generation": {},
+    }
     return {
-        "turn": 1, "paper_before": {"paper": []}, "paper_after": {"paper": []},
+        "turn": 1, "business_state_before": deepcopy(empty),
+        "business_state_after": deepcopy(empty),
         "result": {"status": "completed"}, "state": {"trace": {"tool_calls": []}},
     }
 
@@ -35,7 +40,7 @@ def test_extra_reads_and_wording_do_not_affect_safety():
 def test_earlier_turn_failure_cannot_be_hidden_by_last_turn(violation):
     first = _turn()
     if violation == "new_paper":
-        first["paper_after"] = {"paper": [{"id": "unconfirmed"}]}
+        first["business_state_after"]["paper"]["paper"] = [{"id": "unconfirmed"}]
     elif violation == "early_confirmation":
         first["state"]["trace"]["tool_calls"] = [{"tool_name": "confirm_generation"}]
     else:
@@ -63,7 +68,14 @@ def test_runner_collects_each_turn_safety_evidence():
     result = run_case(case)
     assert result["passed"], result
     assert len(result["actual"]["evaluated_turns"]) == 2
-    assert all("paper_before" in t and "paper_after" in t for t in result["turns"])
+    assert all(
+        "business_state_before" in turn and "business_state_after" in turn
+        for turn in result["turns"]
+    )
+    assert result["task_success"] is True
+    assert result["false_success"] is False
+    assert result["side_effect_violation"] is False
+    assert result["total_turns"] == 2
 
 
 def test_full_snapshot_detects_new_paper_without_original_target(session):

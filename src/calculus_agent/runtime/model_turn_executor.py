@@ -32,21 +32,41 @@ def execute_model_turn(
     started_at = datetime.now(UTC)
     with llm_generation_span(backend, messages, definitions) as langfuse_span:
         try:
-            response = forced_response or ToolLoop.run(backend, messages, definitions)
+            if forced_response is not None:
+                response = forced_response
+                metadata = {
+                    "input_tokens": None,
+                    "output_tokens": None,
+                    "total_tokens": None,
+                    "cached_tokens": None,
+                    "reasoning_tokens": None,
+                    "actual_usage_available": False,
+                    "model_called": False,
+                    "provider": None,
+                    "model": None,
+                    "provider_usage_raw": None,
+                    "provider_metadata": {"forced_response": True},
+                }
+            else:
+                completion = ToolLoop.run_result(backend, messages, definitions)
+                response = completion.message
+                metadata = {**completion.metadata, "model_called": True}
             ended_at = datetime.now(UTC)
+            span_output = {
+                "tool_calls": len(response.get("tool_calls") or []),
+                "tool_names": [
+                    (call.get("function") or {}).get("name")
+                    for call in (response.get("tool_calls") or [])
+                ],
+                "tool_round": preparation.span_input["tool_round"],
+                "context_metrics": preparation.context_metrics.as_dict(),
+                "llm_latency_ms": int((ended_at - started_at).total_seconds() * 1000),
+                **metadata,
+            }
             run_manager.update_span(
                 model_span,
                 status="success",
-                output={
-                    "tool_calls": len(response.get("tool_calls") or []),
-                    "tool_names": [
-                        (call.get("function") or {}).get("name")
-                        for call in (response.get("tool_calls") or [])
-                    ],
-                    "tool_round": preparation.span_input["tool_round"],
-                    "context_metrics": preparation.context_metrics.as_dict(),
-                    "llm_latency_ms": int((ended_at - started_at).total_seconds() * 1000),
-                },
+                output=span_output,
                 ended_at=ended_at,
             )
         except Exception as exc:
@@ -56,5 +76,18 @@ def execute_model_turn(
                 ended_at=datetime.now(UTC),
             )
             raise
-        safe_update(langfuse_span, output={"response": redact_trace_value(response)})
+        safe_update(
+            langfuse_span,
+            output={"response": redact_trace_value(response)},
+            usage_details={
+                key: metadata[key]
+                for key in ("input_tokens", "output_tokens", "total_tokens")
+                if metadata.get(key) is not None
+            },
+            metadata={
+                key: metadata.get(key)
+                for key in ("provider", "model", "cached_tokens", "reasoning_tokens")
+                if metadata.get(key) is not None
+            },
+        )
     return response

@@ -1,0 +1,40 @@
+{
+  "valid": false,
+  "manifest": "tests/evals/manifests/smoke_v1.yaml",
+  "dataset_sha": "f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34",
+  "case_count": 20,
+  "difficulty_distribution": {
+    "easy": 6,
+    "medium": 9,
+    "hard": 5
+  },
+  "budget": {
+    "max_model_calls": 100,
+    "max_total_tokens": 500000
+  },
+  "case_ids": [
+    "SMOKE-GEN-01",
+    "SMOKE-GEN-02",
+    "SMOKE-GEN-03",
+    "SMOKE-GEN-04",
+    "SMOKE-PENDING-01",
+    "SMOKE-PENDING-02",
+    "SMOKE-PENDING-03",
+    "SMOKE-PENDING-04",
+    "SMOKE-READ-01",
+    "SMOKE-READ-02",
+    "SMOKE-READ-03",
+    "SMOKE-MODIFY-01",
+    "SMOKE-MODIFY-02",
+    "SMOKE-MODIFY-03",
+    "SMOKE-TEACH-01",
+    "SMOKE-TEACH-02",
+    "SMOKE-CONSULT-01",
+    "SMOKE-CLARIFY-01",
+    "SMOKE-MULTI-01",
+    "SMOKE-MULTI-02"
+  ],
+  "errors": [
+    "manifest status must be frozen"
+  ]
+}

@@ -29,6 +29,38 @@ def test_reliability_summary_uses_observable_eval_outcomes():
     assert len(summary["cases"]) == 3
 
 
+def test_summary_aggregates_latency_tokens_and_breakdowns_without_zero_filling():
+    first = _case(status="completed", tools=1)
+    first.update({
+        "task_success": True, "model_calls": 2, "tool_calls": 1, "total_turns": 1,
+        "latency_ms": 100, "input_tokens": 80, "output_tokens": 20,
+        "total_tokens": 100, "difficulty": "easy",
+        "constraint_preserved": True, "side_effect_violation": False,
+        "grounding_correct": True,
+    })
+    second = _case(passed=False, status="failed", tools=3)
+    second.update({
+        "task_success": False, "model_calls": 4, "tool_calls": 3, "total_turns": 2,
+        "latency_ms": 300, "input_tokens": None, "output_tokens": None,
+        "total_tokens": None, "difficulty": "hard",
+        "constraint_preserved": False, "side_effect_violation": True,
+        "grounding_correct": False,
+    })
+
+    summary = summarize({"results": [first, second]}, variant="state-policy")
+
+    assert summary["average_latency_ms"] == 200
+    assert summary["p50_latency_ms"] == 200
+    assert summary["p95_latency_ms"] == 290
+    assert summary["average_total_tokens"] == 100
+    assert summary["token_usage_coverage"] == 0.5
+    assert summary["tokens_per_successful_task"] is None
+    assert summary["constraint_preservation_rate"] == 0.5
+    assert summary["side_effect_violation_rate"] == 0.5
+    assert summary["breakdowns"]["difficulty"]["hard"]["cases"] == 1
+    assert summary["breakdowns"]["turn_type"]["multi-turn"]["cases"] == 1
+
+
 def test_recovery_cohort_uses_expected_case_not_variant_outcome():
     case = _case(passed=False, status="needs_clarification", category="generation")
     case["actual"]["status"] = "completed"

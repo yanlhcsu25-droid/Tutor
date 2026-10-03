@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import importlib
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -28,6 +29,7 @@ from calculus_agent.agent.agent import (
 )
 from calculus_agent.agent.trace_log import AgentTraceRecorder, read_agent_traces
 from calculus_agent.agent.identity import DEFAULT_TEACHER_OWNER_KEY
+from calculus_agent.agent.state_snapshot import active_teaching_design_snapshot
 from calculus_agent.agent.conversation_state import (
     DatabasePendingReplacementStore,
     PendingGeneration,
@@ -53,6 +55,11 @@ from tests.evals.graders.constraint_grader import grade_constraints
 from tests.evals.graders.score_grader import grade_score
 from tests.evals.graders.state_grader import grade_state
 from tests.evals.graders.acceptance_grader import grade_acceptance
+from tests.evals.graders.outcome_grader import (
+    grade_clarification_contract,
+    grade_outcome_integrity,
+)
+from tests.evals.graders.content_consistency_grader import grade_content_consistency
 
 
 # ============================================================
@@ -1034,6 +1041,32 @@ def load_model_spans(
     )
     return [row_to_dict(row) for row in session.scalars(statement).all()]
 
+def aggregate_model_usage(model_spans: list[dict[str, Any]]) -> dict[str, Any]:
+    outputs = [span.get("output_json") or {} for span in model_spans]
+    calls = [output for output in outputs if output.get("model_called") is not False]
+    complete = bool(calls) and all(
+        output.get("actual_usage_available") is True for output in calls
+    )
+
+    def total(field: str) -> int | None:
+        values = [output.get(field) for output in calls]
+        return sum(values) if values and all(isinstance(value, int) for value in values) else None
+
+    return {
+        "model_calls": len(calls),
+        "input_tokens": total("input_tokens") if complete else None,
+        "output_tokens": total("output_tokens") if complete else None,
+        "total_tokens": total("total_tokens") if complete else None,
+        "cached_tokens": total("cached_tokens"),
+        "reasoning_tokens": total("reasoning_tokens"),
+        "actual_usage_available": complete,
+        "providers": sorted({
+            str(output["provider"]) for output in calls if output.get("provider")
+        }),
+        "models": sorted({str(output["model"]) for output in calls if output.get("model")}),
+    }
+
+
 def load_tool_spans(
     session,
     run_id: str | None,
@@ -1090,11 +1123,17 @@ def _paper_db_snapshot(session, paper_id: str | None) -> dict[str, Any] | None:
     items = session.scalars(
         select(PaperItem).where(PaperItem.paper_id == paper_id).order_by(PaperItem.position)
     ).all()
+    distribution = {}
+    for item in items:
+        distribution[item.section] = distribution.get(item.section, 0) + 1
     return {
+        "persisted": True,
         "paper_id": paper.id,
         "version": paper.version,
         "status": paper.status,
+        "question_count": len(items),
         "total_score": paper.total_score,
+        "question_type_counts": distribution,
         "items": [
             {
                 "position": item.position,
@@ -1105,6 +1144,26 @@ def _paper_db_snapshot(session, paper_id: str | None) -> dict[str, Any] | None:
             for item in items
         ],
     }
+
+
+def _response_facts(message: str) -> dict[str, Any]:
+    facts: dict[str, Any] = {}
+    question = re.search(r"(?:共|总共|一共|包含|有)\s*(\d+)\s*(?:道)?题", message)
+    score = re.search(r"(?:总分|满分)\s*(?:为|是|共)?\s*(\d+(?:\.\d+)?)\s*分", message)
+    if question:
+        facts["question_count"] = int(question.group(1))
+    if score:
+        value = float(score.group(1))
+        facts["total_score"] = int(value) if value.is_integer() else value
+    distribution = {
+        question_type: int(count)
+        for question_type, count in re.findall(
+            r"(选择题|填空题|计算题|证明题)\s*(?:共|有)?\s*(\d+)\s*道", message
+        )
+    }
+    if distribution:
+        facts["question_type_counts"] = distribution
+    return facts
 
 
 def collect_actual_state(
@@ -1208,24 +1267,45 @@ def collect_actual_state(
 
     paper = dict(
         last_completed_paper
-        if isinstance(
-            last_completed_paper,
-            dict,
-        )
+        if isinstance(last_completed_paper, dict)
         else {}
     )
-
-    for key in (
-        "paper_id",
-        "version_id",
-    ):
-        value = (
-            result_dict.get(key)
-            or trace.get(key)
-        )
-
+    result_paper = result_dict.get("paper") or {}
+    if isinstance(result_paper, dict):
+        paper.update({
+            key: result_paper[key]
+            for key in ("paper_id", "version_id")
+            if result_paper.get(key) is not None
+        })
+    for key in ("paper_id", "version_id"):
+        value = result_dict.get(key) or trace.get(key)
         if value is not None:
             paper[key] = value
+
+    resolved_paper_id = paper.get("paper_id") or paper.get("version_id") or paper_id
+    paper_db = _paper_db_snapshot(session, resolved_paper_id)
+    if paper_db:
+        paper.update({
+            key: paper_db[key]
+            for key in ("persisted", "question_count", "total_score", "question_type_counts")
+        })
+
+    store = _generation_store(session)
+    pending_adjustment_id = store.get_adjustment(conversation_id)
+    active_design = active_teaching_design_snapshot(
+        session,
+        owner_key=DEFAULT_TEACHER_OWNER_KEY,
+        conversation_id=conversation_id,
+    )
+    teaching_design = None
+    if active_design:
+        content = active_design.get("content") or {}
+        teaching_design = {
+            **active_design,
+            "persisted": True,
+            "scope_names": content.get("scope_names"),
+            "lesson_count": content.get("lesson_count"),
+        }
 
     return {
         "status": status,
@@ -1242,7 +1322,14 @@ def collect_actual_state(
         "pending_replacement": pending_replacement,
 
         "paper": paper,
-        "paper_db": _paper_db_snapshot(session, paper_id),
+        "paper_db": paper_db,
+        "pending_paper_change": (
+            {"exists": True, "plan_id": pending_adjustment_id}
+            if pending_adjustment_id else None
+        ),
+        "teaching_design": teaching_design,
+        "active_teaching_design": teaching_design,
+        "response_facts": _response_facts(str(message)),
 
         "trace": {
             **trace,
@@ -1358,6 +1445,11 @@ def run_graders(
                 }
             )
 
+    results.extend([
+        grade_outcome_integrity(case, actual),
+        grade_clarification_contract(case, actual),
+        grade_content_consistency(case, actual),
+    ])
     return results
 
 
@@ -1492,12 +1584,9 @@ def run_case(
             # 只有这里才进入真实 Agent / LLM
             # ------------------------------------------------
 
-            safety_enabled = any(g.get("type") == "workflow_safety" for g in case.graders)
-            paper_before = None
-            if safety_enabled:
-                from tests.evals.graders.workflow_safety_grader import snapshot_papers
+            from tests.evals.graders.workflow_safety_grader import snapshot_business_state
 
-                paper_before = snapshot_papers(session, conversation_id)
+            business_state_before = snapshot_business_state(session, conversation_id)
             backend_calls_before = int(getattr(backend, "calls", 0) or 0)
             result = run_teacher_agent(
                 session,
@@ -1544,15 +1633,16 @@ def run_case(
             )
             file_traces = read_agent_traces(trace_dir)
             task_workflow = file_traces[0].get("task_workflow") if file_traces else None
+            business_state_after = snapshot_business_state(session, conversation_id)
 
             turn_results.append(
                 {
                     "turn": index,
                     "synthetic_setup": False,
-                    **({
-                        "paper_before": paper_before,
-                        "paper_after": snapshot_papers(session, conversation_id),
-                    } if safety_enabled else {}),
+                    "business_state_before": business_state_before,
+                    "business_state_after": business_state_after,
+                    "paper_before": business_state_before["paper"],
+                    "paper_after": business_state_after["paper"],
                     "user": user_message,
                     "result": to_jsonable(
                         result
@@ -1561,6 +1651,7 @@ def run_case(
                     "observability": {
                         "model_calls": model_spans,
                         "tool_calls": tool_spans,
+                        "usage": aggregate_model_usage(model_spans),
                         "context_metrics": [
                             (span.get("input_json") or {}).get("context_metrics", {})
                             for span in model_spans
@@ -1592,6 +1683,23 @@ def run_case(
         actual["backend_calls"] = getattr(backend, "calls", None)
         actual["backend_call_deltas"] = backend_call_deltas
 
+        # Graders operate on the complete case lifecycle, not only the final
+        # turn's persisted trace. Preserve the final trace metadata while
+        # projecting every Tool observation in execution order.
+        case_trace = dict(actual.get("trace") or {})
+        case_tool_calls = []
+        seen_tool_spans: set[str] = set()
+        for turn_result in turn_results:
+            for span in turn_result["observability"]["tool_calls"]:
+                span_id = span.get("id") or span.get("span_id")
+                if span_id and span_id in seen_tool_spans:
+                    continue
+                if span_id:
+                    seen_tool_spans.add(span_id)
+                case_tool_calls.append({**span, "turn": turn_result["turn"]})
+        case_trace["tool_calls"] = case_tool_calls
+        actual["trace"] = case_trace
+
         actual["before"] = (
             before_last_turn
         )
@@ -1600,8 +1708,7 @@ def run_case(
             initial_state
         )
 
-        if any(g.get("type") == "workflow_safety" for g in case.graders):
-            actual["evaluated_turns"] = turn_results
+        actual["evaluated_turns"] = turn_results
         grader_results = run_graders(
             case,
             actual,
@@ -1622,18 +1729,94 @@ def run_case(
                 in executed_graders
             )
         )
+        all_model_spans = [
+            span
+            for turn_result in turn_results
+            for span in turn_result["observability"]["model_calls"]
+        ]
+        case_usage = aggregate_model_usage(all_model_spans)
+        grader_by_name = {
+            grader.get("grader"): grader for grader in grader_results
+            if grader.get("grader")
+        }
+        outcome_grade = grader_by_name["outcome_integrity"]
+        clarification_grade = grader_by_name["clarification_contract"]
+        workflow_grade = grader_by_name.get("workflow_safety")
+        content_grade = grader_by_name["content_consistency"]
+        workflow_errors = (workflow_grade or {}).get("errors") or []
+        side_effect_violation = any(
+            "changed" in error or "forbidden action" in error
+            for error in workflow_errors
+        )
+        case_latency_ms = sum(
+            int(((turn_result.get("state") or {}).get("trace") or {}).get("latency_ms") or 0)
+            for turn_result in turn_results
+        )
 
         return {
             "case_id": case.id,
             "variant": variant.name,
             "category": case.category,
+            "subtype": case.raw.get("subtype"),
+            "difficulty": case.raw.get("difficulty"),
             "title": case.title,
             "conversation_id": (
                 conversation_id
             ),
             "passed": passed,
+            "task_success": passed,
+            "constraint_preserved": (
+                grader_by_name["constraint_preservation"].get("passed")
+                if "constraint_preservation" in grader_by_name else None
+            ),
+            "clarification_correct": (
+                clarification_grade["passed"]
+                if clarification_grade.get("eligible") else None
+            ),
+            "false_success": outcome_grade["false_success"],
+            "side_effect_violation": side_effect_violation,
+            "state_consistent": (
+                grader_by_name["state"].get("passed")
+                if "state" in grader_by_name else None
+            ),
+            "grounding_correct": content_grade["passed"],
+            "model_calls": case_usage["model_calls"],
+            "tool_calls": sum(
+                len(turn_result["observability"]["tool_calls"])
+                for turn_result in turn_results
+            ),
+            "tool_rounds": sum(
+                1
+                for span in all_model_spans
+                if (span.get("output_json") or {}).get("tool_calls", 0) > 0
+            ),
+            "total_turns": len(turn_results),
+            "input_tokens": case_usage["input_tokens"],
+            "output_tokens": case_usage["output_tokens"],
+            "total_tokens": case_usage["total_tokens"],
+            "cached_tokens": case_usage["cached_tokens"],
+            "reasoning_tokens": case_usage["reasoning_tokens"],
+            "actual_usage_available": case_usage["actual_usage_available"],
+            "latency_ms": case_latency_ms,
+            "failure_type": (
+                None if passed
+                else "side_effect_violation" if side_effect_violation
+                else "clarification_contract" if not clarification_grade["passed"]
+                else "grounding" if outcome_grade["false_success"] or not content_grade["passed"]
+                else "evaluator_gap" if any(
+                    grader.get("skipped") for grader in grader_results
+                )
+                else "model_reasoning"
+            ),
+            "model": getattr(backend, "model", type(backend).__name__),
+            "provider": (
+                case_usage["providers"][0] if len(case_usage["providers"]) == 1 else None
+            ),
+            "fixture_version": "eval-fixture-v1",
+            "grader_version": "grader-v1",
             "run_metadata": {
                 "model_id": getattr(backend, "model", type(backend).__name__),
+                "provider": case_usage["providers"],
                 "temperature": getattr(backend, "temperature", 0),
             },
             "expected": case.expected,
@@ -1653,11 +1836,36 @@ def run_case(
             "case_id": case.id,
             "variant": variant.name,
             "category": case.category,
+            "subtype": case.raw.get("subtype"),
+            "difficulty": case.raw.get("difficulty"),
             "title": case.title,
             "conversation_id": (
                 conversation_id
             ),
             "passed": False,
+            "task_success": False,
+            "constraint_preserved": None,
+            "clarification_correct": None,
+            "false_success": False,
+            "side_effect_violation": False,
+            "state_consistent": None,
+            "grounding_correct": None,
+            "model_calls": 0,
+            "tool_calls": 0,
+            "tool_rounds": 0,
+            "total_turns": len(turn_results),
+            "input_tokens": None,
+            "output_tokens": None,
+            "total_tokens": None,
+            "cached_tokens": None,
+            "reasoning_tokens": None,
+            "actual_usage_available": False,
+            "latency_ms": 0,
+            "failure_type": "fixture_issue",
+            "model": getattr(locals().get("backend"), "model", None),
+            "provider": getattr(locals().get("backend"), "provider", None),
+            "fixture_version": "eval-fixture-v1",
+            "grader_version": "grader-v1",
             "expected": case.expected,
             "actual": {},
             "graders": [],
@@ -1725,10 +1933,20 @@ def write_report(
         if (result.get("run_metadata") or {}).get("model_id")
     })
     dataset_bytes = dataset_path.read_bytes() if dataset_path and dataset_path.exists() else b""
+    git_sha = _git_sha()
+    dataset_sha = hashlib.sha256(dataset_bytes).hexdigest() if dataset_bytes else None
+    enriched_results = [
+        {
+            **result,
+            "git_sha": git_sha,
+            "dataset_sha": dataset_sha,
+        }
+        for result in results
+    ]
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "metadata": {
-            "git_sha": _git_sha(),
+            "git_sha": git_sha,
             "git_dirty": _git_dirty(),
             "variant": variant.name,
             "variant_config": asdict(variant),
@@ -1737,7 +1955,8 @@ def write_report(
             "dataset_path": (
                 str(dataset_path.resolve().relative_to(ROOT)) if dataset_path else None
             ),
-            "dataset_version": hashlib.sha256(dataset_bytes).hexdigest()[:12] if dataset_bytes else None,
+            "dataset_version": dataset_sha[:12] if dataset_sha else None,
+            "dataset_sha": dataset_sha,
         },
         "summary": {
             "cases": len(results),
@@ -1749,7 +1968,7 @@ def write_report(
                 else 0
             ),
         },
-        "results": results,
+        "results": enriched_results,
     }
 
     output_path.write_text(

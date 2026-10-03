@@ -1,0 +1,3983 @@
+{
+  "generated_at": "2026-10-03T08:32:51.982409+00:00",
+  "dataset_sha256": "46436b6d837b83f4b5c6f9ba159aa8efbe9307b6513ba122ae122b6b01b2c118",
+  "summary": {
+    "suite_count": 6,
+    "case_count": 240,
+    "dispositions": {
+      "ambiguous_label": 48,
+      "fixture_mismatch": 34,
+      "grader_unsupported": 4,
+      "runner_unsupported": 114,
+      "valid": 40
+    },
+    "split_counts": {
+      "candidate": 60,
+      "unspecified": 80,
+      "validation": 100
+    },
+    "expected_case_count": 300,
+    "case_count_matches": false,
+    "required_split_matches": false
+  },
+  "suites": [
+    {
+      "path": "tests/evals/cases/reliability_failure_injection_v0.yaml",
+      "split": null,
+      "case_count": 20,
+      "parse_error": null
+    },
+    {
+      "path": "tests/evals/cases/task_intent_validation_v0.yaml",
+      "split": "validation",
+      "case_count": 100,
+      "parse_error": null
+    },
+    {
+      "path": "tests/evals/cases/task_routing_boundary_v0.yaml",
+      "split": null,
+      "case_count": 9,
+      "parse_error": null
+    },
+    {
+      "path": "tests/evals/cases/teacher_acceptance_v0.yaml",
+      "split": null,
+      "case_count": 21,
+      "parse_error": null
+    },
+    {
+      "path": "tests/evals/cases/teacher_agent_regression.yaml",
+      "split": null,
+      "case_count": 30,
+      "parse_error": null
+    },
+    {
+      "path": "tests/evals/cases/teacher_workflow_candidate_v0.yaml",
+      "split": "candidate",
+      "case_count": 60,
+      "parse_error": null
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "FI-001",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-002",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-003",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-004",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-005",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-006",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-007",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-008",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-009",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-010",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-011",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-012",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-013",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-014",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-015",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-016",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-017",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-018",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-019",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "FI-020",
+      "suite": "reliability_failure_injection_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "INT-DIR-001",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-001"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-001"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-001"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-002",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-002"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-002"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-002"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-003",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-003"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-003"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-003"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-004",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-004"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-004"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-004"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-005",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-005"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-005"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-005"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-006",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-006"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-006"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-006"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-007",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-007"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-007"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-007"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-008",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-008"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-008"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-008"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-009",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-009"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-009"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-009"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-010",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-010"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-010"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-010"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-011",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-011"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-011"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-011"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-012",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-012"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-012"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-012"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-013",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-013"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-013"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-013"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-014",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-014"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-014"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-014"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-015",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-015"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-015"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-015"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-016",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-016"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-016"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-016"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-017",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-017"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-017"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-017"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-018",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-018"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-018"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-018"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-019",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-019"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-019"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-019"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-020",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-020"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-020"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-020"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-021",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-021"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-021"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-021"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-022",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-022"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-022"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-022"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-023",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-023"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-023"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-023"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-024",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-024"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-024"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-024"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DIR-025",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DIR-025"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DIR-025"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DIR-025"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-001",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-001"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-001"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-001"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-002",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-002"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-002"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-002"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-003",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-003"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-003"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-003"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-004",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-004"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-004"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-004"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-005",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-005"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-005"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-005"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-006",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-006"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-006"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-006"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-007",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-007"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-007"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-007"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-008",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-008"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-008"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-008"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-009",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-009"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-009"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-009"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-010",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-010"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-010"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-010"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-011",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-011"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-011"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-011"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-012",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-012"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-012"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-012"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-013",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-013"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-013"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-013"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-014",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-014"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-014"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-014"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-015",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-015"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-015"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-015"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-016",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-016"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-016"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-016"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-017",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-017"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-017"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-017"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-018",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-018"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-018"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-018"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-019",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-019"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-019"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-019"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-020",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-020"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-020"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-020"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-021",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-021"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-021"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-021"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-022",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-022"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-022"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-022"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-023",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-023"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-023"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-023"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-024",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-024"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-024"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-024"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-DES-025",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-DES-025"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-DES-025"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-DES-025"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-001",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-001"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-001"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-001"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-002",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-002"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-002"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-002"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-003",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-003"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-003"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-003"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-004",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-004"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-004"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-004"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-005",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-005"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-005"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-005"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-006",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-006"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-006"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-006"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-007",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-007"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-007"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-007"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-008",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-008"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-008"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-008"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-009",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-009"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-009"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-009"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-010",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-010"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-010"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-010"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-011",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-011"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-011"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-011"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-012",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-012"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-012"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-012"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-013",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-013"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-013"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-013"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-014",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-014"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-014"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-014"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-015",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-015"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-015"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-015"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-016",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-016"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-016"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-016"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-017",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-017"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-017"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-017"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-018",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-018"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-018"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-018"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-019",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-019"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-019"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-019"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-020",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-020"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-020"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-020"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-021",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-021"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-021"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-021"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-022",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-022"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-022"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-022"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-023",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-023"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-023"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-023"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-024",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-024"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-024"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-024"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-PLN-025",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-PLN-025"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-PLN-025"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-PLN-025"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-001",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-001"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-001"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-001"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-002",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-002"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-002"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-002"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-003",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-003"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-003"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-003"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-004",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-004"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-004"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-004"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-005",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-005"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-005"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-005"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-006",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-006"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-006"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-006"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-007",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-007"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-007"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-007"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-008",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-008"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-008"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-008"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-009",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-009"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-009"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-009"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-010",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-010"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-010"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-010"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-011",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-011"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-011"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-011"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-012",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-012"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-012"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-012"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-013",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-013"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-013"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-013"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-014",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-014"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-014"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-014"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-015",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-015"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-015"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-015"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-016",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-016"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-016"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-016"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-017",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-017"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-017"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-017"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-018",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-018"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-018"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-018"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-019",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-019"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-019"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-019"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-020",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-020"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-020"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-020"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-021",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-021"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-021"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-021"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-022",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-022"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-022"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-022"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-023",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-023"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-023"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-023"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-024",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-024"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-024"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-024"
+        }
+      ]
+    },
+    {
+      "case_id": "INT-INF-025",
+      "suite": "task_intent_validation_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "INT-INF-025"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "INT-INF-025"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "INT-INF-025"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B01",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B01"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B01"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B02",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B02"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B02"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B02"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B03",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B03"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B03"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B03"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B04",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B04"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B04"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B04"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B05",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B05"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B05"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B05"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B06",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B06"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B06"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B06"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B07",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B07"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B07"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B07"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B08",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B08"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B08"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B08"
+        }
+      ]
+    },
+    {
+      "case_id": "ROUTE-B09",
+      "suite": "task_routing_boundary_v0.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "ROUTE-B09"
+        },
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "ROUTE-B09"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "case has no grader",
+          "case_id": "ROUTE-B09"
+        }
+      ]
+    },
+    {
+      "case_id": "TD-001",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "TD-002",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "TD-003",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "GEN-001",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "GEN-002",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "GEN-003",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "MOD-001",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "MOD-001"
+        }
+      ]
+    },
+    {
+      "case_id": "MOD-002",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "PENDING-001",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "PENDING-001"
+        }
+      ]
+    },
+    {
+      "case_id": "ERR-001",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "TD-004",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "TD-005",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "TD-006",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "TD-007",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "TD-008",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "TD-009",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "GEN-004",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "GEN-005",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "GEN-006",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "MOD-003",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "MOD-004",
+      "suite": "teacher_acceptance_v0.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "GEN-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "GEN-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'semantic' is skipped by runner",
+          "case_id": "GEN-01"
+        }
+      ]
+    },
+    {
+      "case_id": "GEN-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "GEN-02"
+        }
+      ]
+    },
+    {
+      "case_id": "CLA-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "grader_unsupported",
+      "findings": [
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'semantic' is skipped by runner",
+          "case_id": "CLA-01"
+        }
+      ]
+    },
+    {
+      "case_id": "CLA-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "CLA-02"
+        }
+      ]
+    },
+    {
+      "case_id": "CLA-03",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "valid",
+      "findings": []
+    },
+    {
+      "case_id": "MOD-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "MOD-01"
+        }
+      ]
+    },
+    {
+      "case_id": "MOD-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "MOD-02"
+        }
+      ]
+    },
+    {
+      "case_id": "MOD-03",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "MOD-03"
+        }
+      ]
+    },
+    {
+      "case_id": "MOD-04",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "MOD-04"
+        }
+      ]
+    },
+    {
+      "case_id": "MOD-05",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "MOD-05"
+        },
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "MOD-05"
+        }
+      ]
+    },
+    {
+      "case_id": "SCORE-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "SCORE-01"
+        }
+      ]
+    },
+    {
+      "case_id": "SCORE-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "SCORE-02"
+        }
+      ]
+    },
+    {
+      "case_id": "DEL-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "DEL-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'paper_state' is skipped by runner",
+          "case_id": "DEL-01"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "DEL-01"
+        }
+      ]
+    },
+    {
+      "case_id": "DEL-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "DEL-02"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'paper_state' is skipped by runner",
+          "case_id": "DEL-02"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "DEL-02"
+        }
+      ]
+    },
+    {
+      "case_id": "REP-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "REP-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'tool_rule' is skipped by runner",
+          "case_id": "REP-01"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "REP-01"
+        }
+      ]
+    },
+    {
+      "case_id": "REP-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "REP-02"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'context' is skipped by runner",
+          "case_id": "REP-02"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "REP-02"
+        }
+      ]
+    },
+    {
+      "case_id": "REP-03",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "REP-03"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'paper_state' is skipped by runner",
+          "case_id": "REP-03"
+        }
+      ]
+    },
+    {
+      "case_id": "REP-04",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "REP-04"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'paper_state' is skipped by runner",
+          "case_id": "REP-04"
+        }
+      ]
+    },
+    {
+      "case_id": "QUERY-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "QUERY-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'semantic' is skipped by runner",
+          "case_id": "QUERY-01"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "QUERY-01"
+        }
+      ]
+    },
+    {
+      "case_id": "UNSUP-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "UNSUP-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'semantic' is skipped by runner",
+          "case_id": "UNSUP-01"
+        }
+      ]
+    },
+    {
+      "case_id": "UNSUP-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "turns must be a non-empty list",
+          "case_id": "UNSUP-02"
+        },
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "UNSUP-02"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'schema' is skipped by runner",
+          "case_id": "UNSUP-02"
+        }
+      ]
+    },
+    {
+      "case_id": "CHAT-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "expected must be an object for workflow runner",
+          "case_id": "CHAT-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'tool_rule' is skipped by runner",
+          "case_id": "CHAT-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'semantic' is skipped by runner",
+          "case_id": "CHAT-01"
+        }
+      ]
+    },
+    {
+      "case_id": "MEM-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "MEM-01"
+        }
+      ]
+    },
+    {
+      "case_id": "STATE-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "STATE-01"
+        }
+      ]
+    },
+    {
+      "case_id": "STATE-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "grader_unsupported",
+      "findings": [
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'semantic' is skipped by runner",
+          "case_id": "STATE-02"
+        }
+      ]
+    },
+    {
+      "case_id": "KP-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "grader_unsupported",
+      "findings": [
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'semantic' is skipped by runner",
+          "case_id": "KP-01"
+        }
+      ]
+    },
+    {
+      "case_id": "KP-02",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "runner_unsupported",
+      "findings": [
+        {
+          "kind": "runner_unsupported",
+          "message": "unsupported setup keys: ['knowledge_status']",
+          "case_id": "KP-02"
+        }
+      ]
+    },
+    {
+      "case_id": "CONF-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "CONF-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'paper_state' is skipped by runner",
+          "case_id": "CONF-01"
+        }
+      ]
+    },
+    {
+      "case_id": "ERR-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "grader_unsupported",
+      "findings": [
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'error' is skipped by runner",
+          "case_id": "ERR-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'trace' is skipped by runner",
+          "case_id": "ERR-01"
+        }
+      ]
+    },
+    {
+      "case_id": "TRACE-01",
+      "suite": "teacher_agent_regression.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "TRACE-01"
+        },
+        {
+          "kind": "grader_unsupported",
+          "message": "grader 'trace' is skipped by runner",
+          "case_id": "TRACE-01"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-001",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-001"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-002",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-002"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-003",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-003"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-004",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-004"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-004"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-005",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-005"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-005"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-006",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-006"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-007",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-007"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-008",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-008"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-009",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-009"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-010",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-010"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-010"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-011",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-011"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-012",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-012"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-012"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-013",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-013"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-014",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-014"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-015",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-015"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-016",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-016"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-017",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-017"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-018",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-018"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-019",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-019"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-020",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-020"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-021",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-021"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-022",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-022"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-023",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-023"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-024",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-024"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-025",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-025"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-025"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-026",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-026"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-026"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "WF-026"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-027",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-027"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-027"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "WF-027"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-028",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-028"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-028"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "unqualified 第N题 addressing is not labelled needs_clarification",
+          "case_id": "WF-028"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-029",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-029"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-030",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-030"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-031",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-031"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-032",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-032"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-033",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-033"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-034",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-034"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-034"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-035",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-035"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-036",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-036"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-036"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-037",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-037"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-038",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-038"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-039",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-039"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-040",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-040"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-041",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-041"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-042",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-042"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-042"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-043",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-043"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-044",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-044"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-045",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-045"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-046",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-046"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-047",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-047"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-048",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-048"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-049",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-049"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-050",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-050"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-051",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-051"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-052",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-052"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-053",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-053"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-054",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-054"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-055",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-055"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-056",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-056"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-056"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-057",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "fixture_mismatch",
+      "findings": [
+        {
+          "kind": "fixture_mismatch",
+          "message": "expected.status=None is not legal",
+          "case_id": "WF-057"
+        },
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-057"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-058",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-058"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-059",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-059"
+        }
+      ]
+    },
+    {
+      "case_id": "WF-060",
+      "suite": "teacher_workflow_candidate_v0.yaml",
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "WF-060"
+        }
+      ]
+    }
+  ]
+}

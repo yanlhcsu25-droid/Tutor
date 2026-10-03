@@ -28,6 +28,7 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from calculus_agent.models import TeacherAgentSpan, TeacherAgentRunTrace, new_id
@@ -103,6 +104,49 @@ class TeacherAgentRunManager:
         except Exception:
             pass
 
+    def usage_summary(self) -> dict[str, Any]:
+        """Aggregate real provider usage; incomplete usage remains null, never estimated."""
+        if self.run_id is None:
+            return {
+                "model_calls": 0,
+                "input_tokens": None,
+                "output_tokens": None,
+                "total_tokens": None,
+                "cached_tokens": None,
+                "reasoning_tokens": None,
+                "actual_usage_available": False,
+            }
+        try:
+            spans = self.session.scalars(select(TeacherAgentSpan).where(
+                TeacherAgentSpan.run_id == self.run_id,
+                TeacherAgentSpan.span_type == "model_call",
+            )).all()
+        except Exception:
+            spans = []
+        outputs = [span.output_json or {} for span in spans]
+        calls = [output for output in outputs if output.get("model_called") is not False]
+        complete = bool(calls) and all(
+            output.get("actual_usage_available") is True for output in calls
+        )
+
+        def total(field: str) -> int | None:
+            values = [output.get(field) for output in calls]
+            return sum(values) if values and all(isinstance(value, int) for value in values) else None
+
+        providers = sorted({str(output["provider"]) for output in calls if output.get("provider")})
+        models = sorted({str(output["model"]) for output in calls if output.get("model")})
+        return {
+            "model_calls": len(calls),
+            "input_tokens": total("input_tokens") if complete else None,
+            "output_tokens": total("output_tokens") if complete else None,
+            "total_tokens": total("total_tokens") if complete else None,
+            "cached_tokens": total("cached_tokens"),
+            "reasoning_tokens": total("reasoning_tokens"),
+            "actual_usage_available": complete,
+            "providers": providers,
+            "models": models,
+        }
+
     def finalize(
         self,
         *,
@@ -127,7 +171,10 @@ class TeacherAgentRunManager:
             if state_after is not None:
                 self.row.state_after_json = redact_trace_value(state_after)
             if result_json is not None:
-                self.row.result_json = result_json
+                self.row.result_json = {
+                    **result_json,
+                    "_trace_metrics": self.usage_summary(),
+                }
             if error:
                 # Genuine technical error only. Business failures (normal return
                 # with status="failed", e.g. insufficient_candidates / model

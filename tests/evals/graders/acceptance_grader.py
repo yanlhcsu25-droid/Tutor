@@ -15,6 +15,11 @@ def _tool_name(item: dict[str, Any]) -> str | None:
     return value if isinstance(value, str) else None
 
 
+def _tool_result(item: dict[str, Any]) -> dict[str, Any]:
+    value = item.get("result") or item.get("output_json") or {}
+    return value if isinstance(value, dict) else {}
+
+
 def grade_acceptance(
     case,
     actual: dict[str, Any],
@@ -35,8 +40,35 @@ def grade_acceptance(
     missing_required = [name for name in required if name not in names]
     if missing_required:
         errors.append(f"required tools not called: {missing_required!r}")
+    if not config.get("require_failed_tool") and not config.get("allow_failed_required_tools"):
+        expected_failures = set(config.get("required_failed_tools") or [])
+        unsuccessful_required = [
+            name for name in required
+            if name in names
+            and name not in expected_failures
+            and not any(
+                _tool_name(item) == name and _tool_result(item).get("ok") is True
+                for item in calls
+            )
+        ]
+        if unsuccessful_required:
+            errors.append(
+                f"required tools have no successful observation: {unsuccessful_required!r}"
+            )
     if any_required and not any(name in names for name in any_required):
         errors.append(f"none of required tools called: {any_required!r}")
+    for name in config.get("required_successful_tools") or []:
+        if not any(
+            _tool_name(item) == name and _tool_result(item).get("ok") is True
+            for item in calls
+        ):
+            errors.append(f"required successful Tool Observation missing: {name}")
+    for name in config.get("required_failed_tools") or []:
+        if not any(
+            _tool_name(item) == name and _tool_result(item).get("ok") is False
+            for item in calls
+        ):
+            errors.append(f"required failed Tool Observation missing: {name}")
     present_forbidden = [name for name in forbidden if name in names]
     if present_forbidden:
         errors.append(f"forbidden tools called: {present_forbidden!r}")
@@ -60,18 +92,27 @@ def grade_acceptance(
                 f"expected={expected_count}, actual={actual_count}"
             )
 
-    observed_codes = {
-        result.get("code")
-        for item in calls
-        for result in [item.get("result") or item.get("output_json") or {}]
-        if isinstance(result, dict) and result.get("code")
-    }
+    observed_codes: set[str] = set()
+    for item in calls:
+        result = _tool_result(item)
+        if result.get("code"):
+            observed_codes.add(str(result["code"]))
+        observed_codes.update(str(code) for code in result.get("blocking_errors") or [])
+        diagnosis = result.get("diagnosis") or {}
+        if isinstance(diagnosis, dict) and diagnosis.get("code"):
+            observed_codes.add(str(diagnosis["code"]))
     missing_codes = [
         code for code in (config.get("required_error_codes") or [])
         if code not in observed_codes
     ]
     if missing_codes:
         errors.append(f"required Tool error codes not observed: {missing_codes!r}")
+    any_error_codes = config.get("required_error_codes_any") or []
+    if any_error_codes and not observed_codes.intersection(any_error_codes):
+        errors.append(
+            f"none of required Tool error codes observed: {any_error_codes!r}; "
+            f"actual={sorted(observed_codes)!r}"
+        )
 
     allowed_statuses = config.get("statuses") or []
     if allowed_statuses and actual.get("status") not in allowed_statuses:
@@ -86,8 +127,7 @@ def grade_acceptance(
     if config.get("require_failed_tool"):
         failures = []
         for item in calls:
-            result = item.get("result") or item.get("output_json") or {}
-            if isinstance(result, dict) and result.get("ok") is False:
+            if _tool_result(item).get("ok") is False:
                 failures.append(item)
         if not failures:
             errors.append("no failed Tool Observation found in trace")

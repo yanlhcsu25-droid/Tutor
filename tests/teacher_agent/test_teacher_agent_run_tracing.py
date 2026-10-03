@@ -216,6 +216,41 @@ def test_success_completed_chat_has_run_id_and_spans(session):
     assert not any(s.span_type == "tool_call" for s in spans)
 
 
+def test_real_token_usage_is_persisted_on_model_span_and_run(session):
+    response = final("你好")
+    response["usage"] = {
+        "prompt_tokens": 20,
+        "completion_tokens": 4,
+        "total_tokens": 24,
+        "prompt_tokens_details": {"cached_tokens": 5},
+    }
+    response["model"] = "usage-model"
+    response["provider"] = "test-provider"
+
+    result = run_teacher_agent(
+        session, "你好", conversation_id="t-usage", backend=SequenceBackend(response)
+    )
+    run, spans = assert_run_invariants(session, result.run_id, expect_status="completed")
+    model_output = next(span.output_json for span in spans if span.span_type == "model_call")
+
+    assert model_output["input_tokens"] == 20
+    assert model_output["output_tokens"] == 4
+    assert model_output["total_tokens"] == 24
+    assert model_output["cached_tokens"] == 5
+    assert model_output["actual_usage_available"] is True
+    assert run.result_json["_trace_metrics"] == {
+        "model_calls": 1,
+        "input_tokens": 20,
+        "output_tokens": 4,
+        "total_tokens": 24,
+        "cached_tokens": 5,
+        "reasoning_tokens": None,
+        "actual_usage_available": True,
+        "providers": ["test-provider"],
+        "models": ["usage-model"],
+    }
+
+
 # ── 2. Business Failed (tool returns ok=false, NOT an exception) ──
 
 

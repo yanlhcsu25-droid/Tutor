@@ -3,22 +3,61 @@
 from sqlalchemy import select
 
 from calculus_agent.agent.state.models import ConversationWorkspace
-from calculus_agent.models import Paper, PaperItem
+from calculus_agent.models import (
+    AgentPendingAdjustment,
+    AgentPendingGeneration,
+    AgentPendingReplacement,
+    ConversationGenerationRecord,
+    Paper,
+    PaperItem,
+    Question,
+)
+from calculus_agent.teaching_design.models import (
+    ActiveTeachingDesignRecord,
+    TeachingDesignVersionRecord,
+)
 
 
-def snapshot_papers(session, conversation_id):
-    """Full paper/version contents in the isolated eval DB, not just the old Paper."""
+def _rows(session, models):
     snapshot = {}
-    for model in (Paper, PaperItem):
+    for model in models:
         table = model.__table__
         rows = session.execute(select(table).order_by(*table.primary_key.columns)).mappings()
         snapshot[table.name] = [dict(row) for row in rows]
-    workspace = session.get(ConversationWorkspace, conversation_id)
-    snapshot["paper_pointer"] = (
-        [workspace.current_paper_id, workspace.current_version_id]
-        if workspace else [None, None]
-    )
     return snapshot
+
+
+def snapshot_business_state(session, conversation_id):
+    """Full side-effect state in the isolated eval DB for one turn boundary."""
+    workspace = session.get(ConversationWorkspace, conversation_id)
+    paper = {
+        **_rows(session, (Paper, PaperItem)),
+        "question_chapters": {
+            row.id: row.curriculum_chapter_id
+            for row in session.scalars(select(Question).order_by(Question.id)).all()
+        },
+        "active_pointer": (
+            [workspace.current_paper_id, workspace.current_version_id]
+            if workspace else [None, None]
+        ),
+    }
+    return {
+        "paper": paper,
+        # Keep pending/design domains separate: previews may change them while
+        # the applied Paper must remain byte-for-byte stable.
+        "pending": _rows(session, (
+            AgentPendingGeneration, AgentPendingReplacement, AgentPendingAdjustment,
+        )),
+        "teaching_design": _rows(session, (
+            TeachingDesignVersionRecord, ActiveTeachingDesignRecord,
+        )),
+        "generation": _rows(session, (ConversationGenerationRecord,)),
+    }
+
+
+def snapshot_papers(session, conversation_id):
+    """Compatibility helper returning only Paper, PaperItem, and active pointer."""
+    return snapshot_business_state(session, conversation_id)["paper"]
 
 
 def grade_workflow_safety(case, actual, config):
@@ -28,12 +67,18 @@ def grade_workflow_safety(case, actual, config):
         errors.append("missing per-turn evidence")
     for turn in turns:
         prefix = f"turn {turn.get('turn')}"
-        before, after = turn.get("paper_before"), turn.get("paper_after")
+        before = turn.get("business_state_before")
+        after = turn.get("business_state_after")
         if config.get("paper_unchanged"):
             if before is None or after is None:
-                errors.append(f"{prefix}: missing paper snapshots")
-            elif before != after:
+                errors.append(f"{prefix}: missing business-state snapshots")
+            elif before.get("paper") != after.get("paper"):
                 errors.append(f"{prefix}: paper/version/pointer changed")
+        for key in ("pending", "teaching_design", "generation"):
+            if config.get(f"{key}_unchanged") and before.get(key) != after.get(key):
+                errors.append(f"{prefix}: {key} state changed")
+        if config.get("business_state_unchanged") and before != after:
+            errors.append(f"{prefix}: business state changed")
         calls = (turn.get("state", {}).get("trace") or {}).get("tool_calls") or []
         for call in calls:
             name = call.get("tool_name") or call.get("name") or call.get("tool")
