@@ -33,25 +33,34 @@ _EXPLICIT_GENERATION_SCORE = re.compile(
     r"(?P<score>\d{1,3})\s*分(?:制|的)?\s*"
     r"(?:期中|期末|试卷|卷子|测试|考试|练习卷|测试卷)"
 )
+_EXPLICIT_QUESTION_COUNT_PATCH = re.compile(
+    r"(?:题量|题数|总题数|题目数量)[^。！？,，；;]{0,8}?"
+    r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)?"
+)
+_EXPLICIT_SCORE_PATCH = re.compile(
+    r"(?:总分[^。！？,，；;]{0,8}?|改成|改为|降到|提高到|调整到)"
+    r"(?P<score>\d{1,3})\s*分"
+)
 _COMPACT_GENERATION_COUNT_SCORE = re.compile(
     r"(?:生成|出|来|组卷)"
     r"[^。！？,，；;]{0,20}?"
     r"(?:\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)"
     r"\s*[,，]?\s*(?P<score>\d{1,3})\s*分"
 )
+_QUESTION_TYPE_VALUE = r"选择题?|填空题?|计算题?|证明题?"
 _ALL_QUESTION_TYPE_PATTERN = re.compile(
     r"(?:全部|均|全都|都是|全是)\s*(?:为|是)?\s*"
-    r"(?P<question_type>选择题|填空题|计算题|证明题)"
+    rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
 )
 _EXPLICIT_TYPE_COUNT_PATTERNS = (
     re.compile(
-        r"(?P<question_type>选择题|填空题|计算题|证明题)"
+        rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
         r"[^。！？,，；;0-9一二三四五六七八九十两]{0,8}"
         r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)"
     ),
     re.compile(
         r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)\s*"
-        r"(?P<question_type>选择题|填空题|计算题|证明题)"
+        rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
     ),
 )
 _QUESTION_TYPE_COUNT_PATTERNS = (
@@ -62,8 +71,11 @@ _QUESTION_TYPE_COUNT_PATTERNS = (
 
 
 def _explicit_generation_count(message: str) -> int | None:
-    matches = list(_EXPLICIT_GENERATION_COUNT.finditer(message))
-    return _count_value(matches[-1].group("count")) if matches else None
+    for pattern in (_EXPLICIT_GENERATION_COUNT, _EXPLICIT_QUESTION_COUNT_PATCH):
+        matches = list(pattern.finditer(message))
+        if matches:
+            return _count_value(matches[-1].group("count"))
+    return None
 
 
 def _count_value(raw: str) -> int:
@@ -80,7 +92,11 @@ def _count_value(raw: str) -> int:
 
 
 def _explicit_generation_score(message: str) -> int | None:
-    for pattern in (_EXPLICIT_GENERATION_SCORE, _COMPACT_GENERATION_COUNT_SCORE):
+    for pattern in (
+        _EXPLICIT_GENERATION_SCORE,
+        _COMPACT_GENERATION_COUNT_SCORE,
+        _EXPLICIT_SCORE_PATCH,
+    ):
         match = pattern.search(message)
         if match is not None:
             return int(match.group("score"))
@@ -91,12 +107,18 @@ def _explicit_question_type_counts(message: str) -> dict[str, int]:
     counts: dict[str, int] = {}
     for pattern in _EXPLICIT_TYPE_COUNT_PATTERNS:
         for match in pattern.finditer(message):
-            counts[match.group("question_type")] = _count_value(match.group("count"))
+            question_type = match.group("question_type")
+            if not question_type.endswith("题"):
+                question_type += "题"
+            counts[question_type] = _count_value(match.group("count"))
 
     all_match = _ALL_QUESTION_TYPE_PATTERN.search(message)
     total_count = _explicit_generation_count(message)
     if all_match is not None and total_count is not None:
-        counts = {all_match.group("question_type"): total_count}
+        question_type = all_match.group("question_type")
+        if not question_type.endswith("题"):
+            question_type += "题"
+        counts = {question_type: total_count}
     return counts
 
 
@@ -165,7 +187,31 @@ def _apply_explicit_opt_in_guards(
             explicit_count is not None or _matches_any(message, _QUESTION_COUNT_PATTERNS)
         ):
             updated.pop("question_count", None)
-        if not (
+        explicit_type_counts = _explicit_question_type_counts(message)
+        if (
+            explicit_count is not None
+            and explicit_type_counts
+            and sum(explicit_type_counts.values()) == explicit_count
+        ):
+            existing = {
+                item.get("question_type"): item
+                for item in updated.get("question_type_requirements") or []
+                if isinstance(item, dict)
+            }
+            updated["question_type_requirements"] = [
+                {
+                    **{
+                        key: value
+                        for key, value in existing.get(question_type, {}).items()
+                        if key == "score_each"
+                    },
+                    "question_type": question_type,
+                    "count": count,
+                }
+                for question_type, count in explicit_type_counts.items()
+            ]
+            updated.pop("question_type_patches", None)
+        elif not (
             _matches_any(message, _QUESTION_TYPE_COUNT_PATTERNS)
             or _ALL_QUESTION_TYPE_PATTERN.search(message)
         ):

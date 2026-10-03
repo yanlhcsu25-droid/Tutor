@@ -337,25 +337,20 @@ def test_missing_knowledge_name_returns_structured_error(session):
     assert "不存在的知识点" in questions[0]
 
 
-def test_omitted_explicit_type_constraint_is_retried_in_same_turn(session):
+def test_omitted_explicit_type_constraint_is_restored_before_tool_execution(session):
     _scope(session)
     backend = _Backend(
         _tool(
             '{"paper_type":"chapter_exercise","scope_names":["第一章"],'
             '"question_count":8}'
         ),
-        _tool(
-            '{"paper_type":"chapter_exercise","scope_names":["第一章"],'
-            '"question_count":8,"question_type_requirements":'
-            '[{"question_type":"计算题","count":8}]}'
-        ),
         _final("已保留8道计算题的硬约束，请确认方案。"),
     )
 
     result = run_teacher_agent(
         session,
-        "第一章专项训练，共8题，全部为计算题。",
-        conversation_id="explicit-type-retry",
+        "第一章出8题，全部为计算题。",
+        conversation_id="explicit-type-restore",
         backend=backend,
     )
 

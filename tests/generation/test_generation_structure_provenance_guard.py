@@ -218,14 +218,44 @@ def test_compact_generation_count_and_score_are_both_preserved() -> None:
     assert guarded["total_score"] == 60
 
 
-def test_pending_question_count_patch_is_preserved() -> None:
+def test_complete_explicit_type_distribution_is_restored_and_not_substituted() -> None:
     guarded = _apply_explicit_opt_in_guards(
         tool_name="prepare_generation_plan",
-        arguments={"question_count": 7},
+        arguments={
+            "question_count": 7,
+            "question_type_requirements": [
+                {"question_type": "选择题", "count": 3, "score_each": 5},
+                {"question_type": "计算题", "count": 4, "score_each": 10},
+            ],
+        },
+        message="出7题：选择题2道、填空题2道、计算题3道。",
+    )
+
+    assert guarded["question_type_requirements"] == [
+        {"question_type": "选择题", "count": 2, "score_each": 5},
+        {"question_type": "填空题", "count": 2},
+        {"question_type": "计算题", "count": 3, "score_each": 10},
+    ]
+
+
+def test_pending_question_count_patch_is_restored_when_model_omits_it() -> None:
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="prepare_generation_plan",
+        arguments={},
         message="题数改成7题，其他条件不变。",
     )
 
     assert guarded["question_count"] == 7
+
+
+def test_pending_total_score_patch_is_restored_when_model_omits_it() -> None:
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="prepare_generation_plan",
+        arguments={},
+        message="先降到90分，暂时不要确认。",
+    )
+
+    assert guarded["total_score"] == 90
 
 
 def test_pending_numeric_type_patch_is_preserved() -> None:

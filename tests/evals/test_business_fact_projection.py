@@ -112,6 +112,25 @@ def test_runner_projects_unified_pending_paper_change():
     assert result["actual"]["pending_paper_change"]["exists"] is True
 
 
+def test_explicit_type_distribution_is_restored_before_pending_persistence():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+
+    for case_id in ("SMOKE-GEN-02", "SMOKE-GEN-03"):
+        case = next(item for item in suite.cases if item.id == case_id)
+        case.backend = {"behavior": "scripted", "responses": [
+            _tool_call("prepare_generation_plan", {
+                "scope_names": ["第一章 函数与极限"],
+                "question_count": case.expected["pending_generation"]["question_count"],
+                "total_score": case.expected["pending_generation"]["total_score"],
+            }),
+            {"role": "assistant", "content": "已完整保留教师指定的题型分布。"},
+        ]}
+
+        result = run_case(case)
+
+        assert result["passed"], result
+
+
 def test_golden_read_cases_require_current_version_read_after_analysis():
     suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
     responses = {
@@ -136,18 +155,25 @@ def test_golden_read_cases_require_current_version_read_after_analysis():
         ]
 
 
-def test_pending_count_patch_inherits_unmentioned_constraints():
+def test_pending_patches_restore_explicit_field_and_inherit_the_rest():
     suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
-    case = next(item for item in suite.cases if item.id == "SMOKE-PENDING-01")
-    case.backend = {"behavior": "scripted", "responses": [
-        _tool_call("prepare_generation_plan", {"question_count": 7}),
-        {"role": "assistant", "content": "题数已改为7题，其他条件不变。"},
-    ]}
+    expected = {
+        "SMOKE-PENDING-01": {"question_count": 7, "total_score": 100},
+        "SMOKE-PENDING-03": {"question_count": 10, "total_score": 90},
+    }
 
-    result = run_case(case)
+    for case_id, fields in expected.items():
+        case = next(item for item in suite.cases if item.id == case_id)
+        case.backend = {"behavior": "scripted", "responses": [
+            _tool_call("prepare_generation_plan", {}),
+            {"role": "assistant", "content": "方案已按要求更新，其他条件不变。"},
+        ]}
 
-    assert result["passed"], result
-    assert result["actual"]["pending_generation"]["total_score"] == 100
+        result = run_case(case)
+
+        assert result["passed"], result
+        pending = result["actual"]["pending_generation"]
+        assert {key: pending[key] for key in fields} == fields
 
 
 def test_compact_score_survives_preview_and_confirmation():
