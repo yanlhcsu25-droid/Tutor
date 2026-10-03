@@ -2,7 +2,9 @@
 
 - YAML file SHA256: `b093f1748e66c8c4381a444777a0e34bfad7f4cf8e80a3a06386edf6112f03af`
 - Manifest dataset SHA256: `f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34`
-- 状态：`review_required`；修改后复核并冻结前禁止真实模型运行。
+- 状态：`frozen`；未经版本升级不得修改 Dataset 或 Contract。
+- Code Git SHA：`07cedef74b4690a653aad58dbcf0d3652c5bd8f2`
+- Provider / Model：`siliconflow` / `Qwen/Qwen3.5-35B-A3B`
 - 分布：Easy 6 / Medium 9 / Hard 5。
 
 ## 逐条审核

@@ -1,6 +1,6 @@
 version: '1'
 name: tutor_agent_golden_smoke_v1
-status: review_required
+status: frozen
 split: development
 dataset_sha: f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34
 execution:
@@ -12,7 +12,8 @@ versions:
 freeze_lock:
   human_reviewed: true
   reviewed_at: '2026-10-03T11:21:07Z'
-  code_git_sha: null
+  frozen_at: '2026-10-03T11:32:20Z'
+  code_git_sha: 07cedef74b4690a653aad58dbcf0d3652c5bd8f2
 required_distribution:
   easy: 6
   medium: 9

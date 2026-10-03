@@ -1,5 +1,5 @@
 {
-  "valid": false,
+  "valid": true,
   "manifest": "tests/evals/manifests/smoke_v1.yaml",
   "dataset_sha": "f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34",
   "case_count": 20,
@@ -34,7 +34,5 @@
     "SMOKE-MULTI-01",
     "SMOKE-MULTI-02"
   ],
-  "errors": [
-    "manifest status must be frozen"
-  ]
+  "errors": []
 }
