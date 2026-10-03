@@ -1,0 +1,1942 @@
+version: '0.2'
+suite:
+  name: teacher_workflow_candidate_v0
+  split: candidate
+  description: 开发会话编写的60个工作流挑战候选；非盲测，标签待人工审核，不代表已通过。
+defaults:
+  max_tool_rounds: 8
+  isolated_session: true
+cases:
+- id: WF-001
+  category: generation
+  title: 第一章出一份课后卷，总共8题，80分，先让我看方案。
+  turns:
+  - user: 第一章出一份课后卷，总共8题，80分，先让我看方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 80
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-002
+  category: generation
+  title: 函数与极限做6题，共60分，不要直接生成成卷。
+  turns:
+  - user: 函数与极限做6题，共60分，不要直接生成成卷。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 60
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-003
+  category: generation
+  title: 第一章生成12题练习，总分120。
+  turns:
+  - user: 第一章生成12题练习，总分120。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 12
+      total_score: 120
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-004
+  category: generation
+  title: 导数章节来一套5题的小测，50分。
+  turns:
+  - user: 导数章节来一套5题的小测，50分。
+  expected:
+    pending_generation:
+      question_count: 5
+      total_score: 50
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 仅测预览/约束保留；供给不足不能视作可完成组卷正例
+- id: WF-005
+  category: generation
+  title: 第三章组卷，题量10，总分100，先预览。
+  turns:
+  - user: 第三章组卷，题量10，总分100，先预览。
+  expected:
+    pending_generation:
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 仅测预览/约束保留；供给不足不能视作可完成组卷正例
+- id: WF-006
+  category: generation
+  title: 第一章我只要4题，合计40分。请出卷方案。
+  turns:
+  - user: 第一章我只要4题，合计40分。请出卷方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 4
+      total_score: 40
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-007
+  category: generation
+  title: 请为第一章出九题练习，总分90分。
+  turns:
+  - user: 请为第一章出九题练习，总分90分。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 9
+      total_score: 90
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-008
+  category: generation
+  title: 第一章生成一套7题70分的练习卷。
+  turns:
+  - user: 第一章生成一套7题70分的练习卷。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 70
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-009
+  category: generation
+  title: 出一套第一章巩固卷，2道选择题、3道填空题、5道计算题，共10题100分。
+  turns:
+  - user: 出一套第一章巩固卷，2道选择题、3道填空题、5道计算题，共10题100分。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 填空题
+        count: 3
+      - question_type: 计算题
+        count: 5
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-010
+  category: generation
+  title: 第一章生成6题60分，全部计算题，不允许改题型。
+  turns:
+  - user: 第一章生成6题60分，全部计算题，不允许改题型。
+  expected:
+    pending_generation:
+      question_count: 6
+      total_score: 60
+      question_type_requirements:
+      - question_type: 计算题
+        count: 6
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 仅测预览/约束保留；供给不足不能视作可完成组卷正例
+- id: WF-011
+  category: generation
+  title: 第一章出8题80分，其中选择3道、填空2道、计算3道。
+  turns:
+  - user: 第一章出8题80分，其中选择3道、填空2道、计算3道。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 80
+      question_type_requirements:
+      - question_type: 选择题
+        count: 3
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-012
+  category: generation
+  title: 第三章先准备一份4题40分的测试卷预览。
+  turns:
+  - user: 第三章先准备一份4题40分的测试卷预览。
+  expected:
+    pending_generation:
+      question_count: 4
+      total_score: 40
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 仅测预览/约束保留；供给不足不能视作可完成组卷正例
+- id: WF-013
+  category: pending
+  title: 总分改成80分，其余先不动。
+  turns:
+  - user: 总分改成80分，其余先不动。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      total_score: 80
+      question_count: 10
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-014
+  category: pending
+  title: 题数减少到8题，先更新预览。
+  turns:
+  - user: 题数减少到8题，先更新预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-015
+  category: pending
+  title: 改成12题，不要确认生成。
+  turns:
+  - user: 改成12题，不要确认生成。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 12
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-016
+  category: pending
+  title: 总分调整为120分，更新待确认方案。
+  turns:
+  - user: 总分调整为120分，更新待确认方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      total_score: 120
+      question_count: 10
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-017
+  category: pending
+  title: 题数改为6题。
+  turns:
+  - user: 题数改为6题。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-018
+  category: pending
+  title: 总分修改为60分。
+  turns:
+  - user: 总分修改为60分。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      total_score: 60
+      question_count: 10
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-019
+  category: pending
+  title: 取消这次组卷计划。
+  turns:
+  - user: 取消这次组卷计划。
+  expected:
+    status: completed
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-020
+  category: pending
+  title: 放弃当前方案，不生成试卷。
+  turns:
+  - user: 放弃当前方案，不生成试卷。
+  expected:
+    status: completed
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-021
+  category: pending
+  title: 这个计划作废。
+  turns:
+  - user: 这个计划作废。
+  expected:
+    status: completed
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-022
+  category: pending
+  title: 不要这个方案了。
+  turns:
+  - user: 不要这个方案了。
+  expected:
+    status: completed
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-023
+  category: paper
+  title: 读一下这套卷，一共有多少题？
+  turns:
+  - user: 读一下这套卷，一共有多少题？
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-024
+  category: paper
+  title: 分析当前卷的题型分布。
+  turns:
+  - user: 分析当前卷的题型分布。
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-025
+  category: paper
+  title: 这套卷先不用改，你觉得难度怎么样？
+  turns:
+  - user: 这套卷先不用改，你觉得难度怎么样？
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-026
+  category: paper
+  title: 把第三题题干给我看看。
+  turns:
+  - user: 把第三题题干给我看看。
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-027
+  category: paper
+  title: 读一下第一题，不做修改。
+  turns:
+  - user: 读一下第一题，不做修改。
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-028
+  category: paper
+  title: 第三题换一道简单一点的，先看预览。
+  turns:
+  - user: 第三题换一道简单一点的，先看预览。
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-029
+  category: paper
+  title: 删除全卷第2题，先不要应用。
+  turns:
+  - user: 删除全卷第2题，先不要应用。
+  expected:
+    status: waiting_confirmation
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-030
+  category: paper
+  title: 新增一道计算题，先让我确认。
+  turns:
+  - user: 新增一道计算题，先让我确认。
+  expected:
+    status: waiting_confirmation
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-031
+  category: paper
+  title: 把全卷第3题换难一点，其他不动。
+  turns:
+  - user: 把全卷第3题换难一点，其他不动。
+  expected:
+    status: waiting_confirmation
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-032
+  category: paper
+  title: 去掉全卷第1题，只给修改方案。
+  turns:
+  - user: 去掉全卷第1题，只给修改方案。
+  expected:
+    status: waiting_confirmation
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-033
+  category: teaching
+  title: 制定第一章两课时复习计划。
+  turns:
+  - user: 制定第一章两课时复习计划。
+  expected:
+    status: waiting_confirmation
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-034
+  category: teaching
+  title: 创建导数章节的教学设计。
+  turns:
+  - user: 创建导数章节的教学设计。
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-035
+  category: teaching
+  title: 帮我形成一份第一章复习方案。
+  turns:
+  - user: 帮我形成一份第一章复习方案。
+  expected:
+    status: waiting_confirmation
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-036
+  category: teaching
+  title: 设计第三章的训练路径，先给我确认。
+  turns:
+  - user: 设计第三章的训练路径，先给我确认。
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-037
+  category: teaching
+  title: 为函数与极限安排一份教学计划。
+  turns:
+  - user: 为函数与极限安排一份教学计划。
+  expected:
+    status: waiting_confirmation
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-038
+  category: teaching
+  title: 隐函数求导应该怎么教？
+  turns:
+  - user: 隐函数求导应该怎么教？
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-039
+  category: teaching
+  title: 给我讲讲怎么复习第一章。
+  turns:
+  - user: 给我讲讲怎么复习第一章。
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-040
+  category: teaching
+  title: 为什么可导一定连续？
+  turns:
+  - user: 为什么可导一定连续？
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-041
+  category: teaching
+  title: 高阶导数有什么教学重点？
+  turns:
+  - user: 高阶导数有什么教学重点？
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-042
+  category: teaching
+  title: 我不是让你改卷，我想知道学生为什么做错。
+  turns:
+  - user: 我不是让你改卷，我想知道学生为什么做错。
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-043
+  category: shortage
+  title: 第一章生成30道证明题。
+  turns:
+  - user: 第一章生成30道证明题。
+  - user: 确认生成。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 允许预览或确认阶段报告短缺；需核验真实供给证据、原要求保留，不能仅凭澄清状态判成功
+- id: WF-044
+  category: shortage
+  title: 第三章生成30道计算题。
+  turns:
+  - user: 第三章生成30道计算题。
+  - user: 确认生成。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 允许预览或确认阶段报告短缺；需核验真实供给证据、原要求保留，不能仅凭澄清状态判成功
+- id: WF-045
+  category: shortage
+  title: 第一章只要100道选择题。
+  turns:
+  - user: 第一章只要100道选择题。
+  - user: 确认生成。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 允许预览或确认阶段报告短缺；需核验真实供给证据、原要求保留，不能仅凭澄清状态判成功
+- id: WF-046
+  category: shortage
+  title: 第三章全部出100道证明题，不要换成计算题。
+  turns:
+  - user: 第三章全部出100道证明题，不要换成计算题。
+  - user: 确认生成。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 允许预览或确认阶段报告短缺；需核验真实供给证据、原要求保留，不能仅凭澄清状态判成功
+- id: WF-047
+  category: missing_target
+  title: 删除第三题。
+  turns:
+  - user: 删除第三题。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-048
+  category: missing_target
+  title: 分析这套卷的难度。
+  turns:
+  - user: 分析这套卷的难度。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-049
+  category: missing_target
+  title: 恢复到试卷版本1。
+  turns:
+  - user: 恢复到试卷版本1。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-050
+  category: missing_target
+  title: 把填空题第2题换简单些。
+  turns:
+  - user: 把填空题第2题换简单些。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-051
+  category: ambiguity
+  title: 期中前想针对一下。
+  turns:
+  - user: 期中前想针对一下。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-052
+  category: ambiguity
+  title: 这部分应该怎么处理？
+  turns:
+  - user: 这部分应该怎么处理？
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-053
+  category: ambiguity
+  title: 帮我准备一下。
+  turns:
+  - user: 帮我准备一下。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-054
+  category: ambiguity
+  title: 给这个班安排一下吧。
+  turns:
+  - user: 给这个班安排一下吧。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-055
+  category: ambiguity
+  title: 就按之前的来吧。
+  turns:
+  - user: 就按之前的来吧。
+  expected:
+    status: needs_clarification
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-056
+  category: negation
+  title: 学生这里总是出错，先分析原因，不要出卷。
+  turns:
+  - user: 学生这里总是出错，先分析原因，不要出卷。
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-057
+  category: negation
+  title: 学生总丢分，但先别出卷，解释一下可能原因。
+  turns:
+  - user: 学生总丢分，但先别出卷，解释一下可能原因。
+  expected: {}
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 允许有依据的回答/产物或澄清；需人工判断澄清是否必要，不自动算作成功
+- id: WF-058
+  category: negation
+  title: 不要生成试卷，请讲讲导数学习方法。
+  turns:
+  - user: 不要生成试卷，请讲讲导数学习方法。
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-059
+  category: negation
+  title: 暂时不要改卷，解释一下什么叫难度分布。
+  turns:
+  - user: 暂时不要改卷，解释一下什么叫难度分布。
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功
+- id: WF-060
+  category: negation
+  title: 不要做教学设计，告诉我连续和可导的区别。
+  turns:
+  - user: 不要做教学设计，告诉我连续和可导的区别。
+  expected:
+    status: completed
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    - operate_paper_version
+  review:
+    status: pending
+    scope: 人工审核语义标签、回复质量及业务产物；自动检查通过不等于任务成功

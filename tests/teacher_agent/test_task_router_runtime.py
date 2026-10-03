@@ -111,15 +111,18 @@ def test_runtime_ambiguous_semantic_route_exposes_no_tools(session):
         "reason": "both planning and generation are plausible",
     })
 
-    run_teacher_agent(
+    result = run_teacher_agent(
         session,
         "期中前想针对一下。",
         conversation_id="runtime-route-clarification",
         backend=backend,
     )
 
-    assert backend.requests[0][1] == []
-    assert "不要调用会改变业务状态的 Tool" in _system_text(backend.requests[0])
+    assert backend.requests == []
+    assert result.status == "needs_clarification"
+    assert result.clarification_questions == ["您希望先讨论复习思路，还是直接生成练习？"]
+    assert result.message == result.clarification_questions[0]
+    assert result.run_id
 
 
 def test_runtime_routes_direct_action_before_first_llm_call(session):

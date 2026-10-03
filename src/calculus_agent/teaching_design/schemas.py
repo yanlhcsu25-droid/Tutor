@@ -93,6 +93,16 @@ class AssessmentPlan(BaseModel):
 
     @model_validator(mode="after")
     def validate_ability_weights(self) -> "AssessmentPlan":
+        requirements = self.question_type_requirements
+        if requirements and self.question_count is not None:
+            if sum(item.count for item in requirements) != self.question_count:
+                raise ValueError("assessment question counts must match question_count")
+        if requirements and all(item.score_each is not None for item in requirements):
+            from math import isclose
+
+            actual_score = sum(item.count * item.score_each for item in requirements)
+            if not isclose(actual_score, self.total_score, abs_tol=0.01):
+                raise ValueError("assessment section scores must match total_score")
         if any(value < 0 for value in self.ability_weights.values()):
             raise ValueError("ability_weights values must be non-negative")
         if self.ability_weights and sum(self.ability_weights.values()) != 100:

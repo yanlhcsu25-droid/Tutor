@@ -1303,6 +1303,11 @@ def run_graders(
                 )
             )
 
+        elif grader_type == "workflow_safety":
+            from tests.evals.graders.workflow_safety_grader import grade_workflow_safety
+
+            results.append(grade_workflow_safety(case, actual, grader_config))
+
         elif grader_type == "acceptance":
             results.append(
                 grade_acceptance(case, actual, grader_config)
@@ -1487,6 +1492,12 @@ def run_case(
             # 只有这里才进入真实 Agent / LLM
             # ------------------------------------------------
 
+            safety_enabled = any(g.get("type") == "workflow_safety" for g in case.graders)
+            paper_before = None
+            if safety_enabled:
+                from tests.evals.graders.workflow_safety_grader import snapshot_papers
+
+                paper_before = snapshot_papers(session, conversation_id)
             backend_calls_before = int(getattr(backend, "calls", 0) or 0)
             result = run_teacher_agent(
                 session,
@@ -1538,6 +1549,10 @@ def run_case(
                 {
                     "turn": index,
                     "synthetic_setup": False,
+                    **({
+                        "paper_before": paper_before,
+                        "paper_after": snapshot_papers(session, conversation_id),
+                    } if safety_enabled else {}),
                     "user": user_message,
                     "result": to_jsonable(
                         result
@@ -1585,6 +1600,8 @@ def run_case(
             initial_state
         )
 
+        if any(g.get("type") == "workflow_safety" for g in case.graders):
+            actual["evaluated_turns"] = turn_results
         grader_results = run_graders(
             case,
             actual,

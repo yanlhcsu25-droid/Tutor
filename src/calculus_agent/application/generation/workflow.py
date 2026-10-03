@@ -53,6 +53,15 @@ class GenerationWorkflow:
                 status="failed",
                 result_fields={"blocking_errors": ["no_pending_generation"]},
             )
+        recovery = result.recovery_action
+        if not result.ok and recovery is not None and recovery.action_type == "ask_user":
+            questions = result.clarification_questions or [
+                recovery.reason + "。请说明您希望如何调整要求。"
+            ]
+            result = result.model_copy(update={
+                "needs_clarification": True,
+                "clarification_questions": questions,
+            })
         status = (
             "completed"
             if result.ok

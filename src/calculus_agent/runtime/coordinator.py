@@ -615,6 +615,16 @@ def _run_teacher_agent_turn(
                 conversation_id=conversation_id,
             )
         )
+        # A structured routing clarification is already the turn outcome, not
+        # merely a prompt hint for another model call to reinterpret.
+        if task_decision.source == "llm_router" and task_decision.route.clarification_needed:
+            question = task_decision.route.clarification_question
+            _persist_final_message(history_store, conversation_id, question)
+            return finish(TeacherAgentResult(
+                status="needs_clarification",
+                message=question,
+                clarification_questions=[question],
+            ))
         dynamic_context = {
             "current_paper": {
                 "exists": bool(version_id or paper_id),
