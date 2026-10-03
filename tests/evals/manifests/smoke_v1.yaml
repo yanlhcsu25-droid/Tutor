@@ -12,8 +12,8 @@ versions:
 freeze_lock:
   human_reviewed: true
   reviewed_at: '2026-10-03T11:21:07Z'
-  frozen_at: '2026-10-03T12:40:43Z'
-  code_git_sha: 68f2856bfaa44c660649f077d6cda033e473434c
+  frozen_at: '2026-10-03T16:42:30Z'
+  code_git_sha: 4ca727e098e6db01ae37b4474610c45a9b11558c
 required_distribution:
   easy: 6
   medium: 9
