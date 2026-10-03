@@ -192,7 +192,7 @@ def test_runtime_pending_state_overrides_task_router(session):
     assert "confirm_generation" in _names(backend.requests[0])
 
 
-def test_runtime_current_paper_routes_paper_operation(session):
+def test_runtime_ambiguous_paper_operation_fails_closed_before_model(session):
     backend = RecordingBackend()
 
     result = run_teacher_agent(
@@ -204,8 +204,6 @@ def test_runtime_current_paper_routes_paper_operation(session):
         backend=backend,
     )
 
-    assert result.status in {"completed", "needs_clarification"}
-    assert "当前任务模式：DIRECT_ACTION" in _system_text(backend.requests[0])
-    names = _names(backend.requests[0])
-    assert "preview_paper_changes" in names
-    assert "confirm_paper_changes" in names
+    assert result.status == "needs_clarification"
+    assert result.blocking_errors == ["ambiguous_question_address"]
+    assert backend.requests == []

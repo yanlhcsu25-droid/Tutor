@@ -396,7 +396,7 @@ def test_tool_using_turn_produces_full_span_tree(session):
         final("已找到第3题更简单的替代题，请确认。"),
     )
     result = run_teacher_agent(
-        session, "第3题太难了，换简单一点", conversation_id="t-tree",
+        session, "第3道计算题太难了，换简单一点", conversation_id="t-tree",
         paper_id=paper.id, version_id=paper.id, backend=backend,
     )
     assert result.status == "waiting_confirmation"

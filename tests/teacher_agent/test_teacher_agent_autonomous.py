@@ -243,6 +243,33 @@ def test_agent_reads_real_question_then_answers_from_observation(session):
     }
 
 
+def test_ambiguous_ordinal_mutation_fails_closed_before_model_or_tool(session):
+    paper = _paper(session)
+    backend = SequenceBackend()
+
+    result = run_teacher_agent(
+        session,
+        "删掉第二题。",
+        conversation_id="ambiguous-delete",
+        paper_id=paper.id,
+        version_id=paper.id,
+        backend=backend,
+    )
+
+    assert result.status == "needs_clarification"
+    assert result.blocking_errors == ["ambiguous_question_address"]
+    assert result.clarification_questions
+    assert backend.calls == []
+    assert DatabasePendingReplacementStore(session).get_adjustment(
+        "ambiguous-delete"
+    ) is None
+    trace = session.scalar(select(TeacherAgentRunTrace).where(
+        TeacherAgentRunTrace.conversation_id == "ambiguous-delete"
+    ))
+    assert trace.tool_calls_json == []
+    assert session.get(Paper, paper.id).version == 1
+
+
 def test_natural_replacement_reads_then_previews_and_waits_for_confirmation(session):
     paper = _paper(session)
     backend = SequenceBackend(
@@ -261,7 +288,7 @@ def test_natural_replacement_reads_then_previews_and_waits_for_confirmation(sess
         final("已找到第3题更简单的替代题，知识范围和题型符合要求。请确认后再替换。"),
     )
     result = run_teacher_agent(
-        session, "第3题太难了，换简单一点", conversation_id="replace",
+        session, "第3道计算题太难了，换简单一点", conversation_id="replace",
         paper_id=paper.id, version_id=paper.id, backend=backend,
     )
     assert result.status == "waiting_confirmation"
@@ -376,7 +403,7 @@ def test_paper_change_cannot_complete_after_read_without_preview(session):
     )
 
     result = run_teacher_agent(
-        session, "第3题太难，换一道简单一点。", conversation_id="preview-required",
+        session, "第3道计算题太难，换一道简单一点。", conversation_id="preview-required",
         paper_id=paper.id, version_id=paper.id, backend=backend,
     )
 
@@ -640,7 +667,7 @@ def test_paper_observation_is_invalidated_after_version_change(session):
     conversation_id = "paper-observation-version-change"
     preview = run_teacher_agent(
         session,
-        "第三题换简单一点",
+        "第3道计算题换简单一点",
         conversation_id=conversation_id,
         paper_id=paper.id,
         version_id=paper.id,
@@ -669,7 +696,7 @@ def test_paper_observation_is_invalidated_after_version_change(session):
     )
     result = run_teacher_agent(
         session,
-        "确认，并告诉我替换后第3题是什么。",
+        "确认，并告诉我替换后全卷第3题是什么。",
         conversation_id=conversation_id,
         paper_id=paper.id,
         version_id=paper.id,
@@ -680,7 +707,7 @@ def test_paper_observation_is_invalidated_after_version_change(session):
     assert result.message == "替换后第3题是“自主 Agent 真实题干4”。"
     trace = session.scalar(select(TeacherAgentRunTrace).where(
         TeacherAgentRunTrace.conversation_id == conversation_id,
-        TeacherAgentRunTrace.user_message == "确认，并告诉我替换后第3题是什么。",
+        TeacherAgentRunTrace.user_message == "确认，并告诉我替换后全卷第3题是什么。",
     ))
     observations = [
         call["paper_observation"]

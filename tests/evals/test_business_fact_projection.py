@@ -101,6 +101,19 @@ def test_runner_projects_unified_pending_paper_change():
     assert result["actual"]["pending_paper_change"]["exists"] is True
 
 
+def test_ambiguous_address_golden_case_passes_without_model_call():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+    case = next(item for item in suite.cases if item.id == "SMOKE-CLARIFY-01")
+    case.backend = {"behavior": "scripted", "responses": []}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["model_calls"] == 0
+    assert result["tool_calls"] == 0
+    assert result["actual"]["pending_paper_change"] is None
+
+
 def test_runner_grades_tool_lifecycle_across_multiple_turns():
     suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
     case = next(item for item in suite.cases if item.id == "SMOKE-GEN-04")

@@ -98,6 +98,7 @@ from calculus_agent.runtime.paper_request import (
     _explicit_question_addresses,
     _explicit_question_positions,
     _paper_read_messages,
+    has_ambiguous_question_mutation,
 )
 
 # Historical private import retained by the facade.
@@ -422,6 +423,18 @@ def _run_teacher_agent_turn(
                     message="无法读取会话上下文。",
                     blocking_errors=["conversation_context_error"],
                 ))
+        if (paper_id or version_id) and has_ambiguous_question_mutation(message):
+            question = (
+                "“第N题”可能表示全卷序号，也可能表示某个题型内序号。"
+                "请说明是“全卷第N题”还是“某题型第N题”。"
+            )
+            _persist_final_message(history_store, conversation_id, question)
+            return finish(TeacherAgentResult(
+                status="needs_clarification",
+                message=question,
+                clarification_questions=[question],
+                blocking_errors=["ambiguous_question_address"],
+            ))
         if backend is None:
             result = TeacherAgentResult(
                 status="failed",

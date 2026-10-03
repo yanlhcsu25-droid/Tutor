@@ -216,7 +216,7 @@ def test_agent_pending_adjustment_requires_explicit_confirm(session):
 def test_agent_adjustment_tool_accepts_removal_and_target_total(session):
     paper, *_ = _seed(session)
     preview = run_teacher_agent(
-        session, "删除第二题，总分改成8分", conversation_id="adjust-remove",
+        session, "删除选择题第二题，总分改成8分", conversation_id="adjust-remove",
         paper_id=paper.id, version_id=paper.id,
         backend=_Backend(
             _tool("preview_paper_changes", {
@@ -248,7 +248,7 @@ def test_paper_change_request_is_strict_and_uses_target_total_score():
 def test_pending_removal_plan_merges_later_total_score_patch(session):
     paper, *_ = _seed(session)
     first = run_teacher_agent(
-        session, "删除第二题", conversation_id="adjust-patch",
+        session, "删除选择题第二题", conversation_id="adjust-patch",
         paper_id=paper.id, version_id=paper.id,
         backend=_Backend(
             _tool("preview_paper_changes", {
@@ -295,7 +295,7 @@ def test_pending_adjustment_cannot_be_verbally_updated_without_new_preview(sessi
     paper, *_ = _seed(session)
     first = run_teacher_agent(
         session,
-        "删除第二题",
+        "删除选择题第二题",
         conversation_id="adjust-guard",
         paper_id=paper.id,
         version_id=paper.id,

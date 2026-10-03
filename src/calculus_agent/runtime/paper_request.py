@@ -67,10 +67,20 @@ _REVERSED_SECTION_QUESTION_PATTERN = re.compile(
     rf"[^。！？,，；;]{{0,12}}?"
     rf"(?P<section>选择题|多选题|填空题|计算题|证明题)"
 )
+_COUNTED_SECTION_QUESTION_PATTERN = re.compile(
+    rf"第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*道\s*"
+    rf"(?P<section>选择题|多选题|填空题|计算题|证明题)"
+)
 _GLOBAL_QUESTION_PATTERN = re.compile(
     rf"(?:全卷|全卷的)\s*第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*题"
 )
 _CHINESE_DIGITS = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+_BARE_QUESTION_PATTERN = re.compile(
+    rf"(?:第\s*)?(?:{_QUESTION_NUMBER_VALUE})\s*题"
+)
+_QUESTION_MUTATION_PATTERN = re.compile(
+    r"删除|删掉|去掉|换|替换|改|调整|分值"
+)
 
 _KNOWLEDGE_CONSTRAINT_TARGET = r"(?:知识点|考点)"
 _KNOWLEDGE_PRESERVE_ACTION = (
@@ -135,6 +145,7 @@ def _explicit_question_addresses(message: str) -> list[QuestionAddress]:
     for pattern in (
         _SECTION_QUESTION_PATTERN,
         _REVERSED_SECTION_QUESTION_PATTERN,
+        _COUNTED_SECTION_QUESTION_PATTERN,
     ):
         for match in pattern.finditer(message):
             section_order = _question_position(match.group("number"))
@@ -164,6 +175,16 @@ def _explicit_question_positions(message: str) -> list[int]:
             positions.append(position)
 
     return positions
+
+
+def has_ambiguous_question_mutation(message: str) -> bool:
+    """Reject mutations whose ordinal has no whole-paper or section namespace."""
+    return bool(
+        _QUESTION_MUTATION_PATTERN.search(message)
+        and _BARE_QUESTION_PATTERN.search(message)
+        and not _explicit_question_addresses(message)
+        and not _explicit_question_positions(message)
+    )
 
 
 def _apply_question_reference_hints(
