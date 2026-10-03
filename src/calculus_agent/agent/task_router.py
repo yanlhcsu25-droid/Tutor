@@ -229,6 +229,11 @@ _EXPLICIT_CURRICULUM_SCOPE_RE = re.compile(
 )
 
 
+_NEGATED_TEACHING_ARTIFACT_RE = re.compile(
+    r"(?:不要|不需要|暂时不要|先不要|别)\s*"
+    r"(?:建|创建|做|生成|形成)?\s*"
+    r"(?:教学设计|教学方案|复习计划|复习方案)"
+)
 _TEACHING_DESIGN_ARTIFACT_RE = re.compile(
     r"(?:设计|制定|做|形成|创建)[^，。；！？]{0,16}"
     r"(?:复习计划|复习方案|复习路径|教学计划|教学设计|教学方案|训练路径|专题课)"
@@ -243,7 +248,11 @@ def requires_teaching_design_artifact(message: str) -> bool:
 
     This intentionally does not parse scope, assessment, or generation fields.
     """
-    return bool(_TEACHING_DESIGN_ARTIFACT_RE.search(_normalize(message)))
+    normalized = _normalize(message)
+    return bool(
+        _TEACHING_DESIGN_ARTIFACT_RE.search(normalized)
+        and not _NEGATED_TEACHING_ARTIFACT_RE.search(normalized)
+    )
 
 
 def has_explicit_curriculum_scope(message: str) -> bool:
@@ -331,6 +340,20 @@ def deterministic_route(message: str, *, state: RoutingState) -> WorkflowDecisio
                 confidence=1.0,
                 clarification_needed=False,
                 reason="current paper operation wording under active paper context",
+            ),
+        )
+
+    if (
+        _NEGATED_TEACHING_ARTIFACT_RE.search(message)
+        and _INFORMATION_REQUEST_RE.search(message)
+    ):
+        return WorkflowDecision(
+            source="deterministic_operation",
+            route=TaskRoute(
+                task_type=TaskType.INFORMATION_REQUEST,
+                confidence=1.0,
+                clarification_needed=False,
+                reason="explicitly negated teaching artifact; consultation only",
             ),
         )
 

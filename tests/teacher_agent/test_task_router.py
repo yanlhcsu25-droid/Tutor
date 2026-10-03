@@ -48,6 +48,18 @@ def test_teaching_advice_does_not_require_artifact(message):
     assert route.clarification_needed is False
 
 
+def test_explicitly_negated_teaching_artifact_routes_to_consultation():
+    message = "暂时不要建教学设计，先讲讲高阶导数的教学重点。"
+
+    decision = decide_task(message)
+
+    assert requires_teaching_design_artifact(message) is False
+    assert decision.source == "deterministic_operation"
+    assert decision.route.task_type == TaskType.INFORMATION_REQUEST
+    assert decision.route.artifact_required is False
+    assert decision.route.clarification_needed is False
+
+
 def test_design_artifact_wins_over_embedded_exam_wording():
     decision = decide_task("帮我设计第一章和第二章的期中复习方案。")
 

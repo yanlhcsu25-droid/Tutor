@@ -63,6 +63,9 @@ _EXPLICIT_TYPE_COUNT_PATTERNS = (
         rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
     ),
 )
+_EXPLICIT_ASSESSMENT_SCORE_PATTERN = re.compile(
+    r"总分|满分|每题|\d{1,3}\s*分"
+)
 _QUESTION_TYPE_COUNT_PATTERNS = (
     re.compile(r"(?:选择题|填空题|计算题|证明题)[^。！？,，；;]{0,8}?\d{1,3}\s*(?:道|题)?"),
     re.compile(r"(?:选择题|填空题|计算题|证明题)[^。！？,，；;]{0,8}?[一二三四五六七八九十两]+\s*(?:道|题)"),
@@ -217,6 +220,27 @@ def _apply_explicit_opt_in_guards(
         ):
             updated.pop("question_type_requirements", None)
             updated.pop("question_type_patches", None)
+
+    if (
+        tool_name in {"create_teaching_design", "revise_teaching_design"}
+        and _EXPLICIT_ASSESSMENT_SCORE_PATTERN.search(message) is None
+    ):
+        container_key = "content" if tool_name == "create_teaching_design" else "patch"
+        container = updated.get(container_key)
+        if isinstance(container, dict):
+            assessment = container.get("assessment_plan")
+            if isinstance(assessment, dict):
+                requirements = assessment.get("question_type_requirements")
+                if isinstance(requirements, list):
+                    sanitized = {
+                        **assessment,
+                        "question_type_requirements": [
+                            {key: value for key, value in item.items() if key != "score_each"}
+                            if isinstance(item, dict) else item
+                            for item in requirements
+                        ],
+                    }
+                    updated[container_key] = {**container, "assessment_plan": sanitized}
 
     if tool_name != "preview_paper_changes" or _explicit_preserve_knowledge_points_requested(message):
         return updated

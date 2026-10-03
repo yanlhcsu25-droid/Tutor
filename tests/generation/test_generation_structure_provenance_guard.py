@@ -258,6 +258,57 @@ def test_pending_total_score_patch_is_restored_when_model_omits_it() -> None:
     assert guarded["total_score"] == 90
 
 
+def test_unrequested_teaching_assessment_scores_are_not_executable_constraints() -> None:
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="create_teaching_design",
+        arguments={
+            "content": {
+                "title": "第一章复习",
+                "objective": "巩固函数与极限",
+                "scope_names": ["第一章 函数与极限"],
+                "lesson_count": 2,
+                "assessment_plan": {
+                    "total_score": 100,
+                    "question_count": 2,
+                    "question_type_requirements": [{
+                        "question_type": "计算题",
+                        "count": 2,
+                        "score_each": 60,
+                    }],
+                },
+            },
+        },
+        message="给第一章设计一份两课时复习方案，先让我审核。",
+    )
+
+    requirement = guarded["content"]["assessment_plan"][
+        "question_type_requirements"
+    ][0]
+    assert requirement == {"question_type": "计算题", "count": 2}
+
+
+def test_teacher_explicit_assessment_scores_are_preserved_for_validation() -> None:
+    arguments = {
+        "content": {
+            "assessment_plan": {
+                "question_type_requirements": [{
+                    "question_type": "计算题",
+                    "count": 2,
+                    "score_each": 60,
+                }],
+            },
+        },
+    }
+
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="create_teaching_design",
+        arguments=arguments,
+        message="测验总分100分，计算题每题60分。",
+    )
+
+    assert guarded == arguments
+
+
 def test_pending_numeric_type_patch_is_preserved() -> None:
     patches = [
         {"question_type": "计算题", "count": 5},

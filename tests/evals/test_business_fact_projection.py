@@ -112,6 +112,22 @@ def test_runner_projects_unified_pending_paper_change():
     assert result["actual"]["pending_paper_change"]["exists"] is True
 
 
+def test_consultation_negation_does_not_create_business_artifact():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+    case = next(item for item in suite.cases if item.id == "SMOKE-CONSULT-01")
+    case.backend = {"behavior": "scripted", "responses": [{
+        "role": "assistant",
+        "content": "高阶导数教学应强调递推结构、符号规律和典型例题。",
+    }]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["active_teaching_design"] is None
+    assert result["actual"]["pending_generation"] is None
+    assert result["actual"]["pending_paper_change"] is None
+
+
 def test_explicit_type_distribution_is_restored_before_pending_persistence():
     suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
 
