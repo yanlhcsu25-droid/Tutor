@@ -79,6 +79,17 @@
         "failed": 1,
         "pass_rate": 0.5
       }
+    },
+    {
+      "path": "tests/evals/reports/targeted-teach01-20261003T164124Z.json",
+      "sha256": "f34bfd9ed4857de32a7126418e34b3387d7300068eae17efb7bf279cd8c72548",
+      "git_sha": "372f5b765e672653feb1c753a99090eb477df669",
+      "summary": {
+        "cases": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      }
     }
   ],
   "latest_outcomes": {
@@ -120,15 +131,14 @@
       ]
     },
     "teaching_design": {
-      "status": "partially_verified_provider_blocked",
-      "passed": [
+      "status": "passed_after_provider_retry",
+      "cases": [
+        "SMOKE-TEACH-01",
         "SMOKE-TEACH-02"
       ],
-      "provider_blocked": [
-        "SMOKE-TEACH-01"
-      ],
-      "note": "Post-fix deterministic lesson_count regression passes; live follow-up timed out before create_teaching_design."
+      "note": "Previous TEACH-01 follow-up was provider-blocked; isolated retry passed."
     }
   },
-  "full_golden_rerun_performed": false
+  "full_golden_rerun_performed": false,
+  "all_targeted_failure_classes_passed": true
 }
