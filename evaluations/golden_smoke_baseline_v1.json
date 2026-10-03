@@ -1,0 +1,421 @@
+{
+  "record_type": "golden_smoke_baseline",
+  "baseline_version": "v1",
+  "status": "sealed_raw_result",
+  "interpretation": "Automated grader baseline; not equivalent to human-confirmed Task Success.",
+  "raw_artifacts": {
+    "report": {
+      "path": "tests/evals/reports/golden-smoke-v1-rerun-20261003T124347Z.json",
+      "sha256": "ee34c3f33420360a1a0aa934740e1aad798ce82bd6afdcfdf72a37ceb09e3bbe",
+      "bytes": 4416431
+    },
+    "console_log": {
+      "path": "tests/evals/reports/golden-smoke-v1-rerun-20261003T124347Z.log",
+      "sha256": "3f2396481190469b519ad1d2bb79c5b9d0184bd79fdd10a8eab486856ed00a83",
+      "bytes": 8012
+    },
+    "provider_provenance": {
+      "path": "tests/evals/reports/golden-smoke-v1-rerun-20261003T124347Z.provenance.json",
+      "sha256": "0f1cadab3fc696480be2eac7bfaae3139cbe47c27e7e37f6651e07e7ffece7ad",
+      "bytes": 946
+    }
+  },
+  "run": {
+    "git_sha": "aebba583bb2fd9a0a285409a1ec8e86ed78907ad",
+    "git_dirty": false,
+    "variant": "state-policy",
+    "variant_config": {
+      "name": "state-policy",
+      "tools_enabled": true,
+      "persistent_state": true,
+      "grounding_guard": true,
+      "confirmation_guard": true,
+      "recovery_policy": true
+    },
+    "model_ids": [
+      "Qwen/Qwen3.5-35B-A3B"
+    ],
+    "temperature": 0,
+    "dataset_path": "tests/evals/cases/golden_smoke_v1.yaml",
+    "dataset_version": "b093f1748e66",
+    "dataset_sha": "b093f1748e66c8c4381a444777a0e34bfad7f4cf8e80a3a06386edf6112f03af"
+  },
+  "manifest_dataset_sha": "f0545f54b4c9703dc42533b38faf1fe04c3c3a03ead45569ef4228413d1d1c34",
+  "summary": {
+    "cases": 20,
+    "passed": 6,
+    "failed": 14,
+    "pass_rate": 0.3,
+    "model_calls": 64,
+    "recorded_total_tokens": 290125,
+    "usage_coverage_cases": 19,
+    "provider_timeouts": 1
+  },
+  "passed_case_ids": [
+    "SMOKE-PENDING-02",
+    "SMOKE-PENDING-04",
+    "SMOKE-READ-01",
+    "SMOKE-MODIFY-01",
+    "SMOKE-MODIFY-02",
+    "SMOKE-MODIFY-03"
+  ],
+  "failure_taxonomy": {
+    "generation_constraint_preservation": [
+      "SMOKE-GEN-02",
+      "SMOKE-GEN-03",
+      "SMOKE-MULTI-01",
+      "SMOKE-MULTI-02"
+    ],
+    "pending_patch_inheritance": [
+      "SMOKE-PENDING-01",
+      "SMOKE-PENDING-03",
+      "SMOKE-MULTI-01"
+    ],
+    "read_grounding_contract": [
+      "SMOKE-READ-02",
+      "SMOKE-READ-03"
+    ],
+    "teaching_design": [
+      "SMOKE-TEACH-01",
+      "SMOKE-TEACH-02"
+    ],
+    "ambiguous_address_side_effect": [
+      "SMOKE-CLARIFY-01"
+    ],
+    "final_score_consistency": [
+      "SMOKE-MULTI-02"
+    ],
+    "consultation_routing": [
+      "SMOKE-CONSULT-01"
+    ],
+    "grader_false_positive_review": [
+      "SMOKE-GEN-01",
+      "SMOKE-GEN-04",
+      "SMOKE-MULTI-01"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "SMOKE-GEN-01",
+      "category": "generation",
+      "difficulty": "easy",
+      "automated_pass": false,
+      "final_status": "waiting_confirmation",
+      "failure_type": "grounding",
+      "tools": [
+        "inspect_curriculum",
+        "inspect_question_bank",
+        "prepare_generation_plan"
+      ],
+      "model_calls": 4,
+      "total_tokens": 23644,
+      "latency_ms": 17660,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-GEN-02",
+      "category": "generation",
+      "difficulty": "medium",
+      "automated_pass": false,
+      "final_status": "waiting_confirmation",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "inspect_curriculum",
+        "inspect_question_bank",
+        "prepare_generation_plan"
+      ],
+      "model_calls": 4,
+      "total_tokens": 23826,
+      "latency_ms": 15362,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-GEN-03",
+      "category": "generation",
+      "difficulty": "medium",
+      "automated_pass": false,
+      "final_status": "waiting_confirmation",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "inspect_curriculum",
+        "inspect_question_bank",
+        "prepare_generation_plan"
+      ],
+      "model_calls": 4,
+      "total_tokens": 23829,
+      "latency_ms": 21303,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-GEN-04",
+      "category": "generation",
+      "difficulty": "hard",
+      "automated_pass": false,
+      "final_status": "needs_clarification",
+      "failure_type": "grounding",
+      "tools": [
+        "inspect_curriculum",
+        "inspect_question_bank",
+        "prepare_generation_plan",
+        "confirm_generation"
+      ],
+      "model_calls": 5,
+      "total_tokens": 26811,
+      "latency_ms": 17965,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-PENDING-01",
+      "category": "pending",
+      "difficulty": "easy",
+      "automated_pass": false,
+      "final_status": "waiting_confirmation",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "prepare_generation_plan"
+      ],
+      "model_calls": 2,
+      "total_tokens": 6750,
+      "latency_ms": 10342,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-PENDING-02",
+      "category": "pending",
+      "difficulty": "easy",
+      "automated_pass": true,
+      "final_status": "completed",
+      "failure_type": null,
+      "tools": [
+        "discard_pending_plan"
+      ],
+      "model_calls": 2,
+      "total_tokens": 6184,
+      "latency_ms": 2652,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-PENDING-03",
+      "category": "pending",
+      "difficulty": "medium",
+      "automated_pass": false,
+      "final_status": "waiting_confirmation",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "prepare_generation_plan"
+      ],
+      "model_calls": 2,
+      "total_tokens": 6623,
+      "latency_ms": 4958,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-PENDING-04",
+      "category": "pending",
+      "difficulty": "hard",
+      "automated_pass": true,
+      "final_status": "completed",
+      "failure_type": null,
+      "tools": [
+        "confirm_generation"
+      ],
+      "model_calls": 2,
+      "total_tokens": 6591,
+      "latency_ms": 9518,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-READ-01",
+      "category": "paper",
+      "difficulty": "easy",
+      "automated_pass": true,
+      "final_status": "completed",
+      "failure_type": null,
+      "tools": [
+        "read_paper"
+      ],
+      "model_calls": 2,
+      "total_tokens": 10586,
+      "latency_ms": 5005,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-READ-02",
+      "category": "paper",
+      "difficulty": "easy",
+      "automated_pass": false,
+      "final_status": "completed",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "analyze_paper"
+      ],
+      "model_calls": 2,
+      "total_tokens": 8990,
+      "latency_ms": 7554,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-READ-03",
+      "category": "paper",
+      "difficulty": "medium",
+      "automated_pass": false,
+      "final_status": "completed",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "analyze_paper"
+      ],
+      "model_calls": 2,
+      "total_tokens": 9084,
+      "latency_ms": 7690,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-MODIFY-01",
+      "category": "paper",
+      "difficulty": "medium",
+      "automated_pass": true,
+      "final_status": "waiting_confirmation",
+      "failure_type": null,
+      "tools": [
+        "read_paper",
+        "preview_paper_changes"
+      ],
+      "model_calls": 3,
+      "total_tokens": 13047,
+      "latency_ms": 10531,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-MODIFY-02",
+      "category": "paper",
+      "difficulty": "medium",
+      "automated_pass": true,
+      "final_status": "waiting_confirmation",
+      "failure_type": null,
+      "tools": [
+        "read_paper",
+        "preview_paper_changes"
+      ],
+      "model_calls": 3,
+      "total_tokens": 13063,
+      "latency_ms": 4817,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-MODIFY-03",
+      "category": "paper",
+      "difficulty": "medium",
+      "automated_pass": true,
+      "final_status": "waiting_confirmation",
+      "failure_type": null,
+      "tools": [
+        "read_paper",
+        "preview_paper_changes"
+      ],
+      "model_calls": 3,
+      "total_tokens": 13905,
+      "latency_ms": 12090,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-TEACH-01",
+      "category": "teaching",
+      "difficulty": "medium",
+      "automated_pass": false,
+      "final_status": "failed",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "inspect_curriculum",
+        "inspect_question_bank",
+        "create_teaching_design",
+        "create_teaching_design"
+      ],
+      "model_calls": 4,
+      "total_tokens": 19510,
+      "latency_ms": 55378,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-TEACH-02",
+      "category": "teaching",
+      "difficulty": "medium",
+      "automated_pass": false,
+      "final_status": "failed",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "retrieve_curriculum_candidates"
+      ],
+      "model_calls": 2,
+      "total_tokens": null,
+      "latency_ms": 150712,
+      "actual_usage_available": false
+    },
+    {
+      "case_id": "SMOKE-CONSULT-01",
+      "category": "teaching",
+      "difficulty": "easy",
+      "automated_pass": false,
+      "final_status": "needs_clarification",
+      "failure_type": "model_reasoning",
+      "tools": [
+        "inspect_curriculum"
+      ],
+      "model_calls": 1,
+      "total_tokens": 1971,
+      "latency_ms": 7386,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-CLARIFY-01",
+      "category": "ambiguity",
+      "difficulty": "hard",
+      "automated_pass": false,
+      "final_status": "waiting_confirmation",
+      "failure_type": "side_effect_violation",
+      "tools": [
+        "read_paper",
+        "preview_paper_changes"
+      ],
+      "model_calls": 4,
+      "total_tokens": 12939,
+      "latency_ms": 17157,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-MULTI-01",
+      "category": "multi_turn",
+      "difficulty": "hard",
+      "automated_pass": false,
+      "final_status": "waiting_confirmation",
+      "failure_type": "grounding",
+      "tools": [
+        "inspect_curriculum",
+        "inspect_question_bank",
+        "prepare_generation_plan",
+        "prepare_generation_plan"
+      ],
+      "model_calls": 7,
+      "total_tokens": 32032,
+      "latency_ms": 29772,
+      "actual_usage_available": true
+    },
+    {
+      "case_id": "SMOKE-MULTI-02",
+      "category": "multi_turn",
+      "difficulty": "hard",
+      "automated_pass": false,
+      "final_status": "completed",
+      "failure_type": "grounding",
+      "tools": [
+        "inspect_curriculum",
+        "inspect_question_bank",
+        "prepare_generation_plan",
+        "confirm_generation"
+      ],
+      "model_calls": 6,
+      "total_tokens": 30740,
+      "latency_ms": 54115,
+      "actual_usage_available": true
+    }
+  ]
+}
