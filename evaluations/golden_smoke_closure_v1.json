@@ -1,0 +1,42 @@
+{
+  "record_type": "golden_smoke_v1_closure",
+  "status": "targeted_regressions_complete",
+  "dataset_sha": "10087d9f769af1b0d3df8ad0ecefa53583a3361ab39cfa14b64811f4664453ca",
+  "runtime_grader_fixture_model_freeze": "6fb2d05ac8cc07546af175f924ed7a45bfd1406d",
+  "targeted_runs": [
+    {
+      "path": "tests/evals/reports/targeted-modify01-oracle-20261003T171859Z.json",
+      "sha256": "46e688460d03f7e9315329a65b1b7abad1b51fa883dbdec8f8162bcdf1098142",
+      "summary": {
+        "cases": 1,
+        "passed": 1,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "cases": [
+        "SMOKE-MODIFY-01"
+      ]
+    },
+    {
+      "path": "tests/evals/reports/targeted-provider-retry-20261003T171937Z.json",
+      "sha256": "338dab44ee97eaf42ff5dfa52b36b4f9a0fd8d5f8512d06507c82b91952d29de",
+      "summary": {
+        "cases": 2,
+        "passed": 2,
+        "failed": 0,
+        "pass_rate": 1.0
+      },
+      "cases": [
+        "SMOKE-CONSULT-01",
+        "SMOKE-MULTI-02"
+      ]
+    }
+  ],
+  "provider_retry_sidecar": "tests/evals/reports/targeted-provider-retry-20261003T171937Z.provenance.json",
+  "completion_criteria": {
+    "modify_preview_oracle": "passed",
+    "provider_failure_retry_cases": "passed",
+    "original_provider_timeout_history_preserved": true
+  },
+  "next_stage": "holdout_review_and_freeze"
+}
