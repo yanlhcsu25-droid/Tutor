@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import yaml
+
 from tests.evals.dataset_contract_audit import audit_paths, markdown
 
 
@@ -95,7 +97,7 @@ cases:
     assert audit_paths([suite])["cases"][0]["disposition"] == "valid"
 
 
-def test_v3_1_has_only_human_review_audit_blockers():
+def test_v3_1_has_only_remaining_human_review_audit_blockers():
     path = Path(
         "tests/evals/staging/tutor_workflow_eval_300_v3_1/"
         "tutor_workflow_eval_300_v3_1.yaml"
@@ -110,7 +112,38 @@ def test_v3_1_has_only_human_review_audit_blockers():
 
     assert report["summary"]["required_split_matches"] is True
     assert report["summary"]["cross_split_category_subtype_families"] == 0
-    assert findings == ["manual review status is 'pending'"] * 300
+    assert report["summary"]["dispositions"] == {
+        "ambiguous_label": 299,
+        "valid": 1,
+    }
+    assert findings == ["manual review status is 'pending'"] * 299
+
+
+def test_eval_265_is_a_grounded_read_only_current_paper_case():
+    path = Path(
+        "tests/evals/staging/tutor_workflow_eval_300_v3_1/"
+        "tutor_workflow_eval_300_v3_1.yaml"
+    )
+    cases = yaml.safe_load(path.read_text(encoding="utf-8"))["cases"]
+    case = next(item for item in cases if item["id"] == "EVAL-265")
+    acceptance = next(
+        grader for grader in case["graders"]
+        if isinstance(grader, dict) and grader.get("type") == "acceptance"
+    )
+
+    assert case["setup"]["current_paper"] == {
+        "question_count": 10,
+        "total_score": 100,
+    }
+    assert case["expected"] == {
+        "status": "completed",
+        "paper_db": {"persisted": True, "question_count": 10, "total_score": 100},
+        "response_facts": {"question_count": 10},
+        "pending_paper_change": None,
+    }
+    assert acceptance["required_tools"] == ["read_paper"]
+    assert "preview_paper_changes" in acceptance["forbidden_tools"]
+    assert "confirm_paper_changes" in acceptance["forbidden_tools"]
 
 
 def test_audit_flags_pending_review_and_ambiguous_paper_address(tmp_path: Path):

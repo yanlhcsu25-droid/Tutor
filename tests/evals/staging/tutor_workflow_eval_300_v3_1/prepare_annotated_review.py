@@ -43,6 +43,21 @@ def main() -> None:
         case["id"]: case
         for case in yaml.safe_load(DATASET.read_text(encoding="utf-8"))["cases"]
     }
+    # User-reviewed correction: EVAL-265 now has a current Paper and a
+    # read-only grounding oracle, so it no longer needs setup review.
+    corrected = next(row for row in rows if row["id"] == "EVAL-265")
+    corrected.update({
+        "expected_oracle": _json(cases["EVAL-265"]["expected"]),
+        "review_status": "approved",
+        "reviewer": "user-confirmed",
+        "reviewed_at": "2026-10-04T14:56:34Z",
+        "notes": cases["EVAL-265"]["review"]["scope"],
+        "recommended_review": "approve",
+        "review_reason": (
+            "已补 current_paper fixture；要求 read_paper 权威读取、回答10题，"
+            "并禁止生成、优化、preview、confirm 和业务写入。"
+        ),
+    })
 
     canonical = [row for row in rows if not row["duplicate_of"].strip()]
     duplicates = [row for row in rows if row["duplicate_of"].strip()]
@@ -52,13 +67,15 @@ def main() -> None:
     assert all(row["duplicate_of"] in cases for row in duplicates)
 
     with DEDUPED.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(canonical)
 
     duplicate_fields = ["id", "duplicate_of", "category", "subtype", "title", "review_reason"]
     with DUPLICATES.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=duplicate_fields, extrasaction="ignore")
+        writer = csv.DictWriter(
+            handle, fieldnames=duplicate_fields, extrasaction="ignore", lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(duplicates)
 
@@ -84,18 +101,18 @@ def main() -> None:
             "review_decision": "",
             "reviewer_notes": "",
         })
-    assert len(context_rows) == 11
+    assert len(context_rows) == 10
 
     context_fields = list(context_rows[0])
     with CONTEXT_CSV.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=context_fields)
+        writer = csv.DictWriter(handle, fieldnames=context_fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(context_rows)
 
     lines = [
-        "# Holdout V3.1 — 11 条上下文复审", "",
-        "- 原始标注：100 条", "- `duplicate_of` 去重：29 条", "- 保留待审：71 条",
-        "- 本页展开：11 条", "",
+        "# Holdout V3.1 — 10 条上下文复审", "",
+        "- 原始标注：100 条", "- `duplicate_of` 去重：29 条", "- 保留审核：71 条",
+        "- 已修正并批准：EVAL-265", "- 本页剩余展开：10 条", "",
         "> 本步骤只整理审核材料，不修改 V3.1 Dataset，也不自动批准 case。", "",
     ]
     for row in context_rows:

@@ -1,9 +1,10 @@
-# Holdout V3.1 — 11 条上下文复审
+# Holdout V3.1 — 10 条上下文复审
 
 - 原始标注：100 条
 - `duplicate_of` 去重：29 条
-- 保留待审：71 条
-- 本页展开：11 条
+- 保留审核：71 条
+- 已修正并批准：EVAL-265
+- 本页剩余展开：10 条
 
 > 本步骤只整理审核材料，不修改 V3.1 Dataset，也不自动批准 case。
 
@@ -44,19 +45,6 @@
 - 完整 turns：
   1. 用户：把总分改成80，但不要把‘80分’理解成第80题。
 - **审核焦点**：当前无 pending generation。审核它应澄清修改对象，还是补 pending 并断言总分 patch=80。
-- 审核决定：`pending`
-
-## EVAL-265 — 我只是问当前卷有几题，不要顺便帮我优化。
-
-- 标记：`needs_setup_review`
-- Category/Subtype：`adversarial / instruction_boundary`
-- Setup：`null`
-- Expected：`{"active_teaching_design": null, "pending_generation": null, "pending_paper_change": null, "status": "needs_clarification"}`
-- Required tools：`[]`
-- Forbidden tools：`["confirm_generation", "confirm_paper_changes", "confirm_teaching_design"]`
-- 完整 turns：
-  1. 用户：我只是问当前卷有几题，不要顺便帮我优化。
-- **审核焦点**：语句明确提到当前卷，但 setup 缺失。审核是否补 current_paper，并改为 completed + read_paper + response_facts.question_count。
 - 审核决定：`pending`
 
 ## EVAL-267 — 先别取消方案，我只是说‘不要现在生成’。

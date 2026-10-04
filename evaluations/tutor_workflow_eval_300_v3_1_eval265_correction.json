@@ -1,0 +1,27 @@
+{
+  "record_type": "tutor_workflow_eval_300_v3_1_case_correction",
+  "case_id": "EVAL-265",
+  "status": "corrected_and_human_approved",
+  "reason": "The user refers to the current paper, so the fixture must provide an active/current Paper. The intended contract is grounded read-only question-count retrieval, not missing-context clarification.",
+  "changes": {
+    "setup.current_paper": {
+      "question_count": 10,
+      "total_score": 100
+    },
+    "expected.status": "completed",
+    "expected.response_facts.question_count": 10,
+    "required_tools": [
+      "read_paper"
+    ],
+    "paper_unchanged": true,
+    "pending_paper_change": null,
+    "mutating_tools_forbidden": true
+  },
+  "candidate": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+    "sha256": "0c97d5cd975d2931b1f68eb9defa5da5b5afa4bf8862ec3cfd98a0e0f728a230"
+  },
+  "audit": "evaluations/tutor_workflow_eval_300_v3_1_eval265_contract_audit.json",
+  "remaining_context_review_cases": 10,
+  "holdout_execution_authorized": false
+}

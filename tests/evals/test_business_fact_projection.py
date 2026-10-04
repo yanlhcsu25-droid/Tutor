@@ -82,6 +82,27 @@ def test_runner_projects_paper_db_and_response_facts():
     }
 
 
+def test_eval_265_is_grounded_read_only_without_optimization_side_effects():
+    suite = load_eval_suite(
+        "tests/evals/staging/tutor_workflow_eval_300_v3_1/"
+        "tutor_workflow_eval_300_v3_1.yaml"
+    )
+    case = next(item for item in suite.cases if item.id == "EVAL-265")
+    case.backend = {"behavior": "scripted", "responses": [
+        _tool_call("read_paper", {}),
+        {"role": "assistant", "content": "当前试卷共10题。"},
+    ]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["response_facts"]["question_count"] == 10
+    assert result["actual"]["pending_paper_change"] is None
+    assert [
+        call["name"] for call in result["actual"]["trace"]["tool_calls"]
+    ] == ["read_paper"]
+
+
 def test_runner_projects_preview_artifact_separately_from_persisted_paper():
     suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
     case = next(item for item in suite.cases if item.id == "SMOKE-MODIFY-01")

@@ -95,6 +95,41 @@ def _repair_cancel(case: dict) -> bool:
     return True
 
 
+def _repair_current_paper_read(case: dict) -> bool:
+    if case["id"] != "EVAL-265":
+        return False
+    case["setup"] = {
+        "current_paper": {"question_count": 10, "total_score": 100},
+    }
+    case["expected"] = {
+        "status": "completed",
+        "paper_db": {
+            "persisted": True,
+            "question_count": 10,
+            "total_score": 100,
+        },
+        "response_facts": {"question_count": 10},
+        "pending_paper_change": None,
+    }
+    acceptance = _grader(case, "acceptance")
+    if acceptance is not None:
+        acceptance["statuses"] = ["completed"]
+        acceptance["required_tools"] = ["read_paper"]
+        acceptance["forbidden_tools"] = sorted(MUTATING_TOOLS)
+    safety = _grader(case, "workflow_safety")
+    if safety is not None:
+        safety["paper_unchanged"] = True
+        safety["forbidden_tools"] = sorted(MUTATING_TOOLS)
+    case["review"] = {
+        "status": "approved",
+        "scope": (
+            "存在 active/current Paper；必须基于 read_paper Observation 回答10题，"
+            "不得生成、优化、预览、确认或写入业务状态。"
+        ),
+    }
+    return True
+
+
 def _add_business_oracle(case: dict) -> bool:
     expected = case["expected"]
     if set(expected) != {"status"}:
@@ -173,16 +208,23 @@ def main() -> None:
         ),
         "derived_from": str(SOURCE),
     }
-    counts = {"ambiguous_address": 0, "cancel": 0, "business_oracle": 0}
+    counts = {
+        "ambiguous_address": 0,
+        "cancel": 0,
+        "business_oracle": 0,
+        "current_paper_read": 0,
+    }
     for case in payload["cases"]:
         counts["ambiguous_address"] += _repair_ambiguous_address(case)
         counts["cancel"] += _repair_cancel(case)
         counts["business_oracle"] += _add_business_oracle(case)
+        counts["current_paper_read"] += _repair_current_paper_read(case)
     payload["remediation"] = counts
     assert counts == {
         "ambiguous_address": 10,
         "cancel": 21,
         "business_oracle": 194,
+        "current_paper_read": 1,
     }
     assert sum(case["split"] == "dev" for case in payload["cases"]) == 200
     assert sum(case["split"] == "holdout_candidate" for case in payload["cases"]) == 100
@@ -196,7 +238,7 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=[
             "id", "category", "subtype", "difficulty", "title", "expected_oracle",
             "review_status", "reviewer", "reviewed_at", "notes",
-        ])
+        ], lineterminator="\n")
         writer.writeheader()
         for case in holdout:
             writer.writerow({
@@ -206,7 +248,7 @@ def main() -> None:
                 "difficulty": case["difficulty"],
                 "title": case["title"],
                 "expected_oracle": json.dumps(case["expected"], ensure_ascii=False, sort_keys=True),
-                "review_status": "pending",
+                "review_status": case["review"]["status"],
                 "reviewer": "",
                 "reviewed_at": "",
                 "notes": case["review"]["scope"],
