@@ -1,0 +1,28 @@
+{
+  "record_type": "tutor_workflow_eval_300_v3_1_review_intake",
+  "status": "deduplicated_context_review_pending",
+  "annotated_source": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/holdout_review_queue_v3_1_annotated.csv",
+    "sha256": "440db1be153a3f283d99428c3d89301a0bd5f96804c8d6ad71cad782954b9767",
+    "rows": 100
+  },
+  "deduplication": {
+    "rule": "exclude rows with non-empty duplicate_of",
+    "canonical_rows": 71,
+    "duplicate_rows": 29,
+    "deduplicated_queue": "tests/evals/staging/tutor_workflow_eval_300_v3_1/holdout_review_queue_v3_1_deduplicated.csv",
+    "duplicates": "tests/evals/staging/tutor_workflow_eval_300_v3_1/holdout_duplicates_v3_1.csv"
+  },
+  "review_summary": {
+    "recommended_approve_not_human_approved": 60,
+    "needs_setup_review": 8,
+    "needs_full_turn_review": 3,
+    "expanded_context_cases": 11
+  },
+  "expanded_review": {
+    "csv": "tests/evals/staging/tutor_workflow_eval_300_v3_1/holdout_context_review_v3_1.csv",
+    "markdown": "docs/holdout_context_review_v3_1.md"
+  },
+  "dataset_modified": false,
+  "holdout_execution_authorized": false
+}
