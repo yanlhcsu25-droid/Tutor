@@ -80,6 +80,17 @@ def _scope(session):
     return chapter
 
 
+def _small_comparison(session) -> None:
+    session.add(KnowledgeNode(
+        id="structured-small-comparison",
+        node_type="concept",
+        name="无穷小的比较",
+        normalized_name="无穷小的比较",
+        curriculum_node_id="structured-chapter",
+    ))
+    session.flush()
+
+
 def _candidate(
     session,
     *,
@@ -183,6 +194,102 @@ def test_complex_structured_input_builds_existing_blueprint_without_raw_parser(s
     assert request.constraints.allowed_difficulty_levels == [1, 2, 3, 4, 5]
     assert "difficulty_progression_is_soft" in warnings
     assert "diversity_preference_is_soft" in warnings
+
+
+def test_knowledge_target_and_count_are_enough_for_executable_preview(session):
+    _scope(session)
+    _small_comparison(session)
+
+    request, warnings, errors, questions = build_structured_generation_request(
+        session,
+        GeneratePaperInput(
+            paper_type="homework",
+            scope_names=["函数与极限"],
+            question_count=6,
+            knowledge_preferences=["无穷小的比较"],
+        ),
+    )
+
+    assert errors == []
+    assert questions == []
+    assert request is not None
+    assert request.blueprint.total_questions == 6
+    assert request.blueprint.total_score == 60
+    assert request.blueprint.soft_knowledge_preferences == ["无穷小的比较"]
+    assert "score_rebalance_ambiguous" not in errors
+
+
+def test_natural_scope_phrases_can_map_to_executable_generation_plans(session):
+    _scope(session)
+    _small_comparison(session)
+    examples = [
+        (
+            "函数与极限这部分，给我来6道练习，重点练等价无穷小替换",
+            6,
+            "无穷小的比较",
+        ),
+        ("围绕极限运算法则出5题专项作业", 5, "极限运算法则"),
+        ("函数极限总掌握不好，安排4道针对性练习题", 4, "函数极限"),
+    ]
+
+    for index, (message, count, knowledge) in enumerate(examples):
+        result = run_teacher_agent(
+            session,
+            message,
+            conversation_id=f"natural-scope-{index}",
+            backend=_Backend(
+                _tool(
+                    '{"paper_type":"homework","scope_names":["函数与极限"],'
+                    f'"question_count":{count},'
+                    f'"knowledge_preferences":["{knowledge}"]}}'
+                ),
+                _final("专项练习方案已准备，请确认。"),
+            ),
+        )
+
+        assert result.status == "waiting_confirmation", (index, result)
+        pending = DatabasePendingReplacementStore(session).get_generation(
+            f"natural-scope-{index}"
+        )
+        assert pending.request.scope_names == ["函数与极限"]
+        assert pending.request.question_count == count
+        assert pending.request.knowledge_preferences == [knowledge]
+
+
+def test_generation_draft_context_survives_follow_up_patch(session):
+    _scope(session)
+    _small_comparison(session)
+    conversation_id = "knowledge-exercise-follow-up"
+    first = run_teacher_agent(
+        session,
+        "函数与极限章节，出6道极限等价无穷小替换的题目",
+        conversation_id=conversation_id,
+        backend=_Backend(
+            _tool(
+                '{"paper_type":"homework","scope_names":["函数与极限"],'
+                '"question_count":6,"knowledge_preferences":["无穷小的比较"]}'
+            ),
+            _final("6题专项作业方案已准备，请确认。"),
+        ),
+    )
+    second = run_teacher_agent(
+        session,
+        "难度中等",
+        conversation_id=conversation_id,
+        backend=_Backend(
+            _final("请补充完整组卷要求。"),
+            _tool('{"difficulty_level":"normal"}'),
+            _final("已按中等难度更新方案。"),
+        ),
+    )
+
+    pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
+    assert first.status == "waiting_confirmation"
+    assert second.status == "waiting_confirmation"
+    assert pending.request.scope_names == ["函数与极限"]
+    assert pending.request.question_count == 6
+    assert pending.request.knowledge_preferences == ["无穷小的比较"]
+    assert pending.request.difficulty_level == "normal"
 
 
 def test_python_recomputes_section_score_total(session):

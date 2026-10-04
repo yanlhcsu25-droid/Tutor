@@ -115,6 +115,22 @@ def test_mixed_distribution_uses_explicit_whole_paper_total() -> None:
     ) == []
 
 
+def test_natural_generation_verbs_preserve_explicit_question_count() -> None:
+    for message, count in [
+        ("给我来6道等价无穷小练习", 6),
+        ("安排4道函数极限针对性练习题", 4),
+        ("准备五题极限运算法则专项作业", 5),
+    ]:
+        guarded = _apply_explicit_opt_in_guards(
+            tool_name="prepare_generation_plan",
+            arguments={"question_count": count},
+            message=message,
+        )
+
+        assert guarded["question_count"] == count
+        assert guarded["constraint_provenance"]["question_count"]["teacher_explicit"]
+
+
 def test_default_generation_strips_model_invented_structure() -> None:
     guarded = _apply_explicit_opt_in_guards(
         tool_name="prepare_generation_plan",

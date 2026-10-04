@@ -12,8 +12,13 @@ from calculus_agent.agent.task_router import (
 )
 
 
-def test_router_classifies_direct_action_generation_request():
-    decision = decide_task("第三章出10题测试卷")
+@pytest.mark.parametrize("message", [
+    "第三章出10题测试卷",
+    "函数与极限这部分，给我来6道练习，重点练等价无穷小替换",
+    "围绕极限运算法则出五题专项作业",
+])
+def test_router_classifies_direct_action_generation_request(message):
+    decision = decide_task(message)
 
     assert decision.source == "deterministic_operation"
     assert decision.route.task_type == TaskType.DIRECT_ACTION

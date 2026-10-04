@@ -648,9 +648,15 @@ def build_structured_generation_request(
         or []
     )
 
-    if required_names and not requirements:
-        # Generic hard-knowledge-coverage plan.  A trusted caller can specify
-        # required_knowledge_names without inventing a question-type split.
+    if not requirements and (
+        required_names
+        or (preferred_names and request.question_count is not None)
+    ):
+        # A knowledge-targeted exercise with an explicit question count is
+        # already executable. Do not force it through the chapter-test section
+        # template: resizing that fixed 100-point template can create a fake
+        # score_rebalance_ambiguous clarification. Missing type/score choices
+        # are defaults, not missing teacher requirements.
         required_count = len(required_names)
         desired_count = (
             request.question_count
@@ -927,11 +933,17 @@ def build_structured_generation_request(
             or built.paper_blueprint
             is None
         ):
+            clarification = (
+                "当前题量与总分无法按0.5分粒度自动分配；"
+                "请调整总分，或明确各题型及每题分值。"
+                if "score_rebalance_ambiguous" in built.blocking_errors
+                else "当前组卷条件存在冲突，请调整范围、题量、总分或题型分值。"
+            )
             return (
                 None,
                 built.warnings,
                 built.blocking_errors,
-                ["请补充完整的组卷要求。"],
+                [clarification],
             )
 
         blueprint = (
