@@ -164,17 +164,19 @@ def audit_paths(paths: list[Path]) -> dict[str, Any]:
         if not isinstance(cases, list):
             suites.append({"path": _display_path(path), "parse_error": "cases must be a list", "case_count": 0})
             continue
-        split = (payload.get("suite") or {}).get("split")
+        suite_split = (payload.get("suite") or {}).get("split")
         suites.append({
-            "path": _display_path(path), "split": split,
+            "path": _display_path(path), "split": suite_split,
             "case_count": len(cases), "parse_error": None,
         })
         for case in cases:
             if not isinstance(case, dict):
                 findings = [_finding("runner_unsupported", "case must be an object")]
                 case_id = "<invalid-case>"
+                case_split = suite_split or "unspecified"
             else:
                 case_id = str(case.get("id") or "<missing-id>")
+                case_split = case.get("split") or suite_split or "unspecified"
                 findings = _workflow_case_findings(case)
                 if case_id in seen_ids:
                     findings.append(_finding("runner_unsupported", "duplicate case id across dataset"))
@@ -182,12 +184,13 @@ def audit_paths(paths: list[Path]) -> dict[str, Any]:
             results.append({
                 "case_id": case_id,
                 "suite": path.name,
+                "split": str(case_split),
                 "disposition": _disposition(findings),
                 "findings": findings,
             })
 
     counts = Counter(result["disposition"] for result in results)
-    split_counts = Counter(str(suite.get("split") or "unspecified") for suite in suites for _ in range(suite["case_count"]))
+    split_counts = Counter(result["split"] for result in results)
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "dataset_sha256": dataset_hash.hexdigest(),
@@ -198,7 +201,10 @@ def audit_paths(paths: list[Path]) -> dict[str, Any]:
             "split_counts": dict(sorted(split_counts.items())),
             "expected_case_count": 300,
             "case_count_matches": len(results) == 300,
-            "required_split_matches": split_counts.get("development", 0) == 200 and split_counts.get("holdout_candidate", 0) == 100,
+            "required_split_matches": (
+                split_counts.get("development", 0) + split_counts.get("dev", 0) == 200
+                and split_counts.get("holdout_candidate", 0) == 100
+            ),
         },
         "suites": suites,
         "cases": results,

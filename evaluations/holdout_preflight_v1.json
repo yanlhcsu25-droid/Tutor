@@ -1,0 +1,24 @@
+{
+  "record_type": "holdout_preflight_v1",
+  "status": "holdout_not_frozen",
+  "system_configuration_lock": {
+    "git_sha": "ab4c5136ffaea1e12ee6f249061be5efee0fbcdc",
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-35B-A3B",
+    "backend_adapter": "BailianChatBackend",
+    "protocol": "openai_compatible",
+    "runtime_sha256": "8f834a0e807d0385fee3f704dab7482d62c9ed37ecf7b4180f94e4e2468890f1",
+    "grader_sha256": "d82f514fa274559de15010a1147dc16e62437ee1920f39f7ce85605701faa9e3",
+    "fixture_sha256": "96627a9e9e25ea039e39fb8456745328f9049fedfab748998f4c40a0c59d9908",
+    "runner_sha256": "8764cb476376327e26566aedb893cfe7ebab1265f03519437fe292a00e84c3f2",
+    "model_configuration_sha256": "0f97eb166dbd768298ad4efa3f5a3bd5c5c51426ee74513a93f2bc69bf861f4d"
+  },
+  "candidate_dataset": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v2/tutor_workflow_eval_300_v2.yaml",
+    "sha256": "e2249d95960769d5ba34e93d558dd14ff9ccaf28b5a660954fa81e200c74a7ae",
+    "status": "staging_only"
+  },
+  "audit": "evaluations/tutor_workflow_eval_300_v2_contract_audit.json",
+  "decision": "blocked_pending_holdout_remediation_and_human_review",
+  "holdout_execution_authorized": false
+}

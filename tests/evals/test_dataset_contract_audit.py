@@ -32,6 +32,24 @@ cases:
     assert "Cases found: **2** / expected **300**" in markdown(report)
 
 
+def test_audit_counts_case_level_splits(tmp_path: Path):
+    suite = tmp_path / "cases.yaml"
+    cases = "\n".join(
+        f"  - id: DEV-{index}\n    split: dev\n    turns: [{{user: ok}}]\n    expected: {{status: completed}}\n    graders: [state]"
+        for index in range(200)
+    )
+    cases += "\n" + "\n".join(
+        f"  - id: HOLDOUT-{index}\n    split: holdout_candidate\n    turns: [{{user: ok}}]\n    expected: {{status: completed}}\n    graders: [state]"
+        for index in range(100)
+    )
+    suite.write_text(f"cases:\n{cases}\n", encoding="utf-8")
+
+    report = audit_paths([suite])
+
+    assert report["summary"]["split_counts"] == {"dev": 200, "holdout_candidate": 100}
+    assert report["summary"]["required_split_matches"] is True
+
+
 def test_audit_flags_pending_review_and_ambiguous_paper_address(tmp_path: Path):
     suite = tmp_path / "cases.yaml"
     suite.write_text(
