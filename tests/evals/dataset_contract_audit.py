@@ -174,9 +174,11 @@ def audit_paths(paths: list[Path]) -> dict[str, Any]:
                 findings = [_finding("runner_unsupported", "case must be an object")]
                 case_id = "<invalid-case>"
                 case_split = suite_split or "unspecified"
+                family = None
             else:
                 case_id = str(case.get("id") or "<missing-id>")
                 case_split = case.get("split") or suite_split or "unspecified"
+                family = (str(case.get("category") or ""), str(case.get("subtype") or ""))
                 findings = _workflow_case_findings(case)
                 if case_id in seen_ids:
                     findings.append(_finding("runner_unsupported", "duplicate case id across dataset"))
@@ -185,12 +187,19 @@ def audit_paths(paths: list[Path]) -> dict[str, Any]:
                 "case_id": case_id,
                 "suite": path.name,
                 "split": str(case_split),
+                "family": family,
                 "disposition": _disposition(findings),
                 "findings": findings,
             })
 
     counts = Counter(result["disposition"] for result in results)
     split_counts = Counter(result["split"] for result in results)
+    family_splits: dict[tuple[str, str], set[str]] = {}
+    for result in results:
+        family = result["family"]
+        if family is not None:
+            family_splits.setdefault(family, set()).add(result["split"])
+    cross_split_families = sum(len(splits) > 1 for splits in family_splits.values())
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "dataset_sha256": dataset_hash.hexdigest(),
@@ -205,6 +214,7 @@ def audit_paths(paths: list[Path]) -> dict[str, Any]:
                 split_counts.get("development", 0) + split_counts.get("dev", 0) == 200
                 and split_counts.get("holdout_candidate", 0) == 100
             ),
+            "cross_split_category_subtype_families": cross_split_families,
         },
         "suites": suites,
         "cases": results,
@@ -218,6 +228,7 @@ def markdown(report: dict[str, Any]) -> str:
         f"- Dataset SHA256: `{report['dataset_sha256']}`",
         f"- Cases found: **{summary['case_count']}** / expected **300**",
         f"- 200 Development + 100 Holdout Candidate: **{'PASS' if summary['required_split_matches'] else 'FAIL'}**",
+        f"- Cross-split category/subtype families: **{summary['cross_split_category_subtype_families']}**",
         "",
         "## Dispositions", "",
         "| Disposition | Count |", "| --- | ---: |",

@@ -50,6 +50,32 @@ def test_audit_counts_case_level_splits(tmp_path: Path):
     assert report["summary"]["required_split_matches"] is True
 
 
+def test_audit_counts_cross_split_category_subtype_families(tmp_path: Path):
+    suite = tmp_path / "cases.yaml"
+    suite.write_text(
+        """
+cases:
+  - id: DEV-1
+    split: dev
+    category: paper
+    subtype: read
+    turns: [{user: ok}]
+    expected: {status: completed}
+    graders: [state]
+  - id: HOLDOUT-1
+    split: holdout_candidate
+    category: paper
+    subtype: read
+    turns: [{user: ok}]
+    expected: {status: completed}
+    graders: [state]
+""",
+        encoding="utf-8",
+    )
+
+    assert audit_paths([suite])["summary"]["cross_split_category_subtype_families"] == 1
+
+
 def test_audit_flags_pending_review_and_ambiguous_paper_address(tmp_path: Path):
     suite = tmp_path / "cases.yaml"
     suite.write_text(
