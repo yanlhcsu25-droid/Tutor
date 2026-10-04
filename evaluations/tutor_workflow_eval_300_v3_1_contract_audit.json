@@ -1,0 +1,5129 @@
+{
+  "generated_at": "2026-10-04T12:18:21.350083+00:00",
+  "dataset_sha256": "7b85e357ff53528514dc6eb0f45733416b8337f0a6b94d824a1da164f947e87f",
+  "summary": {
+    "suite_count": 1,
+    "case_count": 300,
+    "dispositions": {
+      "ambiguous_label": 300
+    },
+    "split_counts": {
+      "dev": 200,
+      "holdout_candidate": 100
+    },
+    "expected_case_count": 300,
+    "case_count_matches": true,
+    "required_split_matches": true,
+    "cross_split_category_subtype_families": 0
+  },
+  "suites": [
+    {
+      "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+      "split": null,
+      "case_count": 300,
+      "parse_error": null
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "EVAL-001",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-001"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-002",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-002"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-003",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-003"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-004",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-004"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-005",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-005"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-006",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-006"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-007",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-007"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-008",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-008"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-009",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-009"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-010",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-010"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-011",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-011"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-012",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-012"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-013",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-013"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-014",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-014"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-015",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-015"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-016",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-016"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-017",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-017"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-018",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-018"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-019",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-019"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-020",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-020"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-021",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-021"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-022",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-022"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-023",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-023"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-024",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-024"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-025",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-025"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-026",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-026"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-027",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-027"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-028",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-028"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-029",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-029"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-030",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-030"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-031",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-031"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-032",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-032"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-033",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-033"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-034",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-034"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-035",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-035"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-036",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-036"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-037",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-037"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-038",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-038"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-039",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-039"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-040",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-040"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-041",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-041"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-042",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-042"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-043",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-043"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-044",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-044"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-045",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "generation",
+        "preview_generation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-045"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-046",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-046"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-047",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-047"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-048",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-048"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-049",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-049"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-050",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-050"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-051",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-051"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-052",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-052"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-053",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-053"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-054",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-054"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-055",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-055"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-056",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-056"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-057",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-057"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-058",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-058"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-059",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-059"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-060",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-060"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-061",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-061"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-062",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-062"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-063",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-063"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-064",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-064"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-065",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-065"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-066",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-066"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-067",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-067"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-068",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-068"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-069",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-069"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-070",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "generation",
+        "shortage_or_conflict"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-070"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-071",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-071"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-072",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-072"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-073",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "multi_field_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-073"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-074",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "patch_no_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-074"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-075",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "idempotent_plus_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-075"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-076",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-076"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-077",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-077"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-078",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "multi_field_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-078"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-079",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-079"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-080",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-080"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-081",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "multi_field_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-081"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-082",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "patch_no_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-082"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-083",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "idempotent_plus_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-083"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-084",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-084"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-085",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-085"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-086",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "multi_field_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-086"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-087",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-087"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-088",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-088"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-089",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "multi_field_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-089"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-090",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "patch_no_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-090"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-091",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "idempotent_plus_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-091"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-092",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-092"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-093",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "partial_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-093"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-094",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "multi_field_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-094"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-095",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-095"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-096",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-096"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-097",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-097"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-098",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-098"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-099",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-099"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-100",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-100"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-101",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-101"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-102",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-102"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-103",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-103"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-104",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-104"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-105",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-105"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-106",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "pending",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-106"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-107",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "pause_keep_pending"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-107"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-108",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "pause_keep_pending"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-108"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-109",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "pause_keep_pending"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-109"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-110",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "pause_keep_pending"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-110"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-111",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "pause_keep_pending"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-111"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-112",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "pause_keep_pending"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-112"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-113",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "explicit_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-113"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-114",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "explicit_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-114"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-115",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "pending",
+        "explicit_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-115"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-116",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_count"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-116"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-117",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_score"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-117"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-118",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_type_distribution"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-118"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-119",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_item_read"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-119"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-120",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_structure_summary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-120"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-121",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_specific_type_count"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-121"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-122",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_typed_index"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-122"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-123",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_readonly_score_check"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-123"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-124",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_item_read"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-124"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-125",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_difficulty_readonly"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-125"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-126",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_count"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-126"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-127",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_score"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-127"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-128",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_type_distribution"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-128"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-129",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_item_read"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-129"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-130",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_structure_summary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-130"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-131",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_specific_type_count"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-131"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-132",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_typed_index"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-132"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-133",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_readonly_score_check"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-133"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-134",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_item_read"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-134"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-135",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_difficulty_readonly"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-135"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-136",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_count"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-136"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-137",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_score"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-137"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-138",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_type_distribution"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-138"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-139",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_item_read"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-139"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-140",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_structure_summary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-140"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-141",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "delete_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-141"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-142",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "replace_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-142"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-143",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "replace_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-143"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-144",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "add_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-144"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-145",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "delete_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-145"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-146",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "typed_replace"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-146"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-147",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "multi_op_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-147"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-148",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "confirm_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-148"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-149",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "implicit_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-149"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-150",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "target_preservation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-150"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-151",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "ambiguous_address"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-151"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-152",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "missing_target"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-152"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-153",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "typed_delete"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-153"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-154",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "same_difficulty_replace"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-154"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-155",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "score_change_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-155"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-156",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "delete_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-156"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-157",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "replace_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-157"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-158",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "replace_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-158"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-159",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "add_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-159"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-160",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "delete_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-160"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-161",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "typed_replace"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-161"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-162",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "multi_op_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-162"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-163",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "confirm_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-163"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-164",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "implicit_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-164"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-165",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "target_preservation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-165"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-166",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "ambiguous_address"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-166"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-167",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "missing_target"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-167"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-168",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "typed_delete"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-168"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-169",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "same_difficulty_replace"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-169"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-170",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "score_change_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-170"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-171",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "delete_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-171"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-172",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "replace_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-172"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-173",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "replace_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-173"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-174",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "add_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-174"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-175",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "paper",
+        "delete_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-175"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-176",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "typed_replace"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-176"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-177",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "multi_op_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-177"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-178",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "confirm_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-178"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-179",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "implicit_preview"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-179"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-180",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "target_preservation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-180"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-181",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_item"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-181"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-182",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_type_count"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-182"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-183",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_summary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-183"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-184",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_item"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-184"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-185",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "typed_read"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-185"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-186",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_type_exists"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-186"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-187",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_last"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-187"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-188",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_type_count"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-188"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-189",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "typed_read"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-189"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-190",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "read_structure"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-190"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-191",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "missing_target"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-191"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-192",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "missing_context"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-192"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-193",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "ambiguous_target"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-193"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-194",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "ambiguous_target"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-194"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-195",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "paper",
+        "underspecified_change"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-195"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-196",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-196"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-197",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-197"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-198",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-198"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-199",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-199"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-200",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-200"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-201",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-201"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-202",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-202"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-203",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-203"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-204",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-204"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-205",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-205"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-206",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-206"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-207",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-207"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-208",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-208"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-209",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-209"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-210",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-210"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-211",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-211"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-212",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-212"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-213",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "teaching",
+        "design_create"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-213"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-214",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-214"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-215",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-215"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-216",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-216"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-217",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-217"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-218",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-218"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-219",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-219"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-220",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-220"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-221",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-221"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-222",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-222"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-223",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-223"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-224",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-224"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-225",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-225"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-226",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-226"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-227",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-227"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-228",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-228"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-229",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-229"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-230",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-230"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-231",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-231"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-232",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-232"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-233",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "consultation"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-233"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-234",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "underspecified"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-234"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-235",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "underspecified"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-235"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-236",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "underspecified"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-236"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-237",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "underspecified"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-237"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-238",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "underspecified"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-238"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-239",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "underspecified"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-239"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-240",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "teaching",
+        "underspecified"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-240"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-241",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-241"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-242",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-242"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-243",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-243"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-244",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-244"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-245",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-245"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-246",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-246"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-247",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-247"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-248",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-248"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-249",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-249"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-250",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-250"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-251",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-251"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-252",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-252"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-253",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-253"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-254",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-254"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-255",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-255"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-256",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-256"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-257",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-257"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-258",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-258"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-259",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-259"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-260",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "ambiguity",
+        "missing_context_or_referent"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-260"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-261",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-261"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-262",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-262"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-263",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-263"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-264",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-264"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-265",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-265"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-266",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-266"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-267",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-267"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-268",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-268"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-269",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-269"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-270",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "adversarial",
+        "instruction_boundary"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-270"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-271",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pending_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-271"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-272",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pending_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-272"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-273",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-273"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-274",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "read_then_modify"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-274"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-275",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "preview_then_cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-275"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-276",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "teaching_revision"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-276"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-277",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "three_turn_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-277"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-278",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "readonly_chain"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-278"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-279",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "multi_turn",
+        "generate_then_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-279"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-280",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pause_then_cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-280"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-281",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pending_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-281"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-282",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pending_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-282"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-283",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-283"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-284",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "read_then_modify"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-284"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-285",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "preview_then_cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-285"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-286",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "teaching_revision"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-286"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-287",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "three_turn_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-287"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-288",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "readonly_chain"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-288"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-289",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "multi_turn",
+        "generate_then_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-289"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-290",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pause_then_cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-290"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-291",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pending_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-291"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-292",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pending_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-292"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-293",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-293"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-294",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "read_then_modify"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-294"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-295",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "preview_then_cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-295"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-296",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "teaching_revision"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-296"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-297",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "three_turn_patch"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-297"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-298",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "readonly_chain"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-298"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-299",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "holdout_candidate",
+      "family": [
+        "multi_turn",
+        "generate_then_confirm"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-299"
+        }
+      ]
+    },
+    {
+      "case_id": "EVAL-300",
+      "suite": "tutor_workflow_eval_300_v3_1.yaml",
+      "split": "dev",
+      "family": [
+        "multi_turn",
+        "pause_then_cancel"
+      ],
+      "disposition": "ambiguous_label",
+      "findings": [
+        {
+          "kind": "ambiguous_label",
+          "message": "manual review status is 'pending'",
+          "case_id": "EVAL-300"
+        }
+      ]
+    }
+  ]
+}

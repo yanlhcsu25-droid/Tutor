@@ -36,6 +36,7 @@ DISPOSITION_ORDER = {
 }
 AMBIGUOUS_ADDRESS = re.compile(r"(?<!全卷)(?<!选择题)(?<!填空题)(?<!计算题)(?<!证明题)第\s*[一二三四五六七八九十\d]+\s*题")
 CONFIRM_WORDS = re.compile(r"确认|生成吧|就按这个|应用|提交")
+CANCEL_WORDS = re.compile(r"取消|放弃|不要了|不要这个|作废|终止|撤销")
 
 
 def _finding(kind: str, message: str) -> dict[str, str]:
@@ -73,6 +74,10 @@ def _workflow_case_findings(case: dict[str, Any]) -> list[dict[str, str]]:
     elif expected.get("status") not in LEGAL_STATUSES:
         findings.append(_finding(
             "fixture_mismatch", f"expected.status={expected.get('status')!r} is not legal",
+        ))
+    elif set(expected) == {"status"}:
+        findings.append(_finding(
+            "ambiguous_label", "expected asserts only final status; business oracle is missing",
         ))
 
     if not isinstance(setup, dict):
@@ -116,8 +121,13 @@ def _workflow_case_findings(case: dict[str, Any]) -> list[dict[str, str]]:
         grader for grader in graders
         if isinstance(grader, dict) and grader.get("type") == "workflow_safety"
     ]
-    if CONFIRM_WORDS.search(user_text) and expected_status == "completed" and any(
-        grader.get("paper_unchanged") is True for grader in safety_graders
+    if (
+        CONFIRM_WORDS.search(user_text)
+        and not CANCEL_WORDS.search(user_text)
+        and expected_status == "completed"
+        and any(
+            grader.get("paper_unchanged") is True for grader in safety_graders
+        )
     ):
         findings.append(_finding(
             "fixture_mismatch", "confirmation expects completed but paper_unchanged=true",
@@ -128,6 +138,18 @@ def _workflow_case_findings(case: dict[str, Any]) -> list[dict[str, str]]:
     ):
         findings.append(_finding(
             "grader_unsupported", "clarification case has no structured status/acceptance grader",
+        ))
+
+    subtype = str(case.get("subtype") or "")
+    required_tools = {
+        tool
+        for grader in graders
+        if isinstance(grader, dict) and grader.get("type") == "acceptance"
+        for tool in grader.get("required_tools") or []
+    }
+    if "cancel" in subtype and "discard_pending_plan" not in required_tools:
+        findings.append(_finding(
+            "ambiguous_label", "cancel contract does not require discard_pending_plan",
         ))
 
     # Keep the id in exception messages when this function is reused directly.

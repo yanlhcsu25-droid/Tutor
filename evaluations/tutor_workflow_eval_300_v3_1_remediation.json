@@ -1,0 +1,31 @@
+{
+  "record_type": "tutor_workflow_eval_300_v3_1_remediation",
+  "status": "staging_pending_human_review",
+  "source": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3/tutor_workflow_eval_300_v3.yaml",
+    "sha256": "25ee3fc094c494854334bae8a199accabf031878244b252d79570e9a8dcc0e8a"
+  },
+  "candidate": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+    "sha256": "3a66b287f2df619510169f5d5d73f4a38aae1b9b6cd729833a6802b43fbbf942",
+    "dev_cases": 200,
+    "holdout_candidate_cases": 100
+  },
+  "remediation": {
+    "unqualified_address_contracts_repaired": 10,
+    "cancel_contracts_repaired": 21,
+    "original_status_only_cases_repaired": 213,
+    "direct_business_oracle_additions": 194,
+    "confirmation_conflict_false_positives_removed": 5,
+    "cross_split_category_subtype_families": 0
+  },
+  "audit": "evaluations/tutor_workflow_eval_300_v3_1_contract_audit.json",
+  "holdout_review_queue": "tests/evals/staging/tutor_workflow_eval_300_v3_1/holdout_review_queue_v3_1.csv",
+  "human_review": {
+    "required": 100,
+    "completed": 0,
+    "pending": 100
+  },
+  "holdout_execution_authorized": false,
+  "historical_candidates_modified": false
+}

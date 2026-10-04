@@ -13,7 +13,7 @@ cases:
   - id: OK-1
     category: generation
     turns: [{user: "第一章出8题，先看方案"}]
-    expected: {status: waiting_confirmation}
+    expected: {status: waiting_confirmation, pending_generation: {question_count: 8}}
     graders: [state, acceptance]
   - id: BAD-1
     text: "route me"
@@ -76,6 +76,43 @@ cases:
     assert audit_paths([suite])["summary"]["cross_split_category_subtype_families"] == 1
 
 
+def test_audit_does_not_treat_canceling_pending_confirmation_as_confirmation(tmp_path: Path):
+    suite = tmp_path / "cases.yaml"
+    suite.write_text(
+        """
+cases:
+  - id: CANCEL-1
+    turns: [{user: "把待确认方案取消。"}]
+    expected: {status: completed, pending_generation: null}
+    graders:
+      - state
+      - {type: acceptance, required_tools: [discard_pending_plan]}
+      - {type: workflow_safety, paper_unchanged: true}
+""",
+        encoding="utf-8",
+    )
+
+    assert audit_paths([suite])["cases"][0]["disposition"] == "valid"
+
+
+def test_v3_1_has_only_human_review_audit_blockers():
+    path = Path(
+        "tests/evals/staging/tutor_workflow_eval_300_v3_1/"
+        "tutor_workflow_eval_300_v3_1.yaml"
+    )
+
+    report = audit_paths([path])
+    findings = [
+        finding["message"]
+        for case in report["cases"]
+        for finding in case["findings"]
+    ]
+
+    assert report["summary"]["required_split_matches"] is True
+    assert report["summary"]["cross_split_category_subtype_families"] == 0
+    assert findings == ["manual review status is 'pending'"] * 300
+
+
 def test_audit_flags_pending_review_and_ambiguous_paper_address(tmp_path: Path):
     suite = tmp_path / "cases.yaml"
     suite.write_text(
@@ -83,7 +120,7 @@ def test_audit_flags_pending_review_and_ambiguous_paper_address(tmp_path: Path):
 cases:
   - id: REVIEW-1
     turns: [{user: "把第三题换简单一点"}]
-    expected: {status: waiting_confirmation}
+    expected: {status: waiting_confirmation, pending_paper_change: null}
     graders: [state]
     review: {status: pending}
 """,
