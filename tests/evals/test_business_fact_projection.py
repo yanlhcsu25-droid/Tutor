@@ -103,6 +103,26 @@ def test_eval_265_is_grounded_read_only_without_optimization_side_effects():
     ] == ["read_paper"]
 
 
+def test_eval_267_pause_preserves_pending_without_lifecycle_tool():
+    suite = load_eval_suite(
+        "tests/evals/staging/tutor_workflow_eval_300_v3_1/"
+        "tutor_workflow_eval_300_v3_1.yaml"
+    )
+    case = next(item for item in suite.cases if item.id == "EVAL-267")
+    case.backend = {"behavior": "scripted", "responses": [
+        {"role": "assistant", "content": "好的，保留当前方案，暂不生成。"},
+        {"role": "assistant", "content": "当前方案保持待确认，不生成也不取消。"},
+    ]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["status"] == "waiting_confirmation"
+    assert result["actual"]["pending_generation"]["question_count"] == 6
+    assert result["actual"]["pending_generation"]["total_score"] == 60
+    assert result["actual"]["trace"]["tool_calls"] == []
+
+
 def test_runner_projects_preview_artifact_separately_from_persisted_paper():
     suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
     case = next(item for item in suite.cases if item.id == "SMOKE-MODIFY-01")

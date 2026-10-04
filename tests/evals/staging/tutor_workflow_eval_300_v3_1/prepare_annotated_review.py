@@ -58,6 +58,19 @@ def main() -> None:
             "并禁止生成、优化、preview、confirm 和业务写入。"
         ),
     })
+    corrected = next(row for row in rows if row["id"] == "EVAL-267")
+    corrected.update({
+        "expected_oracle": _json(cases["EVAL-267"]["expected"]),
+        "review_status": "approved",
+        "reviewer": "user-confirmed",
+        "reviewed_at": "2026-10-04T14:56:34Z",
+        "notes": cases["EVAL-267"]["review"]["scope"],
+        "recommended_review": "approve",
+        "review_reason": (
+            "已补 pending_generation fixture；‘不要现在生成’必须保留 Pending，"
+            "且不得调用 discard、confirm、prepare 或写入 Tool。"
+        ),
+    })
 
     canonical = [row for row in rows if not row["duplicate_of"].strip()]
     duplicates = [row for row in rows if row["duplicate_of"].strip()]
@@ -101,7 +114,7 @@ def main() -> None:
             "review_decision": "",
             "reviewer_notes": "",
         })
-    assert len(context_rows) == 10
+    assert len(context_rows) == 9
 
     context_fields = list(context_rows[0])
     with CONTEXT_CSV.open("w", encoding="utf-8-sig", newline="") as handle:
@@ -110,9 +123,9 @@ def main() -> None:
         writer.writerows(context_rows)
 
     lines = [
-        "# Holdout V3.1 — 10 条上下文复审", "",
+        "# Holdout V3.1 — 9 条上下文复审", "",
         "- 原始标注：100 条", "- `duplicate_of` 去重：29 条", "- 保留审核：71 条",
-        "- 已修正并批准：EVAL-265", "- 本页剩余展开：10 条", "",
+        "- 已修正并批准：EVAL-265、EVAL-267", "- 本页剩余展开：9 条", "",
         "> 本步骤只整理审核材料，不修改 V3.1 Dataset，也不自动批准 case。", "",
     ]
     for row in context_rows:

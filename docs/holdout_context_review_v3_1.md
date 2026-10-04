@@ -1,10 +1,10 @@
-# Holdout V3.1 — 10 条上下文复审
+# Holdout V3.1 — 9 条上下文复审
 
 - 原始标注：100 条
 - `duplicate_of` 去重：29 条
 - 保留审核：71 条
-- 已修正并批准：EVAL-265
-- 本页剩余展开：10 条
+- 已修正并批准：EVAL-265、EVAL-267
+- 本页剩余展开：9 条
 
 > 本步骤只整理审核材料，不修改 V3.1 Dataset，也不自动批准 case。
 
@@ -45,19 +45,6 @@
 - 完整 turns：
   1. 用户：把总分改成80，但不要把‘80分’理解成第80题。
 - **审核焦点**：当前无 pending generation。审核它应澄清修改对象，还是补 pending 并断言总分 patch=80。
-- 审核决定：`pending`
-
-## EVAL-267 — 先别取消方案，我只是说‘不要现在生成’。
-
-- 标记：`needs_setup_review`
-- Category/Subtype：`adversarial / instruction_boundary`
-- Setup：`null`
-- Expected：`{"active_teaching_design": null, "pending_generation": null, "pending_paper_change": null, "status": "needs_clarification"}`
-- Required tools：`[]`
-- Forbidden tools：`["confirm_generation", "confirm_paper_changes", "confirm_teaching_design"]`
-- 完整 turns：
-  1. 用户：先别取消方案，我只是说‘不要现在生成’。
-- **审核焦点**：语句要求保留方案且暂不生成，但 setup 缺失。审核是否补 pending_generation，并断言 Pending 保留且不调用 discard/confirm。
 - 审核决定：`pending`
 
 ## EVAL-268 — 如果题库不够就告诉我，别自作主张改题型。

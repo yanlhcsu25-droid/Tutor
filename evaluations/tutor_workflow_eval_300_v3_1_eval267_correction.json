@@ -1,0 +1,29 @@
+{
+  "record_type": "tutor_workflow_eval_300_v3_1_case_correction",
+  "case_id": "EVAL-267",
+  "status": "corrected_and_human_approved",
+  "reason": "The intended capability is pause-not-cancel. The fixture must provide an existing Pending Generation so the invariant can distinguish preserving it from discarding or confirming it.",
+  "changes": {
+    "setup.pending_generation": {
+      "paper_type": "chapter_test",
+      "scope_names": [
+        "第一章 函数与极限"
+      ],
+      "question_count": 6,
+      "total_score": 60
+    },
+    "expected.status": "waiting_confirmation",
+    "pending_generation_preserved": true,
+    "pending_paper_change": null,
+    "paper_db": null,
+    "required_tools": [],
+    "prepare_confirm_discard_and_write_tools_forbidden": true
+  },
+  "candidate": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+    "sha256": "d227cc3ce7ba520eed4ead35108abac80f72f18f83e7b5115fcbed48db27b51d"
+  },
+  "audit": "evaluations/tutor_workflow_eval_300_v3_1_eval267_contract_audit.json",
+  "remaining_context_review_cases": 9,
+  "holdout_execution_authorized": false
+}

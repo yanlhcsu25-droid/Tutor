@@ -113,10 +113,10 @@ def test_v3_1_has_only_remaining_human_review_audit_blockers():
     assert report["summary"]["required_split_matches"] is True
     assert report["summary"]["cross_split_category_subtype_families"] == 0
     assert report["summary"]["dispositions"] == {
-        "ambiguous_label": 299,
-        "valid": 1,
+        "ambiguous_label": 298,
+        "valid": 2,
     }
-    assert findings == ["manual review status is 'pending'"] * 299
+    assert findings == ["manual review status is 'pending'"] * 298
 
 
 def test_eval_265_is_a_grounded_read_only_current_paper_case():
@@ -144,6 +144,33 @@ def test_eval_265_is_a_grounded_read_only_current_paper_case():
     assert acceptance["required_tools"] == ["read_paper"]
     assert "preview_paper_changes" in acceptance["forbidden_tools"]
     assert "confirm_paper_changes" in acceptance["forbidden_tools"]
+
+
+def test_eval_267_preserves_pending_without_confirm_or_cancel():
+    path = Path(
+        "tests/evals/staging/tutor_workflow_eval_300_v3_1/"
+        "tutor_workflow_eval_300_v3_1.yaml"
+    )
+    cases = yaml.safe_load(path.read_text(encoding="utf-8"))["cases"]
+    case = next(item for item in cases if item["id"] == "EVAL-267")
+    acceptance = next(
+        grader for grader in case["graders"]
+        if isinstance(grader, dict) and grader.get("type") == "acceptance"
+    )
+
+    pending = {
+        "paper_type": "chapter_test",
+        "scope_names": ["第一章 函数与极限"],
+        "question_count": 6,
+        "total_score": 60,
+    }
+    assert case["setup"] == {"pending_generation": pending}
+    assert case["expected"]["status"] == "waiting_confirmation"
+    assert case["expected"]["pending_generation"] == pending
+    assert acceptance["required_tools"] == []
+    assert "discard_pending_plan" in acceptance["forbidden_tools"]
+    assert "confirm_generation" in acceptance["forbidden_tools"]
+    assert "prepare_generation_plan" in acceptance["forbidden_tools"]
 
 
 def test_audit_flags_pending_review_and_ambiguous_paper_address(tmp_path: Path):

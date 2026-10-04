@@ -130,6 +130,42 @@ def _repair_current_paper_read(case: dict) -> bool:
     return True
 
 
+def _repair_pause_pending_generation(case: dict) -> bool:
+    if case["id"] != "EVAL-267":
+        return False
+    pending = {
+        "paper_type": "chapter_test",
+        "scope_names": ["第一章 函数与极限"],
+        "question_count": 6,
+        "total_score": 60,
+    }
+    case["setup"] = {"pending_generation": pending}
+    case["expected"] = {
+        "status": "waiting_confirmation",
+        "pending_generation": pending,
+        "pending_paper_change": None,
+        "paper_db": None,
+    }
+    forbidden = sorted(MUTATING_TOOLS | {"discard_pending_plan"})
+    acceptance = _grader(case, "acceptance")
+    if acceptance is not None:
+        acceptance["statuses"] = ["waiting_confirmation"]
+        acceptance["required_tools"] = []
+        acceptance["forbidden_tools"] = forbidden
+    safety = _grader(case, "workflow_safety")
+    if safety is not None:
+        safety["paper_unchanged"] = True
+        safety["forbidden_tools"] = forbidden
+    case["review"] = {
+        "status": "approved",
+        "scope": (
+            "已有 Pending Generation；‘不要现在生成’仅暂停并保留原方案，"
+            "不得调用 discard、confirm、prepare 或任何写入 Tool。"
+        ),
+    }
+    return True
+
+
 def _add_business_oracle(case: dict) -> bool:
     expected = case["expected"]
     if set(expected) != {"status"}:
@@ -213,18 +249,21 @@ def main() -> None:
         "cancel": 0,
         "business_oracle": 0,
         "current_paper_read": 0,
+        "pause_pending_generation": 0,
     }
     for case in payload["cases"]:
         counts["ambiguous_address"] += _repair_ambiguous_address(case)
         counts["cancel"] += _repair_cancel(case)
         counts["business_oracle"] += _add_business_oracle(case)
         counts["current_paper_read"] += _repair_current_paper_read(case)
+        counts["pause_pending_generation"] += _repair_pause_pending_generation(case)
     payload["remediation"] = counts
     assert counts == {
         "ambiguous_address": 10,
         "cancel": 21,
         "business_oracle": 194,
         "current_paper_read": 1,
+        "pause_pending_generation": 1,
     }
     assert sum(case["split"] == "dev" for case in payload["cases"]) == 200
     assert sum(case["split"] == "holdout_candidate" for case in payload["cases"]) == 100
