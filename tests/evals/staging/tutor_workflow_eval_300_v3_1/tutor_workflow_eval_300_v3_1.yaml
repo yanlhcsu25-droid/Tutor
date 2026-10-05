@@ -4,7 +4,8 @@ suite:
   description: V3 的可追溯契约修复候选集；修复地址歧义、取消生命周期与 status-only oracle。人工审核完成前不得冻结或运行 Holdout。
   splits:
     dev: 200
-    holdout_candidate: 100
+    holdout_candidate: 98
+    duplicate_regression: 2
   derived_from: tests/evals/staging/tutor_workflow_eval_300_v3/tutor_workflow_eval_300_v3.yaml
 defaults:
   max_tool_rounds: 8
@@ -9546,9 +9547,11 @@ cases:
   - user: 确认。
   expected:
     status: completed
+    pending_generation: null
     paper_db:
       persisted: true
-    pending_generation: null
+      question_count: 6
+      total_score: 60
   graders:
   - type: state
   - type: acceptance
@@ -9567,8 +9570,8 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
-    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    status: approved
+    scope: 两轮流程保持不变：第一轮 prepare 6题60分方案，第二轮 confirm；最终 Paper 必须保留6题60分并清空 Pending。
 - id: EVAL-280
   split: dev
   category: multi_turn
@@ -9872,7 +9875,7 @@ cases:
     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
   setup: *id116
 - id: EVAL-289
-  split: holdout_candidate
+  split: duplicate_regression
   category: multi_turn
   subtype: generate_then_confirm
   difficulty: hard
@@ -9883,9 +9886,11 @@ cases:
   - user: 确认。
   expected:
     status: completed
+    pending_generation: null
     paper_db:
       persisted: true
-    pending_generation: null
+      question_count: 6
+      total_score: 60
   graders:
   - type: state
   - type: acceptance
@@ -9902,8 +9907,9 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
-    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    status: duplicate
+    scope: 与 EVAL-279 的完整 turns、工具契约和最终 oracle 相同；不计入主 Holdout。
+  duplicate_of: EVAL-279
 - id: EVAL-290
   split: dev
   category: multi_turn
@@ -10207,7 +10213,7 @@ cases:
     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
   setup: *id116
 - id: EVAL-299
-  split: holdout_candidate
+  split: duplicate_regression
   category: multi_turn
   subtype: generate_then_confirm
   difficulty: hard
@@ -10218,9 +10224,11 @@ cases:
   - user: 确认。
   expected:
     status: completed
+    pending_generation: null
     paper_db:
       persisted: true
-    pending_generation: null
+      question_count: 6
+      total_score: 60
   graders:
   - type: state
   - type: acceptance
@@ -10237,8 +10245,9 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
-    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    status: duplicate
+    scope: 与 EVAL-279 的完整 turns、工具契约和最终 oracle 相同；不计入主 Holdout。
+  duplicate_of: EVAL-279
 - id: EVAL-300
   split: dev
   category: multi_turn
@@ -10279,3 +10288,4 @@ remediation:
   business_oracle: 194
   current_paper_read: 1
   pause_pending_generation: 1
+  generate_then_confirm: 3

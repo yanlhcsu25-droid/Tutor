@@ -166,6 +166,45 @@ def _repair_pause_pending_generation(case: dict) -> bool:
     return True
 
 
+def _repair_generate_then_confirm(case: dict) -> bool:
+    if case["id"] == "EVAL-279":
+        case["expected"] = {
+            "status": "completed",
+            "pending_generation": None,
+            "paper_db": {
+                "persisted": True,
+                "question_count": 6,
+                "total_score": 60,
+            },
+        }
+        case["review"] = {
+            "status": "approved",
+            "scope": (
+                "两轮流程保持不变：第一轮 prepare 6题60分方案，第二轮 confirm；"
+                "最终 Paper 必须保留6题60分并清空 Pending。"
+            ),
+        }
+        return True
+    if case["id"] in {"EVAL-289", "EVAL-299"}:
+        case["split"] = "duplicate_regression"
+        case["duplicate_of"] = "EVAL-279"
+        case["expected"] = {
+            "status": "completed",
+            "pending_generation": None,
+            "paper_db": {
+                "persisted": True,
+                "question_count": 6,
+                "total_score": 60,
+            },
+        }
+        case["review"] = {
+            "status": "duplicate",
+            "scope": "与 EVAL-279 的完整 turns、工具契约和最终 oracle 相同；不计入主 Holdout。",
+        }
+        return True
+    return False
+
+
 def _add_business_oracle(case: dict) -> bool:
     expected = case["expected"]
     if set(expected) != {"status"}:
@@ -250,6 +289,7 @@ def main() -> None:
         "business_oracle": 0,
         "current_paper_read": 0,
         "pause_pending_generation": 0,
+        "generate_then_confirm": 0,
     }
     for case in payload["cases"]:
         counts["ambiguous_address"] += _repair_ambiguous_address(case)
@@ -257,6 +297,7 @@ def main() -> None:
         counts["business_oracle"] += _add_business_oracle(case)
         counts["current_paper_read"] += _repair_current_paper_read(case)
         counts["pause_pending_generation"] += _repair_pause_pending_generation(case)
+        counts["generate_then_confirm"] += _repair_generate_then_confirm(case)
     payload["remediation"] = counts
     assert counts == {
         "ambiguous_address": 10,
@@ -264,9 +305,16 @@ def main() -> None:
         "business_oracle": 194,
         "current_paper_read": 1,
         "pause_pending_generation": 1,
+        "generate_then_confirm": 3,
+    }
+    payload["suite"]["splits"] = {
+        "dev": 200,
+        "holdout_candidate": 98,
+        "duplicate_regression": 2,
     }
     assert sum(case["split"] == "dev" for case in payload["cases"]) == 200
-    assert sum(case["split"] == "holdout_candidate" for case in payload["cases"]) == 100
+    assert sum(case["split"] == "holdout_candidate" for case in payload["cases"]) == 98
+    assert sum(case["split"] == "duplicate_regression" for case in payload["cases"]) == 2
     assert not any(set(case["expected"]) == {"status"} for case in payload["cases"])
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)

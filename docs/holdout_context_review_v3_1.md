@@ -1,10 +1,11 @@
-# Holdout V3.1 — 9 条上下文复审
+# Holdout V3.1 — 6 条上下文复审
 
 - 原始标注：100 条
-- `duplicate_of` 去重：29 条
-- 保留审核：71 条
-- 已修正并批准：EVAL-265、EVAL-267
-- 本页剩余展开：9 条
+- `duplicate_of` 去重：31 条
+- 保留审核：69 条
+- 已修正并批准：EVAL-265、EVAL-267、EVAL-279
+- EVAL-289/EVAL-299 已归档为 EVAL-279 的 duplicate regression
+- 本页剩余展开：6 条
 
 > 本步骤只整理审核材料，不修改 V3.1 Dataset，也不自动批准 case。
 
@@ -84,47 +85,5 @@
 - 完整 turns：
   1. 用户：只读，不做任何修改。
 - **审核焦点**：只有只读边界，没有读取对象或问题。审核保持澄清，或补 current_paper 及明确查询目标。
-- 审核决定：`pending`
-
-## EVAL-279 — 确认。
-
-- 标记：`needs_full_turn_review`
-- Category/Subtype：`multi_turn / generate_then_confirm`
-- Setup：`null`
-- Expected：`{"paper_db": {"persisted": true}, "pending_generation": null, "status": "completed"}`
-- Required tools：`["prepare_generation_plan", "confirm_generation"]`
-- Forbidden tools：`["confirm_paper_changes", "confirm_teaching_design"]`
-- 完整 turns：
-  1. 用户：第一章出6题60分。
-  2. 用户：确认。
-- **审核焦点**：完整 turns 已显示生成后确认；审核约束继承、真实 Paper 持久化以及 Pending 清理。
-- 审核决定：`pending`
-
-## EVAL-289 — 确认。
-
-- 标记：`needs_full_turn_review`
-- Category/Subtype：`multi_turn / generate_then_confirm`
-- Setup：`null`
-- Expected：`{"paper_db": {"persisted": true}, "pending_generation": null, "status": "completed"}`
-- Required tools：`["prepare_generation_plan", "confirm_generation"]`
-- Forbidden tools：`["confirm_paper_changes", "confirm_teaching_design"]`
-- 完整 turns：
-  1. 用户：第一章出6题60分。
-  2. 用户：确认。
-- **审核焦点**：与 EVAL-279 完整 turns/oracle 相同；审核后考虑标记 duplicate_of=EVAL-279。
-- 审核决定：`pending`
-
-## EVAL-299 — 确认。
-
-- 标记：`needs_full_turn_review`
-- Category/Subtype：`multi_turn / generate_then_confirm`
-- Setup：`null`
-- Expected：`{"paper_db": {"persisted": true}, "pending_generation": null, "status": "completed"}`
-- Required tools：`["prepare_generation_plan", "confirm_generation"]`
-- Forbidden tools：`["confirm_paper_changes", "confirm_teaching_design"]`
-- 完整 turns：
-  1. 用户：第一章出6题60分。
-  2. 用户：确认。
-- **审核焦点**：与 EVAL-279 完整 turns/oracle 相同；审核后考虑标记 duplicate_of=EVAL-279。
 - 审核决定：`pending`
 

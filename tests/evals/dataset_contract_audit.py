@@ -219,7 +219,9 @@ def audit_paths(paths: list[Path]) -> dict[str, Any]:
     family_splits: dict[tuple[str, str], set[str]] = {}
     for result in results:
         family = result["family"]
-        if family is not None:
+        if family is not None and result["split"] in {
+            "dev", "development", "holdout_candidate",
+        }:
             family_splits.setdefault(family, set()).add(result["split"])
     cross_split_families = sum(len(splits) > 1 for splits in family_splits.values())
     return {

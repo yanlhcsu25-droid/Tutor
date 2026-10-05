@@ -1,0 +1,36 @@
+{
+  "record_type": "tutor_workflow_eval_300_v3_1_case_correction",
+  "case_id": "EVAL-279",
+  "status": "oracle_strengthened_and_human_approved",
+  "turns_changed": false,
+  "final_oracle": {
+    "status": "completed",
+    "pending_generation": null,
+    "paper_db": {
+      "persisted": true,
+      "question_count": 6,
+      "total_score": 60
+    }
+  },
+  "required_tools": [
+    "prepare_generation_plan",
+    "confirm_generation"
+  ],
+  "forbidden_tools": [
+    "confirm_paper_changes",
+    "confirm_teaching_design"
+  ],
+  "duplicates": {
+    "EVAL-289": {
+      "duplicate_of": "EVAL-279",
+      "split": "duplicate_regression"
+    },
+    "EVAL-299": {
+      "duplicate_of": "EVAL-279",
+      "split": "duplicate_regression"
+    }
+  },
+  "candidate_sha256": "a81c83c9c6b98d72c8806bbb6b1e63ec7043208969214fd3ef04410cc55241d9",
+  "targeted_regression": "evaluations/tutor_workflow_eval_300_v3_1_eval279_targeted.json",
+  "formal_holdout_executed": false
+}

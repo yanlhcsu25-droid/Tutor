@@ -1,0 +1,32 @@
+{
+  "record_type": "targeted_holdout_candidate_regression",
+  "case_id": "EVAL-279",
+  "scope": "explicitly authorized targeted regression; not a formal Holdout run",
+  "result": "passed",
+  "report": {
+    "path": "tests/evals/reports/targeted-holdout-eval279-20261005T112145Z.json",
+    "sha256": "d99a9966e0949ff1f6cfe64ce62099eba33f7d229236ff1945936ac660069463"
+  },
+  "dataset": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+    "sha256": "a81c83c9c6b98d72c8806bbb6b1e63ec7043208969214fd3ef04410cc55241d9"
+  },
+  "execution": {
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-35B-A3B",
+    "backend_adapter": "BailianChatBackend",
+    "protocol": "openai_compatible",
+    "model_calls": 6,
+    "recorded_total_tokens": 30363,
+    "git_sha_at_run": "25d8c54c680c7d90a897fd7889ae49a514942f72",
+    "git_dirty_at_run": true
+  },
+  "observed_final_state": {
+    "status": "completed",
+    "paper_persisted": true,
+    "paper_question_count": 6,
+    "paper_total_score": 60,
+    "pending_generation": null
+  },
+  "formal_holdout_executed": false
+}

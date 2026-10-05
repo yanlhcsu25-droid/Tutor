@@ -28,3 +28,5 @@ EVAL-257,EVAL-242,ambiguity,missing_context_or_referent,继续刚才那个。,�
 EVAL-258,EVAL-243,ambiguity,missing_context_or_referent,按之前的标准来。,与 EVAL-243 的 category/subtype/difficulty/title/expected_oracle 完全一致；建议主 Holdout 只保留一个代表 case，其余转入 paraphrase/regression 集。
 EVAL-259,EVAL-244,ambiguity,missing_context_or_referent,删掉那题。,与 EVAL-244 的 category/subtype/difficulty/title/expected_oracle 完全一致；建议主 Holdout 只保留一个代表 case，其余转入 paraphrase/regression 集。
 EVAL-260,EVAL-245,ambiguity,missing_context_or_referent,先准备一下。,与 EVAL-245 的 category/subtype/difficulty/title/expected_oracle 完全一致；建议主 Holdout 只保留一个代表 case，其余转入 paraphrase/regression 集。
+EVAL-289,EVAL-279,multi_turn,generate_then_confirm,确认。,完整 turns、工具契约和 oracle 与 EVAL-279 相同。
+EVAL-299,EVAL-279,multi_turn,generate_then_confirm,确认。,完整 turns、工具契约和 oracle 与 EVAL-279 相同。

@@ -71,12 +71,34 @@ def main() -> None:
             "且不得调用 discard、confirm、prepare 或写入 Tool。"
         ),
     })
+    corrected = next(row for row in rows if row["id"] == "EVAL-279")
+    corrected.update({
+        "expected_oracle": _json(cases["EVAL-279"]["expected"]),
+        "review_status": "approved",
+        "reviewer": "user-confirmed",
+        "reviewed_at": "2026-10-04T14:56:34Z",
+        "notes": cases["EVAL-279"]["review"]["scope"],
+        "recommended_review": "approve",
+        "review_reason": "最终 Paper oracle 已补强为6题60分，并要求清空 Pending。",
+    })
+    for duplicate_id in ("EVAL-289", "EVAL-299"):
+        duplicate = next(row for row in rows if row["id"] == duplicate_id)
+        duplicate.update({
+            "expected_oracle": _json(cases[duplicate_id]["expected"]),
+            "review_status": "duplicate",
+            "reviewer": "user-confirmed",
+            "reviewed_at": "2026-10-04T14:56:34Z",
+            "notes": cases[duplicate_id]["review"]["scope"],
+            "recommended_review": "deduplicate",
+            "review_reason": "完整 turns、工具契约和 oracle 与 EVAL-279 相同。",
+            "duplicate_of": "EVAL-279",
+        })
 
     canonical = [row for row in rows if not row["duplicate_of"].strip()]
     duplicates = [row for row in rows if row["duplicate_of"].strip()]
     assert len(rows) == 100
-    assert len(canonical) == 71
-    assert len(duplicates) == 29
+    assert len(canonical) == 69
+    assert len(duplicates) == 31
     assert all(row["duplicate_of"] in cases for row in duplicates)
 
     with DEDUPED.open("w", encoding="utf-8-sig", newline="") as handle:
@@ -114,7 +136,7 @@ def main() -> None:
             "review_decision": "",
             "reviewer_notes": "",
         })
-    assert len(context_rows) == 9
+    assert len(context_rows) == 6
 
     context_fields = list(context_rows[0])
     with CONTEXT_CSV.open("w", encoding="utf-8-sig", newline="") as handle:
@@ -123,9 +145,11 @@ def main() -> None:
         writer.writerows(context_rows)
 
     lines = [
-        "# Holdout V3.1 — 9 条上下文复审", "",
-        "- 原始标注：100 条", "- `duplicate_of` 去重：29 条", "- 保留审核：71 条",
-        "- 已修正并批准：EVAL-265、EVAL-267", "- 本页剩余展开：9 条", "",
+        "# Holdout V3.1 — 6 条上下文复审", "",
+        "- 原始标注：100 条", "- `duplicate_of` 去重：31 条", "- 保留审核：69 条",
+        "- 已修正并批准：EVAL-265、EVAL-267、EVAL-279",
+        "- EVAL-289/EVAL-299 已归档为 EVAL-279 的 duplicate regression",
+        "- 本页剩余展开：6 条", "",
         "> 本步骤只整理审核材料，不修改 V3.1 Dataset，也不自动批准 case。", "",
     ]
     for row in context_rows:

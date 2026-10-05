@@ -110,13 +110,18 @@ def test_v3_1_has_only_remaining_human_review_audit_blockers():
         for finding in case["findings"]
     ]
 
-    assert report["summary"]["required_split_matches"] is True
+    assert report["summary"]["required_split_matches"] is False
+    assert report["summary"]["split_counts"] == {
+        "dev": 200,
+        "duplicate_regression": 2,
+        "holdout_candidate": 98,
+    }
     assert report["summary"]["cross_split_category_subtype_families"] == 0
     assert report["summary"]["dispositions"] == {
-        "ambiguous_label": 298,
-        "valid": 2,
+        "ambiguous_label": 295,
+        "valid": 5,
     }
-    assert findings == ["manual review status is 'pending'"] * 298
+    assert findings == ["manual review status is 'pending'"] * 295
 
 
 def test_eval_265_is_a_grounded_read_only_current_paper_case():
@@ -171,6 +176,41 @@ def test_eval_267_preserves_pending_without_confirm_or_cancel():
     assert "discard_pending_plan" in acceptance["forbidden_tools"]
     assert "confirm_generation" in acceptance["forbidden_tools"]
     assert "prepare_generation_plan" in acceptance["forbidden_tools"]
+
+
+def test_eval_279_has_strong_final_paper_oracle_and_duplicates_are_excluded():
+    path = Path(
+        "tests/evals/staging/tutor_workflow_eval_300_v3_1/"
+        "tutor_workflow_eval_300_v3_1.yaml"
+    )
+    cases = yaml.safe_load(path.read_text(encoding="utf-8"))["cases"]
+    case = next(item for item in cases if item["id"] == "EVAL-279")
+    acceptance = next(
+        grader for grader in case["graders"]
+        if isinstance(grader, dict) and grader.get("type") == "acceptance"
+    )
+
+    assert case["turns"] == [
+        {"user": "第一章出6题60分。"},
+        {"user": "确认。"},
+    ]
+    assert case["expected"] == {
+        "status": "completed",
+        "pending_generation": None,
+        "paper_db": {"persisted": True, "question_count": 6, "total_score": 60},
+    }
+    assert acceptance["required_tools"] == [
+        "prepare_generation_plan",
+        "confirm_generation",
+    ]
+    assert acceptance["forbidden_tools"] == [
+        "confirm_paper_changes",
+        "confirm_teaching_design",
+    ]
+    for duplicate_id in ("EVAL-289", "EVAL-299"):
+        duplicate = next(item for item in cases if item["id"] == duplicate_id)
+        assert duplicate["duplicate_of"] == "EVAL-279"
+        assert duplicate["split"] == "duplicate_regression"
 
 
 def test_audit_flags_pending_review_and_ambiguous_paper_address(tmp_path: Path):
