@@ -1,0 +1,120 @@
+{
+  "record_type": "official_holdout_clarification_failure_clustering",
+  "run": "first_official",
+  "source_report": {
+    "path": "tests/evals/reports/official-holdout-v3.1-69-first-20261005T132623Z.json",
+    "sha256": "f935c71c228d6fda3d64b2fa4634ac94faf9349aa1b79107c94c464308943aaa"
+  },
+  "population": {
+    "automatic_failure_type": "clarification_contract",
+    "raw_count": 36,
+    "provider_failures_excluded_from_this_analysis": 10,
+    "analyzed_count": 26
+  },
+  "primary_clusters": [
+    {
+      "id": "semantic_clarification_not_structured",
+      "count": 13,
+      "case_ids": [
+        "EVAL-049", "EVAL-050", "EVAL-053", "EVAL-054", "EVAL-058",
+        "EVAL-242", "EVAL-247", "EVAL-249", "EVAL-262", "EVAL-263",
+        "EVAL-268", "EVAL-269", "EVAL-270"
+      ],
+      "finding": "The final prose reports a shortage or asks for missing context, but the runtime result is completed with an empty clarification_questions array.",
+      "primary_owner": "response status and structured clarification contract",
+      "confidence": "high"
+    },
+    {
+      "id": "teaching_design_guard_overrides_valid_infeasibility_exit",
+      "count": 4,
+      "case_ids": ["EVAL-048", "EVAL-052", "EVAL-055", "EVAL-199"],
+      "finding": "Curriculum and question-bank observations were sufficient to establish infeasibility, but the deterministic teaching-design creation guard converted the turn to failed because no TeachingDesign artifact was created.",
+      "primary_owner": "deterministic workflow guard",
+      "confidence": "high"
+    },
+    {
+      "id": "feasibility_guard_too_lax",
+      "count": 4,
+      "case_ids": ["EVAL-051", "EVAL-056", "EVAL-057", "EVAL-060"],
+      "finding": "The aggregate observation proved that hard quantity or type constraints could not be met, yet prepare_generation_plan succeeded with no blocking_errors and persisted a pending plan.",
+      "primary_owner": "deterministic generation feasibility validation",
+      "confidence": "high"
+    },
+    {
+      "id": "generation_request_routed_to_teaching_design",
+      "count": 2,
+      "case_ids": ["EVAL-046", "EVAL-047"],
+      "finding": "A paper-generation request was handled through create_teaching_design, creating an active teaching design instead of returning generation infeasibility clarification.",
+      "primary_owner": "model tool selection and workflow routing",
+      "confidence": "high"
+    },
+    {
+      "id": "deterministic_clarification_missing_question_payload",
+      "count": 2,
+      "case_ids": ["EVAL-244", "EVAL-264"],
+      "finding": "The no_current_paper guard correctly normalized status to needs_clarification but emitted no structured clarification question, so the clarification contract still failed.",
+      "primary_owner": "deterministic finalization payload",
+      "confidence": "high"
+    },
+    {
+      "id": "probable_case_oracle_mismatch",
+      "count": 1,
+      "case_ids": ["EVAL-059"],
+      "finding": "The request asked for 10 hard questions; the authoritative observation reported 14 profiled questions and difficulty_counts {3: 14}. The system prepared a 10-question hard plan and waited for confirmation, while the case expected needs_clarification and no pending plan.",
+      "primary_owner": "benchmark contract review required",
+      "confidence": "high",
+      "disposition": "probable, not yet human-confirmed grader gap"
+    }
+  ],
+  "requested_hypotheses": [
+    {
+      "hypothesis": "明明参数足够却多问一句",
+      "assessment": "one probable oracle mismatch, not a demonstrated unnecessary-question behavior",
+      "case_ids": ["EVAL-059"],
+      "note": "Waiting for confirmation is the normal two-phase boundary; the fixture observation indicates supply was sufficient."
+    },
+    {
+      "hypothesis": "已有 setup/pending/current paper，却没正确利用",
+      "assessment": "not observed",
+      "case_ids": [],
+      "note": "All 26 analyzed cases have setup=null and begin without pending generation, pending paper change, current paper, or active teaching design."
+    },
+    {
+      "hypothesis": "把约束句误判成缺信息",
+      "assessment": "partially observed as a status-contract issue",
+      "case_ids": ["EVAL-264", "EVAL-268", "EVAL-269", "EVAL-270"],
+      "note": "These are standalone constraints without an attached task or target. Asking for the target is reasonable; the failures are completed-vs-needs_clarification or missing structured question, not evidence that the constraints themselves were misunderstood."
+    },
+    {
+      "hypothesis": "把确认/否定边界理解错",
+      "assessment": "boundary semantics were safe; result typing was wrong",
+      "case_ids": ["EVAL-262", "EVAL-263"],
+      "note": "No confirmation tool or write-side effect occurred. The model respected preview-only and negated-confirmation semantics, but returned completed instead of structured clarification."
+    },
+    {
+      "hypothesis": "工具 observation 已足够，但模型仍要求澄清",
+      "assessment": "nine cases had sufficient evidence for an infeasibility clarification, but the clarification itself was not unnecessary",
+      "case_ids": ["EVAL-048", "EVAL-049", "EVAL-050", "EVAL-052", "EVAL-053", "EVAL-054", "EVAL-055", "EVAL-058", "EVAL-199"],
+      "note": "The observations answered feasibility; teacher input was still needed to choose whether to relax, change, or abandon the request. The defects were status/payload normalization or an over-strict artifact guard."
+    },
+    {
+      "hypothesis": "deterministic guard 过严，而不是模型本身问题",
+      "assessment": "confirmed for four cases",
+      "case_ids": ["EVAL-048", "EVAL-052", "EVAL-055", "EVAL-199"],
+      "note": "The teaching_design_creation_required guard rejected a valid infeasibility exit after successful environment inspection."
+    }
+  ],
+  "recommended_shared_contract_actions": [
+    "Add deterministic supply-vs-hard-demand validation before accepting prepare_generation_plan; shortage must produce blocking_errors and structured clarification without persisting pending state.",
+    "Make infeasibility clarification a valid terminal branch before teaching-design artifact creation guards.",
+    "Require every needs_clarification result, including deterministic guards, to contain at least one structured clarification question.",
+    "Do not allow prose that asks the user for a decision to finalize as completed when no business artifact was produced; use a structured response boundary rather than keyword-only detection.",
+    "Strengthen generation-vs-teaching-design tool routing for explicit question-count, score, and question-type requests.",
+    "Human-review EVAL-059 against the fixture difficulty scale before declaring a grader gap or changing the case."
+  ],
+  "score_impact": {
+    "official_result_changed": false,
+    "denominator_changed": false,
+    "cases_regraded": false
+  }
+}
