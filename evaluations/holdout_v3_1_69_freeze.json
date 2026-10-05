@@ -1,0 +1,22 @@
+{
+  "record_type": "holdout_freeze",
+  "name": "tutor_agent_holdout_v3_1_69",
+  "status": "frozen_not_executed",
+  "main_holdout_cases": 69,
+  "human_approved_cases": 69,
+  "excluded_duplicate_regression_cases": 31,
+  "template_cases_added": 0,
+  "dataset": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+    "file_sha256": "2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad",
+    "bundle_sha256": "7c7eb05853b406306ca484311049e3c66a5bcbf283b4680c70a8deb22b18d2d1"
+  },
+  "manifest": {
+    "path": "tests/evals/manifests/holdout_v3_1_69.yaml",
+    "sha256": "dcc364efa9f54babe11bb3bb84b2540299502097286c1bc56f4e3c625bb2acfd",
+    "validation": "evaluations/holdout_v3_1_69_manifest_validation.json"
+  },
+  "code_git_sha": "e855f32d83d4ec14bb30aef97015d33626844756",
+  "execution_authorized": false,
+  "formal_holdout_executed": false
+}
