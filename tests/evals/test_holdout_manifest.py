@@ -21,8 +21,11 @@ def test_frozen_holdout_manifest_selects_all_69_approved_unique_cases():
     assert report["excluded_duplicate_count"] == 31
 
 
-def test_frozen_holdout_manifest_is_not_execution_authorization():
+def test_frozen_holdout_manifest_records_first_run_authorization():
     manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
 
     assert manifest["status"] == "frozen"
-    assert manifest["execution_authorized"] is False
+    assert manifest["execution_authorized"] is True
+    assert manifest["execution"]["max_tool_rounds"] == 8
+    assert manifest["execution"]["timeout_seconds"] == 120
+    assert manifest["execution"]["retry_policy"]["provider_retries"] == 0

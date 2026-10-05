@@ -1,0 +1,28 @@
+{
+  "record_type": "official_holdout_execution_authorization",
+  "name": "tutor_agent_holdout_v3_1_69",
+  "authorized": true,
+  "authorization_scope": "first_official_full_run_exactly_once",
+  "previous_frozen_manifest_sha256": "dcc364efa9f54babe11bb3bb84b2540299502097286c1bc56f4e3c625bb2acfd",
+  "authorized_manifest": {
+    "path": "tests/evals/manifests/holdout_v3_1_69.yaml",
+    "sha256": "8a2f369e0c605fffb99047e49af3158f81dde177e9569a95b838df8c1725b152",
+    "validation": "evaluations/holdout_v3_1_69_authorized_manifest_validation.json"
+  },
+  "locked_execution": {
+    "git_sha": "e855f32d83d4ec14bb30aef97015d33626844756",
+    "dataset_sha": "7c7eb05853b406306ca484311049e3c66a5bcbf283b4680c70a8deb22b18d2d1",
+    "dataset_file_sha256": "2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad",
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-35B-A3B",
+    "backend_adapter": "BailianChatBackend",
+    "protocol": "openai_compatible",
+    "temperature": 0,
+    "max_tool_rounds": 8,
+    "timeout_seconds": 120,
+    "provider_retries": 0
+  },
+  "case_count": 69,
+  "denominator_locked": true,
+  "raw_failures_must_be_preserved": true
+}

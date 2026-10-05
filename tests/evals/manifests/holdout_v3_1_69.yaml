@@ -12,6 +12,11 @@ execution:
   backend_adapter: BailianChatBackend
   protocol: openai_compatible
   temperature: 0
+  max_tool_rounds: 8
+  timeout_seconds: 120
+  retry_policy:
+    provider_retries: 0
+    in_turn_recovery: bounded_by_max_tool_rounds
 versions:
   fixture: eval-fixture-v1
   grader: grader-v1
@@ -41,9 +46,8 @@ excluded_duplicates:
   count: 31
   split: duplicate_regression
   policy: excluded_from_main_holdout_denominator
-execution_authorized: false
-authorization_note: Frozen for reproducibility only. Formal Holdout execution requires
-  a separate explicit authorization.
+execution_authorized: true
+authorization_note: First Official Holdout Run explicitly authorized by the user; frozen case membership and component locks remain unchanged.
 budget:
   max_model_calls: 350
   max_total_tokens: 2000000
