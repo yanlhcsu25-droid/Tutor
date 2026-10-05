@@ -1,0 +1,27 @@
+{
+  "record_type": "official_holdout_first_result",
+  "name": "tutor_agent_holdout_v3_1_69",
+  "status": "sealed_first_official_result",
+  "summary": {
+    "cases": 69,
+    "passed": 25,
+    "failed": 44,
+    "pass_rate": 0.36231884057971014
+  },
+  "raw_report": {
+    "path": "tests/evals/reports/official-holdout-v3.1-69-first-20261005T132623Z.json",
+    "sha256": "f935c71c228d6fda3d64b2fa4634ac94faf9349aa1b79107c94c464308943aaa"
+  },
+  "raw_log": {
+    "path": "tests/evals/reports/official-holdout-v3.1-69-first-20261005T132623Z.log",
+    "sha256": "bad8c9097fb3c96a91a1425bcb13c6424c6b065177c0e17854ffad2f56167bb8"
+  },
+  "manifest_sha256": "8a2f369e0c605fffb99047e49af3158f81dde177e9569a95b838df8c1725b152",
+  "dataset_file_sha256": "2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad",
+  "git_sha": "e855f32d83d4ec14bb30aef97015d33626844756",
+  "denominator_locked": 69,
+  "infrastructure_failure_count": 15,
+  "non_infrastructure_automatic_failure_count": 29,
+  "automatic_pass_is_not_human_confirmed_task_success": true,
+  "first_result_must_not_be_recomputed": true
+}

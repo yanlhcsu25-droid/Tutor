@@ -1,0 +1,93 @@
+{
+  "record_type": "official_holdout_metrics",
+  "run": "first_official",
+  "case_count": 69,
+  "model_calls": 140,
+  "tool_calls": 75,
+  "tool_rounds": 75,
+  "total_turns": 70,
+  "usage_available_cases": 42,
+  "usage_missing_cases": 27,
+  "recorded_input_tokens": 529661,
+  "recorded_output_tokens": 15569,
+  "recorded_total_tokens": 545230,
+  "recorded_cached_tokens": 22272,
+  "recorded_reasoning_tokens": 0,
+  "latency_ms": {
+    "count": 69,
+    "sum": 850395,
+    "mean": 12324.57,
+    "median": 4984,
+    "p95": 34369,
+    "max": 128805
+  },
+  "tool_name_counts": {
+    "create_teaching_design": 7,
+    "discard_pending_plan": 4,
+    "inspect_curriculum": 24,
+    "inspect_question_bank": 22,
+    "prepare_generation_plan": 7,
+    "preview_paper_changes": 3,
+    "read_paper": 4,
+    "retrieve_curriculum_candidates": 2,
+    "select_teaching_scope": 2
+  },
+  "by_category": {
+    "adversarial": {
+      "cases": 10,
+      "passed": 3,
+      "failed": 7,
+      "model_calls": 12,
+      "tool_calls": 2,
+      "recorded_total_tokens": 46142
+    },
+    "ambiguity": {
+      "cases": 15,
+      "passed": 11,
+      "failed": 4,
+      "model_calls": 4,
+      "tool_calls": 0,
+      "recorded_total_tokens": 21175
+    },
+    "generation": {
+      "cases": 25,
+      "passed": 0,
+      "failed": 25,
+      "model_calls": 74,
+      "tool_calls": 40,
+      "recorded_total_tokens": 306106
+    },
+    "multi_turn": {
+      "cases": 1,
+      "passed": 0,
+      "failed": 1,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "recorded_total_tokens": 0
+    },
+    "paper": {
+      "cases": 4,
+      "passed": 3,
+      "failed": 1,
+      "model_calls": 9,
+      "tool_calls": 6,
+      "recorded_total_tokens": 39443
+    },
+    "pending": {
+      "cases": 8,
+      "passed": 4,
+      "failed": 4,
+      "model_calls": 12,
+      "tool_calls": 4,
+      "recorded_total_tokens": 24756
+    },
+    "teaching": {
+      "cases": 6,
+      "passed": 4,
+      "failed": 2,
+      "model_calls": 24,
+      "tool_calls": 20,
+      "recorded_total_tokens": 107608
+    }
+  }
+}

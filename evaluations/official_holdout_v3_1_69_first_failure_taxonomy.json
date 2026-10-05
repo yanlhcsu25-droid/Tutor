@@ -1,0 +1,82 @@
+{
+  "record_type": "official_holdout_failure_taxonomy",
+  "run": "first_official",
+  "denominator": 69,
+  "raw_passed": 25,
+  "raw_failed": 44,
+  "infrastructure_failures": {
+    "provider_http_429": {
+      "count": 13,
+      "case_ids": [
+        "EVAL-061",
+        "EVAL-062",
+        "EVAL-063",
+        "EVAL-064",
+        "EVAL-065",
+        "EVAL-066",
+        "EVAL-067",
+        "EVAL-068",
+        "EVAL-069",
+        "EVAL-070",
+        "EVAL-095",
+        "EVAL-096",
+        "EVAL-097"
+      ]
+    },
+    "provider_timeout": {
+      "count": 2,
+      "case_ids": [
+        "EVAL-098",
+        "EVAL-279"
+      ]
+    }
+  },
+  "non_infrastructure_automatic_failure_types": {
+    "clarification_contract": {
+      "count": 26,
+      "case_ids": [
+        "EVAL-046",
+        "EVAL-047",
+        "EVAL-048",
+        "EVAL-049",
+        "EVAL-050",
+        "EVAL-051",
+        "EVAL-052",
+        "EVAL-053",
+        "EVAL-054",
+        "EVAL-055",
+        "EVAL-056",
+        "EVAL-057",
+        "EVAL-058",
+        "EVAL-059",
+        "EVAL-060",
+        "EVAL-199",
+        "EVAL-242",
+        "EVAL-244",
+        "EVAL-247",
+        "EVAL-249",
+        "EVAL-262",
+        "EVAL-263",
+        "EVAL-264",
+        "EVAL-268",
+        "EVAL-269",
+        "EVAL-270"
+      ]
+    },
+    "model_reasoning": {
+      "count": 2,
+      "case_ids": [
+        "EVAL-145",
+        "EVAL-197"
+      ]
+    },
+    "side_effect_violation": {
+      "count": 1,
+      "case_ids": [
+        "EVAL-267"
+      ]
+    }
+  },
+  "confirmed_grader_gaps": [],
+  "note": "Taxonomy preserves raw automatic outcomes. Infrastructure classification uses recorded actual.error at llm_call; no case is removed from the 69-case denominator."
+}

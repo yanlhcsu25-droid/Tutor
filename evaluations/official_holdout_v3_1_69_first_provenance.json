@@ -1,0 +1,51 @@
+{
+  "record_type": "official_holdout_provenance",
+  "run": "first_official",
+  "raw_report": {
+    "path": "tests/evals/reports/official-holdout-v3.1-69-first-20261005T132623Z.json",
+    "sha256": "f935c71c228d6fda3d64b2fa4634ac94faf9349aa1b79107c94c464308943aaa"
+  },
+  "raw_log": {
+    "path": "tests/evals/reports/official-holdout-v3.1-69-first-20261005T132623Z.log",
+    "sha256": "bad8c9097fb3c96a91a1425bcb13c6424c6b065177c0e17854ffad2f56167bb8"
+  },
+  "authorized_manifest": {
+    "path": "tests/evals/manifests/holdout_v3_1_69.yaml",
+    "sha256": "8a2f369e0c605fffb99047e49af3158f81dde177e9569a95b838df8c1725b152"
+  },
+  "dataset": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+    "file_sha256": "2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad",
+    "bundle_sha256": "7c7eb05853b406306ca484311049e3c66a5bcbf283b4680c70a8deb22b18d2d1"
+  },
+  "git": {
+    "sha": "e855f32d83d4ec14bb30aef97015d33626844756",
+    "dirty": false,
+    "worktree": "detached_locked_worktree"
+  },
+  "execution": {
+    "variant": "state-policy",
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-35B-A3B",
+    "backend_adapter": "BailianChatBackend",
+    "protocol": "openai_compatible",
+    "temperature": 0,
+    "max_tool_rounds": 8,
+    "timeout_seconds": 120,
+    "provider_retries": 0
+  },
+  "versions": {
+    "fixture": "eval-fixture-v1",
+    "grader": "grader-v1"
+  },
+  "component_locks": {
+    "runtime": "5a544f0000152e42a4cbc61994121f5108219cf770ffa660078699509e81c75d",
+    "graders": "d82f514fa274559de15010a1147dc16e62437ee1920f39f7ce85605701faa9e3",
+    "fixture": "96627a9e9e25ea039e39fb8456745328f9049fedfab748998f4c40a0c59d9908",
+    "runner": "8764cb476376327e26566aedb893cfe7ebab1265f03519437fe292a00e84c3f2",
+    "model_configuration": "0f97eb166dbd768298ad4efa3f5a3bd5c5c51426ee74513a93f2bc69bf861f4d"
+  },
+  "formal_case_count": 69,
+  "retry_performed": false,
+  "raw_history_overwritten": false
+}
