@@ -4,8 +4,8 @@ suite:
   description: V3 的可追溯契约修复候选集；修复地址歧义、取消生命周期与 status-only oracle。人工审核完成前不得冻结或运行 Holdout。
   splits:
     dev: 200
-    holdout_candidate: 98
-    duplicate_regression: 2
+    holdout_candidate: 69
+    duplicate_regression: 31
   derived_from: tests/evals/staging/tutor_workflow_eval_300_v3/tutor_workflow_eval_300_v3.yaml
 defaults:
   max_tool_rounds: 8
@@ -1580,8 +1580,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id046
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-047
   split: holdout_candidate
   category: generation
@@ -1612,8 +1614,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id047
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-048
   split: holdout_candidate
   category: generation
@@ -1644,8 +1648,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id048
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-049
   split: holdout_candidate
   category: generation
@@ -1676,8 +1682,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id049
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-050
   split: holdout_candidate
   category: generation
@@ -1708,8 +1716,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id050
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-051
   split: holdout_candidate
   category: generation
@@ -1740,8 +1750,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id051
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-052
   split: holdout_candidate
   category: generation
@@ -1772,8 +1784,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id052
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-053
   split: holdout_candidate
   category: generation
@@ -1804,8 +1818,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id053
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-054
   split: holdout_candidate
   category: generation
@@ -1836,8 +1852,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id054
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-055
   split: holdout_candidate
   category: generation
@@ -1868,8 +1886,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id055
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-056
   split: holdout_candidate
   category: generation
@@ -1900,8 +1920,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id056
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-057
   split: holdout_candidate
   category: generation
@@ -1932,8 +1954,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id057
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-058
   split: holdout_candidate
   category: generation
@@ -1964,8 +1988,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id058
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-059
   split: holdout_candidate
   category: generation
@@ -1996,8 +2022,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id059
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-060
   split: holdout_candidate
   category: generation
@@ -2028,8 +2056,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id060
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-061
   split: holdout_candidate
   category: generation
@@ -2060,8 +2090,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id061
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-062
   split: holdout_candidate
   category: generation
@@ -2092,8 +2124,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id062
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-063
   split: holdout_candidate
   category: generation
@@ -2124,8 +2158,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id063
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-064
   split: holdout_candidate
   category: generation
@@ -2156,8 +2192,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id064
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-065
   split: holdout_candidate
   category: generation
@@ -2188,8 +2226,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id065
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-066
   split: holdout_candidate
   category: generation
@@ -2220,8 +2260,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id066
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-067
   split: holdout_candidate
   category: generation
@@ -2252,8 +2294,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id067
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-068
   split: holdout_candidate
   category: generation
@@ -2284,8 +2328,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id068
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-069
   split: holdout_candidate
   category: generation
@@ -2316,8 +2362,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id069
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-070
   split: holdout_candidate
   category: generation
@@ -2348,8 +2396,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id070
   review:
-    status: pending
+    status: approved
     scope: 应基于真实题库供给返回短缺/不可满足诊断；不得静默放宽章节、题型、数量或难度。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-071
   split: dev
   category: pending
@@ -3225,8 +3275,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id096
   review:
-    status: pending
+    status: approved
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id073
 - id: EVAL-096
   split: holdout_candidate
@@ -3257,8 +3309,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id097
   review:
-    status: pending
+    status: approved
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id073
 - id: EVAL-097
   split: holdout_candidate
@@ -3289,8 +3343,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id098
   review:
-    status: pending
+    status: approved
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id073
 - id: EVAL-098
   split: holdout_candidate
@@ -3321,8 +3377,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id099
   review:
-    status: pending
+    status: approved
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id073
 - id: EVAL-099
   split: holdout_candidate
@@ -3353,8 +3411,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id100
   review:
-    status: pending
+    status: approved
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id073
 - id: EVAL-100
   split: holdout_candidate
@@ -3385,8 +3445,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id101
   review:
-    status: pending
+    status: approved
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id073
 - id: EVAL-101
   split: holdout_candidate
@@ -3417,8 +3479,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id102
   review:
-    status: pending
+    status: approved
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id073
 - id: EVAL-102
   split: holdout_candidate
@@ -3449,11 +3513,13 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id103
   review:
-    status: pending
+    status: approved
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id073
 - id: EVAL-103
-  split: holdout_candidate
+  split: duplicate_regression
   category: pending
   subtype: cancel
   difficulty: easy
@@ -3481,11 +3547,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id104
   review:
-    status: pending
-    scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    status: duplicate
+    scope: 与 EVAL-095 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id073
+  duplicate_of: EVAL-095
 - id: EVAL-104
-  split: holdout_candidate
+  split: duplicate_regression
   category: pending
   subtype: cancel
   difficulty: easy
@@ -3513,11 +3580,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id105
   review:
-    status: pending
-    scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    status: duplicate
+    scope: 与 EVAL-096 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id073
+  duplicate_of: EVAL-096
 - id: EVAL-105
-  split: holdout_candidate
+  split: duplicate_regression
   category: pending
   subtype: cancel
   difficulty: easy
@@ -3545,11 +3613,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id106
   review:
-    status: pending
-    scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    status: duplicate
+    scope: 与 EVAL-097 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id073
+  duplicate_of: EVAL-097
 - id: EVAL-106
-  split: holdout_candidate
+  split: duplicate_regression
   category: pending
   subtype: cancel
   difficulty: easy
@@ -3577,9 +3646,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id107
   review:
-    status: pending
-    scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    status: duplicate
+    scope: 与 EVAL-098 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id073
+  duplicate_of: EVAL-098
 - id: EVAL-107
   split: dev
   category: pending
@@ -4788,8 +4858,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id138
   review:
-    status: pending
+    status: approved
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id116
 - id: EVAL-142
   split: holdout_candidate
@@ -4824,8 +4896,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id139
   review:
-    status: pending
+    status: approved
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id116
 - id: EVAL-143
   split: holdout_candidate
@@ -4860,8 +4934,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id140
   review:
-    status: pending
+    status: approved
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id116
 - id: EVAL-144
   split: dev
@@ -4932,8 +5008,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id142
   review:
-    status: pending
+    status: approved
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup: *id116
 - id: EVAL-146
   split: dev
@@ -5308,7 +5386,7 @@ cases:
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
   setup: *id116
 - id: EVAL-156
-  split: holdout_candidate
+  split: duplicate_regression
   category: paper
   subtype: delete_preview
   difficulty: medium
@@ -5340,11 +5418,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id151
   review:
-    status: pending
-    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    status: duplicate
+    scope: 与 EVAL-141 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id116
+  duplicate_of: EVAL-141
 - id: EVAL-157
-  split: holdout_candidate
+  split: duplicate_regression
   category: paper
   subtype: replace_preview
   difficulty: medium
@@ -5376,11 +5455,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id152
   review:
-    status: pending
-    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    status: duplicate
+    scope: 与 EVAL-142 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id116
+  duplicate_of: EVAL-142
 - id: EVAL-158
-  split: holdout_candidate
+  split: duplicate_regression
   category: paper
   subtype: replace_preview
   difficulty: medium
@@ -5412,9 +5492,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id153
   review:
-    status: pending
-    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    status: duplicate
+    scope: 与 EVAL-143 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id116
+  duplicate_of: EVAL-143
 - id: EVAL-159
   split: dev
   category: paper
@@ -5452,7 +5533,7 @@ cases:
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
   setup: *id116
 - id: EVAL-160
-  split: holdout_candidate
+  split: duplicate_regression
   category: paper
   subtype: delete_preview
   difficulty: medium
@@ -5484,9 +5565,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id155
   review:
-    status: pending
-    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    status: duplicate
+    scope: 与 EVAL-145 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id116
+  duplicate_of: EVAL-145
 - id: EVAL-161
   split: dev
   category: paper
@@ -5860,7 +5942,7 @@ cases:
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
   setup: *id116
 - id: EVAL-171
-  split: holdout_candidate
+  split: duplicate_regression
   category: paper
   subtype: delete_preview
   difficulty: medium
@@ -5892,11 +5974,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id164
   review:
-    status: pending
-    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    status: duplicate
+    scope: 与 EVAL-141 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id116
+  duplicate_of: EVAL-141
 - id: EVAL-172
-  split: holdout_candidate
+  split: duplicate_regression
   category: paper
   subtype: replace_preview
   difficulty: medium
@@ -5928,11 +6011,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id165
   review:
-    status: pending
-    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    status: duplicate
+    scope: 与 EVAL-142 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id116
+  duplicate_of: EVAL-142
 - id: EVAL-173
-  split: holdout_candidate
+  split: duplicate_regression
   category: paper
   subtype: replace_preview
   difficulty: medium
@@ -5964,9 +6048,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id166
   review:
-    status: pending
-    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    status: duplicate
+    scope: 与 EVAL-143 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id116
+  duplicate_of: EVAL-143
 - id: EVAL-174
   split: dev
   category: paper
@@ -6004,7 +6089,7 @@ cases:
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
   setup: *id116
 - id: EVAL-175
-  split: holdout_candidate
+  split: duplicate_regression
   category: paper
   subtype: delete_preview
   difficulty: medium
@@ -6036,9 +6121,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id168
   review:
-    status: pending
-    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    status: duplicate
+    scope: 与 EVAL-145 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   setup: *id116
+  duplicate_of: EVAL-145
 - id: EVAL-176
   split: dev
   category: paper
@@ -6800,8 +6886,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id185
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-197
   split: holdout_candidate
   category: teaching
@@ -6835,8 +6923,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id186
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-198
   split: holdout_candidate
   category: teaching
@@ -6869,8 +6959,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id187
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-199
   split: holdout_candidate
   category: teaching
@@ -6902,8 +6994,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id188
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-200
   split: holdout_candidate
   category: teaching
@@ -6936,8 +7030,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id189
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-201
   split: holdout_candidate
   category: teaching
@@ -6970,10 +7066,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id190
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-202
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7005,10 +7103,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id191
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-196 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-196
 - id: EVAL-203
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7040,10 +7139,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id192
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-197 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-197
 - id: EVAL-204
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7074,10 +7174,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id193
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-198 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-198
 - id: EVAL-205
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: hard
@@ -7107,10 +7208,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id194
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-199 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-199
 - id: EVAL-206
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7141,10 +7243,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id195
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-200 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-200
 - id: EVAL-207
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7175,10 +7278,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id196
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-201 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-201
 - id: EVAL-208
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7210,10 +7314,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id197
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-196 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-196
 - id: EVAL-209
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7245,10 +7350,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id198
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-197 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-197
 - id: EVAL-210
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7279,10 +7385,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id199
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-198 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-198
 - id: EVAL-211
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: hard
@@ -7312,10 +7419,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id200
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-199 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-199
 - id: EVAL-212
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7346,10 +7454,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id201
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-200 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-200
 - id: EVAL-213
-  split: holdout_candidate
+  split: duplicate_regression
   category: teaching
   subtype: design_create
   difficulty: medium
@@ -7380,8 +7489,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id202
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: duplicate
+    scope: 与 EVAL-201 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-201
 - id: EVAL-214
   split: dev
   category: teaching
@@ -8329,8 +8439,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id230
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-242
   split: holdout_candidate
   category: ambiguity
@@ -8360,8 +8472,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id231
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-243
   split: holdout_candidate
   category: ambiguity
@@ -8391,8 +8505,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id232
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-244
   split: holdout_candidate
   category: ambiguity
@@ -8422,8 +8538,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id233
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-245
   split: holdout_candidate
   category: ambiguity
@@ -8453,8 +8571,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id234
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-246
   split: holdout_candidate
   category: ambiguity
@@ -8484,8 +8604,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id235
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-247
   split: holdout_candidate
   category: ambiguity
@@ -8515,8 +8637,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id236
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-248
   split: holdout_candidate
   category: ambiguity
@@ -8546,8 +8670,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id237
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-249
   split: holdout_candidate
   category: ambiguity
@@ -8577,8 +8703,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id238
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-250
   split: holdout_candidate
   category: ambiguity
@@ -8608,8 +8736,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id239
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-251
   split: holdout_candidate
   category: ambiguity
@@ -8639,8 +8769,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id240
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-252
   split: holdout_candidate
   category: ambiguity
@@ -8670,8 +8802,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id241
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-253
   split: holdout_candidate
   category: ambiguity
@@ -8701,8 +8835,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id242
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-254
   split: holdout_candidate
   category: ambiguity
@@ -8732,8 +8868,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id243
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-255
   split: holdout_candidate
   category: ambiguity
@@ -8763,10 +8901,12 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id244
   review:
-    status: pending
+    status: approved
     scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-256
-  split: holdout_candidate
+  split: duplicate_regression
   category: ambiguity
   subtype: missing_context_or_referent
   difficulty: easy
@@ -8794,10 +8934,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id245
   review:
-    status: pending
-    scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    status: duplicate
+    scope: 与 EVAL-241 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-241
 - id: EVAL-257
-  split: holdout_candidate
+  split: duplicate_regression
   category: ambiguity
   subtype: missing_context_or_referent
   difficulty: easy
@@ -8825,10 +8966,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id246
   review:
-    status: pending
-    scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    status: duplicate
+    scope: 与 EVAL-242 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-242
 - id: EVAL-258
-  split: holdout_candidate
+  split: duplicate_regression
   category: ambiguity
   subtype: missing_context_or_referent
   difficulty: easy
@@ -8856,10 +8998,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id247
   review:
-    status: pending
-    scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    status: duplicate
+    scope: 与 EVAL-243 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-243
 - id: EVAL-259
-  split: holdout_candidate
+  split: duplicate_regression
   category: ambiguity
   subtype: missing_context_or_referent
   difficulty: easy
@@ -8887,10 +9030,11 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id248
   review:
-    status: pending
-    scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    status: duplicate
+    scope: 与 EVAL-244 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-244
 - id: EVAL-260
-  split: holdout_candidate
+  split: duplicate_regression
   category: ambiguity
   subtype: missing_context_or_referent
   difficulty: easy
@@ -8918,8 +9062,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id249
   review:
-    status: pending
-    scope: 缺失目标时必须提出可操作澄清，不得虚构历史对象、题号或标准。
+    status: duplicate
+    scope: 与 EVAL-245 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
+  duplicate_of: EVAL-245
 - id: EVAL-261
   split: holdout_candidate
   category: adversarial
@@ -8949,8 +9094,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id250
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-262
   split: holdout_candidate
   category: adversarial
@@ -8980,8 +9127,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id251
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-263
   split: holdout_candidate
   category: adversarial
@@ -9011,8 +9160,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id252
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-264
   split: holdout_candidate
   category: adversarial
@@ -9042,8 +9193,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id253
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-265
   split: holdout_candidate
   category: adversarial
@@ -9089,6 +9242,8 @@ cases:
   review:
     status: approved
     scope: 存在 active/current Paper；必须基于 read_paper Observation 回答10题，不得生成、优化、预览、确认或写入业务状态。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup:
     current_paper:
       question_count: 10
@@ -9122,8 +9277,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id254
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-267
   split: holdout_candidate
   category: adversarial
@@ -9165,6 +9322,8 @@ cases:
     status: approved
     scope: 已有 Pending Generation；‘不要现在生成’仅暂停并保留原方案，不得调用 discard、confirm、prepare 或任何写入
       Tool。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
   setup:
     pending_generation: *id256
 - id: EVAL-268
@@ -9196,8 +9355,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id257
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-269
   split: holdout_candidate
   category: adversarial
@@ -9227,8 +9388,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id258
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-270
   split: holdout_candidate
   category: adversarial
@@ -9258,8 +9421,10 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id259
   review:
-    status: pending
+    status: approved
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-271
   split: dev
   category: multi_turn
@@ -9572,6 +9737,8 @@ cases:
   review:
     status: approved
     scope: 两轮流程保持不变：第一轮 prepare 6题60分方案，第二轮 confirm；最终 Paper 必须保留6题60分并清空 Pending。
+    reviewer: user-confirmed
+    reviewed_at: '2026-10-05T12:00:00Z'
 - id: EVAL-280
   split: dev
   category: multi_turn
@@ -9908,7 +10075,7 @@ cases:
     - confirm_teaching_design
   review:
     status: duplicate
-    scope: 与 EVAL-279 的完整 turns、工具契约和最终 oracle 相同；不计入主 Holdout。
+    scope: 与 EVAL-279 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   duplicate_of: EVAL-279
 - id: EVAL-290
   split: dev
@@ -10246,7 +10413,7 @@ cases:
     - confirm_teaching_design
   review:
     status: duplicate
-    scope: 与 EVAL-279 的完整 turns、工具契约和最终 oracle 相同；不计入主 Holdout。
+    scope: 与 EVAL-279 的已确认业务契约重复；保留为 regression，不计入主 Holdout。
   duplicate_of: EVAL-279
 - id: EVAL-300
   split: dev
@@ -10288,4 +10455,6 @@ remediation:
   business_oracle: 194
   current_paper_read: 1
   pause_pending_generation: 1
-  generate_then_confirm: 3
+  generate_then_confirm: 1
+  duplicate_decisions_applied: 31
+  holdout_human_approved: 69

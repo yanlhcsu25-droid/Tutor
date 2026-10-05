@@ -81,18 +81,28 @@ def main() -> None:
         "recommended_review": "approve",
         "review_reason": "最终 Paper oracle 已补强为6题60分，并要求清空 Pending。",
     })
-    for duplicate_id in ("EVAL-289", "EVAL-299"):
-        duplicate = next(row for row in rows if row["id"] == duplicate_id)
-        duplicate.update({
-            "expected_oracle": _json(cases[duplicate_id]["expected"]),
-            "review_status": "duplicate",
-            "reviewer": "user-confirmed",
-            "reviewed_at": "2026-10-04T14:56:34Z",
-            "notes": cases[duplicate_id]["review"]["scope"],
-            "recommended_review": "deduplicate",
-            "review_reason": "完整 turns、工具契约和 oracle 与 EVAL-279 相同。",
-            "duplicate_of": "EVAL-279",
-        })
+    for row in rows:
+        case = cases[row["id"]]
+        if case["split"] == "duplicate_regression":
+            row.update({
+                "expected_oracle": _json(case["expected"]),
+                "review_status": "duplicate",
+                "reviewer": "user-confirmed",
+                "reviewed_at": "2026-10-05T12:00:00Z",
+                "notes": case["review"]["scope"],
+                "recommended_review": "deduplicate",
+                "review_reason": "已确认重复；保留到 duplicate regression，不计入主 Holdout。",
+                "duplicate_of": case["duplicate_of"],
+            })
+        elif case["split"] == "holdout_candidate":
+            row.update({
+                "expected_oracle": _json(case["expected"]),
+                "review_status": "approved",
+                "reviewer": "user-confirmed",
+                "reviewed_at": "2026-10-05T12:00:00Z",
+                "notes": case["review"]["scope"],
+                "recommended_review": "approve",
+            })
 
     canonical = [row for row in rows if not row["duplicate_of"].strip()]
     duplicates = [row for row in rows if row["duplicate_of"].strip()]
@@ -136,20 +146,23 @@ def main() -> None:
             "review_decision": "",
             "reviewer_notes": "",
         })
-    assert len(context_rows) == 6
+    assert len(context_rows) == 0
 
-    context_fields = list(context_rows[0])
+    context_fields = [
+        "id", "recommended_review", "title", "turns", "setup", "expected",
+        "required_tools", "forbidden_tools", "review_focus", "review_decision",
+        "reviewer_notes",
+    ]
     with CONTEXT_CSV.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=context_fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(context_rows)
 
     lines = [
-        "# Holdout V3.1 — 6 条上下文复审", "",
-        "- 原始标注：100 条", "- `duplicate_of` 去重：31 条", "- 保留审核：69 条",
-        "- 已修正并批准：EVAL-265、EVAL-267、EVAL-279",
-        "- EVAL-289/EVAL-299 已归档为 EVAL-279 的 duplicate regression",
-        "- 本页剩余展开：6 条", "",
+        "# Holdout V3.1 — 上下文复审已完成", "",
+        "- 原始标注：100 条", "- `duplicate_of` 去重：31 条", "- 独立 Holdout：69 条",
+        "- 人工 approved：69 条", "- Duplicate Regression：31 条",
+        "- 剩余上下文复审：0 条", "",
         "> 本步骤只整理审核材料，不修改 V3.1 Dataset，也不自动批准 case。", "",
     ]
     for row in context_rows:

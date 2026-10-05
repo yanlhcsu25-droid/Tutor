@@ -113,15 +113,15 @@ def test_v3_1_has_only_remaining_human_review_audit_blockers():
     assert report["summary"]["required_split_matches"] is False
     assert report["summary"]["split_counts"] == {
         "dev": 200,
-        "duplicate_regression": 2,
-        "holdout_candidate": 98,
+        "duplicate_regression": 31,
+        "holdout_candidate": 69,
     }
     assert report["summary"]["cross_split_category_subtype_families"] == 0
     assert report["summary"]["dispositions"] == {
-        "ambiguous_label": 295,
-        "valid": 5,
+        "ambiguous_label": 200,
+        "valid": 100,
     }
-    assert findings == ["manual review status is 'pending'"] * 295
+    assert findings == ["manual review status is 'pending'"] * 200
 
 
 def test_eval_265_is_a_grounded_read_only_current_paper_case():
@@ -211,6 +211,23 @@ def test_eval_279_has_strong_final_paper_oracle_and_duplicates_are_excluded():
         duplicate = next(item for item in cases if item["id"] == duplicate_id)
         assert duplicate["duplicate_of"] == "EVAL-279"
         assert duplicate["split"] == "duplicate_regression"
+
+
+def test_v3_1_applies_all_duplicate_and_holdout_approval_decisions():
+    path = Path(
+        "tests/evals/staging/tutor_workflow_eval_300_v3_1/"
+        "tutor_workflow_eval_300_v3_1.yaml"
+    )
+    cases = yaml.safe_load(path.read_text(encoding="utf-8"))["cases"]
+    holdout = [case for case in cases if case["split"] == "holdout_candidate"]
+    duplicates = [case for case in cases if case["split"] == "duplicate_regression"]
+
+    assert len(holdout) == 69
+    assert all(case["review"]["status"] == "approved" for case in holdout)
+    assert all(not case.get("duplicate_of") for case in holdout)
+    assert len(duplicates) == 31
+    assert all(case["review"]["status"] == "duplicate" for case in duplicates)
+    assert all(case.get("duplicate_of") for case in duplicates)
 
 
 def test_audit_flags_pending_review_and_ambiguous_paper_address(tmp_path: Path):

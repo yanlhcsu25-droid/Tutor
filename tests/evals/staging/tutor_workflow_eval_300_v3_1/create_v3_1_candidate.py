@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import csv
 import json
 import re
@@ -16,6 +17,24 @@ AMBIGUOUS_ADDRESS = re.compile(
     r"(?<!全卷)(?<!选择题)(?<!填空题)(?<!计算题)(?<!证明题)"
     r"第\s*[一二三四五六七八九十\d]+\s*题"
 )
+DUPLICATE_OF = {
+    "EVAL-103": "EVAL-095", "EVAL-104": "EVAL-096",
+    "EVAL-105": "EVAL-097", "EVAL-106": "EVAL-098",
+    "EVAL-156": "EVAL-141", "EVAL-157": "EVAL-142",
+    "EVAL-158": "EVAL-143", "EVAL-160": "EVAL-145",
+    "EVAL-171": "EVAL-141", "EVAL-172": "EVAL-142",
+    "EVAL-173": "EVAL-143", "EVAL-175": "EVAL-145",
+    "EVAL-202": "EVAL-196", "EVAL-203": "EVAL-197",
+    "EVAL-204": "EVAL-198", "EVAL-205": "EVAL-199",
+    "EVAL-206": "EVAL-200", "EVAL-207": "EVAL-201",
+    "EVAL-208": "EVAL-196", "EVAL-209": "EVAL-197",
+    "EVAL-210": "EVAL-198", "EVAL-211": "EVAL-199",
+    "EVAL-212": "EVAL-200", "EVAL-213": "EVAL-201",
+    "EVAL-256": "EVAL-241", "EVAL-257": "EVAL-242",
+    "EVAL-258": "EVAL-243", "EVAL-259": "EVAL-244",
+    "EVAL-260": "EVAL-245", "EVAL-289": "EVAL-279",
+    "EVAL-299": "EVAL-279",
+}
 MUTATING_TOOLS = {
     "prepare_generation_plan",
     "confirm_generation",
@@ -185,23 +204,6 @@ def _repair_generate_then_confirm(case: dict) -> bool:
             ),
         }
         return True
-    if case["id"] in {"EVAL-289", "EVAL-299"}:
-        case["split"] = "duplicate_regression"
-        case["duplicate_of"] = "EVAL-279"
-        case["expected"] = {
-            "status": "completed",
-            "pending_generation": None,
-            "paper_db": {
-                "persisted": True,
-                "question_count": 6,
-                "total_score": 60,
-            },
-        }
-        case["review"] = {
-            "status": "duplicate",
-            "scope": "与 EVAL-279 的完整 turns、工具契约和最终 oracle 相同；不计入主 Holdout。",
-        }
-        return True
     return False
 
 
@@ -305,16 +307,46 @@ def main() -> None:
         "business_oracle": 194,
         "current_paper_read": 1,
         "pause_pending_generation": 1,
-        "generate_then_confirm": 3,
+        "generate_then_confirm": 1,
     }
+    by_id = {case["id"]: case for case in payload["cases"]}
+    for duplicate_id, canonical_id in DUPLICATE_OF.items():
+        duplicate = by_id[duplicate_id]
+        canonical = by_id[canonical_id]
+        duplicate["split"] = "duplicate_regression"
+        duplicate["duplicate_of"] = canonical_id
+        duplicate["expected"] = copy.deepcopy(canonical["expected"])
+        duplicate["review"] = {
+            "status": "duplicate",
+            "scope": (
+                f"与 {canonical_id} 的已确认业务契约重复；"
+                "保留为 regression，不计入主 Holdout。"
+            ),
+        }
+    for case in payload["cases"]:
+        if case["split"] == "holdout_candidate":
+            case["review"] = {
+                **case["review"],
+                "status": "approved",
+                "reviewer": "user-confirmed",
+                "reviewed_at": "2026-10-05T12:00:00Z",
+            }
+    counts["duplicate_decisions_applied"] = len(DUPLICATE_OF)
+    counts["holdout_human_approved"] = sum(
+        case["split"] == "holdout_candidate"
+        and case["review"]["status"] == "approved"
+        for case in payload["cases"]
+    )
     payload["suite"]["splits"] = {
         "dev": 200,
-        "holdout_candidate": 98,
-        "duplicate_regression": 2,
+        "holdout_candidate": 69,
+        "duplicate_regression": 31,
     }
     assert sum(case["split"] == "dev" for case in payload["cases"]) == 200
-    assert sum(case["split"] == "holdout_candidate" for case in payload["cases"]) == 98
-    assert sum(case["split"] == "duplicate_regression" for case in payload["cases"]) == 2
+    assert sum(case["split"] == "holdout_candidate" for case in payload["cases"]) == 69
+    assert sum(case["split"] == "duplicate_regression" for case in payload["cases"]) == 31
+    assert counts["duplicate_decisions_applied"] == 31
+    assert counts["holdout_human_approved"] == 69
     assert not any(set(case["expected"]) == {"status"} for case in payload["cases"])
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
@@ -336,8 +368,8 @@ def main() -> None:
                 "title": case["title"],
                 "expected_oracle": json.dumps(case["expected"], ensure_ascii=False, sort_keys=True),
                 "review_status": case["review"]["status"],
-                "reviewer": "",
-                "reviewed_at": "",
+                "reviewer": case["review"].get("reviewer", ""),
+                "reviewed_at": case["review"].get("reviewed_at", ""),
                 "notes": case["review"]["scope"],
             })
 
