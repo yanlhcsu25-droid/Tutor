@@ -57,6 +57,38 @@ def test_openai_compatible_adapter_retries_429_with_retry_after(monkeypatch):
     assert sleeps == [3.0]
 
 
+def test_openai_compatible_adapter_retries_transport_timeout(monkeypatch):
+    calls = iter([
+        TimeoutError("read timed out"),
+        type("Response", (), {
+            "__enter__": lambda self: self,
+            "__exit__": lambda self, *args: None,
+            "read": lambda self: json.dumps({
+                "choices": [{"message": {"role": "assistant", "content": "ok"}}]
+            }).encode(),
+        })(),
+    ])
+    sleeps = []
+
+    def fake_urlopen(*args, **kwargs):
+        result = next(calls)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    monkeypatch.setattr(backend_module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(backend_module.time, "sleep", sleeps.append)
+    backend = BailianChatBackend(
+        api_key="test",
+        base_url="https://silicon.example/v1",
+        model="test-model",
+        retry_base_seconds=2,
+    )
+
+    assert backend.complete([], [])["message"]["content"] == "ok"
+    assert sleeps == [2]
+
+
 class _UsageBackend:
     provider = "test-provider"
     model = "test-model"

@@ -1,6 +1,6 @@
 import json
 import time
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from typing import Protocol
 
@@ -103,10 +103,19 @@ class BailianChatBackend:
                 with urlopen(request, timeout=request_timeout) as response:
                     body = json.loads(response.read().decode())
                 break
-            except HTTPError as error:
-                if error.code != 429 or attempt == self.max_retries:
+            except (HTTPError, TimeoutError, URLError) as error:
+                retryable = (
+                    isinstance(error, TimeoutError)
+                    or isinstance(error, URLError) and isinstance(error.reason, TimeoutError)
+                    or isinstance(error, HTTPError) and error.code == 429
+                )
+                if not retryable or attempt == self.max_retries:
                     raise
-                retry_after = error.headers.get("Retry-After") if error.headers else None
+                retry_after = (
+                    error.headers.get("Retry-After")
+                    if isinstance(error, HTTPError) and error.headers
+                    else None
+                )
                 delay = (
                     float(retry_after)
                     if retry_after and retry_after.replace(".", "", 1).isdigit()
