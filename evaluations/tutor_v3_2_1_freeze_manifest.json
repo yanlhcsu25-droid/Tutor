@@ -1,0 +1,75 @@
+{
+  "record_type": "tutor_v3_2_1_freeze_manifest",
+  "version": "V3.2.1",
+  "status": "frozen",
+  "supersedes": "evaluations/tutor_v3_2_freeze_manifest.json",
+  "frozen_at": "2026-10-06T04:30:00Z",
+  "authorization": {
+    "provider_resilience_change_authorized": true,
+    "second_official_holdout_authorized": false
+  },
+  "git": {
+    "provider_resilience_checkpoint_sha": "b9635dd56005739a9825cf26e77a2a02f82bbf65",
+    "acceptance_evidence_sha": "6c46c044acf5bd53d6e37a7438b8e7b7a7e27970",
+    "worktree_clean_before_freeze": true
+  },
+  "holdout": {
+    "manifest": "tests/evals/manifests/holdout_v3_2_1_69.yaml",
+    "manifest_sha256": "ca8df1acfd8c28f7e7c896b5a447e0c09daf701f4b940b489c0f3ce665d1abab",
+    "dataset_bundle_sha256": "7c7eb05853b406306ca484311049e3c66a5bcbf283b4680c70a8deb22b18d2d1",
+    "case_count": 69,
+    "validated": true,
+    "executed": false
+  },
+  "component_locks": {
+    "runtime": "f77eec9b303147700e6d16b23273b2854e07ce74cd4cd5747b199d9a619d997b",
+    "graders": "12abf2d87021c4f9d2125e273ec7063590b35d141513fdd0b127f8e8b9305825",
+    "fixture": "96627a9e9e25ea039e39fb8456745328f9049fedfab748998f4c40a0c59d9908",
+    "runner": "88868d2af52389eda495d0e23be4a2f2eeabcbed7be7ee90b80b915cc8d7113e",
+    "model_configuration": "a5e192e4c95e04e4c602d28bdc0b031cff21b23cb6c83ab9ff6a8b583858c25d"
+  },
+  "execution": {
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-35B-A3B",
+    "backend_adapter": "BailianChatBackend",
+    "temperature": 0,
+    "timeout_seconds": 120,
+    "max_tool_rounds": 8,
+    "case_delay_seconds": 5.0,
+    "retry_policy": {
+      "provider_retries": 4,
+      "retry_base_seconds": 5.0,
+      "retry_max_delay_seconds": 60.0,
+      "honor_numeric_retry_after": true,
+      "retryable_failures": ["http_429", "timeout", "connection_error"],
+      "other_http_4xx_fail_fast": true
+    },
+    "token_accounting_policy": {
+      "source": "provider_usage_from_model_call_spans",
+      "missing_usage": "null_not_estimated"
+    }
+  },
+  "acceptance": {
+    "full_pytest": "passed",
+    "ruff_src_tests": "passed",
+    "targeted_timeout_retry": "2/2 passed",
+    "golden_smoke_v1": "19/20; zero provider failures; preserved V1 lifecycle mismatch",
+    "golden_smoke_v2": "19/20 plus 1/1 provider retry; effective 20/20 case coverage",
+    "http_429_after_policy": 0,
+    "evidence": "evaluations/v3_2_1_provider_resilience_acceptance.json"
+  },
+  "historical_baseline": {
+    "v3_1_first_official": "25/69 = 36.23%",
+    "overwritten": false
+  },
+  "freeze_rules": {
+    "runtime_locked": true,
+    "prompt_locked": true,
+    "grader_locked": true,
+    "fixture_locked": true,
+    "holdout_dataset_locked": true,
+    "labels_locked": true,
+    "retry_and_pacing_policy_locked": true,
+    "second_official_holdout_requires_explicit_user_authorization": true
+  }
+}
