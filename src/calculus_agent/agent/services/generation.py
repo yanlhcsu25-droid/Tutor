@@ -16,7 +16,9 @@ from typing import Protocol
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from calculus_agent.generation_diagnosis import diagnose_generation_failure
 from calculus_agent.models import Paper
+from calculus_agent.papers.selector import compose_paper_with_evidence
 from calculus_agent.question_types import canonical_question_type
 
 from ..conversation_state import PendingGeneration, PendingGenerationStaleError
@@ -57,6 +59,32 @@ class GenerationStateStore(Protocol):
 
 class NoPendingGenerationError(LookupError):
     """Raised when confirmation is requested without a persisted pending plan."""
+
+
+def _teacher_owned_hard_constraints(request: GeneratePaperInput) -> bool:
+    return any(
+        (
+            value.get("teacher_explicit", False)
+            if isinstance(value, dict)
+            else value.teacher_explicit
+        )
+        and (
+            value.get("strength") == "hard"
+            if isinstance(value, dict)
+            else value.strength == "hard"
+        )
+        for value in request.constraint_provenance.values()
+    )
+
+
+def _supply_clarification(diagnosis) -> str:
+    shortages = [
+        f"{fact.subject or fact.dimension}需要{fact.required}，当前只有{fact.available}"
+        for fact in diagnosis.facts
+        if fact.required is not None and fact.available is not None
+    ]
+    detail = "；".join(shortages) or "当前题库无法同时满足这些硬约束"
+    return f"{detail}。请确认是调整题量、题型、难度或范围，还是等待补充题库。"
 
 
 def _normalized_generation_request(
@@ -621,6 +649,24 @@ class GenerationService:
         generation_request, warnings, errors, questions = (
             build_structured_generation_request(self.session, request)
         )
+        if generation_request is not None and _teacher_owned_hard_constraints(request):
+            supply_preview, supply_evidence = compose_paper_with_evidence(
+                self.session, generation_request
+            )
+            if not supply_preview.feasible:
+                diagnosis = diagnose_generation_failure(
+                    blueprint=generation_request.blueprint,
+                    evidence=supply_evidence,
+                    preview=supply_preview,
+                )
+                generation_request = None
+                errors = list(dict.fromkeys([
+                    *errors,
+                    "insufficient_candidates",
+                    diagnosis.code,
+                ]))
+                questions = [*questions, _supply_clarification(diagnosis)]
+
         if generation_request is not None:
             request = _normalized_generation_request(
                 request,

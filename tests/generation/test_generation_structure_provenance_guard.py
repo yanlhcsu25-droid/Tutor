@@ -234,7 +234,7 @@ def test_compact_generation_count_and_score_are_both_preserved() -> None:
     assert guarded["total_score"] == 60
 
 
-def test_complete_explicit_type_distribution_is_restored_and_not_substituted() -> None:
+def test_explicit_type_distribution_is_restored_without_invented_scores() -> None:
     guarded = _apply_explicit_opt_in_guards(
         tool_name="prepare_generation_plan",
         arguments={
@@ -248,9 +248,9 @@ def test_complete_explicit_type_distribution_is_restored_and_not_substituted() -
     )
 
     assert guarded["question_type_requirements"] == [
-        {"question_type": "选择题", "count": 2, "score_each": 5},
+        {"question_type": "选择题", "count": 2},
         {"question_type": "填空题", "count": 2},
-        {"question_type": "计算题", "count": 3, "score_each": 10},
+        {"question_type": "计算题", "count": 3},
     ]
 
 

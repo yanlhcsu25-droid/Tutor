@@ -25,7 +25,7 @@ _QUESTION_COUNT_PATTERNS = (
     re.compile(r"^\s*\d{1,3}\s*(?:道|题)\s*(?:就可以|即可|可以|就行|行)?[。！？]?\s*$"),
 )
 _EXPLICIT_GENERATION_COUNT = re.compile(
-    r"(?:生成|出|来|安排|准备|给我|一套|共|总共|一共)"
+    r"(?:生成|出|来|安排|准备|给我|只要|需要|要|做|一套|共|总共|一共)"
     r"[^。！？,，；;0-9一二三四五六七八九十两]{0,10}"
     r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)"
 )
@@ -42,14 +42,14 @@ _EXPLICIT_SCORE_PATCH = re.compile(
     r"(?P<score>\d{1,3})\s*分"
 )
 _COMPACT_GENERATION_COUNT_SCORE = re.compile(
-    r"(?:生成|出|来|组卷)"
+    r"(?:生成|出|来|组卷|给我|只要|需要|要|做|共|总共|一共)"
     r"[^。！？,，；;]{0,20}?"
     r"(?:\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)"
-    r"\s*[,，]?\s*(?P<score>\d{1,3})\s*分"
+    r"[^。！？]{0,10}?(?P<score>\d{1,3})\s*分"
 )
 _QUESTION_TYPE_VALUE = r"选择题?|填空题?|计算题?|证明题?"
 _ALL_QUESTION_TYPE_PATTERN = re.compile(
-    r"(?:全部|均|全都|都是|全是)\s*(?:为|是)?\s*"
+    r"(?:全部|均|全都|都是|全是|只要)\s*(?:为|是)?\s*"
     rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
 )
 _EXPLICIT_TYPE_COUNT_PATTERNS = (
@@ -98,11 +98,10 @@ def _count_value(raw: str) -> int:
 
 
 def _explicit_generation_score(message: str) -> int | None:
-    for pattern in (
-        _EXPLICIT_GENERATION_SCORE,
-        _COMPACT_GENERATION_COUNT_SCORE,
-        _EXPLICIT_SCORE_PATCH,
-    ):
+    patterns = [_EXPLICIT_GENERATION_SCORE, _EXPLICIT_SCORE_PATCH]
+    if "每题" not in message:
+        patterns.append(_COMPACT_GENERATION_COUNT_SCORE)
+    for pattern in patterns:
         match = pattern.search(message)
         if match is not None:
             return int(match.group("score"))
@@ -165,6 +164,49 @@ def explicit_generation_constraint_mismatches(
 explicit_generation_constraint_omissions = explicit_generation_constraint_mismatches
 
 
+def explicit_generation_missing_count(message: str) -> bool:
+    return bool(
+        _ALL_QUESTION_TYPE_PATTERN.search(message)
+        and _explicit_generation_count(message) is None
+    )
+
+
+def observed_generation_supply_question(
+    message: str,
+    trace_calls: list[dict[str, Any]],
+) -> str | None:
+    """Return a deterministic adjustment question when inspected supply is short."""
+    observations = [
+        call.get("result")
+        for call in trace_calls
+        if call.get("tool_name") == "inspect_question_bank"
+        and isinstance(call.get("result"), dict)
+        and call["result"].get("ok") is True
+    ]
+    if not observations:
+        return None
+
+    supply = observations[-1]
+    total_available = int(supply.get("total_questions") or 0)
+    requested_total = _explicit_generation_count(message)
+    shortages: list[str] = []
+    if requested_total is not None and total_available < requested_total:
+        shortages.append(f"总题量需要{requested_total}道，当前只有{total_available}道")
+
+    type_supply = supply.get("question_type_counts") or {}
+    for question_type, required in _explicit_question_type_counts(message).items():
+        available = int(type_supply.get(question_type) or 0)
+        if available < required:
+            shortages.append(f"{question_type}需要{required}道，当前只有{available}道")
+
+    if explicit_generation_missing_count(message):
+        return "请确认需要生成多少道指定题型的题目。"
+    if not shortages and total_available > 0:
+        return None
+    detail = "；".join(shortages) if shortages else "当前范围内没有可用题目"
+    return f"{detail}。请确认是调整题量、题型或范围，还是等待补充题库。"
+
+
 def _explicit_preserve_knowledge_points_requested(message: str) -> bool:
     return _PRESERVE_KNOWLEDGE_POINTS_PATTERN.search(message) is not None
 
@@ -220,7 +262,7 @@ def _apply_explicit_opt_in_guards(
                     **{
                         key: value
                         for key, value in existing.get(question_type, {}).items()
-                        if key == "score_each"
+                        if key == "score_each" and "每题" in message
                     },
                     "question_type": question_type,
                     "count": count,

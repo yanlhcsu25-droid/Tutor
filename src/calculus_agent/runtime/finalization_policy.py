@@ -156,4 +156,9 @@ def normalize_finalization(*, data: FinalizationInput, runtime_policy: Any) -> F
             "但当前 generate Tool 尚未支持跨试卷排重，因此本方案不能保证题目不重复；"
             "在排重能力接入前，我不会把这项偏好描述为已经执行。你仍可以检查并确认其他方案参数。"
         )
+
+    if status == "needs_clarification" and not data.result_values.get(
+        "clarification_questions"
+    ):
+        data.result_values["clarification_questions"] = [final_text]
     return FinalizationDecision(status=status, final_text=final_text)

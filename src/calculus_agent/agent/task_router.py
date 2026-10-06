@@ -207,6 +207,19 @@ _DIRECT_ACTION_RE = re.compile(
     r"测试卷|练习卷|训练卷|练习题|巩固卷|作业|"
     r"(?:期中|期末)(?:试卷|考试卷|测验)|测验|考试卷|重点覆盖"
 )
+_GENERATION_CONSTRAINT_RE = re.compile(
+    r"(?:第\s*[一二三四五六七八九十百0-9]+\s*章[^。！？]{0,24})?"
+    r"(?:生成|出|来|要|需要|给我|做|只要|全是|全部为)[^。！？]{0,12}"
+    r"(?:\d+|[一二三四五六七八九十两]+)\s*(?:道|题)"
+)
+_TYPE_ONLY_GENERATION_RE = re.compile(
+    r"第\s*[一二三四五六七八九十百0-9]+\s*章[^。！？]{0,16}"
+    r"(?:全是|只要|全部为)\s*(?:选择题?|填空题?|计算题?|证明题?)"
+)
+_CONTEXT_DEPENDENT_RE = re.compile(
+    r"继续刚才|再来一个|改成[^。！？]+点|先预览[^。！？]*不是|"
+    r"确认一下题数|如果题库不够|不要跨章节补题|只读[^。！？]*不做任何修改"
+)
 
 _TEACHING_PLANNING_RE = re.compile(
     r"安排复习|复习方案|教学设计|教学方案|讲课安排|备课计划|"
@@ -358,6 +371,32 @@ def deterministic_route(message: str, *, state: RoutingState) -> WorkflowDecisio
             ),
         )
 
+    if _CONTEXT_DEPENDENT_RE.search(message) and not state.has_pending:
+        return WorkflowDecision(
+            source="deterministic_operation",
+            route=TaskRoute(
+                task_type=TaskType.INFORMATION_REQUEST,
+                confidence=1.0,
+                clarification_needed=True,
+                clarification_question="请说明这条要求要应用到哪一项具体任务或方案。",
+                reason="context-dependent request has no active target",
+            ),
+        )
+
+    if (
+        _TYPE_ONLY_GENERATION_RE.search(message)
+        and not _GENERATION_CONSTRAINT_RE.search(message)
+    ):
+        return WorkflowDecision(
+            source="deterministic_operation",
+            route=TaskRoute(
+                task_type=TaskType.DIRECT_ACTION,
+                confidence=1.0,
+                clarification_needed=False,
+                reason="question type generation request requires feasibility validation",
+            ),
+        )
+
     if _PAPER_OPERATION_RE.search(message):
         return WorkflowDecision(
             source="deterministic_operation",
@@ -369,7 +408,7 @@ def deterministic_route(message: str, *, state: RoutingState) -> WorkflowDecisio
             ),
         )
 
-    if _DIRECT_ACTION_RE.search(message):
+    if _DIRECT_ACTION_RE.search(message) or _GENERATION_CONSTRAINT_RE.search(message):
         return WorkflowDecision(
             source="deterministic_operation",
             route=TaskRoute(

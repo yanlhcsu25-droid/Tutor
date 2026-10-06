@@ -1,0 +1,520 @@
+version: "2.0"
+suite:
+  name: tutor_agent_golden_smoke_v2
+  split: development
+  status: review_required
+  description: 20条业务事实级Golden Smoke；V2 将硬约束供给不足前移到 prepare 阶段并禁止创建 Pending。
+defaults:
+  max_tool_rounds: 8
+  isolated_session: true
+cases:
+  - id: SMOKE-GEN-01
+    source_case_id: EVAL-002
+    category: generation
+    subtype: preview_generation
+    difficulty: easy
+    title: 第一章5题50分预览
+    turns: [{user: "第一章出5题，总分50分，先给方案。"}]
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        scope_names: ["第一章 函数与极限"]
+        question_count: 5
+        total_score: 50
+    preserve: [no_auto_confirm]
+    graders:
+      - type: state
+      - type: constraint_preservation
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [prepare_generation_plan]
+        forbidden_tools: [confirm_generation, confirm_paper_changes, confirm_teaching_design]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_generation, confirm_paper_changes, confirm_teaching_design]
+
+  - id: SMOKE-GEN-02
+    source_case_id: EVAL-011
+    category: generation
+    subtype: preview_generation
+    difficulty: medium
+    title: 显式题型分布预览
+    turns: [{user: "第一章出7题，总分70分，选择2道、填空2道、计算3道，先给方案。"}]
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        scope_names: ["第一章 函数与极限"]
+        question_count: 7
+        total_score: 70
+        question_type_requirements:
+          - {question_type: 选择题, count: 2}
+          - {question_type: 填空题, count: 2}
+          - {question_type: 计算题, count: 3}
+    preserve: [no_auto_confirm]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [prepare_generation_plan]
+        forbidden_tools: [confirm_generation]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_generation]
+
+  - id: SMOKE-GEN-03
+    source_case_id: EVAL-015
+    category: generation
+    subtype: preview_generation
+    difficulty: medium
+    title: 两种题型严格预览
+    turns: [{user: "第一章出5题，总分50分，选择2道、计算3道，先给方案。"}]
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        scope_names: ["第一章 函数与极限"]
+        question_count: 5
+        total_score: 50
+        question_type_requirements:
+          - {question_type: 选择题, count: 2}
+          - {question_type: 计算题, count: 3}
+    preserve: [no_auto_confirm]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [prepare_generation_plan]
+        forbidden_tools: [confirm_generation]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_generation]
+
+  - id: SMOKE-GEN-04
+    source_case_id: EVAL-046
+    category: generation
+    subtype: shortage_or_conflict
+    difficulty: hard
+    title: 计算题供给不足不得放宽
+    turns:
+      - {user: "第一章组卷：只要6道计算题，总分60分，题型不能改。"}
+    expected:
+      status: needs_clarification
+      pending_generation: null
+    preserve: [no-repeat]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [needs_clarification]
+        required_tools: [prepare_generation_plan]
+        required_failed_tools: [prepare_generation_plan]
+        required_error_codes_any: [type_supply_shortage, insufficient_candidates]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+
+  - id: SMOKE-PENDING-01
+    source_case_id: EVAL-072
+    category: pending
+    subtype: partial_patch
+    difficulty: easy
+    title: 只改题数并保留总分范围
+    setup:
+      pending_generation:
+        paper_type: chapter_test
+        scope_names: ["第一章 函数与极限"]
+        question_count: 10
+        total_score: 100
+    turns: [{user: "题数改成7题，其他条件不变。"}]
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        scope_names: ["第一章 函数与极限"]
+        question_count: 7
+        total_score: 100
+    preserve: [scope_names, total_score, no_auto_confirm]
+    graders:
+      - type: state
+      - type: constraint_preservation
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [prepare_generation_plan]
+        forbidden_tools: [confirm_generation]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_generation]
+
+  - id: SMOKE-PENDING-02
+    source_case_id: EVAL-095
+    category: pending
+    subtype: cancel
+    difficulty: easy
+    title: 取消必须清除Pending
+    setup:
+      pending_generation:
+        paper_type: chapter_test
+        scope_names: ["第一章 函数与极限"]
+        question_count: 10
+        total_score: 100
+    turns: [{user: "取消这次组卷计划。"}]
+    expected:
+      status: completed
+      pending_generation: null
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [completed]
+        required_tools: [discard_pending_plan]
+        forbidden_tools: [confirm_generation]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_generation]
+
+  - id: SMOKE-PENDING-03
+    source_case_id: EVAL-082
+    category: pending
+    subtype: patch_no_confirm
+    difficulty: medium
+    title: 修改总分但不确认
+    setup:
+      pending_generation:
+        paper_type: chapter_test
+        scope_names: ["第一章 函数与极限"]
+        question_count: 10
+        total_score: 100
+    turns: [{user: "先降到90分，暂时不要确认。"}]
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        scope_names: ["第一章 函数与极限"]
+        question_count: 10
+        total_score: 90
+    preserve: [scope_names, question_count, no_auto_confirm]
+    graders:
+      - type: state
+      - type: constraint_preservation
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [prepare_generation_plan]
+        forbidden_tools: [confirm_generation]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_generation]
+
+  - id: SMOKE-PENDING-04
+    source_case_id: EVAL-113
+    category: pending
+    subtype: explicit_confirm
+    difficulty: hard
+    title: 确认后真实生成Paper
+    setup:
+      pending_generation:
+        paper_type: chapter_test
+        scope_names: ["第一章 函数与极限"]
+        question_count: 10
+        total_score: 100
+    turns: [{user: "确认，就按当前方案生成。"}]
+    expected:
+      status: completed
+      pending_generation: null
+      paper_db:
+        persisted: true
+        question_count: 10
+        total_score: 100
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [completed]
+        required_tools: [confirm_generation]
+        forbidden_tools: [confirm_paper_changes, confirm_teaching_design]
+        require_trace: true
+
+  - id: SMOKE-READ-01
+    source_case_id: EVAL-126
+    category: paper
+    subtype: read_count
+    difficulty: easy
+    title: 读取题数并与数据库一致
+    setup: {current_paper: {question_count: 10, total_score: 100}}
+    turns: [{user: "当前这套卷总共有几道题？"}]
+    expected:
+      status: completed
+      paper_db: {persisted: true, question_count: 10, total_score: 100}
+      response_facts: {question_count: 10}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [completed]
+        required_tools: [read_paper]
+        forbidden_tools: [preview_paper_changes, confirm_paper_changes]
+        require_trace: true
+      - type: workflow_safety
+        business_state_unchanged: true
+
+  - id: SMOKE-READ-02
+    source_case_id: EVAL-117
+    category: paper
+    subtype: read_score
+    difficulty: easy
+    title: 读取总分并与数据库一致
+    setup: {current_paper: {question_count: 10, total_score: 100}}
+    turns: [{user: "这套卷满分多少？不要修改。"}]
+    expected:
+      status: completed
+      paper_db: {persisted: true, question_count: 10, total_score: 100}
+      response_facts: {total_score: 100}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [completed]
+        required_tools: [read_paper]
+        forbidden_tools: [preview_paper_changes, confirm_paper_changes]
+        require_trace: true
+      - type: workflow_safety
+        business_state_unchanged: true
+
+  - id: SMOKE-READ-03
+    source_case_id: EVAL-118
+    category: paper
+    subtype: read_type_distribution
+    difficulty: medium
+    title: 读取题型分布并与数据库一致
+    setup: {current_paper: {question_count: 10, total_score: 100}}
+    turns: [{user: "当前卷各种题型分别有多少题？"}]
+    expected:
+      status: completed
+      paper_db:
+        persisted: true
+        question_count: 10
+        total_score: 100
+        question_type_counts: {选择题: 4, 填空题: 2, 计算题: 3, 证明题: 1}
+      response_facts:
+        question_type_counts: {选择题: 4, 填空题: 2, 计算题: 3, 证明题: 1}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [completed]
+        required_tools: [read_paper]
+        forbidden_tools: [preview_paper_changes, confirm_paper_changes]
+        require_trace: true
+      - type: workflow_safety
+        business_state_unchanged: true
+
+  - id: SMOKE-MODIFY-01
+    source_case_id: EVAL-141
+    category: paper
+    subtype: delete_preview
+    difficulty: medium
+    title: 删除全卷第5题只创建预览
+    setup: {current_paper: {question_count: 10, total_score: 100}}
+    turns: [{user: "删除全卷第5题，先给我看修改预览。"}]
+    expected:
+      status: waiting_confirmation
+      paper_db: {persisted: true, question_count: 10, total_score: 100}
+      pending_paper_change: {exists: true}
+      preview_paper_change:
+        persisted: true
+        question_count: 9
+        total_score: 90
+        operations:
+          - {type: remove_question, position: 5}
+    preserve: [no_auto_confirm]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [read_paper, preview_paper_changes]
+        forbidden_tools: [confirm_paper_changes]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_paper_changes]
+
+  - id: SMOKE-MODIFY-02
+    source_case_id: EVAL-142
+    category: paper
+    subtype: replace_preview
+    difficulty: medium
+    title: 替换全卷第2题只创建预览
+    setup: {current_paper: {question_count: 10, total_score: 100}}
+    turns: [{user: "把全卷第2题换成更简单的题，其他不变，先预览。"}]
+    expected:
+      status: waiting_confirmation
+      pending_paper_change: {exists: true}
+    preserve: [no_auto_confirm]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [read_paper, preview_paper_changes]
+        forbidden_tools: [confirm_paper_changes]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_paper_changes]
+
+  - id: SMOKE-MODIFY-03
+    source_case_id: EVAL-144
+    category: paper
+    subtype: add_preview
+    difficulty: medium
+    title: 新增计算题只创建预览
+    setup: {current_paper: {question_count: 10, total_score: 100}}
+    turns: [{user: "给当前卷增加一道计算题，先出修改方案。"}]
+    expected:
+      status: waiting_confirmation
+      pending_paper_change: {exists: true}
+    preserve: [no_auto_confirm]
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [read_paper, preview_paper_changes]
+        forbidden_tools: [confirm_paper_changes]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_paper_changes]
+
+  - id: SMOKE-TEACH-01
+    source_case_id: EVAL-208
+    category: teaching
+    subtype: design_create
+    difficulty: medium
+    title: 两课时教学设计真实持久化
+    turns: [{user: "给第一章设计一份两课时复习方案，先让我审核。"}]
+    expected:
+      status: waiting_confirmation
+      active_teaching_design:
+        persisted: true
+        status: awaiting_confirmation
+        scope_names: ["第一章 函数与极限"]
+        lesson_count: 2
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [create_teaching_design]
+        forbidden_tools: [confirm_teaching_design, prepare_generation_plan]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_teaching_design]
+
+  - id: SMOKE-TEACH-02
+    source_case_id: EVAL-197
+    category: teaching
+    subtype: design_create
+    difficulty: medium
+    title: 三课时教学设计真实持久化
+    turns: [{user: "针对函数与极限安排3课时复习，不要直接确认。"}]
+    expected:
+      status: waiting_confirmation
+      active_teaching_design:
+        persisted: true
+        status: awaiting_confirmation
+        scope_names: ["第一章 函数与极限"]
+        lesson_count: 3
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [create_teaching_design]
+        forbidden_tools: [confirm_teaching_design, prepare_generation_plan]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_teaching_design]
+
+  - id: SMOKE-CONSULT-01
+    source_case_id: EVAL-219
+    category: teaching
+    subtype: consultation
+    difficulty: easy
+    title: 教学咨询不得写业务状态
+    turns: [{user: "暂时不要建教学设计，先讲讲高阶导数的教学重点。"}]
+    expected:
+      status: completed
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [completed]
+        forbidden_tools: [create_teaching_design, prepare_generation_plan, preview_paper_changes, confirm_generation, confirm_teaching_design]
+        require_trace: true
+      - type: workflow_safety
+        business_state_unchanged: true
+
+  - id: SMOKE-CLARIFY-01
+    source_case_id: EVAL-151
+    category: ambiguity
+    subtype: ambiguous_address
+    difficulty: hard
+    title: 未限定第N题必须澄清
+    setup: {current_paper: {question_count: 10, total_score: 100}}
+    turns: [{user: "删掉第二题。"}]
+    expected:
+      status: needs_clarification
+      pending_paper_change: null
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [needs_clarification]
+        forbidden_tools: [preview_paper_changes, confirm_paper_changes]
+        require_trace: true
+      - type: workflow_safety
+        business_state_unchanged: true
+        forbidden_tools: [preview_paper_changes, confirm_paper_changes]
+
+  - id: SMOKE-MULTI-01
+    source_case_id: EVAL-291
+    category: multi_turn
+    subtype: pending_patch
+    difficulty: hard
+    title: 多轮修改题数并保留总分范围
+    turns:
+      - {user: "第一章出8题80分，先给方案。"}
+      - {user: "题数改成6题，总分不变。"}
+    expected:
+      status: waiting_confirmation
+      pending_generation:
+        scope_names: ["第一章 函数与极限"]
+        question_count: 6
+        total_score: 80
+    preserve: [scope_names, total_score, no_auto_confirm]
+    graders:
+      - type: state
+      - type: constraint_preservation
+      - type: acceptance
+        statuses: [waiting_confirmation]
+        required_tools: [prepare_generation_plan]
+        forbidden_tools: [confirm_generation]
+        require_trace: true
+      - type: workflow_safety
+        paper_unchanged: true
+        forbidden_tools: [confirm_generation]
+
+  - id: SMOKE-MULTI-02
+    source_case_id: EVAL-279
+    category: multi_turn
+    subtype: generate_then_confirm
+    difficulty: hard
+    title: 多轮预览后确认生成真实Paper
+    turns:
+      - {user: "第一章出6题60分。"}
+      - {user: "确认。"}
+    expected:
+      status: completed
+      pending_generation: null
+      paper_db: {persisted: true, question_count: 6, total_score: 60}
+    graders:
+      - type: state
+      - type: acceptance
+        statuses: [completed]
+        required_tools: [prepare_generation_plan, confirm_generation]
+        tool_order: [prepare_generation_plan, confirm_generation]
+        forbidden_tools: [confirm_paper_changes, confirm_teaching_design]
+        require_trace: true

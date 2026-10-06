@@ -72,6 +72,39 @@ def test_design_artifact_wins_over_embedded_exam_wording():
     assert decision.route.artifact_required
 
 
+@pytest.mark.parametrize("message", [
+    "第一章只要6道计算题，60分，题型不能改。",
+    "第一章给我5道证明题，共50分，不能拿计算题替代。",
+    "第一章要100道选择题，100分，必须全是选择。",
+])
+def test_generation_constraints_cannot_route_to_teaching_design(message):
+    route = decide_task(message).route
+
+    assert route.task_type == TaskType.DIRECT_ACTION
+    assert route.clarification_needed is False
+
+
+@pytest.mark.parametrize("message", [
+    "继续刚才那个。",
+    "再来一个。",
+    "如果题库不够就告诉我，别自作主张改题型。",
+    "不要跨章节补题。",
+    "只读，不做任何修改。",
+])
+def test_context_dependent_request_without_target_asks_structured_question(message):
+    route = decide_task(message).route
+
+    assert route.clarification_needed is True
+    assert route.clarification_question
+
+
+def test_type_only_generation_request_stays_in_generation_workflow():
+    route = decide_task("第一章全是证明题，先给可行性，不要自动把要求放宽。").route
+
+    assert route.task_type == TaskType.DIRECT_ACTION
+    assert route.clarification_needed is False
+
+
 def test_router_classifies_teaching_planning_request():
     decision = decide_task("学生极限一直学不好，帮我安排复习")
 

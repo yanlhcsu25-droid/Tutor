@@ -318,8 +318,8 @@ def test_ambiguous_address_golden_case_passes_without_model_call():
     assert result["actual"]["pending_paper_change"] is None
 
 
-def test_runner_grades_tool_lifecycle_across_multiple_turns():
-    suite = load_eval_suite("tests/evals/cases/golden_smoke_v1.yaml")
+def test_runner_grades_generation_shortage_before_pending_confirmation():
+    suite = load_eval_suite("tests/evals/cases/golden_smoke_v2.yaml")
     case = next(item for item in suite.cases if item.id == "SMOKE-GEN-04")
     case.backend = {"behavior": "scripted", "responses": [
         _tool_call("prepare_generation_plan", {
@@ -337,8 +337,9 @@ def test_runner_grades_tool_lifecycle_across_multiple_turns():
 
     assert result["passed"], result
     assert [call["name"] for call in result["actual"]["trace"]["tool_calls"]] == [
-        "prepare_generation_plan", "confirm_generation",
+        "prepare_generation_plan",
     ]
+    assert result["actual"]["pending_generation"] is None
 
 
 def test_runner_projects_active_teaching_design_and_lesson_count(session):

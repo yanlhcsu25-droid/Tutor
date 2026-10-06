@@ -25,6 +25,24 @@ def test_required_tool_must_have_successful_observation():
     assert "no successful observation" in result["errors"][0]
 
 
+def test_required_tool_business_rejection_satisfies_clarification_case():
+    result = grade_acceptance(
+        object(),
+        {
+            "status": "needs_clarification",
+            "trace": {"tool_calls": [
+                {"tool_name": "prepare_generation_plan", "result": {"ok": False}},
+            ]},
+        },
+        {
+            "required_tools": ["prepare_generation_plan"],
+            "statuses": ["needs_clarification"],
+        },
+    )
+
+    assert result["passed"]
+
+
 def test_expected_failed_tool_can_satisfy_failure_case():
     result = grade_acceptance(
         object(),

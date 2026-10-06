@@ -222,6 +222,13 @@ def test_knowledge_target_and_count_are_enough_for_executable_preview(session):
 def test_natural_scope_phrases_can_map_to_executable_generation_plans(session):
     _scope(session)
     _small_comparison(session)
+    for number in range(1, 7):
+        _candidate(
+            session,
+            number=number,
+            question_type="计算题",
+            knowledge_id="structured-small-comparison",
+        )
     examples = [
         (
             "函数与极限这部分，给我来6道练习，重点练等价无穷小替换",
@@ -259,6 +266,13 @@ def test_natural_scope_phrases_can_map_to_executable_generation_plans(session):
 def test_generation_draft_context_survives_follow_up_patch(session):
     _scope(session)
     _small_comparison(session)
+    for number in range(1, 7):
+        _candidate(
+            session,
+            number=number,
+            question_type="计算题",
+            knowledge_id="structured-small-comparison",
+        )
     conversation_id = "knowledge-exercise-follow-up"
     first = run_teacher_agent(
         session,
@@ -444,7 +458,7 @@ def test_missing_knowledge_name_returns_structured_error(session):
     assert "不存在的知识点" in questions[0]
 
 
-def test_omitted_explicit_type_constraint_is_restored_before_tool_execution(session):
+def test_impossible_explicit_type_constraint_fails_closed_before_pending(session):
     _scope(session)
     backend = _Backend(
         _tool(
@@ -461,13 +475,32 @@ def test_omitted_explicit_type_constraint_is_restored_before_tool_execution(sess
         backend=backend,
     )
 
-    assert result.status == "waiting_confirmation"
-    assert result.generation_preview is not None
-    assert [
-        (item.question_type, item.count)
-        for item in result.generation_preview.sections
-    ] == [("计算题", 8)]
-    assert "explicit_constraint_mismatch" not in result.blocking_errors
+    assert result.status == "needs_clarification"
+    assert "insufficient_candidates" in result.blocking_errors
+    assert result.clarification_questions
+    assert DatabasePendingReplacementStore(session).get_generation(
+        "explicit-type-restore"
+    ) is None
+
+
+def test_type_only_generation_without_count_cannot_create_pending(session):
+    _scope(session)
+    result = run_teacher_agent(
+        session,
+        "第一章全是证明题，先给可行性，不要自动把要求放宽。",
+        conversation_id="type-only-missing-count",
+        backend=_Backend(_tool(
+            '{"paper_type":"chapter_test","scope_names":["第一章"],'
+            '"question_type_requirements":[{"question_type":"证明题","count":10}]}'
+        )),
+    )
+
+    assert result.status == "needs_clarification"
+    assert result.blocking_errors == ["missing_question_count"]
+    assert result.clarification_questions
+    assert DatabasePendingReplacementStore(session).get_generation(
+        "type-only-missing-count"
+    ) is None
 
 
 def test_llm_generation_request_creates_preview_without_composing(session):

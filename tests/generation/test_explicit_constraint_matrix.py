@@ -7,6 +7,8 @@ import pytest
 from calculus_agent.runtime.request_guards import (
     _apply_explicit_opt_in_guards,
     explicit_generation_constraint_mismatches,
+    explicit_generation_missing_count,
+    observed_generation_supply_question,
 )
 
 
@@ -104,6 +106,64 @@ def test_explicit_whole_paper_count_wins_over_embedded_type_counts(
     )
 
     assert guarded["question_count"] == expected_count
+
+
+def test_type_only_generation_requires_explicit_count() -> None:
+    assert explicit_generation_missing_count(
+        "第一章全是证明题，先给可行性，不要自动把要求放宽。"
+    )
+    assert not explicit_generation_missing_count("第一章出6道证明题。")
+
+
+def test_inspected_supply_shortage_returns_actionable_question() -> None:
+    question = observed_generation_supply_question(
+        "第一章出8道计算题，不允许改成其他题型。",
+        [{
+            "tool_name": "inspect_question_bank",
+            "result": {
+                "ok": True,
+                "total_questions": 14,
+                "question_type_counts": {"计算题": 5},
+            },
+        }],
+    )
+
+    assert question is not None
+    assert "计算题需要8道" in question
+    assert "当前只有5道" in question
+
+
+def test_sufficient_inspected_supply_needs_no_clarification() -> None:
+    assert observed_generation_supply_question(
+        "第一章出4道计算题。",
+        [{
+            "tool_name": "inspect_question_bank",
+            "result": {
+                "ok": True,
+                "total_questions": 14,
+                "question_type_counts": {"计算题": 5},
+            },
+        }],
+    ) is None
+
+
+def test_per_question_score_is_not_rewritten_as_total_score() -> None:
+    guarded = _apply_explicit_opt_in_guards(
+        tool_name="prepare_generation_plan",
+        arguments={
+            "question_count": 4,
+            "total_score": 10,
+            "question_type_requirements": [
+                {"question_type": "计算题", "count": 4, "score_each": 10},
+            ],
+        },
+        message="第三章只出4道计算题，每题10分。",
+    )
+
+    assert "total_score" not in guarded
+    assert guarded["question_type_requirements"] == [
+        {"question_type": "计算题", "count": 4, "score_each": 10},
+    ]
 
 
 def test_model_invented_score_and_distribution_are_removed_together() -> None:

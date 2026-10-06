@@ -40,7 +40,15 @@ def grade_acceptance(
     missing_required = [name for name in required if name not in names]
     if missing_required:
         errors.append(f"required tools not called: {missing_required!r}")
-    if not config.get("require_failed_tool") and not config.get("allow_failed_required_tools"):
+    allows_business_rejection = (
+        actual.get("status") == "needs_clarification"
+        and "needs_clarification" in (config.get("statuses") or [])
+    )
+    if (
+        not allows_business_rejection
+        and not config.get("require_failed_tool")
+        and not config.get("allow_failed_required_tools")
+    ):
         expected_failures = set(config.get("required_failed_tools") or [])
         unsuccessful_required = [
             name for name in required

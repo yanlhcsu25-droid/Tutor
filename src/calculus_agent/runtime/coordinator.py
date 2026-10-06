@@ -91,6 +91,8 @@ from calculus_agent.runtime.response_policy import ResponsePolicy
 from calculus_agent.runtime.request_guards import (
     _apply_explicit_opt_in_guards,
     explicit_generation_constraint_mismatches,
+    explicit_generation_missing_count,
+    observed_generation_supply_question,
 )
 from calculus_agent.runtime.variants import AgentVariant, STATE_POLICY
 from calculus_agent.runtime.paper_request import (
@@ -616,8 +618,8 @@ def _run_teacher_agent_turn(
                 []
                 if consultation_only
                 or (
-                    task_decision.source == "llm_router"
-                    and task_decision.route.clarification_needed
+                    task_decision.route.clarification_needed
+                    and task_decision.source != "heuristic_fallback"
                 )
                 else definition_names
             ),
@@ -638,7 +640,10 @@ def _run_teacher_agent_turn(
         )
         # A structured routing clarification is already the turn outcome, not
         # merely a prompt hint for another model call to reinterpret.
-        if task_decision.source == "llm_router" and task_decision.route.clarification_needed:
+        if (
+            task_decision.route.clarification_needed
+            and task_decision.source != "heuristic_fallback"
+        ):
             question = task_decision.route.clarification_question
             _persist_final_message(history_store, conversation_id, question)
             return finish(TeacherAgentResult(
@@ -792,6 +797,7 @@ def _run_teacher_agent_turn(
         generation_patch_retried = False
         explicit_constraint_retried = False
         post_inspection_intent_rechecked = False
+        supply_shortage_reprompted = False
         clarification_boundary_reached = False
         terminal_tool_boundary_reached = False
         repeated_validation_boundary_reached = False
@@ -1108,6 +1114,58 @@ def _run_teacher_agent_turn(
                         result_values["blocking_errors"].append("paper_change_preview_required")
                         final_text = "当前试卷已读取，但本轮没有生成修改预览，因此不能声明修改已完成。"
                         break
+                    supply_question = observed_generation_supply_question(
+                        message, trace_calls
+                    )
+                    if (
+                        supply_question
+                        and task_decision.route.task_type == TaskType.DIRECT_ACTION
+                        and not any(
+                            call["tool_name"] == "prepare_generation_plan"
+                            for call in trace_calls
+                        )
+                    ):
+                        if not supply_shortage_reprompted:
+                            messages.extend([
+                                {"role": "assistant", "content": content.strip()},
+                                {"role": "user", "content": (
+                                    "<supply_shortage_boundary>题库调查已确认供给不足。"
+                                    "仍须调用 prepare_generation_plan 提交教师的原始硬约束，"
+                                    "让 Tool 返回权威的结构化缺口；不得静默放宽约束，也不得创建"
+                                    "可确认方案。</supply_shortage_boundary>"
+                                )},
+                            ])
+                            definitions = toolkit.schemas(
+                                names=exposure_policy.boundary_tools(
+                                    "generation_patch", context=exposure_context
+                                )
+                            )
+                            supply_shortage_reprompted = True
+                            continue
+                        turn_status = "needs_clarification"
+                        result_values["blocking_errors"].append(
+                            "insufficient_candidates"
+                        )
+                        result_values["clarification_questions"].append(
+                            supply_question
+                        )
+                        final_text = content.strip() or supply_question
+                        break
+                    if (
+                        supply_question
+                        and task_decision.route.task_type in {
+                            TaskType.TEACHING_DESIGN, TaskType.TEACHING_PLANNING,
+                        }
+                    ):
+                        turn_status = "needs_clarification"
+                        result_values["blocking_errors"].append(
+                            "insufficient_candidates"
+                        )
+                        result_values["clarification_questions"].append(
+                            supply_question
+                        )
+                        final_text = content.strip() or supply_question
+                        break
                     if (
                         variant.confirmation_guard
                         and teaching_design_artifact_requested
@@ -1187,7 +1245,36 @@ def _run_teacher_agent_turn(
                         if name == "prepare_generation_plan" and not pending_generation
                         else []
                     )
-                    if constraint_mismatches:
+                    generation_count_missing = (
+                        name == "prepare_generation_plan"
+                        and not pending_generation
+                        and explicit_generation_missing_count(message)
+                    )
+                    if generation_count_missing:
+                        missing_count_result = ToolResult.failure(
+                            "missing_question_count",
+                            "请确认需要生成多少道指定题型的题目。",
+                            status="needs_clarification",
+                            result_fields={
+                                "blocking_errors": ["missing_question_count"],
+                                "clarification_questions": [
+                                    "请确认需要生成多少道指定题型的题目。"
+                                ],
+                            },
+                        )
+                        execution_payload = missing_count_result.payload
+                        tool_execution_status = missing_count_result.status
+                        turn_status = missing_count_result.status
+                        merge_result_fields(
+                            result_values, missing_count_result.result_fields
+                        )
+                        run_manager.update_span(
+                            tool_span,
+                            status="success",
+                            output=redact_trace_value(execution_payload),
+                            ended_at=datetime.now(UTC),
+                        )
+                    elif constraint_mismatches:
                         mismatch_result = ToolResult.failure(
                             "explicit_constraint_mismatch",
                             "The tool arguments omitted or changed a teacher-explicit hard constraint.",

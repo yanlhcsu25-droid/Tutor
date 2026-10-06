@@ -46,6 +46,19 @@ def test_scope_selected_workflow_cannot_complete_without_artifact():
     assert "teaching_design_workflow_incomplete" in data.result_values["blocking_errors"]
 
 
+def test_clarification_status_always_has_a_structured_question():
+    data = _data(
+        status="needs_clarification",
+        final_text="请先选择要修改的试卷。",
+        result_values={"blocking_errors": ["no_current_paper"], "warnings": []},
+    )
+
+    result = normalize_finalization(data=data, runtime_policy=_RuntimePolicy())
+
+    assert result.status == "needs_clarification"
+    assert data.result_values["clarification_questions"] == [result.final_text]
+
+
 def test_cross_paper_dedup_warning_replaces_unsafe_final_claim():
     data = _data(result_values={"blocking_errors": [], "warnings": ["avoid_previous_paper_questions_unsupported"]})
     result = normalize_finalization(data=data, runtime_policy=_RuntimePolicy())
