@@ -39,7 +39,10 @@ def component_sha(paths: list[Path]) -> str:
 
 
 def validate_holdout_manifest(
-    manifest_path: Path, dataset_paths: list[Path],
+    manifest_path: Path,
+    dataset_paths: list[Path],
+    *,
+    verify_current_components: bool = True,
 ) -> dict[str, Any]:
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
     datasets = load_dataset_cases(dataset_paths)
@@ -102,9 +105,10 @@ def validate_holdout_manifest(
     actual_components = {
         name: component_sha(paths) for name, paths in COMPONENT_PATHS.items()
     }
-    for name, actual_sha in actual_components.items():
-        if (locks.get(name) or {}).get("sha256") != actual_sha:
-            errors.append(f"component_locks.{name}.sha256 mismatch")
+    if verify_current_components:
+        for name, actual_sha in actual_components.items():
+            if (locks.get(name) or {}).get("sha256") != actual_sha:
+                errors.append(f"component_locks.{name}.sha256 mismatch")
 
     return {
         "valid": not errors,

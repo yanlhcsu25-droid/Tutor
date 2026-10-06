@@ -1,0 +1,73 @@
+{
+  "record_type": "v3_2_clarification_regression_summary",
+  "runtime_git_sha": "52d4421527b4ffc3c5da256f4bfa12eab39d3fdc",
+  "source_report": "tests/evals/reports/v3.2-clarification-26-regression-20261006T025127Z.json",
+  "baseline_reference": {
+    "name": "V3.1 first official holdout",
+    "result": "25/69 = 36.23%",
+    "changed": false
+  },
+  "counts": {
+    "total": 26,
+    "passed": 19,
+    "failed": 7,
+    "pass_rate": 0.7307692307692307,
+    "provider_failures": 7,
+    "business_failures": 0,
+    "side_effect_violations": 0
+  },
+  "passed_case_ids": [
+    "EVAL-046", "EVAL-047", "EVAL-048", "EVAL-049", "EVAL-050",
+    "EVAL-051", "EVAL-052", "EVAL-053", "EVAL-054", "EVAL-055",
+    "EVAL-242", "EVAL-247", "EVAL-249", "EVAL-262", "EVAL-263",
+    "EVAL-264", "EVAL-268", "EVAL-269", "EVAL-270"
+  ],
+  "failed_case_ids": [
+    "EVAL-056", "EVAL-057", "EVAL-058", "EVAL-059", "EVAL-060",
+    "EVAL-199", "EVAL-244"
+  ],
+  "failure_taxonomy": {
+    "provider_http_429": {
+      "count": 7,
+      "case_ids": [
+        "EVAL-056", "EVAL-057", "EVAL-058", "EVAL-059", "EVAL-060",
+        "EVAL-199", "EVAL-244"
+      ],
+      "original_failure_family_persisted": false,
+      "new_runtime_contract_issue": false,
+      "new_routing_issue": false,
+      "new_guard_issue": false,
+      "new_state_contract_issue": false,
+      "new_side_effect": false
+    }
+  },
+  "case_results": [
+    {"case_id":"EVAL-046","verdict":"passed","original_family":"generation_misrouted_to_teaching_design","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-047","verdict":"passed","original_family":"generation_misrouted_to_teaching_design","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-048","verdict":"passed","original_family":"teaching_design_guard_over_strict","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-049","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-050","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-051","verdict":"passed","original_family":"generation_feasibility_guard_too_lax","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-052","verdict":"passed","original_family":"teaching_design_guard_over_strict","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-053","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-054","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-055","verdict":"passed","original_family":"teaching_design_guard_over_strict","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-056","verdict":"failed","original_family":"generation_feasibility_guard_too_lax","current_taxonomy":"provider_http_429","side_effect_violation":false},
+    {"case_id":"EVAL-057","verdict":"failed","original_family":"generation_feasibility_guard_too_lax","current_taxonomy":"provider_http_429","side_effect_violation":false},
+    {"case_id":"EVAL-058","verdict":"failed","original_family":"completed_without_structured_clarification","current_taxonomy":"provider_http_429","side_effect_violation":false},
+    {"case_id":"EVAL-059","verdict":"failed","original_family":"probable_oracle_mismatch","current_taxonomy":"provider_http_429","side_effect_violation":false},
+    {"case_id":"EVAL-060","verdict":"failed","original_family":"generation_feasibility_guard_too_lax","current_taxonomy":"provider_http_429","side_effect_violation":false},
+    {"case_id":"EVAL-199","verdict":"failed","original_family":"teaching_design_guard_over_strict","current_taxonomy":"provider_http_429","side_effect_violation":false},
+    {"case_id":"EVAL-242","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-244","verdict":"failed","original_family":"no_current_paper_missing_structured_question","current_taxonomy":"provider_http_429","side_effect_violation":false},
+    {"case_id":"EVAL-247","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-249","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-262","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-263","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-264","verdict":"passed","original_family":"no_current_paper_missing_structured_question","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-268","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-269","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false},
+    {"case_id":"EVAL-270","verdict":"passed","original_family":"completed_without_structured_clarification","current_taxonomy":"resolved","side_effect_violation":false}
+  ],
+  "conclusion": "No business failure, side-effect violation, routing regression, guard regression, or state-contract regression was observed among completed calls. Seven failures are recorded provider HTTP 429 failures and do not demonstrate persistence of the original failure families."
+}

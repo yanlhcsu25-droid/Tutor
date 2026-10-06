@@ -1,0 +1,17 @@
+{
+  "record_type": "v3_2_evaluator_impact_audit",
+  "source_dataset": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+  "source_raw_report": "tests/evals/reports/official-holdout-v3.1-69-first-20261005T132623Z.json",
+  "new_evaluator": "tests/evals/graders/acceptance_grader.py@52d4421527b4ffc3c5da256f4bfa12eab39d3fdc",
+  "baseline": {
+    "passed": 25,
+    "denominator": 69,
+    "rate": 0.3623,
+    "preserved": true
+  },
+  "method": "Re-grade only the acceptance component from each archived raw actual; preserve every other archived grader outcome and recompute the all-graders case verdict.",
+  "acceptance_component_changes": [],
+  "official_verdict_changes": [],
+  "official_verdict_change_count": 0,
+  "conclusion": "evaluator change has zero impact on V3.1 official verdicts"
+}

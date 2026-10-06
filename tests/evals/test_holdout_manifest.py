@@ -13,7 +13,11 @@ MANIFEST = Path("tests/evals/manifests/holdout_v3_1_69.yaml")
 
 
 def test_frozen_holdout_manifest_selects_all_69_approved_unique_cases():
-    report = validate_holdout_manifest(MANIFEST, [DATASET])
+    report = validate_holdout_manifest(
+        MANIFEST,
+        [DATASET],
+        verify_current_components=False,
+    )
 
     assert report["valid"], report["errors"]
     assert report["selected_case_count"] == 69

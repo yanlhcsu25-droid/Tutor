@@ -1,0 +1,39 @@
+{
+  "record_type": "eval_oracle_review",
+  "case_id": "EVAL-059",
+  "runtime_git_sha": "52d4421527b4ffc3c5da256f4bfa12eab39d3fdc",
+  "classification": "ambiguous_contract",
+  "runtime_modified": false,
+  "dataset_modified": false,
+  "official_baseline_modified": false,
+  "user_semantics": "第一章生成10题，全部必须是高难度题；若供给不足则说明。‘全部必须’表达硬难度约束。",
+  "setup": {
+    "pending_generation": null,
+    "pending_paper_change": null,
+    "active_teaching_design": null,
+    "chapter_1_total_questions": 14,
+    "profiled_questions": 14,
+    "difficulty_counts": {"3": 14}
+  },
+  "oracle": {
+    "expected_status": "needs_clarification",
+    "expected_pending_generation": null,
+    "required_tools": ["prepare_generation_plan"],
+    "forbidden_tools": ["confirm_generation", "confirm_paper_changes", "confirm_teaching_design"]
+  },
+  "runtime_contract": {
+    "difficulty_level": "hard",
+    "allowed_difficulty_levels": [3, 4, 5],
+    "preferred_difficulty_levels": [4, 5],
+    "fallback_difficulty_levels": [3],
+    "observed_v3_1_status": "waiting_confirmation",
+    "observed_v3_1_pending_generation": true
+  },
+  "analysis": [
+    "Under the implemented runtime contract, all 14 difficulty-3 questions are eligible for hard, so a 10-question plan is feasible and waiting_confirmation is internally consistent.",
+    "Under the ordinary reading of ‘全部必须是高难度题’, difficulty 3 is plausibly medium and fallback to level 3 violates the hard constraint, so needs_clarification is also semantically defensible.",
+    "The dataset and runtime do not share an explicit authoritative mapping that decides whether level 3 counts as hard when the teacher says ‘必须’."
+  ],
+  "conclusion": "The case is an ambiguous contract, not a safe target for runtime tuning. Product/dataset owners must first define strict-hard as either levels 4-5 only or levels 3-5. If levels 3-5 remain authoritative, correcting expected.status to waiting_confirmation is a dataset/evaluator correction. If strict-hard means levels 4-5, the current runtime has a real strict-difficulty enforcement gap.",
+  "recommended_action": "Do not change Runtime for EVAL-059 in V3.2. Resolve and version the difficulty oracle before a later dataset release."
+}
