@@ -1,0 +1,58 @@
+{
+  "record_type": "v3_2_1_provider_resilience_acceptance",
+  "infrastructure_git_sha": "b9635dd56005739a9825cf26e77a2a02f82bbf65",
+  "policy": {
+    "provider_retries": 4,
+    "retry_base_seconds": 5.0,
+    "retry_max_delay_seconds": 60.0,
+    "retryable_failures": ["HTTP 429", "TimeoutError", "URLError wrapping timeout/connection error", "ConnectionError including remote disconnect"],
+    "non_retryable_http_4xx": true,
+    "retry_after_header_honored": true,
+    "case_delay_seconds": 5.0
+  },
+  "tests": {
+    "focused_unit_tests": "passed",
+    "full_pytest": {"passed": true, "collected": 1218},
+    "ruff_src_tests": "passed"
+  },
+  "live_validation": {
+    "original_seven_provider_failed_cases": {
+      "raw_report": "tests/evals/reports/targeted-v3.2-rate-limit-policy-recheck-20261006.json",
+      "raw_result": "4/7 passed",
+      "http_429_failures": 0,
+      "transient_timeout_failures": ["EVAL-056", "EVAL-057"],
+      "oracle_contract_failure": ["EVAL-059"]
+    },
+    "timeout_retry_follow_up": {
+      "raw_report": "tests/evals/reports/targeted-v3.2-transient-retry-recheck-20261006.json",
+      "result": "2/2 passed",
+      "case_ids": ["EVAL-056", "EVAL-057"]
+    },
+    "golden_smoke_v1": {
+      "raw_report": "tests/evals/reports/v3.2.1-golden-smoke-v1-retry-policy-20261006.json",
+      "result": "19/20 passed",
+      "provider_failures": 0,
+      "remaining_failure": "SMOKE-GEN-04 uses the preserved V1 pre-fail-closed lifecycle oracle"
+    },
+    "golden_smoke_v2": {
+      "raw_report": "tests/evals/reports/v3.2.1-golden-smoke-v2-retry-policy-20261006.json",
+      "initial_result": "19/20 passed",
+      "initial_provider_failure": "SMOKE-READ-01 RemoteDisconnected",
+      "follow_up_report": "tests/evals/reports/v3.2.1-golden-smoke-v2-read01-retry-20261006.json",
+      "follow_up_result": "1/1 passed after ConnectionError retry coverage",
+      "effective_case_coverage": "20/20 passed across preserved raw run plus targeted provider retry"
+    }
+  },
+  "holdout": {
+    "manifest": "tests/evals/manifests/holdout_v3_2_1_69.yaml",
+    "manifest_sha256": "ca8df1acfd8c28f7e7c896b5a447e0c09daf701f4b940b489c0f3ce665d1abab",
+    "validation": "evaluations/v3_2_1_holdout_manifest_validation.json",
+    "valid": true,
+    "case_count": 69,
+    "executed": false
+  },
+  "historical_baseline": {
+    "v3_1_first_official": "25/69 = 36.23%",
+    "modified": false
+  }
+}
