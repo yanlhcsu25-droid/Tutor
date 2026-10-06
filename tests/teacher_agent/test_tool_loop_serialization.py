@@ -60,6 +60,7 @@ def test_openai_compatible_adapter_retries_429_with_retry_after(monkeypatch):
 def test_openai_compatible_adapter_retries_transport_timeout(monkeypatch):
     calls = iter([
         TimeoutError("read timed out"),
+        ConnectionResetError("remote disconnected"),
         type("Response", (), {
             "__enter__": lambda self: self,
             "__exit__": lambda self, *args: None,
@@ -86,7 +87,7 @@ def test_openai_compatible_adapter_retries_transport_timeout(monkeypatch):
     )
 
     assert backend.complete([], [])["message"]["content"] == "ok"
-    assert sleeps == [2]
+    assert sleeps == [2, 4]
 
 
 class _UsageBackend:

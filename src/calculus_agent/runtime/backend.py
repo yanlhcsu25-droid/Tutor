@@ -103,11 +103,13 @@ class BailianChatBackend:
                 with urlopen(request, timeout=request_timeout) as response:
                     body = json.loads(response.read().decode())
                 break
-            except (HTTPError, TimeoutError, URLError) as error:
+            except (HTTPError, TimeoutError, ConnectionError, URLError) as error:
                 retryable = (
-                    isinstance(error, TimeoutError)
-                    or isinstance(error, URLError) and isinstance(error.reason, TimeoutError)
-                    or isinstance(error, HTTPError) and error.code == 429
+                    isinstance(error, (TimeoutError, ConnectionError))
+                    or isinstance(error, URLError)
+                    and isinstance(error.reason, (TimeoutError, ConnectionError))
+                    or isinstance(error, HTTPError)
+                    and error.code == 429
                 )
                 if not retryable or attempt == self.max_retries:
                     raise
