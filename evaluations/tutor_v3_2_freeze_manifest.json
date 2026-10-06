@@ -1,0 +1,124 @@
+{
+  "record_type": "tutor_v3_2_freeze_manifest",
+  "version": "V3.2",
+  "status": "frozen",
+  "frozen_at": "2026-10-06T03:00:00Z",
+  "authorization": {
+    "repair_acceptance_and_freeze_authorized": true,
+    "second_official_holdout_authorized": false
+  },
+  "git": {
+    "runtime_repair_checkpoint_sha": "52d4421527b4ffc3c5da256f4bfa12eab39d3fdc",
+    "acceptance_evidence_sha": "6f64298881a4646f7b1d0dd3efe43b87cbc2b896",
+    "worktree_clean_before_freeze": true
+  },
+  "dataset": {
+    "path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+    "bundle_sha256": "7c7eb05853b406306ca484311049e3c66a5bcbf283b4680c70a8deb22b18d2d1",
+    "file_sha256": "2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad",
+    "modified_for_v3_2": false
+  },
+  "holdout_manifest": {
+    "path": "tests/evals/manifests/holdout_v3_1_69.yaml",
+    "sha256": "8a2f369e0c605fffb99047e49af3158f81dde177e9569a95b838df8c1725b152",
+    "case_count": 69,
+    "execution_authorized_for_v3_2": false
+  },
+  "versions": {
+    "runtime": "tutor-runtime-v3.2",
+    "grader": "grader-v2-business-rejection-aware",
+    "fixture": "eval-fixture-v1",
+    "prompt": "coordinator-system-prompt@155c76d65c008948c748eea2bd1335c101bacc74aad5d85416d7a6da31eb9aaa"
+  },
+  "component_locks": {
+    "runtime": {"sha256": "6873fea8702ea75b9288b1365c5488f85525775a7651c09bb4906e0c72e2f116", "file_count": 20},
+    "graders": {"sha256": "12abf2d87021c4f9d2125e273ec7063590b35d141513fdd0b127f8e8b9305825", "file_count": 8},
+    "fixture": {"sha256": "96627a9e9e25ea039e39fb8456745328f9049fedfab748998f4c40a0c59d9908", "file_count": 4},
+    "runner": {"sha256": "8764cb476376327e26566aedb893cfe7ebab1265f03519437fe292a00e84c3f2", "file_count": 1},
+    "model_configuration": {"sha256": "0f97eb166dbd768298ad4efa3f5a3bd5c5c51426ee74513a93f2bc69bf861f4d", "file_count": 2},
+    "golden_smoke_v1": {"sha256": "d9b0312b95e88b63e78255c6b2212a9c3434369fbad008bcd7a7efd63310eeb2", "case_count": 20},
+    "golden_smoke_v2": {"sha256": "f24da864e1657c6490a210535323a36c8cbe03d6142b38fad3ab5717ff473b62", "case_count": 20}
+  },
+  "execution": {
+    "variant": "state-policy",
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-35B-A3B",
+    "backend_adapter": "BailianChatBackend",
+    "protocol": "openai_compatible",
+    "temperature": 0,
+    "enable_thinking": false,
+    "max_tool_rounds": 8,
+    "timeout_seconds": 120,
+    "retry_policy": {
+      "provider_retries": 0,
+      "in_turn_recovery": "bounded_by_max_tool_rounds",
+      "targeted_provider_retry_may_not_overwrite_raw_failure_reports": true
+    },
+    "token_accounting_policy": {
+      "source": "provider_usage_from_model_call_spans",
+      "input_output_total_reported_only_when_all_model_calls_have_actual_usage": true,
+      "cached_and_reasoning_tokens_aggregated_when_integer_values_are_available": true,
+      "missing_provider_usage_is_null_not_estimated": true
+    }
+  },
+  "acceptance": {
+    "clarification_26_regression": {
+      "completed": true,
+      "passed": 19,
+      "provider_http_429": 7,
+      "business_failures": 0,
+      "side_effect_violations": 0,
+      "summary": "evaluations/v3_2_clarification_26_regression_summary.json"
+    },
+    "golden_smoke_v1": {
+      "completed": true,
+      "passed": 5,
+      "provider_http_429": 15,
+      "business_failures": 0,
+      "side_effect_violations": 0,
+      "summary": "evaluations/v3_2_golden_smoke_v1_summary.json"
+    },
+    "golden_smoke_v2": {
+      "completed": true,
+      "passed": 1,
+      "provider_http_429": 19,
+      "business_failures": 0,
+      "side_effect_violations": 0,
+      "summary": "evaluations/v3_2_golden_smoke_v2_summary.json"
+    },
+    "eval_055_058_retry": {
+      "result": "targeted regression pass after provider retry",
+      "passed": 2,
+      "failed": 0,
+      "raw_report": "tests/evals/reports/targeted-v3.2-eval055-058-provider-retry-20261006T025036Z.json"
+    },
+    "pytest": {"passed": true, "collected": 1216},
+    "ruff_src_tests": {"passed": true},
+    "eval_059_review": {
+      "completed": true,
+      "classification": "ambiguous_contract",
+      "runtime_changed": false,
+      "path": "evaluations/v3_2_eval059_oracle_review.json"
+    },
+    "evaluator_impact_audit": {
+      "completed": true,
+      "official_verdict_change_count": 0,
+      "conclusion": "evaluator change has zero impact on V3.1 official verdicts",
+      "path": "evaluations/v3_2_evaluator_impact_audit.json"
+    }
+  },
+  "historical_baseline": {
+    "v3_1_first_official": "25/69 = 36.23%",
+    "overwritten": false,
+    "denominator_changed": false
+  },
+  "freeze_rules": {
+    "runtime_locked": true,
+    "prompt_locked": true,
+    "grader_locked": true,
+    "fixture_locked": true,
+    "holdout_dataset_locked": true,
+    "labels_locked": true,
+    "second_official_holdout_requires_explicit_user_authorization": true
+  }
+}
