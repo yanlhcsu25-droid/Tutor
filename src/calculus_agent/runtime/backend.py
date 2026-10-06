@@ -1,4 +1,6 @@
 import json
+import time
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from typing import Protocol
 
@@ -51,12 +53,16 @@ class BailianChatBackend:
         model: str,
         timeout: float = 120,
         provider: str = "bailian",
+        max_retries: int = 4,
+        retry_base_seconds: float = 5.0,
     ) -> None:
         self.api_key = api_key
         self.provider = provider
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
+        self.max_retries = max_retries
+        self.retry_base_seconds = retry_base_seconds
 
     def complete(
         self,
@@ -91,8 +97,22 @@ class BailianChatBackend:
                 "Content-Type": "application/json",
             },
         )
-        with urlopen(request, timeout=self.timeout if timeout is None else timeout) as response:
-            body = json.loads(response.read().decode())
+        request_timeout = self.timeout if timeout is None else timeout
+        for attempt in range(self.max_retries + 1):
+            try:
+                with urlopen(request, timeout=request_timeout) as response:
+                    body = json.loads(response.read().decode())
+                break
+            except HTTPError as error:
+                if error.code != 429 or attempt == self.max_retries:
+                    raise
+                retry_after = error.headers.get("Retry-After") if error.headers else None
+                delay = (
+                    float(retry_after)
+                    if retry_after and retry_after.replace(".", "", 1).isdigit()
+                    else self.retry_base_seconds * (2**attempt)
+                )
+                time.sleep(min(delay, 60.0))
         choice = body["choices"][0]
         return {
             "message": choice["message"],

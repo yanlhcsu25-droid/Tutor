@@ -93,6 +93,8 @@ class Settings(BaseSettings):
             "SILICONFLOW_TIMEOUT_SECONDS",
         ),
     )
+    siliconflow_max_retries: int = Field(default=4, ge=0)
+    siliconflow_retry_base_seconds: float = Field(default=5.0, ge=0)
     # AI knowledge pre-annotation is recommendation-only and can be disabled
     # independently from OCR/agent model calls.
     knowledge_llm_enabled: bool = False

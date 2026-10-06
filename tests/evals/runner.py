@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import traceback
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
@@ -1968,6 +1969,7 @@ def write_report(
     *,
     variant: AgentVariant = STATE_POLICY,
     dataset_path: Path | None = None,
+    case_delay_seconds: float = 0,
 ) -> None:
 
     output_path.parent.mkdir(
@@ -2021,6 +2023,7 @@ def write_report(
             "backend_adapters": backend_adapters,
             "protocols": protocols,
             "temperature": 0,
+            "case_delay_seconds": case_delay_seconds,
             "dataset_path": (
                 str(dataset_path.resolve().relative_to(ROOT)) if dataset_path else None
             ),
@@ -2154,6 +2157,12 @@ def parse_args():
         choices=("state-policy", "tool-agent", "prompt-only"),
         default="state-policy",
     )
+    parser.add_argument(
+        "--case-delay-seconds",
+        type=float,
+        default=5.0,
+        help="成功或失败的 case 之间等待秒数，降低 provider 限流风险。",
+    )
 
     return parser.parse_args()
 
@@ -2193,7 +2202,7 @@ def main() -> int:
 
     results = []
 
-    for case in cases:
+    for index, case in enumerate(cases):
         result = run_case(case, variant=variant)
 
         results.append(result)
@@ -2202,9 +2211,12 @@ def main() -> int:
             args.report,
             variant=variant,
             dataset_path=args.cases_file,
+            case_delay_seconds=args.case_delay_seconds,
         )
 
         print_result(result)
+        if index + 1 < len(cases):
+            time.sleep(max(0, args.case_delay_seconds))
 
     print("=" * 60)
 

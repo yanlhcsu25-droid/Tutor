@@ -170,6 +170,8 @@ def build_teacher_agent_backend(settings: Settings) -> ChatBackend | None:
         model=settings.siliconflow_agent_model,
         timeout=settings.siliconflow_timeout_seconds,
         provider="siliconflow",
+        max_retries=settings.siliconflow_max_retries,
+        retry_base_seconds=settings.siliconflow_retry_base_seconds,
     )
 
 

@@ -1,5 +1,8 @@
 import json
+from io import BytesIO
+from urllib.error import HTTPError
 
+import calculus_agent.runtime.backend as backend_module
 from calculus_agent.agent.trace_log import redact_trace_value
 from calculus_agent.runtime.backend import BailianChatBackend
 from calculus_agent.runtime.observation_projection import (
@@ -21,6 +24,37 @@ def test_openai_compatible_adapter_has_explicit_provider_identity():
     assert backend.provider == "siliconflow"
     assert backend.backend_adapter == "BailianChatBackend"
     assert backend.protocol == "openai_compatible"
+
+
+def test_openai_compatible_adapter_retries_429_with_retry_after(monkeypatch):
+    calls = iter([
+        HTTPError("url", 429, "limited", {"Retry-After": "3"}, BytesIO()),
+        type("Response", (), {
+            "__enter__": lambda self: self,
+            "__exit__": lambda self, *args: None,
+            "read": lambda self: json.dumps({
+                "choices": [{"message": {"role": "assistant", "content": "ok"}}]
+            }).encode(),
+        })(),
+    ])
+    sleeps = []
+
+    def fake_urlopen(*args, **kwargs):
+        result = next(calls)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    monkeypatch.setattr(backend_module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(backend_module.time, "sleep", sleeps.append)
+    backend = BailianChatBackend(
+        api_key="test",
+        base_url="https://silicon.example/v1",
+        model="test-model",
+    )
+
+    assert backend.complete([], [])["message"]["content"] == "ok"
+    assert sleeps == [3.0]
 
 
 class _UsageBackend:
