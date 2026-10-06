@@ -1,0 +1,18 @@
+{
+  "record_type": "official_holdout_execution_authorization",
+  "run": "second_official",
+  "authorized_at": "2026-10-06T04:54:41Z",
+  "authorization_source": "user message: 执行下一步",
+  "interpretation": "Explicit authorization to execute the previously blocked next step: the second Official 69-case Holdout against frozen Tutor V3.2.1.",
+  "authorized_manifest": {
+    "path": "tests/evals/manifests/holdout_v3_2_1_69.yaml",
+    "sha256": "ca8df1acfd8c28f7e7c896b5a447e0c09daf701f4b940b489c0f3ce665d1abab"
+  },
+  "preflight": {
+    "manifest_valid": true,
+    "selected_case_count": 69,
+    "approved_case_count": 69,
+    "git_clean": true
+  },
+  "single_run_only": true
+}

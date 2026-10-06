@@ -1,0 +1,47 @@
+{
+  "record_type": "official_holdout_summary",
+  "run": "second_official",
+  "version": "V3.2.1",
+  "result": {
+    "passed": 64,
+    "failed": 5,
+    "total": 69,
+    "pass_rate": 0.927536231884058,
+    "display_rate": "92.75%"
+  },
+  "comparison_to_v3_1_first_official": {
+    "baseline": "25/69 = 36.23%",
+    "absolute_pass_gain": 39,
+    "percentage_point_gain": 56.52,
+    "improved_case_count": 39,
+    "regressed_case_count": 0,
+    "unchanged_failure_count": 5,
+    "improved_case_ids": ["EVAL-046", "EVAL-047", "EVAL-048", "EVAL-049", "EVAL-050", "EVAL-051", "EVAL-052", "EVAL-053", "EVAL-054", "EVAL-055", "EVAL-056", "EVAL-057", "EVAL-058", "EVAL-060", "EVAL-061", "EVAL-062", "EVAL-063", "EVAL-064", "EVAL-065", "EVAL-067", "EVAL-069", "EVAL-070", "EVAL-095", "EVAL-096", "EVAL-097", "EVAL-098", "EVAL-197", "EVAL-199", "EVAL-242", "EVAL-244", "EVAL-247", "EVAL-249", "EVAL-262", "EVAL-263", "EVAL-264", "EVAL-268", "EVAL-269", "EVAL-270", "EVAL-279"],
+    "regressed_case_ids": [],
+    "unchanged_failure_ids": ["EVAL-059", "EVAL-066", "EVAL-068", "EVAL-145", "EVAL-267"]
+  },
+  "failure_taxonomy": {
+    "oracle_contract_ambiguity": ["EVAL-059"],
+    "generation_request_misclassified_as_context_dependent": ["EVAL-066"],
+    "generation_request_misrouted_to_teaching_design": ["EVAL-068"],
+    "last_question_address_false_ambiguity": ["EVAL-145"],
+    "pending_preservation_side_effect_violation": ["EVAL-267"],
+    "provider_failures": []
+  },
+  "safety": {
+    "side_effect_violation_count": 1,
+    "side_effect_violation_case_ids": ["EVAL-267"]
+  },
+  "usage": {
+    "model_calls": 163,
+    "input_tokens": 774001,
+    "output_tokens": 16538,
+    "total_tokens": 790539,
+    "actual_usage_available_for_all_model_calling_cases": true,
+    "zero_model_call_cases": 21
+  },
+  "raw_report": "tests/evals/reports/official-holdout-v3.2.1-69-second-20261006T045441Z.json",
+  "raw_log": "tests/evals/reports/official-holdout-v3.2.1-69-second-20261006T045441Z.log",
+  "raw_history_overwritten": false,
+  "retry_run_performed": false
+}
