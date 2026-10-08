@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from tests.evals.teaching_quality.grader.models import SemanticAssertionDecision
 from tests.evals.teaching_quality.grader.structural import (
     SemanticEvaluationUnavailable,
     StructuralAssertionGrader,
@@ -20,7 +21,9 @@ class FixtureSemanticEvaluator:
             passed = "重点学习定积分" not in text
         else:
             passed = True
-        return passed, "fixture semantic decision", text
+        return SemanticAssertionDecision(
+            passed=passed, evidence=[text], reason="fixture semantic decision"
+        )
 
 
 def test_required_content_is_semantic_not_heading_match():

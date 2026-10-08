@@ -41,7 +41,7 @@ Teaching Quality may retain at most a small number of explicit anti-hallucinatio
 - `forbidden_content` fails only when forbidden material is taught, recommended, or used to solve the task. A correct exclusion such as “本节不讲定积分” is allowed when `mention_allowed: true`.
 - Raw substring matching is not a valid implementation for either assertion type.
 
-The deterministic structural grader is implemented for all assertion types referenced by the 36 approved candidates plus the documented regression primitives. Semantic assertions delegate to `SemanticAssertionEvaluator`; production semantic evaluation is intentionally unavailable until a reliable evaluator is selected. The tests use an explicit deterministic test double and must not be interpreted as a production semantic judge.
+The deterministic structural grader is implemented for all assertion types referenced by the 36 approved candidates plus the documented regression primitives. Semantic assertions delegate to a strict `ModelBackedSemanticAssertionEvaluator`, which accepts only `passed / evidence / reason` and cannot emit quality scores. Its provider backend and model configuration are intentionally not selected or invoked yet; tests use a scripted backend and must not be interpreted as calibration evidence.
 
 ### Teaching-design derived fields
 

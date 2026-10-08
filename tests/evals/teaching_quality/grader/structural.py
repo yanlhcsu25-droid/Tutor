@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from .models import StructuralAssertionResult
+from .models import SemanticAssertionDecision, StructuralAssertionResult
 
 
 SUPPORTED_ASSERTION_TYPES = {
@@ -32,13 +32,13 @@ class SemanticEvaluationUnavailable(RuntimeError):
 class SemanticAssertionEvaluator(Protocol):
     def evaluate(
         self, assertion: Mapping[str, Any], actual: Mapping[str, Any], setup: Mapping[str, Any]
-    ) -> tuple[bool, str, Any]: ...
+    ) -> SemanticAssertionDecision: ...
 
 
 class UnavailableSemanticEvaluator:
     def evaluate(
         self, assertion: Mapping[str, Any], actual: Mapping[str, Any], setup: Mapping[str, Any]
-    ) -> tuple[bool, str, Any]:
+    ) -> SemanticAssertionDecision:
         raise SemanticEvaluationUnavailable(
             f"semantic evaluator required for assertion {assertion['id']}"
         )
@@ -99,7 +99,8 @@ class StructuralAssertionGrader:
 
     def _semantic(self, assertion, actual, setup):
         evaluator = self.semantic_evaluator or UnavailableSemanticEvaluator()
-        return evaluator.evaluate(assertion, actual, setup)
+        decision = evaluator.evaluate(assertion, actual, setup)
+        return decision.passed, decision.reason, decision.evidence
 
     def _grade_exact_count(self, assertion, actual, setup):
         value = self._value(assertion, actual)

@@ -16,6 +16,14 @@ FAILURE_TAGS = {
 }
 
 
+class SemanticAssertionDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    passed: bool
+    evidence: list[str] = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+
 class StructuralAssertionResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
