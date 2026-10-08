@@ -18,8 +18,10 @@ def test_calibration_set_is_dev_only_human_labeled_and_complete():
         "paper_quality": 2,
         "teaching_design": 2,
     }
+    assert payload["status"] == "review_required_dev_only"
     assert payload["policy"] == {
         "blind_cases_forbidden": True,
         "model_execution_performed": False,
         "samples_per_case": 3,
+        "candidate_labels_human_review_required": True,
     }

@@ -16,7 +16,7 @@ This dataset evaluates artifact quality independently from the frozen Workflow R
 - `tests/`: structural, scoring, metadata, split, and judge-parser tests
 - `manifests/split_v1.yaml`: frozen family-isolated 24 Dev / 12 Blind split
 - `manifests/split_v1.yaml.sha256`: external manifest hash (avoids self-referential hashing)
-- `calibration/calibration_set_v1.yaml`: 7 Dev cases with 21 fixed strong/borderline/poor outputs and human axis ranges
+- `calibration/calibration_set_v1.yaml`: 7 Dev cases with 21 fixed strong/borderline/poor outputs and candidate axis ranges pending human review
 
 Validate locally:
 
@@ -81,4 +81,4 @@ The source YAML remains labeled `split: candidate`; split membership is owned ex
 
 ## Dev Judge calibration set
 
-`calibration/calibration_set_v1.yaml` selects 7 Dev-only cases: 2 Teaching Design, 2 Paper Quality, and 3 Consultation. Each has fixed strong, borderline, and poor outputs with human-labeled axis ranges. These 21 samples test band separation, ranking, axis agreement, and repeat stability; they are not Tutor outputs and must not be reported as Agent performance. No Blind case is included.
+`calibration/calibration_set_v1.yaml` selects 7 Dev-only cases: 2 Teaching Design, 2 Paper Quality, and 3 Consultation. Each has fixed strong, borderline, and poor outputs with proposed axis ranges that require explicit human review before any Judge call. Once approved, these 21 samples test band separation, ranking, axis agreement, and repeat stability; they are not Tutor outputs and must not be reported as Agent performance. No Blind case is included.

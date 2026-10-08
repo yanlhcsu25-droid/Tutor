@@ -1,12 +1,13 @@
 version: '1.0'
 name: teaching_quality_v1_judge_calibration_set
-status: human_labeled_dev_only
+status: review_required_dev_only
 source_manifest: tests/evals/teaching_quality/manifests/split_v1.yaml
 source_manifest_sha256: 113e00345600204a5d5de09bf4255200f83886cc7841d05532ac5e35ab4007a4
 policy:
   blind_cases_forbidden: true
   model_execution_performed: false
   samples_per_case: 3
+  candidate_labels_human_review_required: true
 case_count: 7
 sample_count: 21
 suite_counts:

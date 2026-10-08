@@ -20,6 +20,10 @@ def validate_calibration_set(
     root: Path = ROOT, calibration_path: Path = CALIBRATION_SET
 ) -> None:
     calibration = yaml.safe_load(calibration_path.read_text())
+    if calibration["status"] != "review_required_dev_only":
+        raise ValueError("calibration reference labels must remain review-required")
+    if calibration["policy"].get("candidate_labels_human_review_required") is not True:
+        raise ValueError("calibration labels require explicit human review")
     manifest_path = root.parents[2] / calibration["source_manifest"]
     if sha256(manifest_path) != calibration["source_manifest_sha256"]:
         raise ValueError("source split manifest hash mismatch")
@@ -89,4 +93,4 @@ def validate_calibration_set(
 
 if __name__ == "__main__":
     validate_calibration_set()
-    print("OK: 7 Dev cases / 21 human-labeled fixed outputs; no Blind cases or model runs")
+    print("OK: 7 Dev cases / 21 review-required fixed outputs; no Blind cases or model runs")
