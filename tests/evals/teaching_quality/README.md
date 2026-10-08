@@ -13,12 +13,15 @@ This dataset evaluates artifact quality independently from the frozen Workflow R
 - `runner/validate_candidates.py`: approved-case metadata validation; it never invokes a model
 - `grader/`: deterministic structural grading, judge parsing, and outcome scoring
 - `prompts/`: suite-specific behavioral judge contracts; no invocation code
-- `tests/`: structural, scoring, metadata, and judge-parser tests
+- `tests/`: structural, scoring, metadata, split, and judge-parser tests
+- `manifests/split_v1.yaml`: frozen family-isolated 24 Dev / 12 Blind split
+- `manifests/split_v1.yaml.sha256`: external manifest hash (avoids self-referential hashing)
 
 Validate locally:
 
 ```bash
 .venv/bin/python tests/evals/teaching_quality/runner/validate_candidates.py
+.venv/bin/python tests/evals/teaching_quality/runner/validate_split_manifest.py
 ```
 
 ## Evaluation boundary
@@ -66,13 +69,10 @@ Default suite weights are declared in each YAML file. Teaching Design and Paper 
 
 `scope_violation`, `objective_misalignment`, `difficulty_mismatch`, `poor_progression`, `unrealistic_plan`, `weak_assessment_alignment`, `knowledge_coverage_gap`, `question_type_imbalance`, `score_inconsistency`, `redundant_questions`, `constraint_violation`, `question_bank_hallucination`, `incorrect_diagnosis`, `generic_advice`, `poor_actionability`, `ungrounded_inference`, `clarity_issue`, `judge_error`, `fixture_issue`, `provider_failure`.
 
-## Review and split protocol
+## Frozen split and access policy
 
-1. Validate YAML/schema and manually review every case, assertion, reference note, and fixture.
-2. Resolve rubric ambiguity and run inter-rater calibration without calling the Tutor model.
-3. Mark each accepted case `human_review.status: approved`.
-4. Add or approve enough true quality cases before selecting a calibration/holdout split; deterministic regression cases do not count toward the Teaching Quality split.
-5. Move approved quality cases into versioned manifests, record hashes, and freeze the holdout before model execution.
-6. Never tune prompts, rubrics, fixtures, or scoring against holdout results. Expand v2 with an independently authored holdout.
+`manifests/split_v1.yaml` freezes 24 Dev and 12 Blind cases with no family crossing splits. Blind contains 4 Teaching Design, 4 Paper Quality, and 4 Consultation cases. The manifest records source file hashes, aggregate dataset SHA, source Git checkpoint, case/family metadata, and an externally recorded manifest SHA.
 
-Until a split is formally frozen, `split: candidate` remains mandatory. Human review and suite status are `approved`, but these files must not be presented as a blind benchmark.
+The Blind split is **do not run** until the semantic evaluator, fixtures, judge model/configuration, prompts, rubric, thresholds, scoring, and execution provenance contract are frozen. Prompt, grader, rubric, threshold, or case tuning may use Dev only. Blind results must never be used to modify v1 cases or contracts.
+
+The source YAML remains labeled `split: candidate`; split membership is owned exclusively by the frozen manifest. Human review and suite status are `approved`, but no benchmark result exists yet.

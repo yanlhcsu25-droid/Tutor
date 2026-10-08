@@ -1,0 +1,148 @@
+version: '1.0'
+name: teaching_quality_v1_family_isolated_split
+status: frozen
+created_from_git_sha: 3c759a4c58a786fb995fba87c235d8ada8893312
+policy:
+  family_isolation: true
+  blind_execution: forbidden_until_execution_contract_frozen
+  blind_tuning: forbidden
+  target_counts: 24_dev_12_blind
+dataset:
+  case_count: 36
+  family_count: 25
+  sha256: 58c76f0a9663c7481ee57bc3078c8ce80943fc0afef8c930af0493a422ae06fe
+  hash_algorithm: sha256(sorted path:sha256(file_bytes) records)
+  files:
+  - path: tests/evals/teaching_quality/cases/consultation_v1.yaml
+    sha256: ebc0cdebbacf3d4eec0ddf891551791826502b72810b2726937c0d98af1191a6
+  - path: tests/evals/teaching_quality/cases/paper_quality_v1.yaml
+    sha256: 86de243b49b4c0a15200517d6a33dfdbc9ae3b5a6712aaa33ebceacccb9a0973
+  - path: tests/evals/teaching_quality/cases/teaching_design_v1.yaml
+    sha256: f45d860831e57881483bd5997643d3dae4551195df9bc780158116188781cca2
+splits:
+  dev:
+    status: calibration_only
+    case_count: 24
+    family_count: 20
+    suite_counts:
+      consultation: 7
+      paper_quality: 9
+      teaching_design: 8
+    cases:
+    - case_id: TQ-CQ-003
+      family_id: evidence_grounded_advice
+      suite: consultation
+    - case_id: TQ-CQ-004
+      family_id: learning_path_guidance
+      suite: consultation
+    - case_id: TQ-CQ-005
+      family_id: method_selection_guidance
+      suite: consultation
+    - case_id: TQ-CQ-006
+      family_id: plan_critique
+      suite: consultation
+    - case_id: TQ-CQ-009
+      family_id: prioritization
+      suite: consultation
+    - case_id: TQ-CQ-010
+      family_id: grounded_scope_advice
+      suite: consultation
+    - case_id: TQ-CQ-011
+      family_id: time_constrained_prioritization
+      suite: consultation
+    - case_id: TQ-PQ-001
+      family_id: constrained_blueprint_quality
+      suite: paper_quality
+    - case_id: TQ-PQ-002
+      family_id: constrained_blueprint_quality
+      suite: paper_quality
+    - case_id: TQ-PQ-003
+      family_id: open_blueprint_quality
+      suite: paper_quality
+    - case_id: TQ-PQ-010
+      family_id: method_diversity
+      suite: paper_quality
+    - case_id: TQ-PQ-011
+      family_id: redundancy_control
+      suite: paper_quality
+    - case_id: TQ-PQ-012
+      family_id: method_diversity
+      suite: paper_quality
+    - case_id: TQ-PQ-016
+      family_id: focus_fidelity
+      suite: paper_quality
+    - case_id: TQ-PQ-017
+      family_id: comprehensive_exam_quality
+      suite: paper_quality
+    - case_id: TQ-PQ-020
+      family_id: comprehensive_exam_quality
+      suite: paper_quality
+    - case_id: TQ-TD-001
+      family_id: scope_and_focus
+      suite: teaching_design
+    - case_id: TQ-TD-006
+      family_id: time_constrained_planning
+      suite: teaching_design
+    - case_id: TQ-TD-007
+      family_id: evidence_driven_planning
+      suite: teaching_design
+    - case_id: TQ-TD-009
+      family_id: misconception_driven_design
+      suite: teaching_design
+    - case_id: TQ-TD-013
+      family_id: learning_progression
+      suite: teaching_design
+    - case_id: TQ-TD-016
+      family_id: multi_topic_prioritization
+      suite: teaching_design
+    - case_id: TQ-TD-017
+      family_id: example_alignment
+      suite: teaching_design
+    - case_id: TQ-TD-018
+      family_id: misconception_driven_design
+      suite: teaching_design
+  blind:
+    status: frozen_do_not_run
+    case_count: 12
+    family_count: 5
+    suite_counts:
+      consultation: 4
+      paper_quality: 4
+      teaching_design: 4
+    cases:
+    - case_id: TQ-CQ-001
+      family_id: weakness_diagnosis
+      suite: consultation
+    - case_id: TQ-CQ-002
+      family_id: weakness_diagnosis
+      suite: consultation
+    - case_id: TQ-CQ-007
+      family_id: weakness_diagnosis
+      suite: consultation
+    - case_id: TQ-CQ-008
+      family_id: adaptive_advice
+      suite: consultation
+    - case_id: TQ-PQ-005
+      family_id: difficulty_alignment
+      suite: paper_quality
+    - case_id: TQ-PQ-006
+      family_id: difficulty_alignment
+      suite: paper_quality
+    - case_id: TQ-PQ-009
+      family_id: knowledge_coverage
+      suite: paper_quality
+    - case_id: TQ-PQ-013
+      family_id: difficulty_alignment
+      suite: paper_quality
+    - case_id: TQ-TD-002
+      family_id: learner_adaptation
+      suite: teaching_design
+    - case_id: TQ-TD-003
+      family_id: learner_adaptation
+      suite: teaching_design
+    - case_id: TQ-TD-004
+      family_id: learner_adaptation
+      suite: teaching_design
+    - case_id: TQ-TD-014
+      family_id: learner_adaptation
+      suite: teaching_design
