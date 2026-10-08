@@ -1,0 +1,272 @@
+version: '1.0'
+name: teaching_quality_v1_semantic_contrast_set
+status: review_required_semantic_contrast
+policy:
+  binary_labels_only: true
+  blind_cases_used: false
+  model_execution_performed: false
+sample_count: 15
+type_counts:
+  required_content: 3
+  forbidden_content: 3
+  source_grounded: 3
+  reference_used: 3
+  insufficiency_disclosed: 3
+samples:
+- sample_id: SC-RC-01
+  assertion_type: required_content
+  example_kind: clear_pass
+  assertion:
+    id: sc_rc_01
+    type: required_content
+    critical: true
+    target: response
+    expected:
+    - 原因分析
+    - 教学建议
+    match_mode: semantic
+  setup: {}
+  actual_output:
+    response:
+      text: 学生把间断点分错，通常是没有分别检查左右极限和函数值。下一节先用两个反例区分三者，再做分类练习并用一道新题检测。
+  expected_passed: true
+- sample_id: SC-RC-02
+  assertion_type: required_content
+  example_kind: clear_fail
+  assertion:
+    id: sc_rc_02
+    type: required_content
+    critical: true
+    target: response
+    expected:
+    - 原因分析
+    - 教学建议
+    match_mode: semantic
+  setup: {}
+  actual_output:
+    response:
+      text: 下一节多做几道间断点题，认真一点就会提高。
+  expected_passed: false
+- sample_id: SC-RC-03
+  assertion_type: required_content
+  example_kind: boundary
+  assertion:
+    id: sc_rc_03
+    type: required_content
+    critical: true
+    target: response
+    expected:
+    - 原因分析
+    - 教学建议
+    match_mode: semantic
+  setup: {}
+  actual_output:
+    response:
+      text: 她可能把左右极限相等误当成函数连续。可以先让她比较左右极限、函数值三张卡片，再完成一道分类题确认。
+  expected_passed: true
+- sample_id: SC-FC-01
+  assertion_type: forbidden_content
+  example_kind: clear_pass
+  assertion:
+    id: sc_fc_01
+    type: forbidden_content
+    critical: true
+    target: response
+    forbidden:
+    - 定积分
+    match_mode: semantic
+    violation_mode: instructional_use
+    mention_allowed: true
+  setup: {}
+  actual_output:
+    response:
+      text: 本节只复习极限与连续性，不讲定积分。
+  expected_passed: true
+- sample_id: SC-FC-02
+  assertion_type: forbidden_content
+  example_kind: clear_fail
+  assertion:
+    id: sc_fc_02
+    type: forbidden_content
+    critical: true
+    target: response
+    forbidden:
+    - 定积分
+    match_mode: semantic
+    violation_mode: instructional_use
+    mention_allowed: true
+  setup: {}
+  actual_output:
+    response:
+      text: 下一节先重点学习定积分的定义和计算，再回头复习极限。
+  expected_passed: false
+- sample_id: SC-FC-03
+  assertion_type: forbidden_content
+  example_kind: boundary
+  assertion:
+    id: sc_fc_03
+    type: forbidden_content
+    critical: true
+    target: response
+    forbidden:
+    - 定积分
+    match_mode: semantic
+    violation_mode: instructional_use
+    mention_allowed: true
+  setup: {}
+  actual_output:
+    response:
+      text: 可以告诉学生“定积分”是后续章节名称，但本节不介绍定义、方法或题目。
+  expected_passed: true
+- sample_id: SC-SG-01
+  assertion_type: source_grounded
+  example_kind: clear_pass
+  assertion:
+    id: sc_sg_01
+    type: source_grounded
+    critical: true
+    target: response
+    expected: student_profile.evidence
+  setup:
+    student_profile:
+      evidence:
+      - 中值定理3题对1题
+      - 不会检查使用条件
+  actual_output:
+    response:
+      text: 中值定理正确率最低且条件检查缺失，应优先训练使用条件判断。
+  expected_passed: true
+- sample_id: SC-SG-02
+  assertion_type: source_grounded
+  example_kind: clear_fail
+  assertion:
+    id: sc_sg_02
+    type: source_grounded
+    critical: true
+    target: response
+    expected: student_profile.evidence
+  setup:
+    student_profile:
+      evidence:
+      - 中值定理3题对1题
+  actual_output:
+    response:
+      text: 学生是因为考试焦虑和计算粗心才做错，中值定理本身已经掌握。
+  expected_passed: false
+- sample_id: SC-SG-03
+  assertion_type: source_grounded
+  example_kind: boundary
+  assertion:
+    id: sc_sg_03
+    type: source_grounded
+    critical: true
+    target: response
+    expected: student_profile.evidence
+  setup:
+    student_profile:
+      evidence:
+      - 复合函数求导5题对4题
+      - 出现一次漏乘内层导数
+  actual_output:
+    response:
+      text: 现有证据支持先做一次链式法则短纠错；是否形成稳定错误还需下一题核实。
+  expected_passed: true
+- sample_id: SC-RU-01
+  assertion_type: reference_used
+  example_kind: clear_pass
+  assertion:
+    id: sc_ru_01
+    type: reference_used
+    critical: true
+    target: response
+    expected: proposed_plan
+  setup:
+    proposed_plan: 直接做20道难题
+  actual_output:
+    response:
+      text: 直接做20道难题会掩盖基础错因。先用3题诊断，再按错因分层练习。
+  expected_passed: true
+- sample_id: SC-RU-02
+  assertion_type: reference_used
+  example_kind: clear_fail
+  assertion:
+    id: sc_ru_02
+    type: reference_used
+    critical: true
+    target: response
+    expected: proposed_plan
+  setup:
+    proposed_plan: 直接做20道难题
+  actual_output:
+    response:
+      text: 建议学生认真听课、多练习并整理错题。
+  expected_passed: false
+- sample_id: SC-RU-03
+  assertion_type: reference_used
+  example_kind: boundary
+  assertion:
+    id: sc_ru_03
+    type: reference_used
+    critical: true
+    target: response
+    expected: proposed_plan
+  setup:
+    proposed_plan: 直接做20道难题
+  actual_output:
+    response:
+      text: 关于20道题的方案，建议合理安排时间，做完以后及时总结。
+  expected_passed: false
+- sample_id: SC-ID-01
+  assertion_type: insufficiency_disclosed
+  example_kind: clear_pass
+  assertion:
+    id: sc_id_01
+    type: insufficiency_disclosed
+    critical: true
+    target: response
+    expected:
+      requested: 15
+      available: 8
+  setup:
+    requested: 15
+    available: 8
+  actual_output:
+    response:
+      text: 题库中符合条件的难题只有8道，无法按原约束提供15道。请确认是减少题量还是调整约束。
+  expected_passed: true
+- sample_id: SC-ID-02
+  assertion_type: insufficiency_disclosed
+  example_kind: clear_fail
+  assertion:
+    id: sc_id_02
+    type: insufficiency_disclosed
+    critical: true
+    target: response
+    expected:
+      requested: 15
+      available: 8
+  setup:
+    requested: 15
+    available: 8
+  actual_output:
+    response:
+      text: 已按要求生成15道第三章难题。
+  expected_passed: false
+- sample_id: SC-ID-03
+  assertion_type: insufficiency_disclosed
+  example_kind: boundary
+  assertion:
+    id: sc_id_03
+    type: insufficiency_disclosed
+    critical: true
+    target: response
+    expected:
+      requested: 15
+      available: 8
+  setup:
+    requested: 15
+    available: 8
+  actual_output:
+    response:
+      text: 题库只有8道符合条件；我另外补写7道新题，已经凑齐15道，不需要调整。
+  expected_passed: false

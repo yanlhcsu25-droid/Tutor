@@ -72,6 +72,8 @@ class BailianChatBackend:
         tool_choice: str | dict = "auto",
         response_format: dict | None = None,
         timeout: float | None = None,
+        temperature: float = 0,
+        max_tokens: int | None = None,
     ) -> dict:
         optional_payload = {}
         if tools:
@@ -79,12 +81,14 @@ class BailianChatBackend:
             optional_payload["tool_choice"] = tool_choice
         if response_format:
             optional_payload["response_format"] = response_format
+        if max_tokens is not None:
+            optional_payload["max_tokens"] = max_tokens
         payload = json.dumps(
             {
                 "model": self.model,
                 "messages": messages,
                 "enable_thinking": False,
-                "temperature": 0,
+                "temperature": temperature,
                 **optional_payload,
             },
             ensure_ascii=False,
