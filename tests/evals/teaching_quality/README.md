@@ -18,6 +18,8 @@ This dataset evaluates artifact quality independently from the frozen Workflow R
 - `manifests/split_v1.yaml.sha256`: external manifest hash (avoids self-referential hashing)
 - `calibration/calibration_set_v1.yaml`: 7 Dev cases with 21 fixed strong/borderline/poor outputs and approved axis ranges
 - `calibration/calibration_set_v1.provenance.yaml`: human-review summary and pre-approval artifact SHA
+- `calibration/semantic_contrast_v1.yaml`: 15 binary semantic pass/fail/boundary fixtures pending human label review
+- `runner/run_judge_calibration.py`: fixed-sample calibration only; never runs Tutor or Blind cases
 
 Validate locally:
 
@@ -25,6 +27,7 @@ Validate locally:
 .venv/bin/python tests/evals/teaching_quality/runner/validate_candidates.py
 .venv/bin/python tests/evals/teaching_quality/runner/validate_split_manifest.py
 .venv/bin/python tests/evals/teaching_quality/runner/validate_calibration_set.py
+.venv/bin/python tests/evals/teaching_quality/runner/validate_semantic_contrast_set.py
 ```
 
 ## Evaluation boundary
@@ -83,3 +86,5 @@ The source YAML remains labeled `split: candidate`; split membership is owned ex
 ## Dev Judge calibration set
 
 `calibration/calibration_set_v1.yaml` selects 7 Dev-only cases: 2 Teaching Design, 2 Paper Quality, and 3 Consultation. Each has fixed strong, borderline, and poor outputs with human-approved axis ranges. These 21 samples test band separation, ranking, axis agreement, and repeat stability; they are not Tutor outputs and must not be reported as Agent performance. The review retained all 21 overall bands and outputs, while revising 11 samples' axis ranges; provenance preserves the pre-approval SHA. No Blind case is included.
+
+`calibration/semantic_contrast_v1.yaml` contains 15 fixed binary samples across the five semantic assertion types. Its labels remain review-required. Preliminary real-model reports under `reports/` classify valid wrong judgments as `judge_error` or `semantic_assertion_error`; transport failures, malformed JSON, and schema-invalid responses are `provider_error`.

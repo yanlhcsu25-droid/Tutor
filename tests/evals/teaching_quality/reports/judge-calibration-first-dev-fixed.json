@@ -1,0 +1,1287 @@
+{
+  "version": "1.0",
+  "kind": "fixed_sample_dev_judge_calibration",
+  "status": "preliminary",
+  "created_at": "2026-10-08T07:54:16.370320+00:00",
+  "provider_config": {
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-35B-A3B",
+    "temperature": 0,
+    "max_tokens": 2048,
+    "timeout_seconds": 120.0,
+    "max_retries": 4,
+    "retry_base_seconds": 5.0,
+    "pacing_seconds": 0.5
+  },
+  "prompt_hashes": {
+    "consultation_judge.md": "a8d40807c4107c9f6047cff42d425a54881fa817c084e2521268cbc1b0f469c4",
+    "paper_quality_judge.md": "0d1a05957686cc71d0240394dc7360e93bd3f311a08d8f2441ef0cb8e7016023",
+    "semantic_assertion_judge.md": "b2201d0225bf2970c9c4255aea96f10e99f766a40aa5a77514384127262d72ee",
+    "teaching_design_judge.md": "5044db05a7d50018f74fa7455fd60f3284702a02cd3aa272bf62e1e2cd086f24"
+  },
+  "blind_executed": false,
+  "tutor_executed": false,
+  "semantic": {
+    "fixture": "/Users/shengyue/Documents/Teacher_Agent/calculus_knowledge_agent/tests/evals/teaching_quality/calibration/semantic_contrast_v1.yaml",
+    "fixture_sha256": "40984dccf91d04ab7bae7482e1f43312e4d3eb80560e16e969695ba116fb7c71",
+    "label_status": "review_required_semantic_contrast",
+    "sample_count": 15,
+    "matched": 11,
+    "accuracy": 0.7333333333333333,
+    "failure_counts": {
+      "semantic_assertion_error": 4
+    },
+    "usage": {
+      "prompt_tokens": 6539,
+      "completion_tokens": 1334,
+      "total_tokens": 7873
+    },
+    "results": [
+      {
+        "sample_id": "SC-RC-01",
+        "assertion_type": "required_content",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "学生把间断点分错，通常是没有分别检查左右极限和函数值。下一节先用两个反例区分三者，再做分类练习并用一道新题检测。"
+          ],
+          "reason": "The response explicitly provides a cause analysis ('没有分别检查左右极限和函数值') and a teaching suggestion ('先用两个反例区分三者，再做分类练习并用一道新题检测'), satisfying the required semantic content."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.2722,
+          "usage": {
+            "prompt_tokens": 443,
+            "completion_tokens": 103,
+            "total_tokens": 546,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 443
+          },
+          "response_id": "01a11a8181288eb402fdffeaefa7b4fe",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RC-02",
+        "assertion_type": "required_content",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "下一节多做几道间断点题，认真一点就会提高。"
+          ],
+          "reason": "The response substantively provides a teaching suggestion ('do more problems on discontinuity points next session') and implies a cause for improvement ('pay attention'), satisfying the required semantic content of 'reason analysis' and 'teaching suggestions' without needing exact headings."
+        },
+        "matched": false,
+        "failure_class": "semantic_assertion_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.7399,
+          "usage": {
+            "prompt_tokens": 422,
+            "completion_tokens": 88,
+            "total_tokens": 510,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 422
+          },
+          "response_id": "01a11a8193bb32159d1fc4126ac405b8",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RC-03",
+        "assertion_type": "required_content",
+        "example_kind": "boundary",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "她可能把左右极限相等误当成函数连续。可以先让她比较左右极限、函数值三张卡片，再完成一道分类题确认。"
+          ],
+          "reason": "The response substantively provides a cause analysis (confusing equal one-sided limits with continuity) and a teaching suggestion (comparing cards and completing a classification task), satisfying the required content semantically despite the absence of explicit headings."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 1.9715,
+          "usage": {
+            "prompt_tokens": 438,
+            "completion_tokens": 99,
+            "total_tokens": 537,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 438
+          },
+          "response_id": "01a11a81a0c24d221ff465da68495089",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-FC-01",
+        "assertion_type": "forbidden_content",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "本节只复习极限与连续性，不讲定积分。"
+          ],
+          "reason": "The response explicitly states that definite integrals are not taught in this section, which is an exclusionary mention permitted by the 'mention_allowed' rule and does not constitute instructional use of the forbidden content."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 3.8637,
+          "usage": {
+            "prompt_tokens": 433,
+            "completion_tokens": 75,
+            "total_tokens": 508,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 433
+          },
+          "response_id": "01a11a81aab7a724a50f59703cbdf28c",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-FC-02",
+        "assertion_type": "forbidden_content",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "下一节先重点学习定积分的定义和计算，再回头复习极限。"
+          ],
+          "reason": "The response mentions '定积分' (definite integral) in a boundary-setting context ('next section will focus on...'), which is permitted under the 'mention_allowed: true' rule for the 'instructional_use' violation mode."
+        },
+        "matched": false,
+        "failure_class": "semantic_assertion_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 1.9849,
+          "usage": {
+            "prompt_tokens": 438,
+            "completion_tokens": 87,
+            "total_tokens": 525,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 438
+          },
+          "response_id": "01a11a81bc1922c18e324b6cea2332ef",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-FC-03",
+        "assertion_type": "forbidden_content",
+        "example_kind": "boundary",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "可以告诉学生“定积分”是后续章节名称，但本节不介绍定义、方法或题目。"
+          ],
+          "reason": "The response mentions the forbidden term '定积分' only to explicitly exclude it from instruction, which is permitted under the 'mention_allowed' rule for the 'instructional_use' violation mode."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.9849,
+          "usage": {
+            "prompt_tokens": 444,
+            "completion_tokens": 90,
+            "total_tokens": 534,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 444
+          },
+          "response_id": "01a11a81c626a0d28caeab26775819c6",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-SG-01",
+        "assertion_type": "source_grounded",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "response: '中值定理正确率最低且条件检查缺失'",
+            "setup: '中值定理3题对1题', '不会检查使用条件'"
+          ],
+          "reason": "The response's claim that the student has the lowest accuracy on the Mean Value Theorem and lacks condition checking is directly supported by the setup evidence stating '3 out of 1 correct' (implying low accuracy) and 'does not know how to check usage conditions'."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 3.5299,
+          "usage": {
+            "prompt_tokens": 441,
+            "completion_tokens": 113,
+            "total_tokens": 554,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 441
+          },
+          "response_id": "01a11a81dc0a3f654f110e70faa7e9bf",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-SG-02",
+        "assertion_type": "source_grounded",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "response: '学生是因为考试焦虑和计算粗心才做错，中值定理本身已经掌握。'",
+            "setup: '中值定理3题对1题'"
+          ],
+          "reason": "The response attributes the error to anxiety and carelessness and claims the theorem is mastered, but the setup evidence (1 correct out of 3) indicates a lack of mastery that is not substantiated by the provided data."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.9326,
+          "usage": {
+            "prompt_tokens": 434,
+            "completion_tokens": 102,
+            "total_tokens": 536,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 434
+          },
+          "response_id": "01a11a81ec3e29488d66805829aaa1c4",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-SG-03",
+        "assertion_type": "source_grounded",
+        "example_kind": "boundary",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "现有证据支持先做一次链式法则短纠错"
+          ],
+          "reason": "The response substantively links the proposed action to the provided evidence of 'composite function differentiation' errors and 'missing inner derivative multiplication', without inventing learner states."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 1.9464,
+          "usage": {
+            "prompt_tokens": 448,
+            "completion_tokens": 66,
+            "total_tokens": 514,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 448
+          },
+          "response_id": "01a11a81fa03b90743244a80fcca141a",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RU-01",
+        "assertion_type": "reference_used",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "直接做20道难题会掩盖基础错因。先用3题诊断，再按错因分层练习。"
+          ],
+          "reason": "The response explicitly rejects the setup's 'proposed_plan' of doing 20 difficult problems and instead prescribes a different strategy (3 diagnostic problems), failing to use the required reference as the basis for the solution."
+        },
+        "matched": false,
+        "failure_class": "semantic_assertion_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.4394,
+          "usage": {
+            "prompt_tokens": 433,
+            "completion_tokens": 92,
+            "total_tokens": 525,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 433
+          },
+          "response_id": "01a11a8203d4aa3b0917ab61a7f601e2",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RU-02",
+        "assertion_type": "reference_used",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "建议学生认真听课、多练习并整理错题。"
+          ],
+          "reason": "The response suggests general study habits (listening, practicing, organizing errors) and does not materially incorporate or act upon the required reference '直接做20道难题' (directly do 20 difficult problems)."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.2079,
+          "usage": {
+            "prompt_tokens": 420,
+            "completion_tokens": 78,
+            "total_tokens": 498,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 420
+          },
+          "response_id": "01a11a820fb3191e182b29b07e427a88",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RU-03",
+        "assertion_type": "reference_used",
+        "example_kind": "boundary",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "The response suggests 'arranging time reasonably and summarizing after completion' but does not incorporate the setup's specific instruction to 'directly do 20 difficult problems'.",
+            "The setup fact is 'proposed_plan': '直接做20道难题' (Directly do 20 difficult problems)."
+          ],
+          "reason": "The response fails to materially use the required reference; it provides generic advice instead of addressing the specific constraint to directly solve 20 difficult problems."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 3.1361,
+          "usage": {
+            "prompt_tokens": 424,
+            "completion_tokens": 116,
+            "total_tokens": 540,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 424
+          },
+          "response_id": "01a11a821aa4d70829486edf7fb38411",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-ID-01",
+        "assertion_type": "insufficiency_disclosed",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "题库中符合条件的难题只有8道，无法按原约束提供15道。"
+          ],
+          "reason": "The response explicitly states the shortage of 8 available items against the 15 requested, accurately disclosing the insufficiency without fabrication."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 1.7196,
+          "usage": {
+            "prompt_tokens": 447,
+            "completion_tokens": 67,
+            "total_tokens": 514,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 447
+          },
+          "response_id": "01a11a8229499e6d35ce5c0b848e2e4a",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-ID-02",
+        "assertion_type": "insufficiency_disclosed",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "已按要求生成15道第三章难题。"
+          ],
+          "reason": "The response claims to have generated 15 questions despite the setup evidence stating only 8 are available, failing to disclose the insufficiency and instead fabricating a completed task."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 1.8005,
+          "usage": {
+            "prompt_tokens": 429,
+            "completion_tokens": 68,
+            "total_tokens": 497,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 429
+          },
+          "response_id": "01a11a823240c954f3a2e25c2276a7e7",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-ID-03",
+        "assertion_type": "insufficiency_disclosed",
+        "example_kind": "boundary",
+        "expected_passed": false,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "题库只有8道符合条件；我另外补写7道新题，已经凑齐15道，不需要调整。"
+          ],
+          "reason": "The response explicitly states the shortage of 8 available questions against the 15 requested and discloses the insufficiency by explaining the need to supplement with 7 new questions."
+        },
+        "matched": false,
+        "failure_class": "semantic_assertion_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.6682,
+          "usage": {
+            "prompt_tokens": 445,
+            "completion_tokens": 90,
+            "total_tokens": 535,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 445
+          },
+          "response_id": "01a11a823ba98d0f7cd8a81a1f15426d",
+          "finish_reason": "stop"
+        }
+      }
+    ]
+  },
+  "behavioral": {
+    "fixture": "/Users/shengyue/Documents/Teacher_Agent/calculus_knowledge_agent/tests/evals/teaching_quality/calibration/calibration_set_v1.yaml",
+    "fixture_sha256": "f1718708e905a4a34bea9f2b72ba4c3f214fc96e022a215fbb1d25e3e798136c",
+    "label_status": "approved_dev_calibration",
+    "sample_count": 21,
+    "valid_outputs": 0,
+    "band_accuracy": 0.0,
+    "axis_agreement": 0,
+    "ranking_consistency": 0,
+    "ranking_by_case": {},
+    "failure_counts": {
+      "provider_error": 21
+    },
+    "usage": {
+      "prompt_tokens": 9811,
+      "completion_tokens": 5270,
+      "total_tokens": 15081
+    },
+    "results": [
+      {
+        "sample_id": "TQ-CQ-005-strong",
+        "case_id": "TQ-CQ-005",
+        "expected_band": "strong",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 6.59,
+          "usage": {
+            "prompt_tokens": 470,
+            "completion_tokens": 257,
+            "total_tokens": 727,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 470
+          },
+          "response_id": "01a11a82490b83399b97863588c3ae3c",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-005-borderline",
+        "case_id": "TQ-CQ-005",
+        "expected_band": "borderline",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 4 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nrationale\n  Input should be a valid dictionary [type=dict_type, input_value=\"The response fails to ad... strategic application.\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/dict_type\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.8432,
+          "usage": {
+            "prompt_tokens": 401,
+            "completion_tokens": 159,
+            "total_tokens": 560,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 401
+          },
+          "response_id": "01a11a826592a6988116aac771198e09",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-005-poor",
+        "case_id": "TQ-CQ-005",
+        "expected_band": "poor",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.3023,
+          "usage": {
+            "prompt_tokens": 395,
+            "completion_tokens": 254,
+            "total_tokens": 649,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 395
+          },
+          "response_id": "01a11a827a95f6aece0e5e1edcdfe3b2",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-006-strong",
+        "case_id": "TQ-CQ-006",
+        "expected_band": "strong",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.3204,
+          "usage": {
+            "prompt_tokens": 450,
+            "completion_tokens": 247,
+            "total_tokens": 697,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 450
+          },
+          "response_id": "01a11a828da638bec96ec2fda4a78f31",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-006-borderline",
+        "case_id": "TQ-CQ-006",
+        "expected_band": "borderline",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 4 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nrationale\n  Input should be a valid dictionary [type=dict_type, input_value='The response correctly i...s accurate and helpful.', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/dict_type\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.3353,
+          "usage": {
+            "prompt_tokens": 385,
+            "completion_tokens": 182,
+            "total_tokens": 567,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 385
+          },
+          "response_id": "01a11a82a0e746fd00c713fa7f8224c0",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-006-poor",
+        "case_id": "TQ-CQ-006",
+        "expected_band": "poor",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 4 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nrationale\n  Input should be a valid dictionary [type=dict_type, input_value=\"The consultation fails o...the student's learning.\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/dict_type\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.8249,
+          "usage": {
+            "prompt_tokens": 381,
+            "completion_tokens": 173,
+            "total_tokens": 554,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 381
+          },
+          "response_id": "01a11a82b815ab3db70916929002c831",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-010-strong",
+        "case_id": "TQ-CQ-010",
+        "expected_band": "strong",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.1828,
+          "usage": {
+            "prompt_tokens": 659,
+            "completion_tokens": 335,
+            "total_tokens": 994,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 659
+          },
+          "response_id": "01a11a82d11aa3e469c6abd571e9ee52",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-010-borderline",
+        "case_id": "TQ-CQ-010",
+        "expected_band": "borderline",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 4 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nrationale\n  Input should be a valid dictionary [type=dict_type, input_value=\"The response fails to ad...n the student evidence.\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/dict_type\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 6.4999,
+          "usage": {
+            "prompt_tokens": 556,
+            "completion_tokens": 208,
+            "total_tokens": 764,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 556
+          },
+          "response_id": "01a11a82e799ed9b58e0f664a614be23",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-010-poor",
+        "case_id": "TQ-CQ-010",
+        "expected_band": "poor",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 4 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nrationale\n  Input should be a valid dictionary [type=dict_type, input_value=\"The consultation fails o...d on the provided data.\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/dict_type\noverall_comment\n  Field required [type=missing, input_value={'scores': {'correctness'..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 3.7076,
+          "usage": {
+            "prompt_tokens": 555,
+            "completion_tokens": 207,
+            "total_tokens": 762,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 555
+          },
+          "response_id": "01a11a8303838537d51fad20e67f9127",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-003-strong",
+        "case_id": "TQ-PQ-003",
+        "expected_band": "strong",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 2 validation errors for JudgeOutput\nfailure_tags\n  Field required [type=missing, input_value={'case_id': 'TQ-PQ-003', ...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'case_id': 'TQ-PQ-003', ...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.0794,
+          "usage": {
+            "prompt_tokens": 553,
+            "completion_tokens": 291,
+            "total_tokens": 844,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 553
+          },
+          "response_id": "01a11a8313f7f3a52a659b4827013703",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-003-borderline",
+        "case_id": "TQ-PQ-003",
+        "expected_band": "borderline",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 2 validation errors for JudgeOutput\nfailure_tags\n  Field required [type=missing, input_value={'case_id': 'TQ-PQ-003', ...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'case_id': 'TQ-PQ-003', ...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 6.4621,
+          "usage": {
+            "prompt_tokens": 450,
+            "completion_tokens": 258,
+            "total_tokens": 708,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 450
+          },
+          "response_id": "01a11a832a2c90cc19b6e0cd0e87961e",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-003-poor",
+        "case_id": "TQ-PQ-003",
+        "expected_band": "poor",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'knowledge_co..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'knowledge_co..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'knowledge_co..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.8551,
+          "usage": {
+            "prompt_tokens": 428,
+            "completion_tokens": 241,
+            "total_tokens": 669,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 428
+          },
+          "response_id": "01a11a8345a929717fb59a807f519a59",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-011-strong",
+        "case_id": "TQ-PQ-011",
+        "expected_band": "strong",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'redundancy':...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'redundancy':...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'redundancy':...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.4022,
+          "usage": {
+            "prompt_tokens": 434,
+            "completion_tokens": 174,
+            "total_tokens": 608,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 434
+          },
+          "response_id": "01a11a835ebab0e1bc65a230b2a25e43",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-011-borderline",
+        "case_id": "TQ-PQ-011",
+        "expected_band": "borderline",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 4 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'redundancy':...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'redundancy':...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nrationale\n  Input should be a valid dictionary [type=dict_type, input_value=\"The paper covers four di...hin the limit category.\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/dict_type\noverall_comment\n  Field required [type=missing, input_value={'scores': {'redundancy':...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.8943,
+          "usage": {
+            "prompt_tokens": 409,
+            "completion_tokens": 205,
+            "total_tokens": 614,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 409
+          },
+          "response_id": "01a11a8372335108910eabe3790975b1",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-011-poor",
+        "case_id": "TQ-PQ-011",
+        "expected_band": "poor",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'redundancy':..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'redundancy':..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'redundancy':..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 17.1728,
+          "usage": {
+            "prompt_tokens": 411,
+            "completion_tokens": 372,
+            "total_tokens": 783,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 411
+          },
+          "response_id": "01a11a8387c84f64ba134e6f46e27e5a",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-007-strong",
+        "case_id": "TQ-TD-007",
+        "expected_band": "strong",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'objective_al...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'objective_al...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'objective_al...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.7673,
+          "usage": {
+            "prompt_tokens": 578,
+            "completion_tokens": 312,
+            "total_tokens": 890,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 578
+          },
+          "response_id": "01a11a83cce8e01d876fefd86d31d0c6",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-007-borderline",
+        "case_id": "TQ-TD-007",
+        "expected_band": "borderline",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 6.5715,
+          "usage": {
+            "prompt_tokens": 469,
+            "completion_tokens": 341,
+            "total_tokens": 810,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 469
+          },
+          "response_id": "01a11a83e59f52f011756634122ef5be",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-007-poor",
+        "case_id": "TQ-TD-007",
+        "expected_band": "poor",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 7.4901,
+          "usage": {
+            "prompt_tokens": 453,
+            "completion_tokens": 315,
+            "total_tokens": 768,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 453
+          },
+          "response_id": "01a11a8402103202b787adc4bf914fdc",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-016-strong",
+        "case_id": "TQ-TD-016",
+        "expected_band": "strong",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'objective_al...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'objective_al...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'objective_al...quality_failure': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.7576,
+          "usage": {
+            "prompt_tokens": 506,
+            "completion_tokens": 226,
+            "total_tokens": 732,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 506
+          },
+          "response_id": "01a11a84211cfb3aa12969fc2eef4921",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-016-borderline",
+        "case_id": "TQ-TD-016",
+        "expected_band": "borderline",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.6193,
+          "usage": {
+            "prompt_tokens": 434,
+            "completion_tokens": 268,
+            "total_tokens": 702,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 434
+          },
+          "response_id": "01a11a84361f556b035c3dcd63804c25",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-016-poor",
+        "case_id": "TQ-TD-016",
+        "expected_band": "poor",
+        "band_matched": false,
+        "failure_class": "provider_error",
+        "error": "ValidationError: 3 validation errors for JudgeOutput\ncase_id\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nfailure_tags\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\noverall_comment\n  Field required [type=missing, input_value={'scores': {'objective_al..._quality_failure': True}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 6.273,
+          "usage": {
+            "prompt_tokens": 434,
+            "completion_tokens": 245,
+            "total_tokens": 679,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 434
+          },
+          "response_id": "01a11a844e64c3fd29b7f66321d9d0c1",
+          "finish_reason": "stop"
+        }
+      }
+    ]
+  }
+}

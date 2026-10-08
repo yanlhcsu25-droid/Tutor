@@ -1,0 +1,1886 @@
+{
+  "version": "1.0",
+  "kind": "fixed_sample_dev_judge_calibration",
+  "status": "preliminary",
+  "created_at": "2026-10-08T07:58:50.431831+00:00",
+  "provider_config": {
+    "provider": "siliconflow",
+    "model": "Qwen/Qwen3.5-35B-A3B",
+    "temperature": 0,
+    "max_tokens": 2048,
+    "timeout_seconds": 120.0,
+    "max_retries": 4,
+    "retry_base_seconds": 5.0,
+    "pacing_seconds": 0.5
+  },
+  "prompt_hashes": {
+    "consultation_judge.md": "a8d40807c4107c9f6047cff42d425a54881fa817c084e2521268cbc1b0f469c4",
+    "paper_quality_judge.md": "0d1a05957686cc71d0240394dc7360e93bd3f311a08d8f2441ef0cb8e7016023",
+    "semantic_assertion_judge.md": "faf85559aa6577b18e88b73f076e3b88dac881b8456741803c38dab41ad374c3",
+    "teaching_design_judge.md": "5044db05a7d50018f74fa7455fd60f3284702a02cd3aa272bf62e1e2cd086f24"
+  },
+  "blind_executed": false,
+  "tutor_executed": false,
+  "semantic": {
+    "fixture": "/Users/shengyue/Documents/Teacher_Agent/calculus_knowledge_agent/tests/evals/teaching_quality/calibration/semantic_contrast_v1.yaml",
+    "fixture_sha256": "40984dccf91d04ab7bae7482e1f43312e4d3eb80560e16e969695ba116fb7c71",
+    "label_status": "review_required_semantic_contrast",
+    "sample_count": 15,
+    "matched": 14,
+    "accuracy": 0.9333333333333333,
+    "failure_counts": {
+      "semantic_assertion_error": 1
+    },
+    "usage": {
+      "prompt_tokens": 7664,
+      "completion_tokens": 1295,
+      "total_tokens": 8959
+    },
+    "results": [
+      {
+        "sample_id": "SC-RC-01",
+        "assertion_type": "required_content",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "学生把间断点分错，通常是没有分别检查左右极限和函数值。",
+            "下一节先用两个反例区分三者，再做分类练习并用一道新题检测。"
+          ],
+          "reason": "The response provides a causal mechanism for the error (failing to check left/right limits and function value) and offers concrete teaching activities (counterexamples, classification exercises, new problem) as required."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.9278,
+          "usage": {
+            "prompt_tokens": 518,
+            "completion_tokens": 108,
+            "total_tokens": 626,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 518
+          },
+          "response_id": "01a11a85afa70f750b935f866766f73c",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RC-02",
+        "assertion_type": "required_content",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "下一节多做几道间断点题，认真一点就会提高。"
+          ],
+          "reason": "The response provides a concrete activity ('do more problems') but fails to provide a causal analysis explaining the error mechanism; the phrase 'be more serious' is not a valid causal explanation."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.4037,
+          "usage": {
+            "prompt_tokens": 497,
+            "completion_tokens": 81,
+            "total_tokens": 578,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 497
+          },
+          "response_id": "01a11a85c8e62ea4b7213718626a1e9e",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RC-03",
+        "assertion_type": "required_content",
+        "example_kind": "boundary",
+        "expected_passed": true,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "她可能把左右极限相等误当成函数连续。"
+          ],
+          "reason": "The response states a possible misconception but fails to provide a causal analysis explaining the error mechanism (e.g., why equating limits implies continuity is a logical error), which is required for the '原因分析' assertion."
+        },
+        "matched": false,
+        "failure_class": "semantic_assertion_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.1406,
+          "usage": {
+            "prompt_tokens": 513,
+            "completion_tokens": 84,
+            "total_tokens": 597,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 513
+          },
+          "response_id": "01a11a85d5644c3c26b48a7f0d13755d",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-FC-01",
+        "assertion_type": "forbidden_content",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "本节只复习极限与连续性，不讲定积分。"
+          ],
+          "reason": "The response explicitly excludes the forbidden topic '定积分' using a boundary-setting statement ('不讲定积分'), which is permitted under the 'mention_allowed' rule for the 'forbidden_content' assertion type."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.2584,
+          "usage": {
+            "prompt_tokens": 508,
+            "completion_tokens": 76,
+            "total_tokens": 584,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 508
+          },
+          "response_id": "01a11a85df5c1a023aa374c242d4e962",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-FC-02",
+        "assertion_type": "forbidden_content",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "下一节先重点学习定积分的定义和计算"
+          ],
+          "reason": "The response explicitly recommends teaching the forbidden topic '定积分' in the next lesson, which violates the 'instructional_use' violation mode even though 'mention_allowed' is true, as the mention is not exclusionary or boundary-setting."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 7.1899,
+          "usage": {
+            "prompt_tokens": 513,
+            "completion_tokens": 81,
+            "total_tokens": 594,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 513
+          },
+          "response_id": "01a11a85eb9c93e34b4cb6ba6fd8e237",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-FC-03",
+        "assertion_type": "forbidden_content",
+        "example_kind": "boundary",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "可以告诉学生“定积分”是后续章节名称，但本节不介绍定义、方法或题目。"
+          ],
+          "reason": "The response explicitly restricts the mention of '定积分' to a boundary-setting context (identifying it as a future chapter name while stating it is not introduced in the current section), which complies with the `mention_allowed` rule for `instructional_use` violation mode."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.4043,
+          "usage": {
+            "prompt_tokens": 519,
+            "completion_tokens": 108,
+            "total_tokens": 627,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 519
+          },
+          "response_id": "01a11a8608cd44058522abcb110ea492",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-SG-01",
+        "assertion_type": "source_grounded",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "response: '中值定理正确率最低且条件检查缺失'",
+            "setup: '中值定理3题对1题', '不会检查使用条件'"
+          ],
+          "reason": "The response's claim about low accuracy on the Mean Value Theorem is supported by the setup evidence of 1 correct out of 3 attempts, and the claim about missing condition checks is directly supported by the setup evidence stating the student 'does not know how to check usage conditions'."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 3.3029,
+          "usage": {
+            "prompt_tokens": 516,
+            "completion_tokens": 114,
+            "total_tokens": 630,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 516
+          },
+          "response_id": "01a11a861caef143bbc4266f1850ab86",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-SG-02",
+        "assertion_type": "source_grounded",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "学生是因为考试焦虑和计算粗心才做错，中值定理本身已经掌握。"
+          ],
+          "reason": "The response asserts the student has mastered the Mean Value Theorem, but the setup evidence only shows 1 correct answer out of 3 problems, which does not substantiate a conclusion of mastery."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.2682,
+          "usage": {
+            "prompt_tokens": 509,
+            "completion_tokens": 80,
+            "total_tokens": 589,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 509
+          },
+          "response_id": "01a11a862bb37bdcee34ff83ef141786",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-SG-03",
+        "assertion_type": "source_grounded",
+        "example_kind": "boundary",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "现有证据支持先做一次链式法则短纠错"
+          ],
+          "reason": "The response's claim that evidence supports a chain rule correction is substantiated by the setup evidence of '出现一次漏乘内层导数' (once missed multiplying by the inner derivative), which is a specific chain rule error mechanism."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.2943,
+          "usage": {
+            "prompt_tokens": 523,
+            "completion_tokens": 81,
+            "total_tokens": 604,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 523
+          },
+          "response_id": "01a11a8636da25cb5039492ed3946365",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RU-01",
+        "assertion_type": "reference_used",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "直接做20道难题会掩盖基础错因。"
+          ],
+          "reason": "The response explicitly engages with the referenced plan '直接做20道难题' by rejecting it and providing a causal explanation for why it is ineffective."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 3.2308,
+          "usage": {
+            "prompt_tokens": 508,
+            "completion_tokens": 66,
+            "total_tokens": 574,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 508
+          },
+          "response_id": "01a11a8642e23e13f1e84c73f74c399b",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RU-02",
+        "assertion_type": "reference_used",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "建议学生认真听课、多练习并整理错题。"
+          ],
+          "reason": "The response does not materially engage with the reference plan '直接做20道难题' (directly do 20 difficult problems); it offers generic advice without rejecting, revising, or addressing the specific reference content."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.5481,
+          "usage": {
+            "prompt_tokens": 495,
+            "completion_tokens": 80,
+            "total_tokens": 575,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 495
+          },
+          "response_id": "01a11a86515731db446a4dac8ea69622",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-RU-03",
+        "assertion_type": "reference_used",
+        "example_kind": "boundary",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "关于20道题的方案，建议合理安排时间，做完以后及时总结。"
+          ],
+          "reason": "The response mentions the task of 20 questions but fails to materially engage with the specific reference plan '直接做20道难题' (directly do 20 difficult problems) by either adopting, rejecting, or revising it with a reason; it only offers generic advice on time management and summarization."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.887,
+          "usage": {
+            "prompt_tokens": 499,
+            "completion_tokens": 103,
+            "total_tokens": 602,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 499
+          },
+          "response_id": "01a11a865d4aa03acc41c419f249bc5e",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-ID-01",
+        "assertion_type": "insufficiency_disclosed",
+        "example_kind": "clear_pass",
+        "expected_passed": true,
+        "actual": {
+          "passed": true,
+          "evidence": [
+            "题库中符合条件的难题只有8道，无法按原约束提供15道。"
+          ],
+          "reason": "The response explicitly states the shortage (8 available vs 15 requested) and preserves the constraint boundary by refusing to fabricate the missing 7 questions."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.1627,
+          "usage": {
+            "prompt_tokens": 522,
+            "completion_tokens": 72,
+            "total_tokens": 594,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 522
+          },
+          "response_id": "01a11a8672de2360af1daa7346407145",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-ID-02",
+        "assertion_type": "insufficiency_disclosed",
+        "example_kind": "clear_fail",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "已按要求生成15道第三章难题。"
+          ],
+          "reason": "The response claims to have generated 15 items despite the setup evidence stating only 8 are available, which fabricates missing supply and silently relaxes the constraint boundary rather than disclosing the insufficiency."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 2.3353,
+          "usage": {
+            "prompt_tokens": 504,
+            "completion_tokens": 79,
+            "total_tokens": 583,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 504
+          },
+          "response_id": "01a11a867d5d00f538c5abe94a5ef73d",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "SC-ID-03",
+        "assertion_type": "insufficiency_disclosed",
+        "example_kind": "boundary",
+        "expected_passed": false,
+        "actual": {
+          "passed": false,
+          "evidence": [
+            "题库只有8道符合条件；我另外补写7道新题，已经凑齐15道，不需要调整。"
+          ],
+          "reason": "The response fabricates missing supply ('补写7道新题') to resolve the shortage, violating the constraint boundary that requires disclosing the shortage without inventing resources."
+        },
+        "matched": true,
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 5.1276,
+          "usage": {
+            "prompt_tokens": 520,
+            "completion_tokens": 82,
+            "total_tokens": 602,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 520
+          },
+          "response_id": "01a11a8688faf128b1f0fcbe7cecaa49",
+          "finish_reason": "stop"
+        }
+      }
+    ]
+  },
+  "behavioral": {
+    "fixture": "/Users/shengyue/Documents/Teacher_Agent/calculus_knowledge_agent/tests/evals/teaching_quality/calibration/calibration_set_v1.yaml",
+    "fixture_sha256": "f1718708e905a4a34bea9f2b72ba4c3f214fc96e022a215fbb1d25e3e798136c",
+    "label_status": "approved_dev_calibration",
+    "sample_count": 21,
+    "valid_outputs": 21,
+    "band_accuracy": 0.7619047619047619,
+    "axis_agreement": 0.7931034482758621,
+    "ranking_consistency": 0.8571428571428571,
+    "ranking_by_case": {
+      "TQ-CQ-005": true,
+      "TQ-CQ-006": true,
+      "TQ-CQ-010": false,
+      "TQ-PQ-003": true,
+      "TQ-PQ-011": true,
+      "TQ-TD-007": true,
+      "TQ-TD-016": true
+    },
+    "failure_counts": {
+      "judge_error": 10
+    },
+    "usage": {
+      "prompt_tokens": 15871,
+      "completion_tokens": 7642,
+      "total_tokens": 23513
+    },
+    "results": [
+      {
+        "sample_id": "TQ-CQ-005-strong",
+        "case_id": "TQ-CQ-005",
+        "expected_band": "strong",
+        "actual_band": "strong",
+        "band_matched": true,
+        "axis_matches": {
+          "correctness": true,
+          "actionability": true,
+          "pedagogical_quality": true,
+          "grounding": true,
+          "clarity": true
+        },
+        "weighted_score": 5.0,
+        "judge": {
+          "case_id": "TQ-CQ-005",
+          "scores": {
+            "correctness": 5,
+            "actionability": 5,
+            "pedagogical_quality": 5,
+            "grounding": 5,
+            "clarity": 5
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [],
+          "rationale": {
+            "correctness": "The advice correctly identifies that rote memorization is insufficient and accurately describes the necessary conditions (continuity on [a,b], differentiability on (a,b)) and the structural form (f(b)-f(a)) required for the Lagrange Mean Value Theorem.",
+            "actionability": "The response provides a concrete, step-by-step teaching plan including specific student actions like circling terms, using a checklist, and performing contrastive exercises, making it immediately implementable.",
+            "pedagogical_quality": "The approach aligns perfectly with the reference notes by emphasizing pattern recognition ('conclusion-condition-tool'), using contrastive examples, and avoiding the pitfall of simple theorem recitation.",
+            "grounding": "The advice is tightly grounded in the student's profile, directly addressing the specific weakness of 'not knowing when to use' the theorem by providing diagnostic criteria rather than general calculus theory.",
+            "clarity": "The instructions are concise, logically sequenced, and use clear terminology that a teacher can easily translate into a lesson plan without ambiguity."
+          },
+          "overall_comment": "An exemplary consultation response that offers a highly actionable, pedagogically sound, and well-grounded strategy for teaching the application of the Lagrange Mean Value Theorem, perfectly matching the student's specific learning gap."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 17.221,
+          "usage": {
+            "prompt_tokens": 776,
+            "completion_tokens": 370,
+            "total_tokens": 1146,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 776
+          },
+          "response_id": "01a11a86a03268468f9805c6336ef407",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-005-borderline",
+        "case_id": "TQ-CQ-005",
+        "expected_band": "borderline",
+        "actual_band": "poor",
+        "band_matched": false,
+        "axis_matches": {
+          "correctness": true,
+          "actionability": false,
+          "pedagogical_quality": true,
+          "grounding": true,
+          "clarity": true
+        },
+        "weighted_score": 2.65,
+        "judge": {
+          "case_id": "TQ-CQ-005",
+          "scores": {
+            "correctness": 3,
+            "actionability": 2,
+            "pedagogical_quality": 2,
+            "grounding": 3,
+            "clarity": 4
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [
+            "generic_advice",
+            "poor_actionability",
+            "weak_assessment_alignment"
+          ],
+          "rationale": {
+            "correctness": "The advice to review conditions and formulas is factually correct, but the suggestion to 'consider the theorem when seeing derivatives' is an oversimplification that lacks the necessary nuance for proof problems, potentially leading to misapplication.",
+            "actionability": "The plan is too generic; it suggests 'doing two similar problems' without defining what makes them similar or how to scaffold the identification process, failing to provide a concrete strategy for the student's specific weakness.",
+            "pedagogical_quality": "The response ignores the reference notes to use positive/negative examples or contrast problem types. It fails to teach the student how to identify the specific 'clues' or 'conditions' required for the theorem, effectively reducing the learning to rote memorization rather than strategic application.",
+            "grounding": "The response addresses the student's stated weakness but does not leverage the specific context of 'proof problems' mentioned in the user turn, offering a generic calculus review plan instead of a targeted proof strategy.",
+            "clarity": "The response is concise and easy to understand, clearly outlining a sequence of steps (review, example, practice, reminder) without ambiguity."
+          },
+          "overall_comment": "The consultation provides a correct but superficial approach. It fails to address the core difficulty of identifying when to apply the theorem in proofs, offering generic advice that risks reinforcing rote memorization rather than strategic problem-solving."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 16.0684,
+          "usage": {
+            "prompt_tokens": 707,
+            "completion_tokens": 417,
+            "total_tokens": 1124,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 707
+          },
+          "response_id": "01a11a86e5c9d436b7e3a58d9d337227",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-005-poor",
+        "case_id": "TQ-CQ-005",
+        "expected_band": "poor",
+        "actual_band": "poor",
+        "band_matched": true,
+        "axis_matches": {
+          "correctness": true,
+          "actionability": false,
+          "pedagogical_quality": true,
+          "grounding": true,
+          "clarity": true
+        },
+        "weighted_score": 1.3,
+        "judge": {
+          "case_id": "TQ-CQ-005",
+          "scores": {
+            "correctness": 1,
+            "actionability": 1,
+            "pedagogical_quality": 1,
+            "grounding": 1,
+            "clarity": 4
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "incorrect_diagnosis",
+            "poor_actionability",
+            "poor_progression",
+            "unrealistic_plan",
+            "weak_assessment_alignment"
+          ],
+          "rationale": {
+            "correctness": "The advice is fundamentally incorrect; memorizing the theorem and blindly applying it does not teach a student how to identify the specific conditions required to use the Lagrange Mean Value Theorem in proofs.",
+            "actionability": "The suggested actions (copying ten times, rote memorization, blind application) are not actionable strategies for developing the analytical judgment needed for proof problems.",
+            "pedagogical_quality": "The approach violates sound pedagogy by suggesting rote learning over conceptual understanding, failing to address the student's specific weakness in recognizing when to apply the theorem.",
+            "grounding": "The response ignores the student's profile and the reference notes which emphasize identifying clues, checking conditions, and mapping conclusions rather than memorization.",
+            "clarity": "The instructions are clear in their literal meaning but are conceptually misleading and fail to communicate a viable learning path."
+          },
+          "overall_comment": "The consultation provides a harmful and ineffective strategy that contradicts the goal of teaching proof techniques, relying on rote memorization instead of analytical reasoning."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 7.1336,
+          "usage": {
+            "prompt_tokens": 701,
+            "completion_tokens": 361,
+            "total_tokens": 1062,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 701
+          },
+          "response_id": "01a11a8726c0407b7fc46f6745ffb656",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-006-strong",
+        "case_id": "TQ-CQ-006",
+        "expected_band": "strong",
+        "actual_band": "strong",
+        "band_matched": true,
+        "axis_matches": {
+          "correctness": true,
+          "actionability": true,
+          "pedagogical_quality": true,
+          "grounding": true,
+          "clarity": true
+        },
+        "weighted_score": 5.0,
+        "judge": {
+          "case_id": "TQ-CQ-006",
+          "scores": {
+            "correctness": 5,
+            "actionability": 5,
+            "pedagogical_quality": 5,
+            "grounding": 5,
+            "clarity": 5
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [],
+          "rationale": {
+            "correctness": "The response correctly identifies that assigning 20 difficult problems to a student with weak limits is pedagogically unsound, aligning with the reference notes on difficulty mismatch.",
+            "actionability": "It provides a concrete, step-by-step alternative plan: diagnostic testing with 3 basic problems, targeted practice with examples and variations, and a final re-test, making the advice immediately actionable.",
+            "pedagogical_quality": "The advice demonstrates strong pedagogical reasoning by explaining the cognitive load issue (mixing method identification, algebra, and limit errors) and advocating for a scaffolded, diagnostic approach.",
+            "grounding": "The response is fully grounded in the provided student profile (weakness in limits) and the proposed plan (20 difficult problems), directly addressing the user's specific scenario without inventing facts.",
+            "clarity": "The explanation is concise, logical, and easy to follow, clearly stating why the original plan is unreasonable and how to proceed instead."
+          },
+          "overall_comment": "An excellent consultation response that effectively rejects an inappropriate study plan and replaces it with a well-reasoned, actionable, and pedagogically sound alternative."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 9.3362,
+          "usage": {
+            "prompt_tokens": 756,
+            "completion_tokens": 343,
+            "total_tokens": 1099,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 756
+          },
+          "response_id": "01a11a8744dfea9ed9c1b01c2e8c6e1e",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-006-borderline",
+        "case_id": "TQ-CQ-006",
+        "expected_band": "borderline",
+        "actual_band": "borderline",
+        "band_matched": true,
+        "axis_matches": {
+          "correctness": true,
+          "actionability": true,
+          "pedagogical_quality": true,
+          "grounding": true,
+          "clarity": true
+        },
+        "weighted_score": 3.45,
+        "judge": {
+          "case_id": "TQ-CQ-006",
+          "scores": {
+            "correctness": 3,
+            "actionability": 4,
+            "pedagogical_quality": 3,
+            "grounding": 3,
+            "clarity": 5
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [
+            "generic_advice",
+            "weak_assessment_alignment"
+          ],
+          "rationale": {
+            "correctness": "The advice correctly identifies that 20 difficult problems is likely too many for a student with weak limits, but it fails to explicitly state the mismatch between the student's weakness and the proposed difficulty level as required by reference notes.",
+            "actionability": "The suggestion to do 10 medium problems first is actionable, but the plan lacks specific criteria for 'according to situation' and does not offer a concrete diagnostic step before proceeding.",
+            "pedagogical_quality": "The response misses the opportunity to emphasize the need for diagnosis and layered practice, which are critical for a student with a specific weakness, making the advice somewhat generic.",
+            "grounding": "The response acknowledges the student's weakness in limits but does not sufficiently ground the recommendation in the specific profile details or the proposed plan's flaws beyond a simple quantity adjustment.",
+            "clarity": "The response is clear and concise, directly addressing the user's question with a specific alternative plan."
+          },
+          "overall_comment": "The consultation provides a reasonable alternative to the proposed plan but lacks the depth required to fully address the student's specific weakness and the pedagogical need for diagnosis and layered practice."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 10.4019,
+          "usage": {
+            "prompt_tokens": 691,
+            "completion_tokens": 361,
+            "total_tokens": 1052,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 691
+          },
+          "response_id": "01a11a876b907cac706f3e1ef49f8306",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-006-poor",
+        "case_id": "TQ-CQ-006",
+        "expected_band": "poor",
+        "actual_band": "poor",
+        "band_matched": true,
+        "axis_matches": {
+          "correctness": true,
+          "actionability": false,
+          "pedagogical_quality": true,
+          "grounding": true,
+          "clarity": true
+        },
+        "weighted_score": 1.55,
+        "judge": {
+          "case_id": "TQ-CQ-006",
+          "scores": {
+            "correctness": 1,
+            "actionability": 2,
+            "pedagogical_quality": 1,
+            "grounding": 1,
+            "clarity": 4
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "incorrect_diagnosis",
+            "ungrounded_inference",
+            "poor_actionability",
+            "weak_assessment_alignment"
+          ],
+          "rationale": {
+            "correctness": "The advice is fundamentally incorrect. Telling a student with weak limits to immediately do 20 difficult problems without checking basics contradicts established pedagogical principles and the student's profile.",
+            "actionability": "While the plan is specific (do 20 problems), it is not actionable in a beneficial way because it leads to frustration and reinforces misconceptions rather than building competence.",
+            "pedagogical_quality": "The response fails to scaffold learning. It ignores the student's weakness and suggests a 'sink or swim' approach which is pedagogically unsound for a weak student.",
+            "grounding": "The response directly contradicts the provided student profile (weakness in limits) and ignores the reference notes which advise against such a plan.",
+            "clarity": "The response is concise and easy to understand, but the clarity of the message does not compensate for the harmful content."
+          },
+          "overall_comment": "The consultation provides dangerous and incorrect advice by validating a plan that ignores the student's specific weaknesses. It fails to ground its reasoning in the provided evidence and violates pedagogical best practices."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 17.289,
+          "usage": {
+            "prompt_tokens": 687,
+            "completion_tokens": 368,
+            "total_tokens": 1055,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 687
+          },
+          "response_id": "01a11a879e7e1a27040ff845add434c5",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-010-strong",
+        "case_id": "TQ-CQ-010",
+        "expected_band": "strong",
+        "actual_band": "strong",
+        "band_matched": true,
+        "axis_matches": {
+          "correctness": true,
+          "actionability": true,
+          "pedagogical_quality": true,
+          "grounding": true,
+          "clarity": true
+        },
+        "weighted_score": 5.0,
+        "judge": {
+          "case_id": "TQ-CQ-010",
+          "scores": {
+            "correctness": 5,
+            "actionability": 5,
+            "pedagogical_quality": 5,
+            "grounding": 5,
+            "clarity": 5
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [],
+          "rationale": {
+            "correctness": "The priority ranking accurately reflects the student's performance data: the lowest accuracy (1/3) and highest conceptual blockage (Mean Value Theorem conditions) are correctly identified as the top priority, followed by the moderate accuracy issue (equivalent infinitesimals) and the high accuracy mechanical error (chain rule).",
+            "actionability": "The 45-minute plan is highly actionable, breaking down the time into specific, targeted activities (diagnostic, counter-examples, scenario analysis, self-check, and assessment) that directly address the identified errors within the time limit.",
+            "pedagogical_quality": "The teaching strategy employs sound pedagogical techniques, such as using positive and negative examples to establish condition checklists and distinguishing between replaceable and non-replaceable scenarios, which effectively targets the specific misconceptions.",
+            "grounding": "Every recommendation is strictly grounded in the provided student evidence (specific topics, scores, and error descriptions) and adheres to the constraint of using only the first three chapters of the Tongji textbook.",
+            "clarity": "The response is concise and clearly structured, presenting the priority list and the minute-by-minute lesson plan in an easy-to-follow format without ambiguity."
+          },
+          "overall_comment": "An excellent consultation response that perfectly aligns with the student's evidence, adheres to all constraints, and provides a highly actionable, pedagogically sound 45-minute lesson plan."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 10.0694,
+          "usage": {
+            "prompt_tokens": 965,
+            "completion_tokens": 398,
+            "total_tokens": 1363,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 965
+          },
+          "response_id": "01a11a87dca53dfc4118493423258b2c",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-010-borderline",
+        "case_id": "TQ-CQ-010",
+        "expected_band": "borderline",
+        "actual_band": "poor",
+        "band_matched": false,
+        "axis_matches": {
+          "correctness": false,
+          "actionability": false,
+          "pedagogical_quality": false,
+          "grounding": false,
+          "clarity": false
+        },
+        "weighted_score": 1.45,
+        "judge": {
+          "case_id": "TQ-CQ-010",
+          "scores": {
+            "correctness": 2,
+            "actionability": 1,
+            "pedagogical_quality": 1,
+            "grounding": 1,
+            "clarity": 3
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "generic_advice",
+            "poor_actionability",
+            "ungrounded_inference",
+            "weak_assessment_alignment"
+          ],
+          "rationale": {
+            "correctness": "The response fails to address the specific request for 'weakness priority' and instead proposes a generic equal-time review, which is mathematically unsound given the severe performance gap (1/3 correct) in the Mean Value Theorem compared to other topics.",
+            "actionability": "The advice is not actionable for a 45-minute lesson because it suggests reviewing three distinct complex topics (limits, derivatives, mean value theorem) with only 15 minutes each, which is insufficient to address the specific errors identified (e.g., chain rule, condition checking). It also fails to provide a concrete plan for the 'next lesson' beyond a vague 'assign exercises'.",
+            "pedagogical_quality": "The response ignores the pedagogical principle of prioritizing the most critical gaps. It treats a 33% success rate in the Mean Value Theorem with the same weight as a 60% success rate in limits, failing to scaffold learning based on the student's actual evidence.",
+            "grounding": "The response does not ground its plan in the specific error evidence provided (confusing equivalent infinitesimal conditions, missing chain rule multipliers, failing to check theorem conditions). It ignores the 'reference notes' requiring the plan to be executable within 45 minutes and targeted.",
+            "clarity": "The response is clear in its brevity, but the content is too vague to be useful. It lacks the specific structure requested (priority list, targeted 45-minute plan)."
+          },
+          "overall_comment": "The consultation fails to provide a tailored teaching plan. It ignores the explicit request for priority ranking based on the provided evidence and offers a generic, unfeasible 45-minute schedule that does not address the specific conceptual gaps identified in the student's performance."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 20.0057,
+          "usage": {
+            "prompt_tokens": 862,
+            "completion_tokens": 507,
+            "total_tokens": 1369,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 862
+          },
+          "response_id": "01a11a8805f499c51d930615e99d7ce9",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-CQ-010-poor",
+        "case_id": "TQ-CQ-010",
+        "expected_band": "poor",
+        "actual_band": "poor",
+        "band_matched": true,
+        "axis_matches": {
+          "correctness": true,
+          "actionability": false,
+          "pedagogical_quality": true,
+          "grounding": true,
+          "clarity": true
+        },
+        "weighted_score": 1.55,
+        "judge": {
+          "case_id": "TQ-CQ-010",
+          "scores": {
+            "correctness": 2,
+            "actionability": 1,
+            "pedagogical_quality": 1,
+            "grounding": 1,
+            "clarity": 4
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "generic_advice",
+            "ungrounded_inference",
+            "poor_actionability",
+            "weak_assessment_alignment"
+          ],
+          "rationale": {
+            "correctness": "The diagnosis that the student's 'overall foundation is bad' is an overgeneralization not supported by the evidence, which shows specific, isolated errors in three distinct topics rather than a global deficiency.",
+            "actionability": "The advice to 're-teach all definitions in Chapter 1' and 'do more problems' is too vague and unstructured for a 45-minute session. It fails to provide a specific plan to address the three distinct errors identified in the evidence (equivalent infinitesimals, chain rule, mean value theorem conditions).",
+            "pedagogical_quality": "The response ignores the specific learning gaps (e.g., checking conditions for theorems, chain rule mechanics) and suggests a generic review that does not target the student's actual needs. It fails to prioritize the topics based on the provided error rates.",
+            "grounding": "The response does not reference the specific student evidence provided (3/5 limit errors, 4/5 derivative errors, 1/3 mean value theorem errors). Instead, it makes a broad assumption about the student's overall ability without grounding in the specific data points.",
+            "clarity": "The response is clear in its language and structure, making the vague advice easy to understand, even though the advice itself is poor."
+          },
+          "overall_comment": "The consultation fails to provide a targeted, actionable plan based on the specific student evidence. It offers generic advice that ignores the detailed error analysis provided and violates the constraint to focus only on the first three chapters with a specific 45-minute scope."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 20.2276,
+          "usage": {
+            "prompt_tokens": 861,
+            "completion_tokens": 464,
+            "total_tokens": 1325,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 861
+          },
+          "response_id": "01a11a885693209178d1fe9b8c0e9945",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-003-strong",
+        "case_id": "TQ-PQ-003",
+        "expected_band": "strong",
+        "actual_band": "strong",
+        "band_matched": true,
+        "axis_matches": {
+          "knowledge_coverage": true,
+          "difficulty_alignment": true,
+          "question_type_balance": true,
+          "redundancy": true,
+          "pedagogical_validity": true
+        },
+        "weighted_score": 4.8,
+        "judge": {
+          "case_id": "TQ-PQ-003",
+          "scores": {
+            "knowledge_coverage": 5,
+            "difficulty_alignment": 4,
+            "question_type_balance": 5,
+            "redundancy": 5,
+            "pedagogical_validity": 5
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [],
+          "rationale": {
+            "knowledge_coverage": "The paper strictly adheres to the constraint of using only Chapters 1-3, covering key concepts like limits, continuity, derivatives, and the Mean Value Theorem without encroaching on Chapter 4.",
+            "difficulty_alignment": "The difficulty progression is logical, moving from basic definitions (easy) to computational tasks (medium) and finally to proofs and comprehensive synthesis (hard), aligning well with a mid-term assessment structure.",
+            "question_type_balance": "The mix of multiple-choice, fill-in-the-blank, calculation, and proof questions provides a comprehensive assessment of different cognitive skills, ensuring a balanced evaluation format.",
+            "redundancy": "The 10 questions cover distinct aspects of the curriculum (limits, continuity, differentiation rules, applications, theorems) with no apparent repetition of concepts or methods.",
+            "pedagogical_validity": "The paper demonstrates a sound pedagogical structure with a clear progression from foundational knowledge to complex problem-solving, making it a valid assessment tool for the specified chapters."
+          },
+          "overall_comment": "The assembled paper is a high-quality mid-term exam that strictly respects the chapter constraints while offering a balanced, non-redundant, and pedagogically sound assessment of calculus fundamentals."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 17.7809,
+          "usage": {
+            "prompt_tokens": 867,
+            "completion_tokens": 366,
+            "total_tokens": 1233,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 867
+          },
+          "response_id": "01a11a88a8103bde43cac075d0b9eef6",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-003-borderline",
+        "case_id": "TQ-PQ-003",
+        "expected_band": "borderline",
+        "actual_band": "borderline",
+        "band_matched": true,
+        "axis_matches": {
+          "knowledge_coverage": false,
+          "difficulty_alignment": false,
+          "question_type_balance": true,
+          "redundancy": false,
+          "pedagogical_validity": true
+        },
+        "weighted_score": 3.7,
+        "judge": {
+          "case_id": "TQ-PQ-003",
+          "scores": {
+            "knowledge_coverage": 5,
+            "difficulty_alignment": 4,
+            "question_type_balance": 2,
+            "redundancy": 5,
+            "pedagogical_validity": 3
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [
+            "question_type_imbalance"
+          ],
+          "rationale": {
+            "knowledge_coverage": "The paper strictly adheres to the constraint of using only Chapters 1, 2, and 3, with a clear distribution (4, 4, 2) covering the allowed scope without any intrusion from Chapter 4.",
+            "difficulty_alignment": "The difficulty progression is logical, starting with 6 simple questions and moving to 4 medium-difficulty questions, aligning well with a standard assessment structure.",
+            "question_type_balance": "The paper lacks variety as all 10 questions are exclusively calculation or problem-solving types, with no conceptual, multiple-choice, or proof-based questions to balance the assessment.",
+            "redundancy": "There is no evidence of redundant questions; each question targets a specific calculation type within its assigned chapter without repetition of the same problem.",
+            "pedagogical_validity": "While the content is valid, the exclusive focus on calculation limits the assessment's ability to test broader cognitive skills, reducing its overall pedagogical effectiveness."
+          },
+          "overall_comment": "The paper successfully respects chapter constraints and demonstrates a logical difficulty gradient. However, the complete lack of question type variety (only calculations) significantly impacts the balance and pedagogical validity of the assessment."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 10.9173,
+          "usage": {
+            "prompt_tokens": 764,
+            "completion_tokens": 369,
+            "total_tokens": 1133,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 764
+          },
+          "response_id": "01a11a88efabf9cdd61d4adec1f44982",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-003-poor",
+        "case_id": "TQ-PQ-003",
+        "expected_band": "poor",
+        "actual_band": "poor",
+        "band_matched": true,
+        "axis_matches": {
+          "knowledge_coverage": true,
+          "difficulty_alignment": true,
+          "question_type_balance": true,
+          "redundancy": true,
+          "pedagogical_validity": true
+        },
+        "weighted_score": 1.45,
+        "judge": {
+          "case_id": "TQ-PQ-003",
+          "scores": {
+            "knowledge_coverage": 2,
+            "difficulty_alignment": 2,
+            "question_type_balance": 1,
+            "redundancy": 1,
+            "pedagogical_validity": 1
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "question_type_imbalance",
+            "redundant_questions",
+            "weak_assessment_alignment",
+            "poor_progression"
+          ],
+          "rationale": {
+            "knowledge_coverage": "虽然题目限定在前三章，但所有10道题均为同一类‘直接代入求极限’的机械操作，未体现前三章可能包含的连续性、洛必达法则、无穷小比较等核心知识点的实质性覆盖，导致知识广度严重不足。",
+            "difficulty_alignment": "所有题目被标记为‘中等计算题’，但内容仅为‘替换数字’，缺乏真正的计算难度或思维挑战，导致难度标签与实际认知负荷严重不匹配。",
+            "question_type_balance": "10道题全部为同一种题型（直接代入），完全缺乏题型多样性，未体现计算、概念辨析、证明或应用等不同维度的平衡。",
+            "redundancy": "10道题在解题逻辑和认知过程上完全重复，仅数字不同，属于高度冗余，无法有效区分学生的掌握程度。",
+            "pedagogical_validity": "试卷缺乏难度梯度和题型变化，无法有效评估学生对前三章知识的综合掌握情况，不具备作为合格测评工具的教学有效性。"
+          },
+          "overall_comment": "该试卷虽遵守了章节约束，但内容极度单一，存在严重的题型失衡和冗余问题，缺乏必要的认知梯度和知识覆盖，无法达到基本的质量标准，属于实质性质量失败。"
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 8.6701,
+          "usage": {
+            "prompt_tokens": 742,
+            "completion_tokens": 413,
+            "total_tokens": 1155,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 742
+          },
+          "response_id": "01a11a891c9b54528076d7c5f6361d95",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-011-strong",
+        "case_id": "TQ-PQ-011",
+        "expected_band": "strong",
+        "actual_band": "strong",
+        "band_matched": true,
+        "axis_matches": {
+          "redundancy": true,
+          "pedagogical_validity": true
+        },
+        "weighted_score": 5.0,
+        "judge": {
+          "case_id": "TQ-PQ-011",
+          "scores": {
+            "redundancy": 5,
+            "pedagogical_validity": 5
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [],
+          "rationale": {
+            "redundancy": "The output explicitly lists 8 distinct topics covering different core mathematical concepts (Squeeze Theorem, Equivalent Infinitesimals, Piecewise Continuity, Chain Rule, Implicit Differentiation, Monotonicity, Mean Value Theorem counterexamples, and MVT inequality proofs). The claim that each has a different core method and cognitive requirement, combined with the constraint adherence to select at most one from similarity groups, indicates zero redundancy.",
+            "pedagogical_validity": "The selected topics form a comprehensive and logically progressive assessment of calculus fundamentals, ranging from limit estimation and continuity to differentiation techniques and theorem applications. The variety ensures a balanced evaluation of both procedural skills and conceptual understanding without overlap."
+          },
+          "overall_comment": "The paper demonstrates excellent quality with no redundancy and high pedagogical validity, successfully meeting the user's request for 8 non-repetitive questions covering diverse calculus concepts."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 7.0987,
+          "usage": {
+            "prompt_tokens": 680,
+            "completion_tokens": 264,
+            "total_tokens": 944,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 680
+          },
+          "response_id": "01a11a8940dd90aa5c31b643af61754a",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-011-borderline",
+        "case_id": "TQ-PQ-011",
+        "expected_band": "borderline",
+        "actual_band": "poor",
+        "band_matched": false,
+        "axis_matches": {
+          "redundancy": false,
+          "pedagogical_validity": false
+        },
+        "weighted_score": 2.4,
+        "judge": {
+          "case_id": "TQ-PQ-011",
+          "scores": {
+            "redundancy": 2,
+            "pedagogical_validity": 3
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [
+            "redundant_questions"
+          ],
+          "rationale": {
+            "redundancy": "The output explicitly states that two limit problems both require rationalization as a primary step. Although the limits approach different values (0 and infinity), the core algebraic technique and problem structure are nearly identical, violating the user's constraint to avoid 'just changing numbers' or repetitive problem types.",
+            "pedagogical_validity": "The paper covers four distinct major calculus topics (limits, continuity, differentiation, and the Mean Value Theorem), which provides a broad conceptual scope. However, the pedagogical value is diminished by the inclusion of two structurally similar limit problems, reducing the diversity of cognitive tasks presented to the student."
+          },
+          "overall_comment": "The paper fails to fully meet the non-redundancy constraint due to the inclusion of two limit problems relying on the same specific algebraic technique (rationalization), despite covering a wide range of topics."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 8.1024,
+          "usage": {
+            "prompt_tokens": 655,
+            "completion_tokens": 272,
+            "total_tokens": 927,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 655
+          },
+          "response_id": "01a11a895ef6f9befab96e3a5f87970a",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-PQ-011-poor",
+        "case_id": "TQ-PQ-011",
+        "expected_band": "poor",
+        "actual_band": "poor",
+        "band_matched": true,
+        "axis_matches": {
+          "redundancy": true,
+          "pedagogical_validity": true
+        },
+        "weighted_score": 1.4,
+        "judge": {
+          "case_id": "TQ-PQ-011",
+          "scores": {
+            "redundancy": 1,
+            "pedagogical_validity": 2
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "redundant_questions",
+            "constraint_violation",
+            "poor_progression"
+          ],
+          "rationale": {
+            "redundancy": "The output explicitly states that all 8 questions use the exact same 'divide numerator and denominator by the highest power' strategy, differing only in coefficients, exponents, and direction. This constitutes severe redundancy and directly violates the user's constraint to avoid 'just changing numbers' questions, despite assigning different similarity group IDs.",
+            "pedagogical_validity": "The paper fails to provide cognitive variety or progressive difficulty. By forcing a single mechanical technique across all 8 items, it offers no opportunity to assess different limit evaluation strategies or conceptual understanding, rendering the assessment pedagogically invalid for a comprehensive evaluation."
+          },
+          "overall_comment": "The generated paper is a structural failure. It ignores the explicit instruction to avoid repetitive questions by presenting 8 variations of the exact same algorithmic pattern. This results in a redundant, low-value assessment that fails to meet the requested diversity and pedagogical standards."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.2554,
+          "usage": {
+            "prompt_tokens": 657,
+            "completion_tokens": 292,
+            "total_tokens": 949,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 657
+          },
+          "response_id": "01a11a8980fdc475a179fdbe2c2aa8c7",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-007-strong",
+        "case_id": "TQ-TD-007",
+        "expected_band": "strong",
+        "actual_band": "strong",
+        "band_matched": true,
+        "axis_matches": {
+          "objective_alignment": true,
+          "learning_progression": true,
+          "feasibility": true,
+          "assessment_alignment": true
+        },
+        "weighted_score": 4.7,
+        "judge": {
+          "case_id": "TQ-TD-007",
+          "scores": {
+            "objective_alignment": 5,
+            "learning_progression": 5,
+            "feasibility": 4,
+            "assessment_alignment": 5
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [],
+          "rationale": {
+            "objective_alignment": "The plan directly addresses the three specific evidence points (limits, derivatives, mean value theorem) and prioritizes the weakest area (mean value theorem proofs) while respecting the 'check for gaps' goal without attempting full re-learning.",
+            "learning_progression": "The sequence logically moves from quick diagnostic checks to targeted skill building (derivatives), then to complex proof construction (mean value theorem), and finally to synthesis and error analysis, following a sound pedagogical flow.",
+            "feasibility": "The 90-minute timeline is tightly packed but realistic for a focused review session; the inclusion of conditional branching (skipping limits if correct) and time-boxed activities ensures the plan remains actionable within the constraints.",
+            "assessment_alignment": "Assessment is integrated throughout via quick checks, specific practice problems, and a final timed test, with the final 5 minutes dedicated to analyzing errors, perfectly aligning with the goal of查漏补缺."
+          },
+          "overall_comment": "An excellent, highly targeted teaching design that effectively prioritizes student weaknesses within strict time constraints, utilizing evidence-based progression and integrated assessment."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 4.7329,
+          "usage": {
+            "prompt_tokens": 860,
+            "completion_tokens": 320,
+            "total_tokens": 1180,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 860
+          },
+          "response_id": "01a11a8994518a680c56b364ffd4bcf9",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-007-borderline",
+        "case_id": "TQ-TD-007",
+        "expected_band": "borderline",
+        "actual_band": "poor",
+        "band_matched": false,
+        "axis_matches": {
+          "objective_alignment": true,
+          "learning_progression": true,
+          "feasibility": false,
+          "assessment_alignment": true
+        },
+        "weighted_score": 2.0,
+        "judge": {
+          "case_id": "TQ-TD-007",
+          "scores": {
+            "objective_alignment": 2,
+            "learning_progression": 2,
+            "feasibility": 2,
+            "assessment_alignment": 2
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "unrealistic_plan",
+            "poor_progression",
+            "objective_misalignment"
+          ],
+          "rationale": {
+            "objective_alignment": "The plan ignores the student's specific proficiency levels (80% vs 50% vs 0%) by allocating equal time, failing to prioritize the critical gap in the Mean Value Theorem proofs which is the highest risk area.",
+            "learning_progression": "The design suggests a linear 'lecture-then-practice' block for each topic without scaffolding or connecting concepts, and fails to address the 'proof' difficulty gap with appropriate progression steps.",
+            "feasibility": "Attempting to teach 'Mean Value Theorem proofs' from scratch in 30 minutes while also covering limits and derivatives is unrealistic for a student who 'basically cannot do' proofs, especially with only 90 minutes total before an exam.",
+            "assessment_alignment": "The plan does not include a short re-test or verification step to confirm learning gains, which is essential for a 'check for gaps' goal in a high-stakes, short-timeframe scenario."
+          },
+          "overall_comment": "The teaching design fails to adapt to the student's specific evidence, proposing an unrealistic and inefficient equal-time split that ignores the severity of the proof gap and the time constraints."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 8.4957,
+          "usage": {
+            "prompt_tokens": 751,
+            "completion_tokens": 360,
+            "total_tokens": 1111,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 751
+          },
+          "response_id": "01a11a89a8a2b2f8b30687c84a8b6db9",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-007-poor",
+        "case_id": "TQ-TD-007",
+        "expected_band": "poor",
+        "actual_band": "poor",
+        "band_matched": true,
+        "axis_matches": {
+          "objective_alignment": true,
+          "learning_progression": true,
+          "feasibility": true,
+          "assessment_alignment": true
+        },
+        "weighted_score": 1.0,
+        "judge": {
+          "case_id": "TQ-TD-007",
+          "scores": {
+            "objective_alignment": 1,
+            "learning_progression": 1,
+            "feasibility": 1,
+            "assessment_alignment": 1
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "unrealistic_plan",
+            "objective_misalignment",
+            "poor_progression",
+            "weak_assessment_alignment"
+          ],
+          "rationale": {
+            "objective_alignment": "The plan ignores the specific student profile evidence (80% basic limits, 50% complex derivatives, 0% mean value theorem proofs) by proposing a generic 'start from definitions' approach, failing to target the identified gaps.",
+            "learning_progression": "The design suggests a linear re-teaching of all three chapters from the beginning, which contradicts the need for targeted remediation and skips the logical step of addressing specific high-impact weaknesses first.",
+            "feasibility": "It is impossible to comprehensively re-teach three chapters from definitions, practice complex problems, and ensure mastery within 90 minutes, especially given the student's severe lack of understanding in the Mean Value Theorem.",
+            "assessment_alignment": "The plan fails to align with the goal of 'filling gaps' (查漏补缺) by focusing on 'doing more hard problems' rather than diagnosing and fixing the specific conceptual failures indicated in the evidence."
+          },
+          "overall_comment": "The teaching design is critically flawed as it proposes an impossible and inefficient strategy that ignores the student's specific performance data and the severe time constraints, directly contradicting the provided reference notes."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 9.129,
+          "usage": {
+            "prompt_tokens": 735,
+            "completion_tokens": 368,
+            "total_tokens": 1103,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 735
+          },
+          "response_id": "01a11a89cc1e5aacf4b02dccf59784c9",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-016-strong",
+        "case_id": "TQ-TD-016",
+        "expected_band": "strong",
+        "actual_band": "strong",
+        "band_matched": true,
+        "axis_matches": {
+          "objective_alignment": true,
+          "learning_progression": true,
+          "feasibility": true
+        },
+        "weighted_score": 5.0,
+        "judge": {
+          "case_id": "TQ-TD-016",
+          "scores": {
+            "objective_alignment": 5,
+            "learning_progression": 5,
+            "feasibility": 5
+          },
+          "critical_quality_failure": false,
+          "failure_tags": [],
+          "rationale": {
+            "objective_alignment": "The design explicitly prioritizes 'limit basic operations' (50% accuracy) as the foundational skill for 'continuity' (60% accuracy), directly addressing the goal of 'filling basic gaps' for the upcoming test while deferring complex continuity problems.",
+            "learning_progression": "The sequence logically builds from prerequisite skills (limits) to dependent concepts (continuity), and strategically addresses the lowest accuracy area (higher-order derivatives) with a specific teaching method (typical recursion) before checking for transfer.",
+            "feasibility": "The plan breaks the 45-minute constraint into specific, actionable time blocks (5, 15, 13, 7, 5 minutes) that sum correctly, ensuring a focused review rather than an impossible average coverage of all topics."
+          },
+          "overall_comment": "An excellent, highly strategic teaching design that effectively balances student data, prerequisite relationships, and strict time constraints to maximize test readiness."
+        },
+        "failure_class": null,
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 9.5616,
+          "usage": {
+            "prompt_tokens": 766,
+            "completion_tokens": 283,
+            "total_tokens": 1049,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 766
+          },
+          "response_id": "01a11a89f1f1b92621843324df941f28",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-016-borderline",
+        "case_id": "TQ-TD-016",
+        "expected_band": "borderline",
+        "actual_band": "poor",
+        "band_matched": false,
+        "axis_matches": {
+          "objective_alignment": true,
+          "learning_progression": false,
+          "feasibility": false
+        },
+        "weighted_score": 1.3,
+        "judge": {
+          "case_id": "TQ-TD-016",
+          "scores": {
+            "objective_alignment": 2,
+            "learning_progression": 1,
+            "feasibility": 1
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "poor_progression",
+            "unrealistic_plan",
+            "objective_misalignment"
+          ],
+          "rationale": {
+            "objective_alignment": "The design fails to prioritize content based on the student's profile (30% accuracy on higher-order derivatives vs 50-60% on basics) and the goal of 'filling foundations' for a test next week. It treats all topics equally despite the clear need to focus on the weakest area or the most foundational concepts first.",
+            "learning_progression": "The plan ignores prerequisite relationships and cognitive load. Assigning 15 minutes to three distinct, complex topics (limits, continuity, higher-order derivatives) in a single session prevents deep understanding or practice, violating the principle of building from known to unknown.",
+            "feasibility": "It is impossible to effectively teach, provide examples, and check understanding for three distinct calculus topics in 15 minutes each within a 45-minute class. This approach guarantees superficial coverage of all topics and no mastery of any, making the plan practically unworkable for the stated goal."
+          },
+          "overall_comment": "The teaching design is critically flawed as it proposes an unrealistic 'one-size-fits-all' coverage strategy that ignores the student's specific weaknesses and the time constraints, failing to provide a focused, actionable plan for test preparation."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 18.4959,
+          "usage": {
+            "prompt_tokens": 694,
+            "completion_tokens": 358,
+            "total_tokens": 1052,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 694
+          },
+          "response_id": "01a11a8a19ac3dcdff908a5728aee674",
+          "finish_reason": "stop"
+        }
+      },
+      {
+        "sample_id": "TQ-TD-016-poor",
+        "case_id": "TQ-TD-016",
+        "expected_band": "poor",
+        "actual_band": "poor",
+        "band_matched": true,
+        "axis_matches": {
+          "objective_alignment": true,
+          "learning_progression": true,
+          "feasibility": false
+        },
+        "weighted_score": 1.0,
+        "judge": {
+          "case_id": "TQ-TD-016",
+          "scores": {
+            "objective_alignment": 1,
+            "learning_progression": 1,
+            "feasibility": 1
+          },
+          "critical_quality_failure": true,
+          "failure_tags": [
+            "objective_misalignment",
+            "poor_progression",
+            "unrealistic_plan"
+          ],
+          "rationale": {
+            "objective_alignment": "The design completely ignores the stated goal of 'filling basic gaps' for a school test. Instead of addressing the 50% and 60% error rates in fundamental topics, it focuses exclusively on the 30% correct rate topic but escalates it to 'competition-level difficult problems,' which is the opposite of remediation.",
+            "learning_progression": "The plan violates fundamental pedagogical progression by skipping foundational concepts (limits and continuity) to tackle advanced, difficult derivatives. It fails to build from the student's current 50-60% proficiency level to mastery, instead attempting to force advanced content without the necessary scaffolding.",
+            "feasibility": "The plan is impossible to execute effectively. Covering 'competition-level difficult problems' for derivatives in a single 45-minute session is unrealistic, especially for students who already struggle with basic calculus concepts. It also fails to provide any mechanism for checking understanding or addressing the other two critical topics."
+          },
+          "overall_comment": "This teaching design is a critical failure. It misdiagnoses the student's needs by prioritizing the lowest-scoring topic with inappropriate difficulty (competition problems) rather than addressing the foundational gaps required for a standard school test. The plan is pedagogically unsound, ignores the time constraint, and fails to provide a viable path to improvement."
+        },
+        "failure_class": "judge_error",
+        "call": {
+          "provider": "siliconflow",
+          "requested_model": "Qwen/Qwen3.5-35B-A3B",
+          "response_model": "Qwen/Qwen3.5-35B-A3B",
+          "temperature": 0,
+          "max_tokens": 2048,
+          "latency_seconds": 10.5753,
+          "usage": {
+            "prompt_tokens": 694,
+            "completion_tokens": 388,
+            "total_tokens": 1082,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 694
+          },
+          "response_id": "01a11a8a641dd9f6df6a5d86712b154e",
+          "finish_reason": "stop"
+        }
+      }
+    ]
+  }
+}

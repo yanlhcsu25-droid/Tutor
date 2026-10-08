@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .models import JudgeOutput, parse_judge_output
+from .models import FAILURE_TAGS, JudgeOutput, parse_judge_output
 
 PROMPT_DIR = Path(__file__).resolve().parents[1] / "prompts"
 PROMPTS = {
@@ -36,7 +36,24 @@ def render_judge_prompt(case: dict[str, Any], actual_output: Any) -> str:
         template = (PROMPT_DIR / PROMPTS[case["suite"]]).read_text()
     except KeyError as exc:
         raise ValueError(f"unsupported Teaching Quality suite: {case['suite']}") from exc
-    return f"{template.rstrip()}\n\nINPUT_JSON\n{json.dumps(build_judge_input(case, actual_output), ensure_ascii=False)}\n"
+    judge_input = build_judge_input(case, actual_output)
+    axes = list(judge_input["behavioral_axes"])
+    output_requirements = {
+        "case_id": case["case_id"],
+        "scores": {axis: "integer 1-5" for axis in axes},
+        "critical_quality_failure": "boolean",
+        "failure_tags": f"array; allowed values: {sorted(FAILURE_TAGS)}",
+        "rationale": {axis: "non-empty evidence-based string" for axis in axes},
+        "overall_comment": "string",
+    }
+    return (
+        f"{template.rstrip()}\n\n"
+        "OUTPUT_REQUIREMENTS\n"
+        "Return all six top-level keys shown below. Do not omit empty arrays or comments. "
+        "scores and rationale must contain exactly the listed axes.\n"
+        f"{json.dumps(output_requirements, ensure_ascii=False)}\n\n"
+        f"INPUT_JSON\n{json.dumps(judge_input, ensure_ascii=False)}\n"
+    )
 
 
 def parse_case_judge_output(case: dict[str, Any], payload: dict[str, Any]) -> JudgeOutput:

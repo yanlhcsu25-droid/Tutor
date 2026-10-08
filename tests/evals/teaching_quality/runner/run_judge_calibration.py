@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -205,6 +206,9 @@ def main() -> None:
         "kind": "fixed_sample_dev_judge_calibration",
         "status": "preliminary",
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "source_git_sha": subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True
+        ).strip(),
         "provider_config": adapter.provenance()["config"],
         "prompt_hashes": {
             path.name: file_sha(path) for path in sorted((ROOT / "prompts").glob("*.md"))
