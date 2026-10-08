@@ -1,0 +1,588 @@
+version: 1.0-candidate
+suite:
+  name: teaching_design_quality_v1
+  split: candidate
+  status: approved
+  description: 12 条教学设计质量候选用例；5 条确定性约束和 1 条澄清用例已移出。已完成人工内容审核；冻结前不得作为 Blind Holdout 或运行模型。
+defaults:
+  judge_scale:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  judge_axes:
+    scope_fidelity: 0.25
+    objective_alignment: 0.2
+    learning_progression: 0.2
+    feasibility: 0.2
+    assessment_alignment: 0.15
+cases:
+- case_id: TQ-TD-001
+  family_id: scope_and_focus
+  suite: teaching_design
+  category: scope_fidelity
+  priority: P0
+  difficulty: medium
+  title: 第一章两课时复习方案不得越界
+  setup:
+    curriculum:
+      book: 同济大学高等数学
+      allowed_chapters:
+      - 第一章
+    available_knowledge_points:
+    - 数列极限
+    - 函数极限
+    - 无穷小与无穷大
+    - 极限运算法则
+    - 夹逼准则
+    - 连续性
+  user_turns:
+  - role: user
+    content: 给基础一般的学生设计两课时第一章复习方案，重点讲极限计算，不要超出第一章。
+  expected:
+    structural_assertions:
+    - id: scope.chapter
+      type: allowed_scope_only
+      critical: true
+      target: teaching_design.chapters
+      expected:
+      - 第一章
+    - id: lesson_count
+      type: exact_count
+      critical: true
+      target: teaching_design.lessons
+      expected: 2
+    - id: no_out_of_scope_topics
+      type: forbidden_content
+      critical: true
+      target: teaching_design
+      forbidden:
+      - 导数
+      - 中值定理
+      - 不定积分
+      match_mode: semantic
+      violation_mode: instructional_use
+      mention_allowed: true
+    - id: focus.limit_calculation
+      type: required_content
+      critical: true
+      target: teaching_design
+      expected:
+      - 极限计算
+      match_mode: semantic
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.3
+        learning_progression: 0.25
+        feasibility: 0.25
+        assessment_alignment: 0.2
+  reference_notes:
+  - 两课时整体应以极限计算为主要目标并形成合理递进
+  - 第一章其他内容可作为必要衔接或检测，具体课时切分可按诊断结果调整
+  - 不预设唯一的课时切分答案
+  human_review: &id001
+    status: approved
+    reviewer_notes: Reviewed for task sufficiency, quality-eval fit, oracle clarity, structural/behavioral separation, and duplicate risk.
+- case_id: TQ-TD-002
+  family_id: learner_adaptation
+  suite: teaching_design
+  category: personalization
+  priority: P0
+  difficulty: medium
+  title: 高阶导数薄弱点的45分钟复习
+  setup:
+    student_profile:
+      covered:
+      - 导数相关内容
+      mastered:
+      - 基本求导
+      weaknesses:
+      - 高阶导数
+    lesson_minutes: 45
+  user_turns:
+  - role: user
+    content: 学生已经学过导数相关内容，基本求导掌握较好，但高阶导数薄弱，请安排一节45分钟复习课。
+  expected:
+    structural_assertions:
+    - id: duration
+      type: total_duration_max
+      critical: true
+      target: teaching_design.minutes
+      expected: 45
+    - id: focus
+      type: required_content
+      critical: true
+      target: teaching_design
+      expected:
+      - 高阶导数
+      match_mode: semantic
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.4
+        learning_progression: 0.3
+        feasibility: 0.3
+  reference_notes:
+  - 应以高阶导数诊断、方法辨析和练习为主体
+  - 基本求导只作必要的先修检查
+  - 时间总量不得超过45分钟
+  human_review: *id001
+- case_id: TQ-TD-003
+  family_id: learner_adaptation
+  suite: teaching_design
+  category: learner_level
+  priority: P0
+  difficulty: medium
+  title: 基础薄弱学生的极限课
+  setup:
+    student_profile:
+      level: 基础较差
+      weaknesses:
+      - 极限运算法则
+    lesson_minutes: 45
+  user_turns:
+  - role: user
+    content: 学生基础比较差，极限运算法则都不熟，请设计一节45分钟课。
+  expected:
+    structural_assertions:
+    - id: focus
+      type: required_content
+      critical: true
+      target: teaching_design
+      expected:
+      - 极限运算法则
+      match_mode: semantic
+    - id: duration
+      type: total_duration_max
+      critical: true
+      target: teaching_design.minutes
+      expected: 45
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.35
+        learning_progression: 0.35
+        feasibility: 0.3
+  reference_notes:
+  - 降低起点并先基础后综合
+  - 45分钟内应聚焦核心运算法则并安排短检查
+  - 避免直接使用大量高难综合题
+  human_review: *id001
+- case_id: TQ-TD-004
+  family_id: learner_adaptation
+  suite: teaching_design
+  category: learner_level
+  priority: P1
+  difficulty: medium
+  title: 基础强学生的期中难题冲刺
+  setup:
+    curriculum:
+      exam_scope:
+      - 第一章
+      - 第二章
+      - 第三章
+    student_profile:
+      level: 较强
+      mastered:
+      - 前三章基础题
+    lesson_minutes: 60
+    goal: 期中难题冲刺
+  user_turns:
+  - role: user
+    content: 学生已掌握同济高数前三章基础题，请设计一节60分钟期中难题冲刺课。
+  expected:
+    structural_assertions:
+    - id: scope
+      type: allowed_scope_only
+      critical: true
+      target: teaching_design.chapters
+      expected:
+      - 第一章
+      - 第二章
+      - 第三章
+    - id: duration
+      type: total_duration_max
+      critical: true
+      target: teaching_design.minutes
+      expected: 60
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.3
+        learning_progression: 0.25
+        feasibility: 0.25
+        assessment_alignment: 0.2
+  reference_notes:
+  - 减少机械基础练习
+  - 通过方法选择、综合迁移和复盘形成冲刺价值
+  - 内容规模和难度应适合60分钟强学生课程
+  human_review: *id001
+- case_id: TQ-TD-006
+  family_id: time_constrained_planning
+  suite: teaching_design
+  category: allocation
+  priority: P0
+  difficulty: hard
+  title: 三课时复习前三章且第二三章优先
+  setup:
+    curriculum:
+      allowed_chapters:
+      - 第一章
+      - 第二章
+      - 第三章
+    lesson_count: 3
+    lesson_minutes_each: 45
+    chapter1_share_max: 0.25
+  user_turns:
+  - role: user
+    content: 用三节45分钟课复习前三章，第一章最多占总时间25%，第二、三章作为重点。
+  expected:
+    structural_assertions:
+    - id: lessons
+      type: exact_count
+      critical: true
+      target: teaching_design.lessons
+      expected: 3
+    - id: scope
+      type: allowed_scope_only
+      critical: true
+      target: teaching_design.chapters
+      expected:
+      - 第一章
+      - 第二章
+      - 第三章
+    - id: lesson_duration
+      type: duration_max_per_lesson
+      critical: true
+      target: teaching_design.lessons.minutes
+      expected: 45
+    - id: chapter1_share
+      type: allocation_share_max
+      critical: true
+      target: teaching_design.chapter_time_share.第一章
+      expected: 0.25
+    behavioral_rubric:
+      axes:
+        scope_fidelity: 0.15
+        objective_alignment: 0.1
+        learning_progression: 0.4
+        feasibility: 0.35
+  reference_notes:
+  - 第一章总时间占比不得超过25%
+  - 第二章和第三章应获得主要讲练与检测资源
+  - 三课时之间应有合理递进而非机械按章切分
+  human_review: *id001
+- case_id: TQ-TD-007
+  family_id: evidence_driven_planning
+  suite: teaching_design
+  category: feasibility
+  priority: P0
+  difficulty: hard
+  title: 考前90分钟查漏补缺
+  setup:
+    curriculum:
+      exam_scope:
+      - 第一章
+      - 第二章
+      - 第三章
+    student_profile:
+      evidence:
+      - 极限基础题正确率80%
+      - 导数综合题正确率50%
+      - 中值定理证明基本不会
+    time_to_exam: 明天
+    available_minutes: 90
+    goal: 查漏补缺
+  user_turns:
+  - role: user
+    content: 学生明天考前三章，只剩90分钟：极限基础题正确率80%，导数综合题50%，中值定理证明基本不会。请安排查漏补缺。
+  expected:
+    structural_assertions:
+    - id: duration
+      type: total_duration_max
+      critical: true
+      target: teaching_design.minutes
+      expected: 90
+    - id: grounded
+      type: source_grounded
+      critical: true
+      target: teaching_design
+      expected: student_profile.evidence
+    - id: scope
+      type: allowed_scope_only
+      critical: true
+      target: teaching_design.chapters
+      expected:
+      - 第一章
+      - 第二章
+      - 第三章
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.3
+        learning_progression: 0.25
+        feasibility: 0.3
+        assessment_alignment: 0.15
+  reference_notes:
+  - 应根据三项证据而非平均分配时间
+  - 优先高收益薄弱点并保留短回测
+  - 不应安排完整系统重学
+  human_review: *id001
+- case_id: TQ-TD-009
+  family_id: misconception_driven_design
+  suite: teaching_design
+  category: error_driven
+  priority: P0
+  difficulty: hard
+  title: 基于三类错题设计复习
+  setup:
+    student_errors:
+    - 极限换元错误
+    - 间断点分类错误
+    - 洛必达法则误用
+    lesson_minutes: 60
+  user_turns:
+  - role: user
+    content: 学生有极限换元错误、间断点分类错误和洛必达法则误用，请设计一节60分钟针对性复习课，不要泛泛复习。
+  expected:
+    structural_assertions:
+    - id: errors_covered
+      type: coverage_contains
+      critical: true
+      target: teaching_design.targets
+      expected:
+      - 极限换元错误
+      - 间断点分类错误
+      - 洛必达法则误用
+    - id: grounded
+      type: source_grounded
+      critical: true
+      target: teaching_design
+      expected: student_errors
+    - id: duration
+      type: total_duration_max
+      critical: true
+      target: teaching_design.minutes
+      expected: 60
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.35
+        learning_progression: 0.3
+        feasibility: 0.2
+        assessment_alignment: 0.15
+  reference_notes:
+  - 三个错误都应有诊断或纠正活动
+  - 讲练和检测必须对应具体错因
+  - 全部内容应在60分钟内可执行
+  human_review: *id001
+- case_id: TQ-TD-013
+  family_id: learning_progression
+  suite: teaching_design
+  category: learner_progress
+  priority: P0
+  difficulty: medium
+  title: 刚学导数定义不得超前
+  setup:
+    course_progress: 刚讲完导数定义
+    allowed_topics:
+    - 导数定义
+    - 几何意义
+    - 基础导数理解
+    lesson_minutes: 45
+    goal: 设计下一节巩固课
+  user_turns:
+  - role: user
+    content: 学校刚讲完导数定义，请设计下一节45分钟巩固课，不要讲太远。
+  expected:
+    structural_assertions:
+    - id: progress_scope
+      type: allowed_scope_only
+      critical: true
+      target: teaching_design.topics
+      expected:
+      - 导数定义
+      - 几何意义
+      - 基础导数理解
+    - id: no_advanced
+      type: forbidden_content
+      critical: true
+      target: teaching_design
+      forbidden:
+      - 高阶导数
+      - 中值定理
+      - 泰勒公式
+      match_mode: semantic
+      violation_mode: instructional_use
+      mention_allowed: true
+    - id: duration
+      type: total_duration_max
+      critical: true
+      target: teaching_design.minutes
+      expected: 45
+    behavioral_rubric:
+      axes:
+        scope_fidelity: 0.2
+        objective_alignment: 0.3
+        learning_progression: 0.3
+        feasibility: 0.2
+  reference_notes:
+  - 围绕定义、几何意义和基础理解形成递进活动
+  - 不应引入后续核心定理
+  - 45分钟内应包含理解检查
+  human_review: *id001
+- case_id: TQ-TD-014
+  family_id: learner_adaptation
+  suite: teaching_design
+  category: personalization
+  priority: P0
+  difficulty: medium
+  title: 已掌握内容不重复
+  setup:
+    student_profile:
+      mastered:
+      - 基本求导
+      targets:
+      - 复合函数求导
+      - 高阶导数
+  user_turns:
+  - role: user
+    content: 学生已经熟练掌握基本求导，只需要复合函数和高阶导数。
+  expected:
+    structural_assertions:
+    - id: targets
+      type: coverage_contains
+      critical: true
+      target: teaching_design.topics
+      expected:
+      - 复合函数求导
+      - 高阶导数
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.4
+        learning_progression: 0.3
+        assessment_alignment: 0.3
+  reference_notes:
+  - 基本求导最多作为短热身或前置检查
+  - 主体必须用于两个目标
+  human_review: *id001
+- case_id: TQ-TD-016
+  family_id: multi_topic_prioritization
+  suite: teaching_design
+  category: prioritization
+  priority: P0
+  difficulty: hard
+  title: 单课时处理多个薄弱点
+  setup:
+    student_profile:
+      evidence:
+      - 极限基本运算正确率50%
+      - 连续性判断正确率60%
+      - 高阶导数正确率30%
+    lesson_minutes: 45
+    goal: 为下一周学校测试补基础
+  user_turns:
+  - role: user
+    content: 下周学校测试；学生极限基本运算正确率50%、连续性判断60%、高阶导数30%，只有一节45分钟课，怎么取舍？
+  expected:
+    structural_assertions:
+    - id: lesson_count
+      type: exact_count
+      critical: true
+      target: teaching_design.lessons
+      expected: 1
+    - id: duration
+      type: total_duration_max
+      critical: true
+      target: teaching_design.minutes
+      expected: 45
+    - id: grounded
+      type: source_grounded
+      critical: true
+      target: teaching_design
+      expected: student_profile.evidence
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.3
+        learning_progression: 0.3
+        feasibility: 0.4
+  reference_notes:
+  - 必须依据正确率、先修关系和测试目标说明优先与暂缓内容
+  - 不应平均覆盖三个主题
+  - 45分钟内应形成可执行的聚焦讲练与检查
+  human_review: *id001
+- case_id: TQ-TD-017
+  family_id: example_alignment
+  suite: teaching_design
+  category: example_alignment
+  priority: P0
+  difficulty: medium
+  title: 每个知识点至少一道对应例题
+  setup:
+    required_topics:
+    - 函数极限
+    - 连续性
+    - 间断点
+  user_turns:
+  - role: user
+    content: 复习函数极限、连续性和间断点，每个知识点至少配一道例题。
+  expected:
+    structural_assertions:
+    - id: topics
+      type: coverage_contains
+      critical: true
+      target: teaching_design.topics
+      expected:
+      - 函数极限
+      - 连续性
+      - 间断点
+    - id: examples
+      type: count_min_per_topic
+      critical: true
+      target: teaching_design.examples
+      expected: 1
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.5
+        assessment_alignment: 0.5
+  reference_notes:
+  - 每个主题至少一题而非恰好一题
+  - 例题必须实质对应主题目标
+  - Judge评价例题与教学目标和检测的一致性
+  human_review: *id001
+- case_id: TQ-TD-018
+  family_id: misconception_driven_design
+  suite: teaching_design
+  category: misconception_awareness
+  priority: P1
+  difficulty: medium
+  title: 每部分包含常见错因提醒
+  setup:
+    required_topics:
+    - 极限运算
+    - 连续性
+    - 导数计算
+  user_turns:
+  - role: user
+    content: 学生经常算错，复习极限运算、连续性和导数计算时，每部分都提醒常见错误。
+  expected:
+    structural_assertions:
+    - id: topics
+      type: coverage_contains
+      critical: true
+      target: teaching_design.topics
+      expected:
+      - 极限运算
+      - 连续性
+      - 导数计算
+    - id: misconceptions
+      type: count_min_per_topic
+      critical: true
+      target: teaching_design.misconceptions
+      expected: 1
+    behavioral_rubric:
+      axes:
+        objective_alignment: 0.5
+        learning_progression: 0.25
+        assessment_alignment: 0.25
+  reference_notes:
+  - 每个主题至少一个具体常见错误而非恰好一个
+  - 提醒应包含错误表现、原因或纠正办法
+  - 不接受统一一句注意计算
+  human_review: *id001

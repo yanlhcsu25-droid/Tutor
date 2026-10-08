@@ -1,0 +1,78 @@
+# Teaching Quality Eval v1 — candidate specification
+
+This dataset evaluates artifact quality independently from the frozen Workflow Reliability holdout. It contains **36 Teaching Quality candidates**: 12 teaching design, 13 paper quality, and 11 consultation. Twelve deterministic cases were moved to `tests/evals/structural_regression/`, and one information-insufficient teaching-design request was moved to `tests/evals/clarification_regression/`. No model outputs or benchmark scores have been produced.
+
+## Layout
+
+- `cases/`: three candidate YAML suites
+- `schema/teaching_quality_case.schema.json`: suite/case contract
+- `schema/judge_output.schema.json`: constrained LLM-judge response
+- `rubrics/`: suite-specific 1–5 scoring anchors
+- `fixtures/README.md`: fixture provenance and stability contract
+- `reports/`: intentionally empty until review and execution
+- `runner/validate_candidates.py`: approved-case metadata validation; it never invokes a model
+- `grader/`: deterministic structural grading, judge parsing, and outcome scoring
+- `prompts/`: suite-specific behavioral judge contracts; no invocation code
+- `tests/`: structural, scoring, metadata, and judge-parser tests
+
+Validate locally:
+
+```bash
+.venv/bin/python tests/evals/teaching_quality/runner/validate_candidates.py
+```
+
+## Evaluation boundary
+
+Deterministic structural assertions decide hard facts such as count, score arithmetic, scope, exclusions, duration, duplication, and supply. The LLM judge scores soft teaching quality only. It must not override a structural result.
+
+Case admission follows an information-sufficiency boundary:
+
+- sufficient scope, learner evidence, goal, and relevant constraints → Teaching Quality;
+- a best response dominated by requests for missing information → Workflow/Clarification Regression or a separate Clarification Quality suite.
+
+Teaching Quality may retain at most a small number of explicit anti-hallucination boundary cases; they must not dominate Consultation Quality scoring.
+
+### Semantic assertion contract
+
+- `required_content` checks whether the required meaning is present; it must not require fixed headings or literal phrases.
+- `forbidden_content` fails only when forbidden material is taught, recommended, or used to solve the task. A correct exclusion such as “本节不讲定积分” is allowed when `mention_allowed: true`.
+- Raw substring matching is not a valid implementation for either assertion type.
+
+The deterministic structural grader is implemented for all assertion types referenced by the 36 approved candidates plus the documented regression primitives. Semantic assertions delegate to `SemanticAssertionEvaluator`; production semantic evaluation is intentionally unavailable until a reliable evaluator is selected. The tests use an explicit deterministic test double and must not be interpreted as a production semantic judge.
+
+### Teaching-design derived fields
+
+`teaching_design.chapters` is a grader-derived view, not a model-declared field. The grader must map `scope_names`, `knowledge_plan` names, and `teaching_sequence[].knowledge_points` through the curriculum fixture, then compare the resulting chapters. It must not compare topic strings directly with chapter names or trust a claimed chapter list.
+
+Likewise, chapter time share is computed from actual timed lesson activities grouped through the curriculum mapping; per-lesson duration is computed from each lesson's activities. `count_min_per_topic` groups actual `examples` or `misconceptions` by topic and counts those objects. Model-declared summaries such as `chapter_time_share` or `minimum_examples_per_topic` are not evidence.
+
+All judge axes use the following anchors:
+
+- **5**: fully satisfies the requirement with clear teaching value
+- **4**: correct with a minor non-blocking weakness
+- **3**: usable with a material weakness
+- **2**: partly meets the need but quality is poor
+- **1**: seriously wrong or unusable
+
+Default suite weights are declared in each YAML file. Teaching Design and Paper Quality cases select only applicable axes with case-local weights summing to 1.0; Consultation currently uses all default axes. `hallucination_control` and `constraint_preservation` may be reported as cross-suite diagnostics, but are not included in the v1 weighted score.
+
+## Outcome policy
+
+- **PASS**: every critical structural assertion passes, weighted judge score ≥ 4.0, and every core axis ≥ 3.
+- **PARTIAL**: every critical structural assertion passes and 3.0 ≤ weighted score < 4.0, unless a fail condition applies.
+- **FAIL**: any critical structural failure, weighted score < 3.0, a core teaching axis score of 1, a material factual error, scope violation, or serious user-constraint violation.
+
+## Failure taxonomy
+
+`scope_violation`, `objective_misalignment`, `difficulty_mismatch`, `poor_progression`, `unrealistic_plan`, `weak_assessment_alignment`, `knowledge_coverage_gap`, `question_type_imbalance`, `score_inconsistency`, `redundant_questions`, `constraint_violation`, `question_bank_hallucination`, `incorrect_diagnosis`, `generic_advice`, `poor_actionability`, `ungrounded_inference`, `clarity_issue`, `judge_error`, `fixture_issue`, `provider_failure`.
+
+## Review and split protocol
+
+1. Validate YAML/schema and manually review every case, assertion, reference note, and fixture.
+2. Resolve rubric ambiguity and run inter-rater calibration without calling the Tutor model.
+3. Mark each accepted case `human_review.status: approved`.
+4. Add or approve enough true quality cases before selecting a calibration/holdout split; deterministic regression cases do not count toward the Teaching Quality split.
+5. Move approved quality cases into versioned manifests, record hashes, and freeze the holdout before model execution.
+6. Never tune prompts, rubrics, fixtures, or scoring against holdout results. Expand v2 with an independently authored holdout.
+
+Until a split is formally frozen, `split: candidate` remains mandatory. Human review and suite status are `approved`, but these files must not be presented as a blind benchmark.

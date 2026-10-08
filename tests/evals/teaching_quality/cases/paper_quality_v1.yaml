@@ -1,0 +1,618 @@
+version: 1.0-candidate
+suite:
+  name: paper_quality_v1
+  split: candidate
+  status: approved
+  description: 13 条试卷质量候选用例；7 条纯确定性约束已移至 Structural Regression。已完成人工内容审核；冻结前不得作为 Blind Holdout 或运行模型。
+defaults:
+  judge_scale:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  judge_axes:
+    knowledge_coverage: 0.2
+    difficulty_alignment: 0.2
+    question_type_balance: 0.15
+    constraint_fidelity: 0.15
+    redundancy: 0.1
+    pedagogical_validity: 0.2
+cases:
+- case_id: TQ-PQ-001
+  family_id: constrained_blueprint_quality
+  suite: paper_quality
+  category: basic_constraints
+  priority: P0
+  difficulty: easy
+  title: 第一章6题60分
+  setup:
+    curriculum:
+      allowed_chapters:
+      - 第一章
+    fixture: question_bank/basic_v1
+  user_turns:
+  - role: user
+    content: 从第一章出6题，共60分，不要跨章节。
+  expected:
+    structural_assertions:
+    - id: count
+      type: exact_count
+      critical: true
+      target: paper.questions
+      expected: 6
+    - id: total
+      type: exact_total_score
+      critical: true
+      target: paper.total_score
+      expected: 60
+    - id: score_sum
+      type: score_sum_match
+      critical: true
+      target: paper.questions.score
+      expected: 60
+    - id: scope
+      type: allowed_scope_only
+      critical: true
+      target: paper.questions.chapter
+      expected:
+      - 第一章
+    behavioral_rubric:
+      axes:
+        knowledge_coverage: 0.3
+        difficulty_alignment: 0.2
+        redundancy: 0.25
+        pedagogical_validity: 0.25
+  reference_notes:
+  - 硬约束通过后仍需判断小测质量
+  - 应覆盖第一章不同知识点或极限方法
+  - 避免六题同套路
+  - 整体难度适合一般水平章节小测
+  human_review: &id001
+    status: approved
+    reviewer_notes: Reviewed for task sufficiency, quality-eval fit, oracle clarity, structural/behavioral separation, and duplicate risk.
+- case_id: TQ-PQ-002
+  family_id: constrained_blueprint_quality
+  suite: paper_quality
+  category: exact_blueprint
+  priority: P0
+  difficulty: hard
+  title: 第三章100分精确题型结构
+  setup:
+    curriculum:
+      allowed_chapters:
+      - 第三章
+    fixture: question_bank/chapter3_rich_v1
+    student_profile:
+      level: 中等
+    exam_purpose: 第三章章节测试
+  user_turns:
+  - role: user
+    content: 第三章出100分测试：选择4、填空4、计算2、解答2、证明2。
+  expected:
+    structural_assertions:
+    - id: count
+      type: exact_count
+      critical: true
+      target: paper.questions
+      expected: 14
+    - id: total
+      type: exact_total_score
+      critical: true
+      target: paper.total_score
+      expected: 100
+    - id: score_sum
+      type: score_sum_match
+      critical: true
+      target: paper.questions.score
+      expected: 100
+    - id: scope
+      type: allowed_scope_only
+      critical: true
+      target: paper.questions.chapter
+      expected:
+      - 第三章
+    - id: types
+      type: required_question_type
+      critical: true
+      target: paper.question_type_counts
+      expected:
+        选择题: 4
+        填空题: 4
+        计算题: 2
+        解答题: 2
+        证明题: 2
+    behavioral_rubric:
+      axes:
+        knowledge_coverage: 0.25
+        difficulty_alignment: 0.2
+        question_type_balance: 0.15
+        redundancy: 0.2
+        pedagogical_validity: 0.2
+  reference_notes:
+  - 精确题型与分值是Structural前提
+  - Judge重点评价同题型内部的知识点和方法多样性
+  - 难度应适合中等水平章节测试
+  human_review: *id001
+- case_id: TQ-PQ-003
+  family_id: open_blueprint_quality
+  suite: paper_quality
+  category: scope_fidelity
+  priority: P0
+  difficulty: medium
+  title: Open Blueprint 下的前三章默认组卷质量
+  setup:
+    curriculum:
+      allowed_chapters:
+      - 第一章
+      - 第二章
+      - 第三章
+    question_bank_contains_chapters:
+    - 第一章
+    - 第二章
+    - 第三章
+    - 第四章
+  user_turns:
+  - role: user
+    content: 只用前三章题目组一份卷，不要使用后续章节。
+  expected:
+    structural_assertions:
+    - id: scope
+      type: allowed_scope_only
+      critical: true
+      target: paper.questions.chapter
+      expected:
+      - 第一章
+      - 第二章
+      - 第三章
+    - id: exclude
+      type: coverage_excludes
+      critical: true
+      target: paper.questions.chapter
+      forbidden:
+      - 第四章
+    behavioral_rubric:
+      axes:
+        knowledge_coverage: 0.25
+        difficulty_alignment: 0.2
+        question_type_balance: 0.2
+        redundancy: 0.1
+        pedagogical_validity: 0.25
+  reference_notes:
+  - 本例测试缺省题量和比例时的默认组卷质量
+  - Judge评价三章实质覆盖、题型结构、难度梯度、冗余和整体可用性
+  - 不得因缺省参数而跨到第四章
+  human_review: *id001
+- case_id: TQ-PQ-005
+  family_id: difficulty_alignment
+  suite: paper_quality
+  category: difficulty_alignment
+  priority: P0
+  difficulty: medium
+  title: 基础薄弱学生的简单卷
+  setup:
+    student_profile:
+      level: 基础较差
+    available_difficulties:
+    - easy
+    - medium
+    - hard
+    default_paper:
+      question_count: 10
+      total_score: 100
+    exam_purpose: 基础诊断卷
+  user_turns:
+  - role: user
+    content: 给基础差学生出一份整体偏简单的卷。
+  expected:
+    structural_assertions:
+    - id: default_count
+      type: exact_count
+      critical: true
+      target: paper.questions
+      expected: 10
+    - id: default_total
+      type: exact_total_score
+      critical: true
+      target: paper.total_score
+      expected: 100
+    - id: score_sum
+      type: score_sum_match
+      critical: true
+      target: paper.questions.score
+      expected: 100
+    behavioral_rubric:
+      axes:
+        difficulty_alignment: 0.5
+        knowledge_coverage: 0.2
+        pedagogical_validity: 0.3
+  reference_notes:
+  - 统一按10题100分比较不同运行
+  - 以基础概念和单步方法为主
+  - 可有少量中档区分题但不应由综合难题主导
+  human_review: *id001
+- case_id: TQ-PQ-006
+  family_id: difficulty_alignment
+  suite: paper_quality
+  category: difficulty_alignment
+  priority: P0
+  difficulty: medium
+  title: 基础强学生的拔高卷
+  setup:
+    student_profile:
+      level: 较强
+      mastered:
+      - 基础题
+    available_difficulties:
+    - easy
+    - medium
+    - hard
+    default_paper:
+      question_count: 10
+      total_score: 100
+    exam_purpose: 拔高训练卷
+  user_turns:
+  - role: user
+    content: 基础已经很好，出一套拔高卷。
+  expected:
+    structural_assertions:
+    - id: default_count
+      type: exact_count
+      critical: true
+      target: paper.questions
+      expected: 10
+    - id: default_total
+      type: exact_total_score
+      critical: true
+      target: paper.total_score
+      expected: 100
+    - id: score_sum
+      type: score_sum_match
+      critical: true
+      target: paper.questions.score
+      expected: 100
+    behavioral_rubric:
+      axes:
+        difficulty_alignment: 0.5
+        knowledge_coverage: 0.2
+        pedagogical_validity: 0.3
+  reference_notes:
+  - 统一按10题100分比较不同运行
+  - 应包含综合、辨析或迁移任务
+  - 基础题只承担必要覆盖且不得大量使用简单定义题
+  human_review: *id001
+- case_id: TQ-PQ-009
+  family_id: knowledge_coverage
+  suite: paper_quality
+  category: required_coverage
+  priority: P0
+  difficulty: easy
+  title: 三个指定知识点必须覆盖
+  setup:
+    required_topics:
+    - 数列极限
+    - 函数极限
+    - 连续性
+  user_turns:
+  - role: user
+    content: 试卷必须包含数列极限、函数极限和连续性。
+  expected:
+    structural_assertions:
+    - id: coverage
+      type: coverage_contains
+      critical: true
+      target: paper.questions.topics
+      expected:
+      - 数列极限
+      - 函数极限
+      - 连续性
+    behavioral_rubric:
+      axes:
+        knowledge_coverage: 0.6
+        pedagogical_validity: 0.4
+  reference_notes:
+  - 三个知识点都要由题目实质测量而非只贴标签
+  - 覆盖深浅应与各知识点的核心能力相称
+  - 避免用三道同层次识记题制造表面覆盖
+  human_review: *id001
+- case_id: TQ-PQ-010
+  family_id: method_diversity
+  suite: paper_quality
+  category: forbidden_topic
+  priority: P0
+  difficulty: easy
+  title: 禁考洛必达法则
+  setup:
+    forbidden_topics:
+    - 洛必达法则
+    student_profile:
+      level: 中等
+    default_paper:
+      question_count: 8
+      total_score: 80
+  user_turns:
+  - role: user
+    content: 出极限测试，但不考洛必达法则。
+  expected:
+    structural_assertions:
+    - id: forbidden
+      type: coverage_excludes
+      critical: true
+      target: paper.questions.topics
+      forbidden:
+      - 洛必达法则
+    behavioral_rubric:
+      axes:
+        knowledge_coverage: 0.35
+        redundancy: 0.25
+        pedagogical_validity: 0.4
+  reference_notes:
+  - 不得选必须依赖洛必达法则的题
+  - 应使用代数变形、等价无穷小、夹逼或重要极限等多种合理方法
+  - 八题应构成有价值且不过度重复的极限测试
+  human_review: *id001
+- case_id: TQ-PQ-011
+  family_id: redundancy_control
+  suite: paper_quality
+  category: redundancy
+  priority: P0
+  difficulty: hard
+  title: 排除高度相似题
+  setup:
+    question_bank_similarity_groups:
+      G1:
+      - Q01
+      - Q07
+      - Q12
+      G2:
+      - Q02
+      - Q09
+    requested_count: 8
+  user_turns:
+  - role: user
+    content: 组8道题，避免重复题和只是换数字的题。
+  expected:
+    structural_assertions:
+    - id: count
+      type: exact_count
+      critical: true
+      target: paper.questions
+      expected: 8
+    - id: duplicate_ids
+      type: no_duplicate_items
+      critical: true
+      target: paper.questions.id
+    - id: similarity_group_limit
+      type: group_max_count
+      critical: true
+      target: paper.questions.similarity_group
+      expected: 1
+    behavioral_rubric:
+      axes:
+        redundancy: 0.6
+        pedagogical_validity: 0.4
+  reference_notes:
+  - 固定组卷8题
+  - 已标注相似组中每组最多选1题
+  - 未标注的语义或解法重复由Judge评价
+  human_review: *id001
+- case_id: TQ-PQ-012
+  family_id: method_diversity
+  suite: paper_quality
+  category: method_diversity
+  priority: P1
+  difficulty: hard
+  title: 三道极限题使用不同角度
+  setup:
+    required_topic: 极限
+    requested_count: 3
+  user_turns:
+  - role: user
+    content: 极限出3题，但不要三道都一个套路。
+  expected:
+    structural_assertions:
+    - id: count
+      type: exact_count
+      critical: true
+      target: paper.questions
+      expected: 3
+    - id: all_are_limits
+      type: all_items_match
+      critical: true
+      target: paper.questions.topics
+      expected: 极限
+    behavioral_rubric:
+      axes:
+        redundancy: 0.5
+        pedagogical_validity: 0.5
+  reference_notes:
+  - 三题必须全部是极限题
+  - 应区分方法、表征或认知要求
+  - 单纯换数字或保持同一解题路径视为冗余
+  human_review: *id001
+- case_id: TQ-PQ-013
+  family_id: difficulty_alignment
+  suite: paper_quality
+  category: difficulty_distribution
+  priority: P0
+  difficulty: hard
+  title: 试卷难度30-50-20分布
+  setup:
+    requested_distribution:
+      easy: 0.3
+      medium: 0.5
+      hard: 0.2
+    student_profile:
+      level: 中等
+    exam_purpose: 期中考试
+    paper_total_score: 100
+  user_turns:
+  - role: user
+    content: 给中等水平学生出100分期中卷，难度分布按简单30%、中等50%、困难20%，允许每档5个百分点浮动。
+  expected:
+    structural_assertions:
+    - id: distribution
+      type: difficulty_distribution
+      critical: true
+      target: paper.score_share_by_difficulty
+      expected:
+        easy: 0.3
+        medium: 0.5
+        hard: 0.2
+      tolerance: 0.05
+    - id: total
+      type: exact_total_score
+      critical: true
+      target: paper.total_score
+      expected: 100
+    - id: score_sum
+      type: score_sum_match
+      critical: true
+      target: paper.questions.score
+      expected: 100
+    behavioral_rubric:
+      axes:
+        difficulty_alignment: 0.5
+        knowledge_coverage: 0.2
+        pedagogical_validity: 0.3
+  reference_notes:
+  - 按分值占比核算且每档允许绝对误差5个百分点
+  - Judge判断题目真实认知难度而非仅相信难度标签
+  - 梯度应适合中等水平期中考试并形成区分度
+  human_review: *id001
+- case_id: TQ-PQ-016
+  family_id: focus_fidelity
+  suite: paper_quality
+  category: focus_fidelity
+  priority: P0
+  difficulty: medium
+  title: 高阶导数专项卷
+  setup:
+    primary_topic: 高阶导数
+    primary_topic_min_score_share: 0.6
+    auxiliary_topics:
+    - 基本求导
+    - 复合函数求导
+  user_turns:
+  - role: user
+    content: 出一份高阶导数专项卷，高阶导数至少占60%总分，其他内容只少量辅助。
+  expected:
+    structural_assertions:
+    - id: primary_coverage
+      type: coverage_contains
+      critical: true
+      target: paper.questions.topics
+      expected:
+      - 高阶导数
+    - id: primary_score_share
+      type: score_share_min
+      critical: true
+      target: paper.score_share_by_topic.高阶导数
+      expected: 0.6
+    behavioral_rubric:
+      axes:
+        knowledge_coverage: 0.3
+        constraint_fidelity: 0.4
+        pedagogical_validity: 0.3
+  reference_notes:
+  - 高阶导数分值占比不得低于60%
+  - 辅助题应检查必要先修或支持专项目标
+  - 不得用无关基础题凑题量
+  human_review: *id001
+- case_id: TQ-PQ-017
+  family_id: comprehensive_exam_quality
+  suite: paper_quality
+  category: comprehensive_exam
+  priority: P1
+  difficulty: hard
+  title: 前三章期中模拟卷
+  setup:
+    curriculum:
+      allowed_chapters:
+      - 第一章
+      - 第二章
+      - 第三章
+    student_profile:
+      level: 中等
+  user_turns:
+  - role: user
+    content: 给中等水平学生出前三章期中模拟卷，要有基础题、综合题和区分度。
+  expected:
+    structural_assertions:
+    - id: scope
+      type: allowed_scope_only
+      critical: true
+      target: paper.questions.chapter
+      expected:
+      - 第一章
+      - 第二章
+      - 第三章
+    - id: coverage
+      type: coverage_contains
+      critical: true
+      target: paper.questions.chapter
+      expected:
+      - 第一章
+      - 第二章
+      - 第三章
+    behavioral_rubric:
+      axes:
+        knowledge_coverage: 0.25
+        difficulty_alignment: 0.3
+        question_type_balance: 0.15
+        redundancy: 0.1
+        pedagogical_validity: 0.2
+  reference_notes:
+  - 三章均须实质覆盖
+  - 基础题检查核心知识、中档题需要多步方法选择、少量综合题负责区分
+  - 不能只靠繁琐计算量制造所谓难度
+  human_review: *id001
+- case_id: TQ-PQ-020
+  family_id: comprehensive_exam_quality
+  suite: paper_quality
+  category: open_blueprint
+  priority: P1
+  difficulty: hard
+  title: 中等水平前三章期中卷综合质量
+  setup:
+    curriculum:
+      allowed_chapters:
+      - 第一章
+      - 第二章
+      - 第三章
+    student_profile:
+      level: 中等
+  user_turns:
+  - role: user
+    content: 给中等水平学生出一份前三章期中卷。
+  expected:
+    structural_assertions:
+    - id: scope
+      type: allowed_scope_only
+      critical: true
+      target: paper.questions.chapter
+      expected:
+      - 第一章
+      - 第二章
+      - 第三章
+    - id: all_chapters_covered
+      type: coverage_contains
+      critical: true
+      target: paper.questions.chapter
+      expected:
+      - 第一章
+      - 第二章
+      - 第三章
+    behavioral_rubric:
+      axes:
+        knowledge_coverage: 0.2
+        difficulty_alignment: 0.2
+        question_type_balance: 0.15
+        constraint_fidelity: 0.15
+        redundancy: 0.1
+        pedagogical_validity: 0.2
+  reference_notes:
+  - 三章必须均有实质覆盖而非只在标签中出现
+  - Judge综合评价章节比例、题型结构、真实难度、冗余和整体可用性
+  - 开放约束下不强加唯一题型比例
+  human_review: *id001

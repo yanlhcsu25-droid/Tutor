@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "teaching_quality_case.schema.json",
+  "title": "Teaching Quality candidate suite",
+  "type": "object",
+  "required": ["version", "suite", "defaults", "cases"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"type": "string"},
+    "suite": {
+      "type": "object",
+      "required": ["name", "split", "status", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "split": {"enum": ["candidate"]},
+        "status": {"enum": ["review_required", "approved", "frozen"]},
+        "description": {"type": "string"}
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "required": ["judge_scale", "judge_axes"],
+      "additionalProperties": true,
+      "properties": {
+        "judge_scale": {"const": [1, 2, 3, 4, 5]},
+        "judge_axes": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"type": "number", "exclusiveMinimum": 0}
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/case"}
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "required": ["case_id", "family_id", "suite", "category", "priority", "difficulty", "title", "setup", "user_turns", "expected", "reference_notes", "human_review"],
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {"type": "string", "pattern": "^TQ-(TD|PQ|CQ)-[0-9]{3}$"},
+        "family_id": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"},
+        "suite": {"enum": ["teaching_design", "paper_quality", "consultation"]},
+        "category": {"type": "string", "minLength": 1},
+        "priority": {"enum": ["P0", "P1", "P2"]},
+        "difficulty": {"enum": ["easy", "medium", "hard"]},
+        "title": {"type": "string", "minLength": 1},
+        "setup": {"type": "object"},
+        "user_turns": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "required": ["role", "content"], "additionalProperties": false,
+            "properties": {"role": {"enum": ["user"]}, "content": {"type": "string", "minLength": 1}}
+          }
+        },
+        "expected": {
+          "type": "object", "required": ["structural_assertions", "behavioral_rubric"], "additionalProperties": false,
+          "properties": {
+            "structural_assertions": {"type": "array", "items": {"$ref": "#/$defs/assertion"}},
+            "behavioral_rubric": {
+              "type": "object", "required": ["axes"], "additionalProperties": false,
+              "properties": {
+                "axes": {
+                  "oneOf": [
+                    {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+                    {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number", "exclusiveMinimum": 0}}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "reference_notes": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "human_review": {
+          "type": "object", "required": ["status", "reviewer_notes"], "additionalProperties": false,
+          "properties": {"status": {"enum": ["pending", "approved", "rejected"]}, "reviewer_notes": {"type": "string"}}
+        }
+      }
+    },
+    "assertion": {
+      "type": "object", "required": ["id", "type", "critical"], "additionalProperties": true,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "type": {"enum": ["exact_count", "exact_total_score", "allowed_scope_only", "forbidden_content", "required_content", "required_question_type", "forbidden_question_type", "difficulty_range", "score_sum_match", "coverage_contains", "coverage_excludes", "no_duplicate_items", "source_grounded", "reference_used", "constraint_preserved", "state_unchanged", "no_side_effect", "total_duration_max", "duration_min", "empty_intersection", "insufficiency_disclosed", "no_fabricated_items", "difficulty_order", "score_distribution", "difficulty_distribution", "group_max_count", "all_items_match", "score_share_min", "allocation_share_max", "count_min_per_topic", "duration_max_per_lesson", "monotonic_non_decreasing", "topic_count", "all_items_match_topic"]},
+        "critical": {"type": "boolean"},
+        "target": {"type": "string"},
+        "expected": {},
+        "forbidden": {"type": "array"},
+        "tolerance": {"type": "number", "minimum": 0},
+        "match_mode": {"enum": ["semantic", "exact", "numeric"]},
+        "violation_mode": {"enum": ["presence", "instructional_use"]},
+        "mention_allowed": {"type": "boolean"}
+      }
+    }
+  }
+}

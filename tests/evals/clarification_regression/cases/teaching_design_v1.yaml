@@ -1,0 +1,21 @@
+version: "1.0-candidate"
+suite:
+  name: teaching_design_clarification_regression_v1
+  split: development
+  status: review_required
+  description: 从 Teaching Quality 移出的信息不足型教学设计请求。
+cases:
+  - id: CR-TD-011
+    source_case_id: TQ-TD-011
+    category: missing_scope_student_time_goal
+    difficulty: medium
+    title: 高数复习课请求缺少关键设计信息
+    setup:
+      known_information: [学科为高等数学]
+      missing_information: [章节范围, 学生水平或证据, 课时时长, 教学目标]
+    turns: [{user: "帮我设计一节高数复习课。"}]
+    expected:
+      clarification:
+        required_fields: [章节范围, 学生水平或证据, 课时时长, 教学目标]
+        no_fabricated_student_state: true
+    graders: [{type: clarification_quality}]

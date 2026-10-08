@@ -1,0 +1,245 @@
+version: "1.0-candidate"
+suite:
+  name: consultation_quality_v1
+  split: candidate
+  status: approved
+  description: 11 条教学咨询质量候选用例；已完成人工内容审核；冻结前不得作为 Blind Holdout 或运行模型。
+defaults:
+  judge_scale: [1, 2, 3, 4, 5]
+  judge_axes: {correctness: 0.25, actionability: 0.25, pedagogical_quality: 0.20, grounding: 0.20, clarity: 0.10}
+cases:
+  - case_id: TQ-CQ-001
+    family_id: weakness_diagnosis
+    suite: consultation
+    category: weakness_advice
+    priority: P0
+    difficulty: medium
+    title: 基于极限错因安排下一课
+    setup:
+      student_profile:
+        observed_performance:
+          - 直接代入型极限基本正确
+          - 0乘无穷型不会转化
+          - 换元后经常停止化简
+    user_turns:
+      - role: user
+        content: "学生直接代入型极限基本正确，但0乘无穷型不会转化，换元后也经常停止化简。下一节课怎么安排？"
+    expected:
+      structural_assertions:
+        - {id: grounded, type: source_grounded, critical: true, target: response, expected: student_profile.observed_performance}
+      behavioral_rubric: {axes: &cq_axes {correctness: 0.25, actionability: 0.25, pedagogical_quality: 0.20, grounding: 0.20, clarity: 0.10}}
+    reference_notes: [应基于两类具体错误确定教学重点, 建议应包含针对性讲练和检查, 不应重复讲解已基本掌握的直接代入型]
+    human_review: &reviewed {status: approved, reviewer_notes: "Reviewed for task sufficiency, quality-eval fit, oracle clarity, structural/behavioral separation, and duplicate risk."}
+
+  - case_id: TQ-CQ-002
+    family_id: weakness_diagnosis
+    suite: consultation
+    category: misconception_diagnosis
+    priority: P0
+    difficulty: medium
+    title: 间断点分类错误诊断与教学
+    setup: {student_profile: {repeated_error: 间断点分类错误}}
+    user_turns: [{role: user, content: "学生间断点分类总错，请分析可能原因并给下一节课方案。"}]
+    expected:
+      structural_assertions:
+        - {id: diagnosis, type: required_content, critical: true, target: response, expected: [原因分析, 教学建议], match_mode: semantic}
+        - {id: grounded, type: source_grounded, critical: true, target: response, expected: [间断点分类错误]}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [区分左右极限、函数值和类型判据等可能原因, 应把诊断转成具体教学活动]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-003
+    family_id: evidence_grounded_advice
+    suite: consultation
+    category: constrained_planning
+    priority: P0
+    difficulty: hard
+    title: 信息充分的一周期末补救计划
+    setup:
+      curriculum: {allowed_chapters: [第一章, 第二章, 第三章]}
+      student_profile:
+        level: 基础较差
+        evidence: [极限基本题正确率70%, 复合函数求导正确率50%, 不会判断中值定理使用条件]
+      constraints: {days_to_exam: 7, daily_minutes: 90, goal: 及格并稳定基础题}
+    user_turns:
+      - role: user
+        content: >
+          学生一周后考同济高数前三章，每天能复习90分钟，目标是先及格并稳定基础题。
+          目前极限基本题正确率70%、复合函数求导正确率50%，还不会判断中值定理的使用条件，怎么安排这一周？
+    expected:
+      structural_assertions:
+        - {id: horizon, type: constraint_preserved, critical: true, target: response.plan, expected: 7天以内}
+        - {id: daily_time, type: total_duration_max, critical: true, target: response.plan.daily_minutes, expected: 90}
+        - {id: scope, type: allowed_scope_only, critical: true, target: response.topics, expected: [第一章, 第二章, 第三章]}
+        - {id: grounded, type: source_grounded, critical: true, target: response, expected: student_profile.evidence}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [按证据确定极限巩固、复合函数求导和中值定理识别的优先级, 每日任务应在90分钟内并包含练习与回测, 不应承诺一周完整重学全部内容]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-004
+    family_id: learning_path_guidance
+    suite: consultation
+    category: learning_path
+    priority: P1
+    difficulty: medium
+    title: 全微分复习路径
+    setup: {student_profile: {weaknesses: [全微分]}, curriculum: {topic: 全微分}}
+    user_turns: [{role: user, content: "学生不会全微分，给一个可执行的复习路径。"}]
+    expected:
+      structural_assertions:
+        - {id: focus, type: required_content, critical: true, target: response, expected: [全微分], match_mode: semantic}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [应检查偏导等先修知识, 从定义或结构到计算再到应用, 给出检查掌握的方法]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-005
+    family_id: method_selection_guidance
+    suite: consultation
+    category: method_selection
+    priority: P0
+    difficulty: hard
+    title: 从公式记忆提升到中值定理方法识别
+    setup: {student_profile: {mastered: [求导公式], weakness: 不会判断何时使用拉格朗日中值定理}}
+    user_turns: [{role: user, content: "学生会求导，但遇到证明题不知道什么时候用拉格朗日中值定理，怎么教？"}]
+    expected:
+      structural_assertions:
+        - {id: focus, type: required_content, critical: true, target: response, expected: [拉格朗日中值定理, 方法识别], match_mode: semantic}
+        - {id: grounded, type: source_grounded, critical: true, target: response, expected: student_profile}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [应讲识别线索、条件检查和结论映射, 可用正反例或题型对比, 不能退化为背定理]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-006
+    family_id: plan_critique
+    suite: consultation
+    category: plan_critique
+    priority: P0
+    difficulty: medium
+    title: 识别直接刷20道难题的不合理建议
+    setup: {student_profile: {weaknesses: [极限]}, proposed_plan: 直接做20道难题}
+    user_turns: [{role: user, content: "学生极限很弱，我准备直接做20道难题，这样合理吗？"}]
+    expected:
+      structural_assertions:
+        - {id: plan_reference, type: reference_used, critical: true, target: response, expected: 直接做20道难题}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [应明确指出难度与基础不匹配, 建议先诊断学生薄弱点和分层练习, 不应为迎合教师而认可明显不当方案]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-007
+    family_id: weakness_diagnosis
+    suite: consultation
+    category: error_attribution
+    priority: P0
+    difficulty: hard
+    title: 三道错题的错误归因与综合判断
+    setup:
+      student_errors:
+        - {task: "lim(x→0) sin(3x)/x", answer: 1}
+        - {task: "lim(x→0) (1-cos x)/x²", answer: 0}
+        - {task: "lim(x→∞) (2x+1)/(x-3)", answer: infinity}
+    user_turns: [{role: user, content: "分别分析这三道错题反映的问题，并判断是否存在共同薄弱点，再给补救建议。"}]
+    expected:
+      structural_assertions:
+        - {id: evidence, type: source_grounded, critical: true, target: response, expected: student_errors}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [应分别基于三道具体答案分析错误来源, 若归纳共同薄弱点则应有三道题的证据支持, 不应为了统一归因而强行归为同一具体技巧, 补救建议应与实际归因对应]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-008
+    family_id: adaptive_advice
+    suite: consultation
+    category: adaptive_advice
+    priority: P0
+    difficulty: medium
+    title: 极限基础正确率提升后的调整
+    setup: {student_profile: {previous_weakness: 极限, current_performance: {basic_accuracy: 0.90}}}
+    user_turns: [{role: user, content: "她的极限基础题现在正确率90%，下一步练什么？"}]
+    expected:
+      structural_assertions:
+        - {id: current_state, type: reference_used, critical: true, target: response, expected: {basic_accuracy: 0.90}}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [应根据新表现减少重复基础训练, 转向错因复核、中档变式或方法选择, 不得仍假设基础极差]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-009
+    family_id: prioritization
+    suite: consultation
+    category: prioritization
+    priority: P0
+    difficulty: medium
+    title: 三个最优先知识点及理由
+    setup:
+      student_profile:
+        evidence:
+          - {topic: 极限运算, severity: high, evidence: 基本运算法则经常出错}
+          - {topic: 连续判定, severity: high, evidence: 左右极限与函数值容易混淆}
+          - {topic: 中值定理, severity: medium, evidence: 不会判断使用条件}
+          - {topic: 复合函数求导, severity: low, evidence: 偶尔漏乘内层导数}
+        not_yet_learned: [积分]
+    user_turns:
+      - role: user
+        content: >
+          学生极限基本运算法则经常出错，连续判定时容易混淆左右极限与函数值，
+          中值定理不会判断使用条件，复合函数求导只是偶尔漏乘内层导数；积分尚未学习。
+          请选出三个最优先补的知识点，并逐项说明原因和取舍，不要泛泛而谈。
+    expected:
+      structural_assertions:
+        - {id: recommendation_count, type: exact_count, critical: true, target: response.recommendations, expected: 3}
+        - {id: grounded, type: source_grounded, critical: true, target: response.recommendations, expected: student_profile}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [必须从四个已学薄弱点中选择三个并逐项说明理由, 优先级应综合严重程度、证据和先修关系而非照抄顺序, 低严重度问题可以因先修价值入选但必须说明取舍, 积分尚未学习且不应作为当前补弱项]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-010
+    family_id: grounded_scope_advice
+    suite: consultation
+    category: grounded_scope_advice
+    priority: P0
+    difficulty: medium
+    title: 基于测验证据分析前三章薄弱点
+    setup:
+      curriculum: {book: 同济大学高等数学, allowed_chapters: [第一章, 第二章, 第三章]}
+      student_evidence:
+        - {topic: 极限计算, correct: 3, total: 5, error: 等价无穷小使用条件混淆}
+        - {topic: 导数计算, correct: 4, total: 5, error: 复合函数链式法则漏乘}
+        - {topic: 中值定理, correct: 1, total: 3, error: 不会检查定理条件}
+      next_lesson_minutes: 45
+    user_turns:
+      - role: user
+        content: >
+          只按同济高数前三章分析：学生极限计算5题对3题，混淆等价无穷小使用条件；
+          导数计算5题对4题，但复合函数链式法则会漏乘；中值定理3题对1题，不会检查使用条件。
+          请给出薄弱点优先级和下一节45分钟的教学建议。
+    expected:
+      structural_assertions:
+        - {id: scope, type: allowed_scope_only, critical: true, target: response.topics, expected: [第一章, 第二章, 第三章]}
+        - {id: no_later_topics, type: forbidden_content, critical: true, target: response, forbidden: [不定积分, 定积分, 多元函数微分], match_mode: semantic, violation_mode: instructional_use, mention_allowed: true}
+        - {id: evidence_grounding, type: source_grounded, critical: true, target: response, expected: student_evidence}
+        - {id: duration, type: total_duration_max, critical: true, target: response.plan.minutes, expected: 45}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [优先级必须对应三组测验结果和具体错因, 建议应在45分钟内可执行并包含针对性检查, 不得把后续章节作为补习任务]
+    human_review: *reviewed
+
+  - case_id: TQ-CQ-011
+    family_id: time_constrained_prioritization
+    suite: consultation
+    category: time_constrained_prioritization
+    priority: P0
+    difficulty: hard
+    title: 45分钟内对多个薄弱点取舍
+    setup:
+      available_minutes: 45
+      student_profile:
+        observed_weaknesses: [函数极限换元不熟, 0乘无穷型不会转化, 间断点分类偶尔出错]
+    user_turns:
+      - role: user
+        content: "只有45分钟，学生函数极限换元不熟、0乘无穷型不会转化，间断点分类也偶尔出错。下一节课优先讲什么、暂缓什么，怎么安排？"
+    expected:
+      structural_assertions:
+        - {id: duration, type: total_duration_max, critical: true, target: response.plan.minutes, expected: 45}
+        - {id: grounded, type: source_grounded, critical: true, target: response, expected: student_profile.observed_weaknesses}
+      behavioral_rubric: {axes: *cq_axes}
+    reference_notes: [必须明确优先内容与暂缓内容并说明取舍理由, 时间合计不得超过45分钟, 方案应包含聚焦讲练和短检测而不是平均分配全部问题]
+    human_review: *reviewed
+
+

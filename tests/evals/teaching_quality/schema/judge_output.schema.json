@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "judge_output.schema.json",
+  "title": "Teaching Quality judge output",
+  "type": "object",
+  "required": ["case_id", "scores", "critical_quality_failure", "failure_tags", "rationale", "overall_comment"],
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {"type": "string", "pattern": "^TQ-(TD|PQ|CQ)-[0-9]{3}$"},
+    "scores": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "integer", "minimum": 1, "maximum": 5}},
+    "critical_quality_failure": {"type": "boolean"},
+    "failure_tags": {
+      "type": "array", "uniqueItems": true,
+      "items": {"enum": ["scope_violation", "objective_misalignment", "difficulty_mismatch", "poor_progression", "unrealistic_plan", "weak_assessment_alignment", "knowledge_coverage_gap", "question_type_imbalance", "score_inconsistency", "redundant_questions", "constraint_violation", "question_bank_hallucination", "incorrect_diagnosis", "generic_advice", "poor_actionability", "ungrounded_inference", "clarity_issue", "judge_error", "fixture_issue", "provider_failure"]}
+    },
+    "rationale": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "minLength": 1}},
+    "overall_comment": {"type": "string"}
+  }
+}

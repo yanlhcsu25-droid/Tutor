@@ -1,0 +1,72 @@
+version: "1.0-candidate"
+suite:
+  name: teaching_design_structural_regression_v1
+  split: development
+  status: review_required
+  description: 从 Teaching Quality 移出的 5 条确定性教学设计约束；不得使用 LLM Judge 判定。
+defaults: {evaluation: deterministic_only}
+cases:
+  - id: SR-TD-005
+    source_case_id: TQ-TD-005
+    category: scope_constraint
+    difficulty: easy
+    title: 仅允许连续性与间断点且禁止导数
+    setup: {curriculum: {allowed_topics: [连续性, 间断点]}}
+    turns: [{user: "下一节课只复习连续性和间断点，不要讲导数。"}]
+    expected:
+      structural_assertions:
+        - {id: required_topics, type: coverage_contains, critical: true, target: teaching_design.topics, expected: [连续性, 间断点]}
+        - {id: no_derivative, type: forbidden_content, critical: true, target: teaching_design, forbidden: [导数], match_mode: semantic, violation_mode: instructional_use, mention_allowed: true}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-TD-008
+    source_case_id: TQ-TD-008
+    category: question_type_constraint
+    difficulty: easy
+    title: 只安排选择填空且禁止证明题
+    setup: {allowed_question_types: [选择题, 填空题]}
+    turns: [{user: "重点练选择题和填空题，不安排证明题。"}]
+    expected:
+      structural_assertions:
+        - {id: types, type: required_question_type, critical: true, target: teaching_design.practice, expected: [选择题, 填空题]}
+        - {id: no_proof, type: forbidden_question_type, critical: true, target: teaching_design.practice, forbidden: [证明题]}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-TD-010
+    source_case_id: TQ-TD-010
+    category: scope_constraint
+    difficulty: medium
+    title: 仅允许同济高数前三章
+    setup: {curriculum: {allowed_chapters: [第一章, 第二章, 第三章]}, question_bank_contains: [第一章题目, 第二章题目, 第三章题目, 第四章不定积分题目]}
+    turns: [{user: "只允许使用同济高数前三章内容设计复习。"}]
+    expected:
+      structural_assertions:
+        - {id: scope, type: allowed_scope_only, critical: true, target: teaching_design.topics, expected: [第一章, 第二章, 第三章]}
+        - {id: exclude_ch4, type: forbidden_content, critical: true, target: teaching_design, forbidden: [第四章, 不定积分], match_mode: semantic, violation_mode: instructional_use, mention_allowed: true}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-TD-012
+    source_case_id: TQ-TD-012
+    category: sequence_constraint
+    difficulty: easy
+    title: 保留教师指定教学顺序
+    setup: {required_sequence: [极限, 连续, 易错点总结]}
+    turns: [{user: "先极限，再连续，最后总结易错点。"}]
+    expected:
+      structural_assertions:
+        - {id: sequence, type: constraint_preserved, critical: true, target: teaching_design.sequence, expected: [极限, 连续, 易错点总结]}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-TD-015
+    source_case_id: TQ-TD-015
+    category: time_constraint
+    difficulty: medium
+    title: 45分钟且最后至少10分钟检测
+    setup: {lesson_minutes: 45, required_assessment_minutes: 10}
+    turns: [{user: "45分钟复习，最后留10分钟做检测。"}]
+    expected:
+      structural_assertions:
+        - {id: total_duration, type: total_duration_max, critical: true, target: teaching_design.minutes, expected: 45}
+        - {id: assessment_duration, type: duration_min, critical: true, target: teaching_design.assessment.minutes, expected: 10}
+        - {id: assessment_last, type: constraint_preserved, critical: true, target: teaching_design.sequence, expected: 检测位于最后}
+    graders: [{type: structural_assertions}]

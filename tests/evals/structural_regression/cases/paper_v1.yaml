@@ -1,0 +1,103 @@
+version: "1.0-candidate"
+suite:
+  name: paper_structural_regression_v1
+  split: development
+  status: review_required
+  description: 从 Teaching Quality 移出的 7 条确定性组卷约束；不得使用 LLM Judge 判定。
+defaults:
+  isolated_session: true
+  evaluation: deterministic_only
+cases:
+  - id: SR-PQ-004
+    source_case_id: TQ-PQ-004
+    category: workflow_guard
+    difficulty: hard
+    title: 第三章题量不足不得跨章节补题
+    setup: {requested_chapter: 第三章, requested_count: 12, available_count: 9, other_chapter_supply: sufficient}
+    turns: [{user: "只从第三章出12题，题量不足也不要跨章节。"}]
+    expected:
+      structural_assertions:
+        - {id: no_cross_scope, type: allowed_scope_only, critical: true, target: paper.questions.chapter, expected: [第三章]}
+        - {id: shortage, type: insufficiency_disclosed, critical: true, target: response, expected: {requested: 12, available: 9}}
+        - {id: no_fabrication, type: no_fabricated_items, critical: true, target: paper.questions}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-PQ-007
+    source_case_id: TQ-PQ-007
+    category: structural_ordering
+    difficulty: easy
+    title: 题目难度单调非递减
+    setup: {difficulty_rank: {easy: 1, medium: 2, hard: 3}}
+    turns: [{user: "题目按难度从易到难排列。"}]
+    expected:
+      structural_assertions:
+        - {id: order, type: difficulty_non_decreasing, critical: true, target: paper.questions.difficulty, expected_rank: {easy: 1, medium: 2, hard: 3}}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-PQ-008
+    source_case_id: TQ-PQ-008
+    category: score_distribution
+    difficulty: medium
+    title: 选择填空40%与计算60%
+    setup: {paper_total_score: 100}
+    turns: [{user: "出100分卷，选择和填空合计占40%，计算题占60%。"}]
+    expected:
+      structural_assertions:
+        - {id: total, type: exact_total_score, critical: true, target: paper.total_score, expected: 100}
+        - {id: sum, type: score_sum_match, critical: true, target: paper.questions.score, expected: 100}
+        - {id: distribution, type: score_distribution, critical: true, target: paper.scores_by_type, expected: {选择题和填空题: 40, 计算题: 60}}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-PQ-014
+    source_case_id: TQ-PQ-014
+    category: score_consistency
+    difficulty: easy
+    title: 声明总分必须等于题目分值和
+    setup: {requested_total_score: 100}
+    turns: [{user: "出100分试卷，务必核对各题分值之和。"}]
+    expected:
+      structural_assertions:
+        - {id: claimed_total, type: exact_total_score, critical: true, target: paper.total_score, expected: 100}
+        - {id: score_sum, type: score_sum_match, critical: true, target: paper.questions.score, expected: 100}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-PQ-015
+    source_case_id: TQ-PQ-015
+    category: count_and_score
+    difficulty: medium
+    title: 10题与100分同时约束
+    setup: {requested_count: 10, requested_total_score: 100}
+    turns: [{user: "出10题，总分100分。"}]
+    expected:
+      structural_assertions:
+        - {id: count, type: exact_count, critical: true, target: paper.questions, expected: 10}
+        - {id: total, type: exact_total_score, critical: true, target: paper.total_score, expected: 100}
+        - {id: score_sum, type: score_sum_match, critical: true, target: paper.questions.score, expected: 100}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-PQ-018
+    source_case_id: TQ-PQ-018
+    category: seen_item_exclusion
+    difficulty: medium
+    title: 已做题不得重复
+    setup: {student_seen_questions: [Q1, Q5, Q11], fixture: question_bank/basic_v1}
+    turns: [{user: "给学生组一份新卷，Q1、Q5、Q11已经做过，不要重复。"}]
+    expected:
+      structural_assertions:
+        - {id: unseen, type: empty_intersection, critical: true, target: paper.questions.id, expected: [Q1, Q5, Q11]}
+        - {id: unique, type: no_duplicate_items, critical: true, target: paper.questions.id}
+    graders: [{type: structural_assertions}]
+
+  - id: SR-PQ-019
+    source_case_id: TQ-PQ-019
+    category: workflow_guard
+    difficulty: hard
+    title: 难题供给不足不得伪造或降级
+    setup: {requested: {chapter: 第三章, count: 15, difficulty: hard}, available_matching_items: 8}
+    turns: [{user: "第三章出15道难题，难度不能降低。"}]
+    expected:
+      structural_assertions:
+        - {id: shortage, type: insufficiency_disclosed, critical: true, target: response, expected: {requested: 15, available: 8}}
+        - {id: no_fabrication, type: no_fabricated_items, critical: true, target: paper.questions}
+        - {id: preserve, type: constraint_preserved, critical: true, target: response, expected: {chapter: 第三章, difficulty: hard}}
+    graders: [{type: structural_assertions}]
