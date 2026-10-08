@@ -48,6 +48,12 @@ def render_judge_prompt(case: dict[str, Any], actual_output: Any) -> str:
     }
     return (
         f"{template.rstrip()}\n\n"
+        "AXIS_INDEPENDENCE\n"
+        "Score each requested axis independently from evidence specific to that axis. "
+        "Do not automatically lower every axis because one central defect is severe. "
+        "The same excerpt may affect multiple axes only when the rationale explains a distinct "
+        "axis-specific consequence for each one. A low score on one axis does not imply a low "
+        "score on another.\n\n"
         "OUTPUT_REQUIREMENTS\n"
         "Return all six top-level keys shown below. Do not omit empty arrays or comments. "
         "scores and rationale must contain exactly the listed axes.\n"

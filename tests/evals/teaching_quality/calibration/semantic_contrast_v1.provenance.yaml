@@ -1,0 +1,18 @@
+version: '1.0'
+scope: dev_only_semantic_calibration
+review_kind: AI-assisted technical review, not independent human signoff
+status: technical_review_complete_human_confirmation_not_claimed
+source_sha256: 67471cb6be0ee03e6b6461a5754ce56e9e21e23185ea6c79923697423b1e3d7b
+new_sha256: 67471cb6be0ee03e6b6461a5754ce56e9e21e23185ea6c79923697423b1e3d7b
+merge_method: reviewed_case_fields_only
+changes:
+- sample_id: SC-RC-03
+  field: none
+  change: Keep PASS and update semantic judge instructions
+- sample_id: SC-SG-01
+  field: actual_output.response.text
+  change: Grounded 1/3 wording verified; preserve existing valid local wording
+- sample_id: SC-ID-03
+  field: expected_passed
+  change: PASS for disclosure-only assertion; fabricated items checked separately
+model_calls_made_for_this_edit: 0

@@ -134,7 +134,7 @@ samples:
       - 不会检查使用条件
   actual_output:
     response:
-      text: 中值定理正确率最低且条件检查缺失，应优先训练使用条件判断。
+      text: 中值定理3题仅答对1题且条件检查缺失，应优先训练使用条件判断。
   expected_passed: true
 - sample_id: SC-SG-02
   assertion_type: source_grounded
@@ -269,4 +269,4 @@ samples:
   actual_output:
     response:
       text: 题库只有8道符合条件；我另外补写7道新题，已经凑齐15道，不需要调整。
-  expected_passed: false
+  expected_passed: true

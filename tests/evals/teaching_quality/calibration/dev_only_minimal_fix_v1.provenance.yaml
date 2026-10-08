@@ -1,0 +1,56 @@
+version: '1.0'
+kind: teaching_quality_dev_only_minimal_fix
+status: review_required
+source_git_sha: 09dcaf63e5287ea0fb6366ac1a9a86725d591006
+scope:
+  dev_only: true
+  blind_modified: false
+  model_called: false
+  tutor_run: false
+semantic_changes:
+- sample_id: SC-RC-03
+  expected_passed_preserved: true
+  change: prompt accepts specific misconception plus corrective activity as basic cause analysis
+- sample_id: SC-SG-01
+  expected_passed_preserved: true
+  change: actual output now states 3 correct attempts / 1 correct directly
+- sample_id: SC-ID-03
+  expected_passed_changed:
+    from: false
+    to: true
+  change: insufficiency_disclosed now checks disclosure only; fabrication and constraint claims are delegated
+behavioral_changes:
+- axis-specific evidence and no automatic all-axis penalty
+- actionability separated from correctness and pedagogy
+- feasibility time/workload separated from objective prioritization
+- paper evidence level and label-independent difficulty assessment
+- local redundancy separated from whole-paper pedagogical validity
+modified_files:
+- path: tests/evals/teaching_quality/calibration/semantic_contrast_v1.yaml
+  before_sha256: 40984dccf91d04ab7bae7482e1f43312e4d3eb80560e16e969695ba116fb7c71
+  after_sha256: 67471cb6be0ee03e6b6461a5754ce56e9e21e23185ea6c79923697423b1e3d7b
+- path: tests/evals/teaching_quality/prompts/semantic_assertion_judge.md
+  before_sha256: faf85559aa6577b18e88b73f076e3b88dac881b8456741803c38dab41ad374c3
+  after_sha256: 6c3aeb0e6ad4b571fdb4f5bcef1190d46435d73f9391e8ed69941a5ef7768d0b
+- path: tests/evals/teaching_quality/grader/behavioral.py
+  before_sha256: 263cea3beeb7e63b7a098a84ae0df21d908c6108956acfb7e0a67c27988fae8f
+  after_sha256: bb5b2e47c33a285d6f35eacc806fa2c16cd984cc2bba2d52232fd7932ae619b5
+- path: tests/evals/teaching_quality/prompts/paper_quality_judge.md
+  before_sha256: 0d1a05957686cc71d0240394dc7360e93bd3f311a08d8f2441ef0cb8e7016023
+  after_sha256: 6737d0f4d1cadb3e3dea4b5baa177d253f8a5c7e2cf47c338fecf5c34ec91b3b
+- path: tests/evals/teaching_quality/rubrics/consultation.md
+  before_sha256: 58f97d60bd94c7463016ad6da5892cf646e7a9455726dc31501668af5a7adb95
+  after_sha256: 64f916cabe25ede92f4ef56fe2b226a1164dfe163eab7507a3354d31ead8d948
+- path: tests/evals/teaching_quality/rubrics/teaching_design.md
+  before_sha256: 6a16ec984fcde98b8cbd58c9228a5ee6ca57e7a05a11020b55cd9c0eec1e58b0
+  after_sha256: 38c9d07579de8d90b76c3e5ea82f0b1ce0d73ee2f852462f91f8cb9bdb7ec5e5
+- path: tests/evals/teaching_quality/rubrics/paper_quality.md
+  before_sha256: 012c72d528f9d1cdbfe908d5b35457c987e7907872c59291f0c6215fb3b218d5
+  after_sha256: 71f6e87e0008d8a23aa0b812697d982009a5b563cd47281b90d564f8c4d41dad
+- path: tests/evals/teaching_quality/prompts/consultation_judge.md
+  before_sha256: a8d40807c4107c9f6047cff42d425a54881fa817c084e2521268cbc1b0f469c4
+  after_sha256: 584f11d5cce96980eb8b8acf25022e418429e2ac74f87e5c4c5b3249dd62ae8d
+- path: tests/evals/teaching_quality/prompts/teaching_design_judge.md
+  before_sha256: 5044db05a7d50018f74fa7455fd60f3284702a02cd3aa272bf62e1e2cd086f24
+  after_sha256: 2ae5d7fb9d44a9fc5690087e3bc457ef3e3d90c161d6f4e075cce490f2e54609
+blind_manifest_sha256: 113e00345600204a5d5de09bf4255200f83886cc7841d05532ac5e35ab4007a4
