@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from calculus_agent.config import Settings
 from calculus_agent.runtime.backend import BailianChatBackend
@@ -71,13 +72,13 @@ class OpenAICompatibleJudgeAdapter:
         )
         content = (response.get("message") or {}).get("content")
         if not isinstance(content, str):
-            raise ValueError("judge provider returned no text content")
+            raise TypeError("judge provider returned no text content")
         try:
             payload = json.loads(content)
         except json.JSONDecodeError as exc:
             raise ValueError("judge provider returned malformed JSON") from exc
         if not isinstance(payload, dict):
-            raise ValueError("judge provider JSON must be an object")
+            raise TypeError("judge provider JSON must be an object")
         return payload
 
     def provenance(self) -> dict[str, Any]:

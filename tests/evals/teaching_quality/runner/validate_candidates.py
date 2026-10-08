@@ -15,7 +15,8 @@ REPO_ROOT = ROOT.parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tests.evals.teaching_quality.grader.structural import SUPPORTED_ASSERTION_TYPES  # noqa: E402
+from tests.evals.teaching_quality.grader.structural import SUPPORTED_ASSERTION_TYPES
+
 EXPECTED_COUNTS = {
     "teaching_design_v1.yaml": 12,
     "paper_quality_v1.yaml": 13,
@@ -45,7 +46,7 @@ def validate_case_metadata(
 
     case_axes = case["expected"]["behavioral_rubric"]["axes"]
     if not isinstance(case_axes, dict):
-        raise ValueError(f"{case_id}: approved case requires case-local axis weights")
+        raise TypeError(f"{case_id}: approved case requires case-local axis weights")
     if not set(case_axes) <= set(default_axes):
         raise ValueError(f"{case_id}: unknown behavioral axis")
     if abs(sum(case_axes.values()) - 1.0) > 1e-9:

@@ -4,7 +4,6 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 FAILURE_TAGS = {
     "scope_violation", "objective_misalignment", "difficulty_mismatch",
     "poor_progression", "unrealistic_plan", "weak_assessment_alignment",

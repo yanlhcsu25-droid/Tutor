@@ -17,7 +17,7 @@ PROMPTS = {
 def build_judge_input(case: dict[str, Any], actual_output: Any) -> dict[str, Any]:
     axes = case["expected"]["behavioral_rubric"]["axes"]
     if not isinstance(axes, dict):
-        raise ValueError("approved cases must use case-local axis weights")
+        raise TypeError("approved cases must use case-local axis weights")
     if abs(sum(axes.values()) - 1.0) > 1e-9:
         raise ValueError("case-local axis weights must sum to 1.0")
     return {
@@ -65,5 +65,5 @@ def render_judge_prompt(case: dict[str, Any], actual_output: Any) -> str:
 def parse_case_judge_output(case: dict[str, Any], payload: dict[str, Any]) -> JudgeOutput:
     axes = case["expected"]["behavioral_rubric"]["axes"]
     if not isinstance(axes, dict):
-        raise ValueError("approved cases must use case-local axis weights")
+        raise TypeError("approved cases must use case-local axis weights")
     return parse_judge_output(payload, case_id=case["case_id"], axis_weights=axes)

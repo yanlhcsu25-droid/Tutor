@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from itertools import pairwise
 from typing import Any, Protocol
 
 from .models import SemanticAssertionDecision, StructuralAssertionResult
-
 
 SUPPORTED_ASSERTION_TYPES = {
     "exact_count", "exact_total_score", "score_sum_match", "total_duration_max",
@@ -246,7 +246,7 @@ class StructuralAssertionGrader:
             ranks = [order[value] for value in values]
         except KeyError as exc:
             return False, f"unknown difficulty={exc.args[0]}", values
-        passed = all(left <= right for left, right in zip(ranks, ranks[1:]))
+        passed = all(left <= right for left, right in pairwise(ranks))
         return passed, f"difficulty ranks={ranks}", values
 
     def _grade_score_distribution(self, assertion, actual, setup):
@@ -424,9 +424,7 @@ def _collect_topic_values(value: Any, *, parent: str | None = None) -> set[str]:
     topics: set[str] = set()
     if isinstance(value, Mapping):
         for key, item in value.items():
-            if key in {"topic", "topics", "knowledge_points", "scope_names"}:
-                topics.update(map(str, _scalars(item)))
-            elif key == "name" and parent == "knowledge_plan":
+            if key in {"topic", "topics", "knowledge_points", "scope_names"} or key == "name" and parent == "knowledge_plan":
                 topics.update(map(str, _scalars(item)))
             else:
                 topics.update(_collect_topic_values(item, parent=key))

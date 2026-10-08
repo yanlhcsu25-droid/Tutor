@@ -1,4 +1,3 @@
-# ruff: noqa: E402
 """Run fixed-sample Judge calibration. This never executes Tutor or Blind cases."""
 
 from __future__ import annotations
@@ -9,7 +8,7 @@ import json
 import subprocess
 import sys
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +24,7 @@ from tests.evals.teaching_quality.grader.behavioral import (
     render_judge_prompt,
 )
 from tests.evals.teaching_quality.grader.provider import build_siliconflow_judge_adapter
-from tests.evals.teaching_quality.grader.semantic import (  # noqa: E402
+from tests.evals.teaching_quality.grader.semantic import (
     ModelBackedSemanticAssertionEvaluator,
 )
 
@@ -84,7 +83,7 @@ def run_semantic(adapter) -> dict[str, Any]:
                 "failure_class": None if matched else "semantic_assertion_error",
                 "call": call_metadata(adapter),
             })
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             results.append({
                 "sample_id": sample["sample_id"],
                 "assertion_type": sample["assertion_type"],
@@ -156,7 +155,7 @@ def run_behavioral(adapter) -> dict[str, Any]:
                     "failure_class": failure,
                     "call": call_metadata(adapter),
                 })
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 results.append({
                     "sample_id": sample["sample_id"],
                     "case_id": entry["case_id"],
@@ -205,7 +204,7 @@ def main() -> None:
         "version": "1.0",
         "kind": "fixed_sample_dev_judge_calibration",
         "status": "preliminary",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "source_git_sha": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
         ).strip(),
@@ -222,7 +221,7 @@ def main() -> None:
         report["behavioral"] = run_behavioral(adapter)
 
     output = args.output or ROOT / "reports" / (
-        "judge-calibration-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + ".json"
+        "judge-calibration-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + ".json"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")

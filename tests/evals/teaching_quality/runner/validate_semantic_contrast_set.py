@@ -40,7 +40,7 @@ def validate_semantic_contrast_set(path: Path = CONTRAST_SET) -> None:
         if sample["assertion"]["type"] != sample["assertion_type"]:
             raise ValueError(f"{sample['sample_id']}: assertion type mismatch")
         if not isinstance(sample["expected_passed"], bool):
-            raise ValueError(f"{sample['sample_id']}: expected_passed must be boolean")
+            raise TypeError(f"{sample['sample_id']}: expected_passed must be boolean")
     if payload["policy"] != {
         "binary_labels_only": True,
         "blind_cases_used": False,
