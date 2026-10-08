@@ -1,13 +1,13 @@
 version: '1.0'
 name: teaching_quality_v1_judge_calibration_set
-status: review_required_dev_only
+status: approved_dev_calibration
 source_manifest: tests/evals/teaching_quality/manifests/split_v1.yaml
 source_manifest_sha256: 113e00345600204a5d5de09bf4255200f83886cc7841d05532ac5e35ab4007a4
 policy:
   blind_cases_forbidden: true
   model_execution_performed: false
   samples_per_case: 3
-  candidate_labels_human_review_required: true
+  human_review_completed: true
 case_count: 7
 sample_count: 21
 suite_counts:
@@ -54,14 +54,14 @@ cases:
         - 3
         - 4
         pedagogical_quality:
+        - 2
         - 3
-        - 4
         grounding:
+        - 2
         - 3
-        - 4
         clarity:
-        - 3
         - 4
+        - 5
   - sample_id: TQ-CQ-005-poor
     band: poor
     actual_output: 让学生把拉格朗日中值定理抄写十遍并背熟公式。证明题不会时就先套用定理，做得多了自然会判断。
@@ -72,8 +72,8 @@ cases:
         - 1
         - 2
         actionability:
-        - 1
-        - 2
+        - 3
+        - 4
         pedagogical_quality:
         - 1
         - 2
@@ -81,8 +81,8 @@ cases:
         - 1
         - 2
         clarity:
-        - 2
-        - 3
+        - 4
+        - 5
 - case_id: TQ-CQ-006
   family_id: plan_critique
   suite: consultation
@@ -122,14 +122,14 @@ cases:
         - 3
         - 4
         pedagogical_quality:
+        - 2
         - 3
-        - 4
         grounding:
         - 3
         - 4
         clarity:
-        - 3
         - 4
+        - 5
   - sample_id: TQ-CQ-006-poor
     band: poor
     actual_output: 合理。难题做得越多提高越快，直接完成20道并对答案即可，不需要先检查基础。
@@ -140,8 +140,8 @@ cases:
         - 1
         - 2
         actionability:
-        - 1
-        - 2
+        - 3
+        - 4
         pedagogical_quality:
         - 1
         - 2
@@ -149,8 +149,8 @@ cases:
         - 1
         - 2
         clarity:
-        - 2
-        - 3
+        - 4
+        - 5
 - case_id: TQ-CQ-010
   family_id: grounded_scope_advice
   suite: consultation
@@ -190,14 +190,14 @@ cases:
         - 3
         - 4
         pedagogical_quality:
+        - 2
         - 3
-        - 4
         grounding:
+        - 2
         - 3
-        - 4
         clarity:
-        - 3
         - 4
+        - 5
   - sample_id: TQ-CQ-010-poor
     band: poor
     actual_output: 学生整体基础不好，下一节课把第一章所有定义重新讲一遍，多做题、多总结；之后再看其他内容。
@@ -208,8 +208,8 @@ cases:
         - 1
         - 2
         actionability:
-        - 1
         - 2
+        - 3
         pedagogical_quality:
         - 1
         - 2
@@ -217,8 +217,8 @@ cases:
         - 1
         - 2
         clarity:
-        - 2
         - 3
+        - 4
 - case_id: TQ-PQ-003
   family_id: open_blueprint_quality
   suite: paper_quality
@@ -255,17 +255,17 @@ cases:
         - 3
         - 4
         difficulty_alignment:
+        - 2
         - 3
-        - 4
         question_type_balance:
+        - 2
         - 3
-        - 4
         redundancy:
+        - 2
         - 3
-        - 4
         pedagogical_validity:
+        - 2
         - 3
-        - 4
   - sample_id: TQ-PQ-003-poor
     band: poor
     actual_output: 10道题均为直接代入求函数极限，只替换数字；全部标为中等计算题。
@@ -314,8 +314,8 @@ cases:
         - 3
         - 4
         pedagogical_validity:
-        - 3
         - 4
+        - 5
   - sample_id: TQ-PQ-011-poor
     band: poor
     actual_output: 8道题都采用“分子分母同除最高次幂”的有理函数极限套路，仅更换次数、系数和趋近方向；为每题填写不同的相似组编号。
@@ -358,17 +358,17 @@ cases:
       overall_band: borderline
       expected_axis_ranges:
         objective_alignment:
+        - 2
         - 3
-        - 4
         learning_progression:
+        - 2
         - 3
-        - 4
         feasibility:
-        - 3
         - 4
+        - 5
         assessment_alignment:
+        - 2
         - 3
-        - 4
   - sample_id: TQ-TD-007-poor
     band: poor
     actual_output: 用90分钟把前三章从定义开始完整重讲一遍，多做一些难题，确保所有知识点都掌握。
@@ -414,14 +414,14 @@ cases:
       overall_band: borderline
       expected_axis_ranges:
         objective_alignment:
+        - 2
         - 3
-        - 4
         learning_progression:
+        - 2
         - 3
-        - 4
         feasibility:
-        - 3
         - 4
+        - 5
   - sample_id: TQ-TD-016-poor
     band: poor
     actual_output: 高阶导数正确率最低，所以45分钟全部做高阶导数竞赛难题；极限和连续性让学生课后自己看。
@@ -435,5 +435,5 @@ cases:
         - 1
         - 2
         feasibility:
-        - 1
         - 2
+        - 3

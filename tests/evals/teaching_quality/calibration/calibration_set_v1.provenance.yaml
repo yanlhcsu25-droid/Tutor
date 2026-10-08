@@ -1,0 +1,17 @@
+version: '1.0'
+artifact: tests/evals/teaching_quality/calibration/calibration_set_v1.yaml
+review_status: approved_dev_calibration
+review_summary:
+  sample_count: 21
+  overall_bands_approved_unchanged: 21
+  axis_ranges_approved_unchanged: 10
+  axis_ranges_revised: 11
+  actual_outputs_rewritten: 0
+previous_artifact:
+  status: review_required_dev_only
+  sha256: 60682914037c102f9549b6313e6542943a4a6b93f0b7152fa661c031ccd75cb4
+  git_sha: fb20d5d78e8f7b74c6e43072e16aa743ed04d712
+approved_artifact:
+  sha256: f1718708e905a4a34bea9f2b72ba4c3f214fc96e022a215fbb1d25e3e798136c
+blind_data_accessed: false
+model_execution_performed: false
