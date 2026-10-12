@@ -7,6 +7,8 @@ from calculus_agent.agent.tool_registry import AgentExecutionContext, build_agen
 from calculus_agent.agent.tools.read_tools import ReadCurrentPaperInput, read_current_paper
 from calculus_agent.papers.question_snapshot import capture_question_snapshot
 from calculus_agent.models import (
+    AgentPendingAdjustment,
+    AgentPendingGeneration,
     AgentPendingReplacement,
     KnowledgeNode,
     Paper,
@@ -18,6 +20,8 @@ from calculus_agent.models import (
     QuestionProfile,
     TeacherAgentRunTrace,
 )
+from tests.evals.curriculum_fixture import seed_eval_curriculum
+from tests.evals.fixtures.paper import seed_current_paper
 
 
 class _Backend:
@@ -228,6 +232,88 @@ def test_agent_reads_bounded_whole_paper_overview(session, message):
     assert "共5题" in result.message
 
 
+@pytest.mark.parametrize(
+    ("message", "question_type", "expected_count", "model_order"),
+    [
+        ("不要修改，检查当前卷有没有填空题。", "填空题", 2, 1),
+        ("当前卷有几道选择题？", "选择题", 4, 5),
+    ],
+)
+def test_question_type_queries_use_one_authoritative_whole_paper_read(
+    session, message, question_type, expected_count, model_order,
+):
+    seed_eval_curriculum(session)
+    context = seed_current_paper(
+        session, {"question_count": 10, "total_score": 100},
+    )
+    conversation_id = f"type-count-{question_type}"
+    paper_count_before = session.scalar(select(func.count()).select_from(Paper))
+    item_count_before = session.scalar(select(func.count()).select_from(PaperItem))
+    backend = _Backend(_tool(
+        "read_paper",
+        (
+            '{"addresses":[{"section_type":"'
+            + question_type
+            + f'","section_order":{model_order}}}]}}'
+        ),
+    ))
+
+    result = run_teacher_agent(
+        session,
+        message,
+        conversation_id=conversation_id,
+        paper_id=context.paper_id,
+        version_id=context.version_id,
+        backend=backend,
+    )
+
+    trace = session.scalars(select(TeacherAgentRunTrace).where(
+        TeacherAgentRunTrace.conversation_id == conversation_id
+    )).one()
+    assert result.status == "completed"
+    assert str(expected_count) in result.message
+    assert result.paper_read.paper.question_type_counts[question_type] == expected_count
+    assert len(trace.tool_calls_json) == 1
+    assert trace.tool_calls_json[0]["tool_name"] == "read_paper"
+    assert trace.tool_calls_json[0]["arguments"] == {}
+    assert session.scalar(select(func.count()).select_from(Paper)) == paper_count_before
+    assert session.scalar(select(func.count()).select_from(PaperItem)) == item_count_before
+    assert session.scalar(select(func.count()).select_from(AgentPendingGeneration)) == 0
+    assert session.scalar(select(func.count()).select_from(AgentPendingReplacement)) == 0
+    assert session.scalar(select(func.count()).select_from(AgentPendingAdjustment)) == 0
+
+
+def test_question_type_query_returns_zero_without_address_probe(session):
+    paper = _seed_paper(session, count=5)
+    result = run_teacher_agent(
+        session,
+        "当前卷有几道填空题？",
+        conversation_id="zero-fill-count",
+        paper_id=paper.id,
+        version_id=paper.id,
+        backend=_Backend(_tool(
+            "read_paper",
+            '{"addresses":[{"section_type":"填空题","section_order":1}]}',
+        )),
+    )
+
+    assert result.status == "completed"
+    assert "0道填空题" in result.message
+    assert result.paper_read.paper.question_type_counts.get("填空题", 0) == 0
+
+
+def test_invalid_paper_version_never_returns_question_type_count(session):
+    result = read_current_paper(
+        session,
+        current_paper_version_id="missing-version",
+        request=ReadCurrentPaperInput(),
+    )
+
+    assert not result.ok
+    assert result.code == "no_current_paper"
+    assert result.paper is None
+
+
 def test_analysis_does_not_replace_required_current_version_read(session):
     paper = _seed_paper(session)
     backend = _Backend(
@@ -332,6 +418,30 @@ def test_tool_description_keeps_read_analyze_and_replace_separate():
     assert "Preview one coherent change plan" in replacement_description
     assert "never mutates Paper state" in replacement_description
     assert "Deterministically analyze" not in read_description
+
+def test_explicit_delete_still_requires_preview_even_when_user_says_preview_only(
+    session,
+):
+    paper = _seed_paper(session)
+    result = run_teacher_agent(
+        session,
+        "删除计算题第1题，只查看修改预览，不要应用。",
+        conversation_id="delete-preview-only",
+        paper_id=paper.id,
+        version_id=paper.id,
+        backend=_Backend(_tool(
+            "preview_paper_changes",
+            """{"operations":[{
+                "type":"remove_question",
+                "target":{"section_type":"计算题","section_order":1}
+            }]}""",
+        )),
+    )
+
+    assert result.status == "waiting_confirmation"
+    assert result.adjustment_preview is not None
+    assert session.query(PaperItem).filter_by(paper_id=paper.id).count() == 5
+
 
 def test_existing_analysis_and_paper_change_actions_are_not_shadowed(session):
     paper = _seed_paper(session)

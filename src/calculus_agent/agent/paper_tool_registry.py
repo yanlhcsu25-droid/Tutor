@@ -237,7 +237,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
     tools = [
         AgentTool(
             "read_paper",
-            "Read the concrete current paper. Use teacher-facing addresses with section_type + section_order. Read-only.",
+            "Read the concrete current paper. For question-type existence/count queries, omit addresses and use the whole-paper question_type_counts; never probe consecutive addresses until one fails. Use teacher-facing addresses with section_type + section_order only for specific questions. Read-only.",
             ReadCurrentPaperInput,
             read,
         ),
@@ -267,7 +267,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         ),
         AgentTool(
             "preview_paper_changes",
-            "Preview one coherent change plan for an EXISTING paper. operations may combine replace_question, remove_question, add_questions, change_question_score, and change_question_type_distribution. target_total_score is optional. The tool never mutates Paper state; Python resolves and validates the whole plan and later confirmation applies it atomically.",
+            "Preview one coherent change plan for an EXISTING paper. operations may combine replace_question, remove_question, add_questions, change_question_score, and change_question_type_distribution. A replacement with no requested new topic or difficulty uses same difficulty plus the current paper constraints; Python determines whether a legal candidate exists. target_total_score is optional. The tool never mutates Paper state; Python resolves and validates the whole plan and later confirmation applies it atomically.",
             PaperChangeRequest,
             preview_changes,
         ),

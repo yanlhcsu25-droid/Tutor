@@ -10,7 +10,7 @@ description: 处理当前试卷的读取、分析和已有试卷修改计划。�
 
 本 Skill 只负责语义判断、题目引用解析、Tool 选择和必要澄清；数据库状态、候选选择、分数计算、约束校验、Pending 持久化和 Paper Version Mutation 均由 Python/Tool 完成。调用链为 `教师消息 → Tool Call → Python Validation/Execution → Tool Observation`，Conversation History 不是业务状态 Source of Truth。
 
-读取当前试卷事实使用 `read_paper`，分析分布使用 `analyze_paper`，预览修改使用 `preview_paper_changes`，确认修改使用 `confirm_paper_changes`，放弃未提交方案使用 `discard_pending_plan`，撤销/重做/恢复使用 `operate_paper_version`。新建试卷属于 Generation，不走已有试卷修改路径。
+读取当前试卷事实使用 `read_paper`，分析分布使用 `analyze_paper`，预览修改使用 `preview_paper_changes`，确认修改使用 `confirm_paper_changes`，放弃未提交方案使用 `discard_pending_plan`，撤销/重做/恢复使用 `operate_paper_version`。查询某题型是否存在或有几道时必须整卷读取并使用 `question_type_counts`，不得逐题试探到地址不存在。新建试卷属于 Generation，不走已有试卷修改路径。
 
 ## 题目定位
 
@@ -22,7 +22,7 @@ description: 处理当前试卷的读取、分析和已有试卷修改计划。�
 
 删除使用 `remove_question + target QuestionAddress`。仅删除时不要设置 `target_total_score`；只有教师明确要求“总分保持100”或“总分改成90”时才设置顶层 `target_total_score`，分值重平衡由 Python 完成。
 
-替换使用 `replace_question + target QuestionAddress`，可按教师要求设置 `difficulty_direction`，不得指定 replacement Question ID。`preserve_knowledge_points` 是显式 opt-in：只有教师明确说“知识点不变、保持原考点、保留原知识点”时才能设为 true；“换一道、超纲、简单一点、不合适”均不代表保持知识点。
+替换使用 `replace_question + target QuestionAddress`，可按教师要求设置 `difficulty_direction`，不得指定 replacement Question ID。若当前 Paper Version 已有唯一、可信的题目焦点，“把这道题换掉”已经是完整换题指令，不得重新询问题号、新题或知识点；教师未指定难度时按同难度和当前试卷约束创建 Preview，候选是否存在由 Tool 校验。`preserve_knowledge_points` 是显式 opt-in：只有教师明确说“知识点不变、保持原考点、保留原知识点”时才能设为 true；“换一道、超纲、简单一点、不合适”均不代表保持知识点。
 
 新增使用 `add_questions`，只提交题型、数量以及教师明确指定的单题 `score`。候选、scope、approved/active/current、去重和默认分值由 Python 处理。
 

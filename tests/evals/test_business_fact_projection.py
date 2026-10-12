@@ -31,6 +31,10 @@ def test_response_facts_accepts_common_question_type_count_units():
     }
 
 
+def test_response_facts_extracts_difficulty_distribution():
+    assert _response_facts("难度3：10题。")["difficulty_counts"] == {"3": 10}
+
+
 def test_report_serializes_nested_datetime(tmp_path):
     report = tmp_path / "report.json"
 
@@ -101,6 +105,24 @@ def test_eval_265_is_grounded_read_only_without_optimization_side_effects():
     assert [
         call["name"] for call in result["actual"]["trace"]["tool_calls"]
     ] == ["read_paper"]
+
+
+def test_eval_107_pause_cannot_discard_pending_even_if_backend_would_request_it():
+    suite = load_eval_suite(
+        "tests/evals/staging/dev_v3_2_proposal/dev_122_revised_candidate.yaml"
+    )
+    case = next(item for item in suite.cases if item.id == "EVAL-107")
+    case.backend = {"behavior": "scripted", "responses": [
+        _tool_call("discard_pending_plan", {}),
+        {"role": "assistant", "content": "已取消。"},
+    ]}
+
+    result = run_case(case)
+
+    assert result["passed"], result
+    assert result["actual"]["pending_generation"]["question_count"] == 10
+    assert result["actual"]["trace"]["tool_calls"] == []
+    assert result["actual"]["backend_calls"] == 0
 
 
 def test_eval_267_pause_preserves_pending_without_lifecycle_tool():

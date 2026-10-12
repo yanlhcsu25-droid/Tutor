@@ -1176,31 +1176,11 @@ def _preview_paper_change_snapshot(session, plan_id: str | None) -> dict[str, An
 
 
 def _response_facts(message: str) -> dict[str, Any]:
-    facts: dict[str, Any] = {}
-    normalized = message.replace("**", "").replace("`", "")
-    question = re.search(
-        r"(?:共|总共|一共|包含|有)\s*(\d+)\s*(?:道)?题", normalized
-    )
-    score = re.search(
-        r"(?:总分|满分)\s*(?:为|是|共)?\s*(\d+(?:\.\d+)?)\s*分",
-        normalized,
-    )
-    if question:
-        facts["question_count"] = int(question.group(1))
-    if score:
-        value = float(score.group(1))
-        facts["total_score"] = int(value) if value.is_integer() else value
-    distribution = {
-        question_type: int(count)
-        for question_type, count in re.findall(
-            r"(选择题|填空题|计算题|证明题)\s*[:：]?\s*(?:共|有)?\s*"
-            r"(\d+)\s*(?:道\s*题?|题)",
-            normalized,
-        )
-    }
-    if distribution:
-        facts["question_type_counts"] = distribution
-    return facts
+    """Parse scoped numeric claims without confusing sections and whole paper."""
+    from tests.evals.graders.response_fact_parser import extract_response_facts
+
+    return extract_response_facts(message)
+
 
 
 def collect_actual_state(

@@ -469,7 +469,8 @@ def test_multi_tool_read_then_replacement_preview(session):
         conversation_id="multi", paper_id=paper.id, version_id=paper.id, backend=backend,
     )
     assert result.status == "waiting_confirmation"
-    assert len(backend.calls) == 3
+    # A successful preview is the terminal boundary; no extra prose round.
+    assert len(backend.calls) == 2
     assert result.paper_read and result.adjustment_preview
 
 def test_whole_paper_read_then_llm_summary(session):

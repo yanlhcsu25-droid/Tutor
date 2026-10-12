@@ -9,7 +9,7 @@ from typing import Any
 
 _QUESTION_CLAIM = re.compile(r"(?:共|总共|一共|包含|有)\s*(\d+)\s*(?:道)?题")
 _SCORE_CLAIM = re.compile(r"(?:总分|满分)\s*(?:为|是|共)?\s*(\d+(?:\.\d+)?)\s*分")
-_TYPE_CLAIM = re.compile(r"(选择题|填空题|计算题|证明题)\s*(?:共|有)?\s*(\d+)\s*道")
+_TYPE_CLAIM = re.compile(r"(选择题|填空题|计算题|证明题)\s*(?:共|有)?\s*(\d+)\s*(?:道|题)")
 
 
 def _number(value: Any) -> bool:
@@ -111,6 +111,20 @@ def _latest_paper(snapshot: dict[str, Any]) -> tuple[dict[str, Any] | None, list
 
 
 def _claim_errors(message: str, snapshot: dict[str, Any]) -> list[str]:
+    # Added by grader fact fix: read-only claims cannot be scored as preview.
+    if not (snapshot.get("preview_paper_change") or {}):
+        paper, items = _latest_paper(snapshot.get("business_state") or {})
+        if paper is None:
+            return []
+        from tests.evals.graders.response_fact_parser import read_only_claim_errors
+
+        distribution = Counter(str(item.get("section")) for item in items)
+        return read_only_claim_errors(
+            message,
+            expected_count=len(items),
+            expected_score=paper.get("total_score"),
+            persisted_type_counts=distribution,
+        )
     preview = snapshot.get("preview_paper_change") or {}
     paper, items = _latest_paper(snapshot.get("business_state") or {})
     if paper is None and not preview:
@@ -119,21 +133,65 @@ def _claim_errors(message: str, snapshot: dict[str, Any]) -> list[str]:
     expected_count = preview.get("question_count") if preview else len(items)
     expected_score = preview.get("total_score") if preview else paper.get("total_score")
     source = "preview" if preview else "persisted"
-    question_match = _QUESTION_CLAIM.search(message)
-    if question_match and int(question_match.group(1)) != expected_count:
-        errors.append(
-            f"reply question count={question_match.group(1)}, {source}={expected_count}"
+    def claim_target(match: re.Match[str], persisted: Any, planned: Any) -> tuple[Any, str]:
+        context = message[max(0, match.start() - 24):match.start()]
+        before_markers = list(
+            re.finditer(r"(?:删除|修改|变更|调整)?前|原(?:试卷|卷)?", context)
         )
-    score_match = _SCORE_CLAIM.search(message)
-    if score_match and not isclose(float(score_match.group(1)), float(expected_score or 0), abs_tol=0.01):
-        errors.append(
-            f"reply total score={score_match.group(1)}, {source}={expected_score}"
+        after_markers = list(
+            re.finditer(r"(?:删除|修改|变更|调整)?后|预览", context)
         )
+        if preview and before_markers and (
+            not after_markers or before_markers[-1].end() > after_markers[-1].end()
+        ):
+            return persisted, "persisted"
+        return planned, source
+
+    for question_match in _QUESTION_CLAIM.finditer(message):
+        target, target_source = claim_target(question_match, len(items), expected_count)
+        if int(question_match.group(1)) != target:
+            errors.append(
+                f"reply question count={question_match.group(1)}, "
+                f"{target_source}={target}"
+            )
+    for score_match in _SCORE_CLAIM.finditer(message):
+        target, target_source = claim_target(
+            score_match, paper.get("total_score"), expected_score,
+        )
+        if not isclose(float(score_match.group(1)), float(target or 0), abs_tol=0.01):
+            errors.append(
+                f"reply total score={score_match.group(1)}, "
+                f"{target_source}={target}"
+            )
     distribution = Counter(str(item.get("section")) for item in items)
     for question_type, count in _TYPE_CLAIM.findall(message):
         if int(count) != distribution[question_type]:
             errors.append(
                 f"reply {question_type} count={count}, persisted={distribution[question_type]}"
+            )
+    return errors
+
+
+def _read_item_errors(turn: dict[str, Any], message: str) -> list[str]:
+    calls = ((turn.get("state") or {}).get("trace") or {}).get("tool_calls") or []
+    questions: list[dict[str, Any]] = []
+    for call in calls:
+        if not isinstance(call, dict):
+            continue
+        name = call.get("tool_name") or call.get("name") or call.get("tool")
+        result = call.get("result") or call.get("output_json") or {}
+        if name == "read_paper" and isinstance(result, dict):
+            questions.extend(
+                item for item in result.get("questions") or [] if isinstance(item, dict)
+            )
+    errors = []
+    normalized = re.sub(r"\s+", "", message)
+    for question in questions:
+        content = str(question.get("content") or "").strip()
+        if content and re.sub(r"\s+", "", content) not in normalized:
+            errors.append(
+                f"reply does not reproduce read question content at "
+                f"position={question.get('position')}: {content!r}"
             )
     return errors
 
@@ -166,6 +224,7 @@ def grade_content_consistency(case, actual: dict[str, Any]) -> dict[str, Any]:
         {"no_cross_chapter", "no-cross-chapter"} & preserve
         or business_rules.get("no_cross_chapter")
     )
+    enforce_read_content = bool(business_rules.get("require_read_content_grounding"))
     for turn in turns:
         snapshot = turn.get("business_state_after") or {}
         prefix = f"turn {turn.get('turn')}"
@@ -184,6 +243,10 @@ def grade_content_consistency(case, actual: dict[str, Any]) -> dict[str, Any]:
                 **(turn.get("state") or {}),
             })
         )
+        if enforce_read_content:
+            errors.extend(
+                f"{prefix}: {error}" for error in _read_item_errors(turn, message)
+            )
 
     return {
         "grader": "content_consistency",

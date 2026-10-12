@@ -97,3 +97,44 @@ def test_acceptance_grades_tool_order_counts_errors_and_backend_replay():
     })
 
     assert result["passed"]
+
+
+def test_acceptance_grades_each_turn_contract() -> None:
+    actual = {
+        "status": "waiting_confirmation",
+        "trace": {"tool_calls": [
+            {"tool_name": "read_paper", "result": {"ok": True}},
+            {"tool_name": "preview_paper_changes", "result": {"ok": True}},
+        ]},
+        "evaluated_turns": [
+            {
+                "turn": 1,
+                "result": {"status": "completed"},
+                "state": {"trace": {"tool_calls": [
+                    {"tool_name": "read_paper", "result": {"ok": True}},
+                ]}},
+            },
+            {
+                "turn": 2,
+                "result": {"status": "waiting_confirmation"},
+                "state": {"trace": {"tool_calls": [
+                    {"tool_name": "read_paper", "result": {"ok": True}},
+                    {"tool_name": "preview_paper_changes", "result": {"ok": True}},
+                ]}},
+            },
+        ],
+    }
+
+    result = grade_acceptance(object(), actual, {
+        "turns": [
+            {"turn": 1, "statuses": ["completed"], "required_tools": ["read_paper"]},
+            {
+                "turn": 2,
+                "statuses": ["waiting_confirmation"],
+                "required_tools": ["read_paper", "preview_paper_changes"],
+                "tool_order": ["read_paper", "preview_paper_changes"],
+            },
+        ],
+    })
+
+    assert result["passed"]

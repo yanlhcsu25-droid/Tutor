@@ -57,6 +57,7 @@ def model_call_metadata(raw: dict, backend: Any) -> dict[str, Any]:
         for key in (
             "id", "created", "system_fingerprint", "finish_reason", "done_reason",
             "total_duration", "load_duration", "prompt_eval_duration", "eval_duration",
+            "provider_attempts",
         )
         if raw.get(key) is not None
     }

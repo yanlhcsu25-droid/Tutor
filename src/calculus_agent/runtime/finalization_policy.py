@@ -21,6 +21,7 @@ class FinalizationInput:
     active_design: dict[str, Any] | None
     active_task_status: str | None
     paper_operation_without_target: bool = False
+    generation_artifact_requested: bool = False
 
 
 @dataclass(frozen=True)
@@ -134,6 +135,21 @@ def normalize_finalization(*, data: FinalizationInput, runtime_policy: Any) -> F
         elif data.active_design and data.active_design.get("status") != "confirmed":
             # A freshly created/revised design remains a confirmation boundary.
             status = "waiting_confirmation"
+
+    if (
+        status == "completed"
+        and data.generation_artifact_requested
+        and not any(
+            item.get("tool_name") == "prepare_generation_plan"
+            and isinstance(item.get("result"), dict)
+            and item["result"].get("ok") is True
+            for item in data.trace_calls
+        )
+    ):
+        status = "failed"
+        if "generation_plan_not_created" not in errors:
+            errors.append("generation_plan_not_created")
+        final_text = "本轮没有成功创建可确认的组卷方案，因此不能标记为完成。"
 
     if status == "completed" and data.paper_operation_without_target:
         status = "needs_clarification"

@@ -48,6 +48,30 @@ def test_pending_plan_language_is_not_a_paper_completion_claim():
     assert grade_outcome_integrity(None, actual)["passed"]
 
 
+def test_generated_draft_waiting_for_confirmation_is_not_completion_claim():
+    message = (
+        "已为您生成第一章的试卷草案。该草案已生成，"
+        "等待您确认是否正式生成试卷。"
+    )
+    waiting = {"evaluated_turns": [_turn(
+        status="waiting_confirmation", message=message,
+    )]}
+    incorrectly_completed = {"evaluated_turns": [_turn(
+        status="completed", message=message,
+    )]}
+
+    assert grade_outcome_integrity(None, waiting)["passed"]
+    assert not grade_outcome_integrity(None, incorrectly_completed)["passed"]
+
+
+def test_waiting_status_without_draft_language_does_not_hide_completion_claim():
+    actual = {"evaluated_turns": [_turn(
+        status="waiting_confirmation", message="试卷已生成，可以直接使用。",
+    )]}
+
+    assert not grade_outcome_integrity(None, actual)["passed"]
+
+
 def test_paper_claim_requires_persisted_change():
     assert not grade_outcome_integrity(None, {
         "evaluated_turns": [_turn(message="试卷已生成。")],

@@ -1,0 +1,5313 @@
+version: 3.2-dev-proposal
+suite:
+  name: tutor_workflow_eval_dev_122_unique_v3_2_proposal
+  description: 去重后的122条Dev候选；部分确定性Oracle/Fixture矛盾已修正，但尚未经业务负责人批准，不能标注为正式冻结基准。
+  splits:
+    dev_candidate: 122
+  derived_from: tests/evals/staging/tutor_workflow_eval_300_v3/tutor_workflow_eval_300_v3.yaml
+defaults:
+  max_tool_rounds: 8
+  isolated_session: true
+remediation:
+  ambiguous_address: 10
+  cancel: 21
+  business_oracle: 194
+  current_paper_read: 1
+  pause_pending_generation: 1
+  generate_then_confirm: 1
+  duplicate_decisions_applied: 31
+  holdout_human_approved: 69
+export_provenance:
+  source_path: tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml
+  source_sha256: 2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad
+  filter: split == dev
+  case_count: 200
+  content_note: case mappings are value-preserving YAML parse/filter/export; YAML
+    formatting and anchors may differ
+proposal_metadata:
+  source_file_sha256: 7932157b46b7d13612da2c3e7e73836c8e3eb3527fedd83d52f72d3c150c058c
+  original_case_count: 200
+  deduped_case_count: 122
+  excluded_duplicate_count: 78
+  approval_required: true
+  api_calls: 0
+cases:
+- id: EVAL-001
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出4题，总分40分，先给方案。
+  turns:
+  - user: 第一章出4题，总分40分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 4
+      total_score: 40
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id001
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id001
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-002
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出5题，总分50分，先给方案。
+  turns:
+  - user: 第一章出5题，总分50分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 5
+      total_score: 50
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id002
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id002
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-003
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分60分，先给方案。
+  turns:
+  - user: 第一章出6题，总分60分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 60
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id003
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id003
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-004
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出7题，总分70分，先给方案。
+  turns:
+  - user: 第一章出7题，总分70分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 70
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id004
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id004
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-005
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分80分，先给方案。
+  turns:
+  - user: 第一章出8题，总分80分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 80
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id005
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id005
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-006
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出9题，总分90分，先给方案。
+  turns:
+  - user: 第一章出9题，总分90分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 9
+      total_score: 90
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id006
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id006
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-007
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出10题，总分100分，先给方案。
+  turns:
+  - user: 第一章出10题，总分100分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id007
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id007
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-008
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分100分，先给方案。
+  turns:
+  - user: 第一章出8题，总分100分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id008
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id008
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-009
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分72分，先给方案。
+  turns:
+  - user: 第一章出6题，总分72分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 72
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id009
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id009
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-010
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出12题，总分120分，先给方案。
+  turns:
+  - user: 第一章出12题，总分120分，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 12
+      total_score: 120
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id010
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id010
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-011
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出7题，总分70分，选择2道、填空2道、计算3道，先给方案。
+  turns:
+  - user: 第一章出7题，总分70分，选择2道、填空2道、计算3道，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 70
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id011
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id011
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-012
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分80分，选择3道、填空2道、计算3道，先给方案。
+  turns:
+  - user: 第一章出8题，总分80分，选择3道、填空2道、计算3道，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 80
+      question_type_requirements:
+      - question_type: 选择题
+        count: 3
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id012
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id012
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-013
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分60分，选择1道、填空2道、计算3道，先给方案。
+  turns:
+  - user: 第一章出6题，总分60分，选择1道、填空2道、计算3道，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 60
+      question_type_requirements:
+      - question_type: 选择题
+        count: 1
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id013
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id013
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-014
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出9题，总分90分，选择2道、填空2道、计算5道，先给方案。
+  turns:
+  - user: 第一章出9题，总分90分，选择2道、填空2道、计算5道，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 9
+      total_score: 90
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 5
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id014
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id014
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-015
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出5题，总分50分，选择2道、计算3道，先给方案。
+  turns:
+  - user: 第一章出5题，总分50分，选择2道、计算3道，先给方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 5
+      total_score: 50
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id015
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id015
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-016
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出4题，总分40分，先看预览。
+  turns:
+  - user: 第一章出4题，总分40分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 4
+      total_score: 40
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id016
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id016
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-017
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出5题，总分50分，先看预览。
+  turns:
+  - user: 第一章出5题，总分50分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 5
+      total_score: 50
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id017
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id017
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-018
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分60分，先看预览。
+  turns:
+  - user: 第一章出6题，总分60分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 60
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id018
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id018
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-019
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出7题，总分70分，先看预览。
+  turns:
+  - user: 第一章出7题，总分70分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 70
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id019
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id019
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-020
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分80分，先看预览。
+  turns:
+  - user: 第一章出8题，总分80分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 80
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id020
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id020
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-021
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出9题，总分90分，先看预览。
+  turns:
+  - user: 第一章出9题，总分90分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 9
+      total_score: 90
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id021
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id021
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-022
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出10题，总分100分，先看预览。
+  turns:
+  - user: 第一章出10题，总分100分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id022
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id022
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-023
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分100分，先看预览。
+  turns:
+  - user: 第一章出8题，总分100分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id023
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id023
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-024
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分72分，先看预览。
+  turns:
+  - user: 第一章出6题，总分72分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 72
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id024
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id024
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-025
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出12题，总分120分，先看预览。
+  turns:
+  - user: 第一章出12题，总分120分，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 12
+      total_score: 120
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id025
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id025
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-026
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出7题，总分70分，选择2道、填空2道、计算3道，先看预览。
+  turns:
+  - user: 第一章出7题，总分70分，选择2道、填空2道、计算3道，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 70
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id026
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id026
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-027
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分80分，选择3道、填空2道、计算3道，先看预览。
+  turns:
+  - user: 第一章出8题，总分80分，选择3道、填空2道、计算3道，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 80
+      question_type_requirements:
+      - question_type: 选择题
+        count: 3
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id027
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id027
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-028
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分60分，选择1道、填空2道、计算3道，先看预览。
+  turns:
+  - user: 第一章出6题，总分60分，选择1道、填空2道、计算3道，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 60
+      question_type_requirements:
+      - question_type: 选择题
+        count: 1
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id028
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id028
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-029
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出9题，总分90分，选择2道、填空2道、计算5道，先看预览。
+  turns:
+  - user: 第一章出9题，总分90分，选择2道、填空2道、计算5道，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 9
+      total_score: 90
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 5
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id029
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id029
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-030
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出5题，总分50分，选择2道、计算3道，先看预览。
+  turns:
+  - user: 第一章出5题，总分50分，选择2道、计算3道，先看预览。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 5
+      total_score: 50
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id030
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id030
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-031
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出4题，总分40分，只需要草案。
+  turns:
+  - user: 第一章出4题，总分40分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 4
+      total_score: 40
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id031
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id031
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-032
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出5题，总分50分，只需要草案。
+  turns:
+  - user: 第一章出5题，总分50分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 5
+      total_score: 50
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id032
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id032
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-033
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分60分，只需要草案。
+  turns:
+  - user: 第一章出6题，总分60分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 60
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id033
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id033
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-034
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出7题，总分70分，只需要草案。
+  turns:
+  - user: 第一章出7题，总分70分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 70
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id034
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id034
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-035
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分80分，只需要草案。
+  turns:
+  - user: 第一章出8题，总分80分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 80
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id035
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id035
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-036
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出9题，总分90分，只需要草案。
+  turns:
+  - user: 第一章出9题，总分90分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 9
+      total_score: 90
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id036
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id036
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-037
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出10题，总分100分，只需要草案。
+  turns:
+  - user: 第一章出10题，总分100分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id037
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id037
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-038
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分100分，只需要草案。
+  turns:
+  - user: 第一章出8题，总分100分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id038
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id038
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-039
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: easy
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分72分，只需要草案。
+  turns:
+  - user: 第一章出6题，总分72分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 72
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id039
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id039
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-040
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出12题，总分120分，只需要草案。
+  turns:
+  - user: 第一章出12题，总分120分，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 12
+      total_score: 120
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id040
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id040
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-041
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出7题，总分70分，选择2道、填空2道、计算3道，只需要草案。
+  turns:
+  - user: 第一章出7题，总分70分，选择2道、填空2道、计算3道，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 70
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id041
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id041
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-042
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出8题，总分80分，选择3道、填空2道、计算3道，只需要草案。
+  turns:
+  - user: 第一章出8题，总分80分，选择3道、填空2道、计算3道，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 80
+      question_type_requirements:
+      - question_type: 选择题
+        count: 3
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id042
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id042
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-043
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出6题，总分60分，选择1道、填空2道、计算3道，只需要草案。
+  turns:
+  - user: 第一章出6题，总分60分，选择1道、填空2道、计算3道，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 60
+      question_type_requirements:
+      - question_type: 选择题
+        count: 1
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id043
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id043
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-044
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出9题，总分90分，选择2道、填空2道、计算5道，只需要草案。
+  turns:
+  - user: 第一章出9题，总分90分，选择2道、填空2道、计算5道，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 9
+      total_score: 90
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 5
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id044
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id044
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-045
+  split: dev
+  category: generation
+  subtype: preview_generation
+  difficulty: medium
+  primary_risk: explicit_constraint_preservation
+  title: 第一章出5题，总分50分，选择2道、计算3道，只需要草案。
+  turns:
+  - user: 第一章出5题，总分50分，选择2道、计算3道，只需要草案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 5
+      total_score: 50
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 计算题
+        count: 3
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id045
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id045
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 第一章scope断言已增强；章节名需用项目实际解析器核验
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-071
+  split: dev
+  category: pending
+  subtype: partial_patch
+  difficulty: easy
+  primary_risk: pending_state_preservation
+  title: 总分改成80分，题数和章节都别动。
+  turns:
+  - user: 总分改成80分，题数和章节都别动。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 80
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id046
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id046
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-072
+  split: dev
+  category: pending
+  subtype: partial_patch
+  difficulty: easy
+  primary_risk: pending_state_preservation
+  title: 题数改成7题，其他条件不变。
+  turns:
+  - user: 题数改成7题，其他条件不变。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id047
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id047
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-073
+  split: dev
+  category: pending
+  subtype: multi_field_patch
+  difficulty: medium
+  primary_risk: pending_state_preservation
+  title: 改成12题120分，章节保持第一章。
+  turns:
+  - user: 改成12题120分，章节保持第一章。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 12
+      total_score: 120
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id048
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id048
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+- id: EVAL-074
+  split: dev
+  category: pending
+  subtype: patch_no_confirm
+  difficulty: medium
+  primary_risk: pending_state_preservation
+  title: 先降到90分，暂时不要确认。
+  turns:
+  - user: 先降到90分，暂时不要确认。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 90
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id049
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id049
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-075
+  split: dev
+  category: pending
+  subtype: idempotent_plus_patch
+  difficulty: medium
+  primary_risk: pending_state_preservation
+  title: 题数还是10题，只把总分改成80。
+  turns:
+  - user: 题数还是10题，只把总分改成80。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 80
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id050
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id050
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-076
+  split: dev
+  category: pending
+  subtype: partial_patch
+  difficulty: easy
+  primary_risk: pending_state_preservation
+  title: 改成6题，总分还是100。
+  turns:
+  - user: 改成6题，总分还是100。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id051
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id051
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-077
+  split: dev
+  category: pending
+  subtype: partial_patch
+  difficulty: easy
+  primary_risk: pending_state_preservation
+  title: 总分改60分，其余照旧。
+  turns:
+  - user: 总分改60分，其余照旧。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 60
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id052
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id052
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-078
+  split: dev
+  category: pending
+  subtype: multi_field_patch
+  difficulty: medium
+  primary_risk: pending_state_preservation
+  title: 改成8题，100分，章节别变。
+  turns:
+  - user: 改成8题，100分，章节别变。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id053
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id053
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+- id: EVAL-107
+  split: dev
+  category: pending
+  subtype: pause_keep_pending
+  difficulty: hard
+  primary_risk: pause_vs_cancel_semantics
+  title: 先别生成，我还要再想想。
+  turns:
+  - user: 先别生成，我还要再想想。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools: &id054
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id054
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-108
+  split: dev
+  category: pending
+  subtype: pause_keep_pending
+  difficulty: hard
+  primary_risk: pause_vs_cancel_semantics
+  title: 保留当前方案，但不要确认。
+  turns:
+  - user: 保留当前方案，但不要确认。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools: &id055
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id055
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-109
+  split: dev
+  category: pending
+  subtype: pause_keep_pending
+  difficulty: hard
+  primary_risk: pause_vs_cancel_semantics
+  title: 方案先放着，暂时别执行。
+  turns:
+  - user: 方案先放着，暂时别执行。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools: &id056
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id056
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-110
+  split: dev
+  category: pending
+  subtype: pause_keep_pending
+  difficulty: hard
+  primary_risk: pause_vs_cancel_semantics
+  title: 不要取消，只是先别确认。
+  turns:
+  - user: 不要取消，只是先别确认。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools: &id057
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id057
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-111
+  split: dev
+  category: pending
+  subtype: pause_keep_pending
+  difficulty: hard
+  primary_risk: pause_vs_cancel_semantics
+  title: 先暂停，不要清掉方案。
+  turns:
+  - user: 先暂停，不要清掉方案。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools: &id058
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id058
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-112
+  split: dev
+  category: pending
+  subtype: pause_keep_pending
+  difficulty: hard
+  primary_risk: pause_vs_cancel_semantics
+  title: 当前方案保留，等我后面确认。
+  turns:
+  - user: 当前方案保留，等我后面确认。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools: &id059
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id059
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+- id: EVAL-113
+  split: dev
+  category: pending
+  subtype: explicit_confirm
+  difficulty: hard
+  primary_risk: confirm_creates_real_artifact
+  title: 确认，就按当前方案生成。
+  turns:
+  - user: 确认，就按当前方案生成。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 6
+      total_score: 60
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - confirm_generation
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 显式确认必须依据已有Pending创建真实Paper，并验证Tool Observation成功、持久化对象和版本指针。
+    proposal_notes:
+    - 生成最终Paper的题数与总分断言已增强
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+- id: EVAL-114
+  split: dev
+  category: pending
+  subtype: explicit_confirm
+  difficulty: hard
+  primary_risk: confirm_creates_real_artifact
+  title: 这个方案可以，按它生成。
+  turns:
+  - user: 这个方案可以，按它生成。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 6
+      total_score: 60
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - confirm_generation
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 显式确认必须依据已有Pending创建真实Paper，并验证Tool Observation成功、持久化对象和版本指针。
+    proposal_notes:
+    - 生成最终Paper的题数与总分断言已增强
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+- id: EVAL-115
+  split: dev
+  category: pending
+  subtype: explicit_confirm
+  difficulty: hard
+  primary_risk: confirm_creates_real_artifact
+  title: 确认当前方案。
+  turns:
+  - user: 确认当前方案。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 6
+      total_score: 60
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - confirm_generation
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 显式确认必须依据已有Pending创建真实Paper，并验证Tool Observation成功、持久化对象和版本指针。
+    proposal_notes:
+    - 生成最终Paper的题数与总分断言已增强
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+- id: EVAL-116
+  split: dev
+  category: paper
+  subtype: read_count
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 当前这套卷总共有几道题？
+  turns:
+  - user: 当前这套卷总共有几道题？
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_count: 10
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id060
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id060
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-117
+  split: dev
+  category: paper
+  subtype: read_score
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 这套卷满分多少？不要修改。
+  turns:
+  - user: 这套卷满分多少？不要修改。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id061
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id061
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-118
+  split: dev
+  category: paper
+  subtype: read_type_distribution
+  difficulty: medium
+  primary_risk: grounded_read_without_mutation
+  title: 当前卷各种题型分别有多少题？
+  turns:
+  - user: 当前卷各种题型分别有多少题？
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_type_counts:
+        选择题: 4
+        填空题: 2
+        计算题: 3
+        证明题: 1
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id062
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id062
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-119
+  split: dev
+  category: paper
+  subtype: read_item_read
+  difficulty: medium
+  primary_risk: grounded_read_without_mutation
+  title: 把全卷第4题的题干告诉我，不要动试卷。
+  turns:
+  - user: 把全卷第4题的题干告诉我，不要动试卷。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id063
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id063
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  business_rules:
+    require_read_content_grounding: true
+- id: EVAL-120
+  split: dev
+  category: paper
+  subtype: read_structure_summary
+  difficulty: medium
+  primary_risk: grounded_read_without_mutation
+  title: 这套卷先别改，帮我概括一下结构。
+  turns:
+  - user: 这套卷先别改，帮我概括一下结构。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_count: 10
+      total_score: 100
+      question_type_counts:
+        选择题: 4
+        填空题: 2
+        计算题: 3
+        证明题: 1
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id064
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id064
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-121
+  split: dev
+  category: paper
+  subtype: read_specific_type_count
+  difficulty: medium
+  primary_risk: grounded_read_without_mutation
+  title: 当前卷里证明题有几道？
+  turns:
+  - user: 当前卷里证明题有几道？
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_type_counts:
+        证明题: 1
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id065
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id065
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-122
+  split: dev
+  category: paper
+  subtype: read_typed_index
+  difficulty: hard
+  primary_risk: grounded_read_without_mutation
+  title: 第2道计算题是什么？只读取。
+  turns:
+  - user: 第2道计算题是什么？只读取。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id066
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id066
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  business_rules:
+    require_read_content_grounding: true
+- id: EVAL-123
+  split: dev
+  category: paper
+  subtype: read_readonly_score_check
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 看看当前卷是不是100分，不要生成新版本。
+  turns:
+  - user: 看看当前卷是不是100分，不要生成新版本。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id067
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id067
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-124
+  split: dev
+  category: paper
+  subtype: read_item_read
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 当前卷第1题是什么？
+  turns:
+  - user: 当前卷第1题是什么？
+  expected:
+    status: needs_clarification
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - analyze_paper
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - create_teaching_design
+    - prepare_generation_plan
+    - preview_paper_changes
+    - read_paper
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+    proposal_notes:
+    - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-125
+  split: dev
+  category: paper
+  subtype: read_difficulty_readonly
+  difficulty: medium
+  primary_risk: grounded_read_without_mutation
+  title: 只分析一下当前卷的难度分布，不做修改。
+  turns:
+  - user: 只分析一下当前卷的难度分布，不做修改。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      difficulty_counts:
+        '3': 10
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id068
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id068
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-144
+  split: dev
+  category: paper
+  subtype: add_preview
+  difficulty: medium
+  primary_risk: preview_confirm_or_target_resolution
+  title: 给当前卷增加一道计算题，先出修改方案。
+  turns:
+  - user: 给当前卷增加一道计算题，先出修改方案。
+  expected:
+    status: waiting_confirmation
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change:
+      exists: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - preview_paper_changes
+    forbidden_tools: &id069
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id069
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-146
+  split: dev
+  category: paper
+  subtype: typed_replace
+  difficulty: hard
+  primary_risk: preview_confirm_or_target_resolution
+  title: 把第1道选择题换一道，同题型，先让我确认。
+  turns:
+  - user: 把第1道选择题换一道，同题型，先让我确认。
+  expected:
+    status: waiting_confirmation
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change:
+      exists: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - preview_paper_changes
+    forbidden_tools: &id070
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id070
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-147
+  split: dev
+  category: paper
+  subtype: multi_op_preview
+  difficulty: hard
+  primary_risk: preview_confirm_or_target_resolution
+  title: 删除全卷第3题，同时把总分调整到90，先预览。
+  turns:
+  - user: 删除全卷第3题，同时把总分调整到90，先预览。
+  expected:
+    status: waiting_confirmation
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change:
+      exists: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - preview_paper_changes
+    forbidden_tools: &id071
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id071
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-148
+  split: dev
+  category: paper
+  subtype: confirm_boundary
+  difficulty: hard
+  primary_risk: preview_confirm_or_target_resolution
+  title: 把全卷第2题换掉，然后直接应用。
+  turns:
+  - user: 把全卷第2题换掉，然后直接应用。
+  expected:
+    status: waiting_confirmation
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change:
+      exists: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - preview_paper_changes
+    forbidden_tools: &id072
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id072
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-149
+  split: dev
+  category: paper
+  subtype: implicit_preview
+  difficulty: medium
+  primary_risk: preview_confirm_or_target_resolution
+  title: 当前卷第3题太难了，简单一点。
+  turns:
+  - user: 当前卷第3题太难了，简单一点。
+  expected:
+    status: needs_clarification
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - analyze_paper
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - create_teaching_design
+    - prepare_generation_plan
+    - preview_paper_changes
+    - read_paper
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+    proposal_notes:
+    - 全卷位置/题型内序号的地址语义仍需业务负责人确认，未改变Oracle
+    open_issues:
+    - ADDRESS_SEMANTICS_NEEDS_REVIEW
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-150
+  split: dev
+  category: paper
+  subtype: target_preservation
+  difficulty: medium
+  primary_risk: preview_confirm_or_target_resolution
+  title: 第4题换一个，不要影响其他题。
+  turns:
+  - user: 第4题换一个，不要影响其他题。
+  expected:
+    status: needs_clarification
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - analyze_paper
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - create_teaching_design
+    - prepare_generation_plan
+    - preview_paper_changes
+    - read_paper
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+    proposal_notes:
+    - 全卷位置/题型内序号的地址语义仍需业务负责人确认，未改变Oracle
+    open_issues:
+    - ADDRESS_SEMANTICS_NEEDS_REVIEW
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-151
+  split: dev
+  category: paper
+  subtype: ambiguous_address
+  difficulty: hard
+  primary_risk: preview_confirm_or_target_resolution
+  title: 删掉第二题。
+  turns:
+  - user: 删掉第二题。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id073
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id073
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-152
+  split: dev
+  category: paper
+  subtype: missing_target
+  difficulty: hard
+  primary_risk: preview_confirm_or_target_resolution
+  title: 把这道题换掉。
+  turns:
+  - user: 把这道题换掉。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id074
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id074
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-153
+  split: dev
+  category: paper
+  subtype: typed_delete
+  difficulty: medium
+  primary_risk: preview_confirm_or_target_resolution
+  title: 把最后一道计算题删掉，先预览。
+  turns:
+  - user: 把最后一道计算题删掉，先预览。
+  expected:
+    status: waiting_confirmation
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change:
+      exists: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - preview_paper_changes
+    forbidden_tools: &id075
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id075
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-154
+  split: dev
+  category: paper
+  subtype: same_difficulty_replace
+  difficulty: medium
+  primary_risk: preview_confirm_or_target_resolution
+  title: 把全卷第6题替换成同难度题。
+  turns:
+  - user: 把全卷第6题替换成同难度题。
+  expected:
+    status: waiting_confirmation
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change:
+      exists: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - preview_paper_changes
+    forbidden_tools: &id076
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id076
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-155
+  split: dev
+  category: paper
+  subtype: score_change_preview
+  difficulty: medium
+  primary_risk: preview_confirm_or_target_resolution
+  title: 把全卷第8题分值改成12分，先给方案。
+  turns:
+  - user: 把全卷第8题分值改成12分，先给方案。
+  expected:
+    status: waiting_confirmation
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change:
+      exists: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - preview_paper_changes
+    forbidden_tools: &id077
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id077
+  review:
+    status: pending
+    scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-181
+  split: dev
+  category: paper
+  subtype: read_item
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 只读当前卷的第2题，不要做任何改动。
+  turns:
+  - user: 只读当前卷的第2题，不要做任何改动。
+  expected:
+    status: needs_clarification
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - analyze_paper
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - create_teaching_design
+    - prepare_generation_plan
+    - preview_paper_changes
+    - read_paper
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+    proposal_notes:
+    - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-182
+  split: dev
+  category: paper
+  subtype: read_type_count
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 告诉我当前卷一共有多少道计算题。
+  turns:
+  - user: 告诉我当前卷一共有多少道计算题。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_type_counts:
+        计算题: 3
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id078
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id078
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-183
+  split: dev
+  category: paper
+  subtype: read_summary
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 当前试卷总分和题数分别是多少？
+  turns:
+  - user: 当前试卷总分和题数分别是多少？
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id079
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id079
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-184
+  split: dev
+  category: paper
+  subtype: read_item
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 把第10题题干读给我。
+  turns:
+  - user: 把第10题题干读给我。
+  expected:
+    status: needs_clarification
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - analyze_paper
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - create_teaching_design
+    - prepare_generation_plan
+    - preview_paper_changes
+    - read_paper
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+    proposal_notes:
+    - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-185
+  split: dev
+  category: paper
+  subtype: typed_read
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 当前卷第一道证明题是什么？
+  turns:
+  - user: 当前卷第一道证明题是什么？
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id080
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id080
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  business_rules:
+    require_read_content_grounding: true
+- id: EVAL-186
+  split: dev
+  category: paper
+  subtype: read_type_exists
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 不要修改，检查当前卷有没有填空题。
+  turns:
+  - user: 不要修改，检查当前卷有没有填空题。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_type_counts:
+        填空题: 2
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id081
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id081
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-187
+  split: dev
+  category: paper
+  subtype: read_last
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 读一下全卷最后一道题。
+  turns:
+  - user: 读一下全卷最后一道题。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id082
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id082
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  business_rules:
+    require_read_content_grounding: true
+- id: EVAL-188
+  split: dev
+  category: paper
+  subtype: read_type_count
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 当前卷有几道选择题？
+  turns:
+  - user: 当前卷有几道选择题？
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_type_counts:
+        选择题: 4
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id083
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id083
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-189
+  split: dev
+  category: paper
+  subtype: typed_read
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 当前卷第二道填空题是什么？
+  turns:
+  - user: 当前卷第二道填空题是什么？
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id084
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id084
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  business_rules:
+    require_read_content_grounding: true
+- id: EVAL-190
+  split: dev
+  category: paper
+  subtype: read_structure
+  difficulty: easy
+  primary_risk: grounded_read_without_mutation
+  title: 只分析当前卷结构，不要生成新版本。
+  turns:
+  - user: 只分析当前卷结构，不要生成新版本。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_count: 10
+      total_score: 100
+      question_type_counts:
+        选择题: 4
+        填空题: 2
+        计算题: 3
+        证明题: 1
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id085
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id085
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-191
+  split: dev
+  category: paper
+  subtype: missing_target
+  difficulty: medium
+  primary_risk: target_resolution
+  title: 把那道题删掉。
+  turns:
+  - user: 把那道题删掉。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id086
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id086
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-192
+  split: dev
+  category: paper
+  subtype: missing_context
+  difficulty: medium
+  primary_risk: target_resolution
+  title: 换一下刚才那题。
+  turns:
+  - user: 换一下刚才那题。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id087
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id087
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-193
+  split: dev
+  category: paper
+  subtype: ambiguous_target
+  difficulty: medium
+  primary_risk: target_resolution
+  title: 把其中一道题换掉。
+  turns:
+  - user: 把其中一道题换掉。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id088
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id088
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-194
+  split: dev
+  category: paper
+  subtype: ambiguous_target
+  difficulty: medium
+  primary_risk: target_resolution
+  title: 删除一道计算题。
+  turns:
+  - user: 删除一道计算题。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id089
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id089
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-195
+  split: dev
+  category: paper
+  subtype: underspecified_change
+  difficulty: medium
+  primary_risk: target_resolution
+  title: 调整这套卷。
+  turns:
+  - user: 调整这套卷。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id090
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id090
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-214
+  split: dev
+  category: teaching
+  subtype: consultation
+  difficulty: medium
+  primary_risk: consultation_without_business_write
+  title: 隐函数求导这部分课堂上怎么讲更清楚？
+  turns:
+  - user: 隐函数求导这部分课堂上怎么讲更清楚？
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools: &id091
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id091
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
+    open_issues:
+    - WEAK_TEACHING_RESPONSE_ORACLE
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-215
+  split: dev
+  category: teaching
+  subtype: consultation
+  difficulty: medium
+  primary_risk: consultation_without_business_write
+  title: 怎么向学生解释可导为什么一定连续？
+  turns:
+  - user: 怎么向学生解释可导为什么一定连续？
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools: &id092
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id092
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
+    open_issues:
+    - WEAK_TEACHING_RESPONSE_ORACLE
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-216
+  split: dev
+  category: teaching
+  subtype: consultation
+  difficulty: medium
+  primary_risk: consultation_without_business_write
+  title: 第一章复习时学生最容易在哪些地方出错？
+  turns:
+  - user: 第一章复习时学生最容易在哪些地方出错？
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools: &id093
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id093
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
+    open_issues:
+    - WEAK_TEACHING_RESPONSE_ORACLE
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-217
+  split: dev
+  category: teaching
+  subtype: consultation
+  difficulty: medium
+  primary_risk: consultation_without_business_write
+  title: 帮我梳理一下洛必达法则教学时要强调的前提。
+  turns:
+  - user: 帮我梳理一下洛必达法则教学时要强调的前提。
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools: &id094
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id094
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
+    open_issues:
+    - WEAK_TEACHING_RESPONSE_ORACLE
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-218
+  split: dev
+  category: teaching
+  subtype: consultation
+  difficulty: easy
+  primary_risk: consultation_without_business_write
+  title: 不要出卷，只说说第一章应该怎么复习。
+  turns:
+  - user: 不要出卷，只说说第一章应该怎么复习。
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools: &id095
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id095
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
+    open_issues:
+    - WEAK_TEACHING_RESPONSE_ORACLE
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-219
+  split: dev
+  category: teaching
+  subtype: consultation
+  difficulty: easy
+  primary_risk: consultation_without_business_write
+  title: 暂时不要建教学设计，先讲讲高阶导数的教学重点。
+  turns:
+  - user: 暂时不要建教学设计，先讲讲高阶导数的教学重点。
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools: &id096
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id096
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
+    open_issues:
+    - WEAK_TEACHING_RESPONSE_ORACLE
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-220
+  split: dev
+  category: teaching
+  subtype: consultation
+  difficulty: medium
+  primary_risk: consultation_without_business_write
+  title: 极限这一章学生常见错误有哪些？
+  turns:
+  - user: 极限这一章学生常见错误有哪些？
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools: &id097
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id097
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
+    open_issues:
+    - WEAK_TEACHING_RESPONSE_ORACLE
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-221
+  split: dev
+  category: teaching
+  subtype: consultation
+  difficulty: medium
+  primary_risk: consultation_without_business_write
+  title: 怎样解释间断点分类更容易理解？
+  turns:
+  - user: 怎样解释间断点分类更容易理解？
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools: &id098
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id098
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes:
+    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
+    open_issues:
+    - WEAK_TEACHING_RESPONSE_ORACLE
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-234
+  split: dev
+  category: teaching
+  subtype: underspecified
+  difficulty: easy
+  primary_risk: missing_scope_or_object
+  title: 我要准备复习课。
+  turns:
+  - user: 我要准备复习课。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id099
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id099
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-235
+  split: dev
+  category: teaching
+  subtype: underspecified
+  difficulty: easy
+  primary_risk: missing_scope_or_object
+  title: 帮我给学生安排一下。
+  turns:
+  - user: 帮我给学生安排一下。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id100
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id100
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-236
+  split: dev
+  category: teaching
+  subtype: underspecified
+  difficulty: easy
+  primary_risk: missing_scope_or_object
+  title: 做个教学计划。
+  turns:
+  - user: 做个教学计划。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id101
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id101
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-237
+  split: dev
+  category: teaching
+  subtype: underspecified
+  difficulty: easy
+  primary_risk: missing_scope_or_object
+  title: 帮我规划一下。
+  turns:
+  - user: 帮我规划一下。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id102
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id102
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-238
+  split: dev
+  category: teaching
+  subtype: underspecified
+  difficulty: easy
+  primary_risk: missing_scope_or_object
+  title: 给这一部分设计一下。
+  turns:
+  - user: 给这一部分设计一下。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id103
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id103
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-239
+  split: dev
+  category: teaching
+  subtype: underspecified
+  difficulty: easy
+  primary_risk: missing_scope_or_object
+  title: 准备两节课。
+  turns:
+  - user: 准备两节课。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id104
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id104
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-240
+  split: dev
+  category: teaching
+  subtype: underspecified
+  difficulty: easy
+  primary_risk: missing_scope_or_object
+  title: 复习一下。
+  turns:
+  - user: 复习一下。
+  expected:
+    status: needs_clarification
+    pending_generation: null
+    pending_paper_change: null
+    active_teaching_design: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools: &id105
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - create_teaching_design
+    - preview_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id105
+  review:
+    status: pending
+    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    proposal_notes: []
+    open_issues: []
+    proposal_revision: dev_122_dedup_patch_v1
+- id: EVAL-271
+  split: dev
+  category: multi_turn
+  subtype: pending_patch
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 题数改成6题，总分不变。
+  turns:
+  - user: 第一章出8题80分，先给方案。
+  - user: 题数改成6题，总分不变。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 6
+      total_score: 80
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id108
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - waiting_confirmation
+      required_tools: &id106
+      - prepare_generation_plan
+      tool_order: *id106
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      required_tools: &id107
+      - prepare_generation_plan
+      tool_order: *id107
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id108
+  review:
+    status: pending
+    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+- id: EVAL-272
+  split: dev
+  category: multi_turn
+  subtype: pending_patch
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 还是改成100分吧，题数别动。
+  turns:
+  - user: 第一章出8题80分，先给方案。
+  - user: 还是改成100分吧，题数别动。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 8
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id111
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - waiting_confirmation
+      required_tools: &id109
+      - prepare_generation_plan
+      tool_order: *id109
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      required_tools: &id110
+      - prepare_generation_plan
+      tool_order: *id110
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id111
+  review:
+    status: pending
+    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+- id: EVAL-273
+  split: dev
+  category: multi_turn
+  subtype: cancel
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 不要了，取消。
+  turns:
+  - user: 第一章出6题60分，先给方案。
+  - user: 不要了，取消。
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - prepare_generation_plan
+    - discard_pending_plan
+    forbidden_tools: &id114
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - waiting_confirmation
+      required_tools: &id112
+      - prepare_generation_plan
+      tool_order: *id112
+    - turn: 2
+      statuses:
+      - completed
+      required_tools: &id113
+      - discard_pending_plan
+      tool_order: *id113
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id114
+  review:
+    status: pending
+    scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+- id: EVAL-274
+  split: dev
+  category: multi_turn
+  subtype: read_then_modify
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 把全卷第2题删掉，先看预览。
+  turns:
+  - user: 先读一下当前卷有多少题。
+  - user: 把全卷第2题删掉，先看预览。
+  expected:
+    status: waiting_confirmation
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    pending_paper_change:
+      exists: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - read_paper
+    - preview_paper_changes
+    forbidden_tools: &id117
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - completed
+      required_tools: &id115
+      - read_paper
+      tool_order: *id115
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      required_tools: &id116
+      - read_paper
+      - preview_paper_changes
+      tool_order: *id116
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id117
+  review:
+    status: pending
+    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-275
+  split: dev
+  category: multi_turn
+  subtype: preview_then_cancel
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 先别改了，取消这次修改。
+  turns:
+  - user: 把全卷第3题换简单一点，先预览。
+  - user: 先别改了，取消这次修改。
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - preview_paper_changes
+    - discard_pending_plan
+    forbidden_tools: &id120
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - waiting_confirmation
+      required_tools: &id118
+      - read_paper
+      - preview_paper_changes
+      tool_order: *id118
+    - turn: 2
+      statuses:
+      - completed
+      required_tools: &id119
+      - discard_pending_plan
+      tool_order: *id119
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id120
+  review:
+    status: pending
+    scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-276
+  split: dev
+  category: multi_turn
+  subtype: teaching_revision
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 先别确认，我想把它改成三课时。
+  turns:
+  - user: 第一章做一份两课时复习计划。
+  - user: 先别确认，我想把它改成三课时。
+  expected:
+    status: waiting_confirmation
+    active_teaching_design:
+      persisted: true
+      status: awaiting_confirmation
+      lesson_count: 3
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - create_teaching_design
+    forbidden_tools: &id123
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - waiting_confirmation
+      required_tools: &id121
+      - create_teaching_design
+      tool_order: *id121
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      required_tools: &id122
+      - revise_teaching_design
+      tool_order: *id122
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id123
+  review:
+    status: pending
+    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+- id: EVAL-277
+  split: dev
+  category: multi_turn
+  subtype: three_turn_patch
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 题数改成7。
+  turns:
+  - user: 第一章出8题80分，先看方案。
+  - user: 总分改成90。
+  - user: 题数改成7。
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 90
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools: &id127
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - waiting_confirmation
+      required_tools: &id124
+      - prepare_generation_plan
+      tool_order: *id124
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      required_tools: &id125
+      - prepare_generation_plan
+      tool_order: *id125
+    - turn: 3
+      statuses:
+      - waiting_confirmation
+      required_tools: &id126
+      - prepare_generation_plan
+      tool_order: *id126
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id127
+  review:
+    status: pending
+    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+- id: EVAL-278
+  split: dev
+  category: multi_turn
+  subtype: readonly_chain
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 告诉我证明题有几道。
+  turns:
+  - user: 读一下当前卷。
+  - user: 不要修改。
+  - user: 告诉我证明题有几道。
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools: &id130
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - completed
+      required_tools: &id128
+      - read_paper
+      tool_order: *id128
+    - turn: 2
+      statuses:
+      - completed
+      forbidden_tools:
+      - confirm_generation
+      - confirm_paper_changes
+      - confirm_teaching_design
+    - turn: 3
+      statuses:
+      - completed
+      required_tools: &id129
+      - read_paper
+      tool_order: *id129
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id130
+  review:
+    status: pending
+    scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+- id: EVAL-280
+  split: dev
+  category: multi_turn
+  subtype: pause_then_cancel
+  difficulty: hard
+  primary_risk: context_carryover_and_state_transition
+  title: 取消这个方案。
+  turns:
+  - user: 第一章出6题60分。
+  - user: 先别确认。
+  - user: 取消这个方案。
+  expected:
+    status: completed
+    pending_generation: null
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - prepare_generation_plan
+    - discard_pending_plan
+    forbidden_tools: &id133
+    - confirm_generation
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - waiting_confirmation
+      required_tools: &id131
+      - prepare_generation_plan
+      tool_order: *id131
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      forbidden_tools:
+      - confirm_generation
+      - confirm_paper_changes
+      - confirm_teaching_design
+    - turn: 3
+      statuses:
+      - completed
+      required_tools: &id132
+      - discard_pending_plan
+      tool_order: *id132
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools: *id133
+  review:
+    status: pending
+    scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+    proposal_notes:
+    - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
+      or per-turn lifecycle contract.'
+    open_issues: []
+    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1

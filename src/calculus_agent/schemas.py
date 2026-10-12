@@ -206,10 +206,11 @@ class PaperBlueprint(BaseModel):
     @field_validator("question_type_counts", mode="before")
     @classmethod
     def normalize_question_type_counts(cls, value):
-        return {
-            canonical_question_type(str(question_type)): count
-            for question_type, count in (value or {}).items()
-        }
+        counts: dict[str, int] = {}
+        for question_type, count in (value or {}).items():
+            canonical = canonical_question_type(str(question_type))
+            counts[canonical] = counts.get(canonical, 0) + count
+        return counts
 
     @model_validator(mode="after")
     def validate_constraints(self):

@@ -234,6 +234,33 @@ def test_compact_generation_count_and_score_are_both_preserved() -> None:
     assert guarded["total_score"] == 60
 
 
+def test_pending_multifield_patch_restores_count_and_score_model_omissions() -> None:
+    for message, count, score in (
+        ("改成12题120分，章节保持第一章。", 12, 120),
+        ("改成8题，100分，章节别变。", 8, 100),
+    ):
+        guarded = _apply_explicit_opt_in_guards(
+            tool_name="prepare_generation_plan",
+            arguments={"question_count": count},
+            message=message,
+        )
+
+        assert guarded["question_count"] == count
+        assert guarded["total_score"] == score
+        assert guarded["constraint_provenance"] == {
+            "question_count": {
+                "source": "teacher_message",
+                "teacher_explicit": True,
+                "strength": "hard",
+            },
+            "total_score": {
+                "source": "teacher_message",
+                "teacher_explicit": True,
+                "strength": "hard",
+            },
+        }
+
+
 def test_explicit_type_distribution_is_restored_without_invented_scores() -> None:
     guarded = _apply_explicit_opt_in_guards(
         tool_name="prepare_generation_plan",
@@ -254,14 +281,22 @@ def test_explicit_type_distribution_is_restored_without_invented_scores() -> Non
     ]
 
 
-def test_pending_question_count_patch_is_restored_when_model_omits_it() -> None:
-    guarded = _apply_explicit_opt_in_guards(
-        tool_name="prepare_generation_plan",
-        arguments={},
-        message="题数改成7题，其他条件不变。",
-    )
+def test_pending_question_count_action_phrases_restore_only_count() -> None:
+    for message in (
+        "改成7题",
+        "改为7道题",
+        "题数调整到7道",
+        "保持原总分，改成7题",
+    ):
+        guarded = _apply_explicit_opt_in_guards(
+            tool_name="prepare_generation_plan",
+            arguments={"total_score": 999, "scope_names": ["第二章 导数与微分"]},
+            message=message,
+        )
 
-    assert guarded["question_count"] == 7
+        assert guarded["question_count"] == 7
+        assert "total_score" not in guarded
+        assert guarded["scope_names"] == ["第二章 导数与微分"]
 
 
 def test_pending_total_score_patch_is_restored_when_model_omits_it() -> None:

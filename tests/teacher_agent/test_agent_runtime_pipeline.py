@@ -111,6 +111,86 @@ def test_tool_executor_deduplicates_successful_mutations():
     assert toolkit.calls == 1
 
 
+def test_tool_executor_deduplicates_semantically_equal_paper_previews():
+    class Toolkit:
+        calls = 0
+
+        def execute(self, name, arguments):
+            self.calls += 1
+            return ToolResult(
+                payload={"ok": True, "plan": {"plan_id": "plan-1"}},
+                status="waiting_confirmation",
+            )
+
+    toolkit = Toolkit()
+    executor = ToolExecutor(toolkit)
+    minimal = {"operations": [{
+        "type": "replace_question",
+        "target": {"section_type": "计算题", "section_order": 2},
+    }]}
+    explicit_defaults = {"operations": [{
+        "type": "replace_question",
+        "target": {"section_type": "计算题", "section_order": 2},
+        "difficulty_direction": "same",
+        "preserve_knowledge_points": False,
+        "avoid_similarity_with": [],
+    }]}
+
+    first = executor.execute("preview_paper_changes", minimal)
+    second = executor.execute("preview_paper_changes", explicit_defaults)
+
+    assert first is second
+    assert toolkit.calls == 1
+
+
+def test_paper_preview_dedup_does_not_cross_targets_operations_or_executors():
+    class Toolkit:
+        calls = 0
+
+        def execute(self, name, arguments):
+            self.calls += 1
+            return ToolResult(payload={"ok": True}, status="waiting_confirmation")
+
+    toolkit = Toolkit()
+    first_executor = ToolExecutor(toolkit)
+    first_executor.execute("preview_paper_changes", {"operations": [{
+        "type": "remove_question",
+        "target": {"section_type": "计算题", "section_order": 1},
+    }]})
+    first_executor.execute("preview_paper_changes", {"operations": [{
+        "type": "remove_question",
+        "target": {"section_type": "计算题", "section_order": 2},
+    }]})
+    first_executor.execute("preview_paper_changes", {"operations": [
+        {
+            "type": "remove_question",
+            "target": {"section_type": "计算题", "section_order": 1},
+        },
+        {
+            "type": "change_question_score",
+            "target": {"section_type": "计算题", "section_order": 2},
+            "score": 12,
+        },
+    ]})
+    ToolExecutor(toolkit).execute("preview_paper_changes", {"operations": [{
+        "type": "remove_question",
+        "target": {"section_type": "计算题", "section_order": 1},
+    }]})
+    scope = ["paper-1", "version-1"]
+    scoped_executor = ToolExecutor(toolkit, dedup_scope=lambda: tuple(scope))
+    scoped_executor.execute("preview_paper_changes", {"operations": [{
+        "type": "remove_question",
+        "target": {"section_type": "计算题", "section_order": 1},
+    }]})
+    scope[1] = "version-2"
+    scoped_executor.execute("preview_paper_changes", {"operations": [{
+        "type": "remove_question",
+        "target": {"section_type": "计算题", "section_order": 1},
+    }]})
+
+    assert toolkit.calls == 6
+
+
 def test_tool_executor_rolls_back_partial_write_on_exception(session):
     from calculus_agent.models import TeacherAgentConversationMessage
 

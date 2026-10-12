@@ -59,20 +59,20 @@ def _paper_read_messages(
 
 _QUESTION_NUMBER_VALUE = r"\d+|[一二三四五六七八九十]+"
 _SECTION_QUESTION_PATTERN = re.compile(
-    rf"(?P<section>选择题|多选题|填空题|计算题|证明题)\s*"
+    rf"(?P<section>选择题|多选题|填空题|计算题|解答题|解答|证明题)\s*"
     rf"第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*题"
 )
 _REVERSED_SECTION_QUESTION_PATTERN = re.compile(
     rf"第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*题"
     rf"[^。！？,，；;]{{0,12}}?"
-    rf"(?P<section>选择题|多选题|填空题|计算题|证明题)"
+    rf"(?P<section>选择题|多选题|填空题|计算题|解答题|解答|证明题)"
 )
 _COUNTED_SECTION_QUESTION_PATTERN = re.compile(
     rf"第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*道\s*"
-    rf"(?P<section>选择题|多选题|填空题|计算题|证明题)"
+    rf"(?P<section>选择题|多选题|填空题|计算题|解答题|解答|证明题)"
 )
 _GLOBAL_QUESTION_PATTERN = re.compile(
-    rf"(?:全卷|全卷的)\s*第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*题"
+    rf"(?:全卷|全卷的|当前卷|这套卷)\s*第\s*(?P<number>{_QUESTION_NUMBER_VALUE})\s*题"
 )
 _CHINESE_DIGITS = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 _BARE_QUESTION_PATTERN = re.compile(
@@ -81,6 +81,15 @@ _BARE_QUESTION_PATTERN = re.compile(
 _QUESTION_MUTATION_PATTERN = re.compile(
     r"删除|删掉|去掉|换|替换|改|调整|分值"
 )
+_CONTEXTUAL_QUESTION_REFERENCE_PATTERN = re.compile(
+    r"这道题|这题|刚才(?:读的|看的|说的)?那道?题|刚刚(?:读的|看的)?那道?题|"
+    r"刚读(?:过)?的第?[^，。！？]*题"
+)
+_AMBIGUOUS_TYPE_ONLY_MUTATION_PATTERN = re.compile(
+    r"(?:删除|删掉|去掉|换|替换|改|调整)[^，。！？]{0,8}"
+    r"(?:一|1)\s*道(?:选择题|多选题|填空题|计算题|解答题|证明题)"
+)
+_READ_INTENT_PATTERN = re.compile(r"读|读取|看看|告诉我|是什么|题干")
 
 _KNOWLEDGE_CONSTRAINT_TARGET = r"(?:知识点|考点)"
 _KNOWLEDGE_PRESERVE_ACTION = (
@@ -177,14 +186,58 @@ def _explicit_question_positions(message: str) -> list[int]:
     return positions
 
 
-def has_ambiguous_question_mutation(message: str) -> bool:
-    """Reject mutations whose ordinal has no whole-paper or section namespace."""
+def has_unique_recent_question_reference(
+    message: str,
+    recent_messages: list[dict[str, str]],
+) -> bool:
+    """Recognize a singular target explicitly read in the immediately prior turn."""
+    if not _CONTEXTUAL_QUESTION_REFERENCE_PATTERN.search(message):
+        return False
+    prior_users = [
+        item.get("content", "")
+        for item in recent_messages
+        if item.get("role") == "user"
+    ]
+    if not prior_users:
+        return False
+    previous = prior_users[-1]
+    references = _BARE_QUESTION_PATTERN.findall(previous)
+    return bool(_READ_INTENT_PATTERN.search(previous) and len(references) == 1)
+
+
+def has_contextual_question_reference(message: str) -> bool:
+    return bool(_CONTEXTUAL_QUESTION_REFERENCE_PATTERN.search(message))
+
+
+def is_trusted_single_question_read(message: str) -> bool:
+    """A targeted read may establish focus; an incidental/random read may not."""
     return bool(
-        _QUESTION_MUTATION_PATTERN.search(message)
-        and _BARE_QUESTION_PATTERN.search(message)
-        and not _explicit_question_addresses(message)
-        and not _explicit_question_positions(message)
+        _READ_INTENT_PATTERN.search(message)
+        and not _QUESTION_MUTATION_PATTERN.search(message)
+        and (
+            _BARE_QUESTION_PATTERN.search(message)
+            or _explicit_question_addresses(message)
+            or _explicit_question_positions(message)
+        )
     )
+
+
+def has_ambiguous_question_mutation(
+    message: str,
+    recent_messages: list[dict[str, str]] | None = None,
+    *,
+    has_trusted_focus: bool = False,
+) -> bool:
+    """Reject mutation targets that cannot be tied to one trustworthy question."""
+    if not _QUESTION_MUTATION_PATTERN.search(message):
+        return False
+    if _explicit_question_addresses(message) or _explicit_question_positions(message):
+        return False
+    if _AMBIGUOUS_TYPE_ONLY_MUTATION_PATTERN.search(message):
+        return True
+    if has_contextual_question_reference(message):
+        return not has_trusted_focus
+    return bool(_BARE_QUESTION_PATTERN.search(message))
 
 
 def _apply_question_reference_hints(
@@ -202,14 +255,12 @@ def _apply_question_reference_hints(
     updated = dict(arguments)
 
     if tool_name == "read_paper":
-        if not updated.get("addresses") and not updated.get("positions"):
-            if addresses:
-                updated["addresses"] = [
-                    address.model_dump(mode="json")
-                    for address in addresses
-                ]
-            elif positions:
-                updated["positions"] = list(positions)
+        if len(addresses) == 1:
+            updated["addresses"] = [addresses[0].model_dump(mode="json")]
+            updated.pop("positions", None)
+        elif len(positions) == 1:
+            updated["positions"] = list(positions)
+            updated.pop("addresses", None)
         return updated
 
     if tool_name != "preview_paper_changes" or len(addresses) != 1:
@@ -228,17 +279,16 @@ def _apply_question_reference_hints(
         "remove_question",
         "change_question_score",
     }
-    unresolved = [
+    targeted = [
         index
         for index, operation in enumerate(operations)
         if isinstance(operation, dict)
         and operation.get("type") in target_types
-        and operation.get("target") is None
     ]
-    if len(unresolved) != 1:
+    if len(targeted) != 1:
         return updated
 
-    index = unresolved[0]
+    index = targeted[0]
     operations[index]["target"] = addresses[0].model_dump(mode="json")
     updated["operations"] = operations
     return updated

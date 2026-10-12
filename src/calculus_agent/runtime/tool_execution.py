@@ -4,6 +4,8 @@ import json
 from typing import Any
 from uuid import uuid4
 
+from pydantic import ValidationError
+
 from calculus_agent.agent.trace_log import redact_trace_value
 from calculus_agent.runtime.contracts import ToolResult
 from calculus_agent.runtime.tool_loop import ToolLoop
@@ -17,6 +19,28 @@ _MUTATING_TOOLS = frozenset({
 })
 
 
+def tool_call_fingerprint(name: str, arguments: dict[str, Any]) -> str:
+    """Canonicalize business-equivalent preview defaults before deduplication."""
+    values = arguments
+    if name == "preview_paper_changes":
+        from calculus_agent.agent.paper_change_service import PaperChangeRequest
+
+        try:
+            values = PaperChangeRequest.model_validate(arguments).model_dump(mode="json")
+        except ValidationError:
+            # Preserve the existing Toolkit validation/error protocol for malformed calls.
+            values = arguments
+        else:
+            for operation in values["operations"]:
+                if (
+                    operation["type"] == "replace_question"
+                    and operation.get("target_difficulty") is None
+                    and operation.get("difficulty_direction") is None
+                ):
+                    operation["difficulty_direction"] = "same"
+    return json.dumps([name, values], ensure_ascii=False, sort_keys=True, default=str)
+
+
 class ToolExecutor:
     """Validate Tool results and isolate every mutation behind a savepoint."""
 
@@ -26,10 +50,12 @@ class ToolExecutor:
         *,
         session: Any = None,
         fault_injector: Any = None,
+        dedup_scope: Any = None,
     ) -> None:
         self.toolkit = toolkit
         self.session = session
         self.fault_injector = fault_injector
+        self.dedup_scope = dedup_scope
         self._successful_mutations: dict[str, ToolResult] = {}
 
     def prepare(
@@ -52,9 +78,9 @@ class ToolExecutor:
         )
 
     def execute(self, name: str, arguments: dict[str, Any]) -> ToolResult:
-        fingerprint = json.dumps(
-            [name, arguments], ensure_ascii=False, sort_keys=True, default=str,
-        )
+        call_fingerprint = tool_call_fingerprint(name, arguments)
+        scope = self.dedup_scope() if self.dedup_scope is not None else None
+        fingerprint = json.dumps([scope, call_fingerprint], default=str)
         if name in _MUTATING_TOOLS and fingerprint in self._successful_mutations:
             return self._successful_mutations[fingerprint]
 

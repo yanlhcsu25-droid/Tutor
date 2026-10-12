@@ -54,8 +54,12 @@ class RuntimeErrorInfo:
     @classmethod
     def from_exception(cls, exc: Exception, *, stage: str) -> "RuntimeErrorInfo":
         message = str(exc)
+        provider_error_code = getattr(exc, "provider_error_code", None)
         return cls(
-            error_code=(message if message.startswith("agent_") else "agent_execution_failed"),
+            error_code=(
+                provider_error_code
+                or (message if message.startswith("agent_") else "agent_execution_failed")
+            ),
             error_type=type(exc).__name__,
             error_message=message,
             error_stage=stage,

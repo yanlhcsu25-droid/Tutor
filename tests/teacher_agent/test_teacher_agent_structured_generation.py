@@ -1,7 +1,10 @@
 from unittest.mock import patch
 
 from calculus_agent.agent.agent import run_teacher_agent
-from calculus_agent.agent.conversation_state import DatabasePendingReplacementStore
+from calculus_agent.agent.conversation_state import (
+    DatabasePendingReplacementStore,
+    PendingGeneration,
+)
 from calculus_agent.agent.schemas import GeneratePaperInput, QuestionTypeRequirement
 from calculus_agent.questions.chapter_assignment import (
     chapter_display_name,
@@ -13,6 +16,9 @@ from calculus_agent.agent.tools.paper_tools import (
     build_structured_generation_request,
     generate_paper_from_input,
 )
+from tests.evals.curriculum_fixture import seed_eval_curriculum
+from tests.evals.fixtures.paper import seed_success_question_bank
+
 from calculus_agent.models import (
     CurriculumNode,
     KnowledgeNode,
@@ -258,7 +264,7 @@ def test_natural_scope_phrases_can_map_to_executable_generation_plans(session):
         pending = DatabasePendingReplacementStore(session).get_generation(
             f"natural-scope-{index}"
         )
-        assert pending.request.scope_names == ["函数与极限"]
+        assert pending.request.scope_names == ["第1章 函数与极限"]
         assert pending.request.question_count == count
         assert pending.request.knowledge_preferences == [knowledge]
 
@@ -300,7 +306,7 @@ def test_generation_draft_context_survives_follow_up_patch(session):
     pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
     assert first.status == "waiting_confirmation"
     assert second.status == "waiting_confirmation"
-    assert pending.request.scope_names == ["函数与极限"]
+    assert pending.request.scope_names == ["第1章 函数与极限"]
     assert pending.request.question_count == 6
     assert pending.request.knowledge_preferences == ["无穷小的比较"]
     assert pending.request.difficulty_level == "normal"
@@ -544,7 +550,7 @@ def test_multiturn_generation_preview_then_confirmation(session):
             backend=backend,
         )
     assert second.status == "completed"
-    assert tool.call_args.args[1].scope_names == ["第一章"]
+    assert tool.call_args.args[1].scope_names == ["第1章 函数与极限"]
 
 
 def test_missing_model_does_not_fall_back_to_hardcoded_intent_routing(session):
@@ -566,7 +572,7 @@ def test_generation_patch_preserves_authoritative_pending_scope(session):
     )
     pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
     assert first.status == second.status == "waiting_confirmation"
-    assert pending.request.scope_names == ["第一章"]
+    assert pending.request.scope_names == ["第1章 函数与极限"]
     assert pending.request.question_type_requirements[0].count == 1
 
 
@@ -637,7 +643,7 @@ def test_direct_generation_forces_blueprint_card_after_env_inspection(session):
     assert result.generation_preview is not None
     assert result.generation_preview.total_score == 100
     assert pending is not None
-    assert pending.request.scope_names == ["第一章"]
+    assert pending.request.scope_names == ["第1章 函数与极限"]
     assert result.message == (
         "组卷设计意图：本套试卷以函数极限基础为主线，重点检查学生对核心方法的掌握情况；"
         "具体题型与分值请在下方蓝图中调整。"
@@ -657,8 +663,29 @@ def test_direct_generation_forces_blueprint_card_after_env_inspection(session):
         )
     assert second.status == "completed"
     gen.assert_called_once()
-    assert gen.call_args.args[1].scope_names == ["第一章"]
+    assert gen.call_args.args[1].scope_names == ["第1章 函数与极限"]
 
+
+
+def test_direct_generation_gets_second_tool_retry_after_two_prose_plans(session):
+    _scope(session)
+    conversation_id = "direct-gen-second-retry"
+    backend = _Backend(
+        _tool('{"scope_names":["第一章"]}', "inspect_curriculum"),
+        _tool('{"scope_names":["第一章"]}', "inspect_question_bank"),
+        _final("建议按默认结构组卷，请确认。"),
+        _final("我会使用默认结构生成，请确认。"),
+        _tool('{"paper_type":"chapter_test","scope_names":["第一章"]}', "prepare_generation_plan"),
+        _final("组卷预览已创建，请确认。"),
+    )
+
+    result = run_teacher_agent(
+        session, "帮我出一套第一章测试卷", conversation_id=conversation_id, backend=backend
+    )
+
+    assert result.status == "waiting_confirmation"
+    assert result.generation_preview is not None
+    assert DatabasePendingReplacementStore(session).get_generation(conversation_id) is not None
 
 
 def test_new_generation_does_not_expose_new_teaching_design_tools(session):
@@ -714,6 +741,106 @@ def test_new_generation_does_not_expose_new_teaching_design_tools(session):
         forbidden.isdisjoint(names)
         for names in backend.tool_name_sets
     )
+
+
+def test_eval073_eval078_pending_multifield_patch_preserves_all_explicit_fields(
+    session,
+):
+    seed_eval_curriculum(session)
+    seed_success_question_bank(session)
+    knowledge_id = session.query(KnowledgeNode.id).filter_by(
+        curriculum_node_id="eval-chapter-1"
+    ).first()[0]
+    for type_index, question_type in enumerate(
+        ("选择题", "填空题", "计算题", "证明题")
+    ):
+        for index in range(6):
+            _candidate(
+                session,
+                number=900 + type_index * 10 + index,
+                question_type=question_type,
+                knowledge_id=knowledge_id,
+                with_answer=True,
+            )
+    store = DatabasePendingReplacementStore(session)
+    cases = (
+        ("eval-073-multifield", "改成12题120分，章节保持第一章。", 12, 120),
+        ("eval-078-multifield", "改成8题，100分，章节别变。", 8, 100),
+    )
+
+    for conversation_id, message, count, score in cases:
+        store.set_generation(
+            conversation_id,
+            PendingGeneration(
+                request=GeneratePaperInput(
+                    paper_type="chapter_test",
+                    scope_names=["第一章 函数与极限"],
+                    question_count=6,
+                    total_score=60,
+                ),
+                total_score_source="teacher_explicit",
+            ),
+        )
+        result = run_teacher_agent(
+            session,
+            message,
+            conversation_id=conversation_id,
+            backend=_Backend(
+                _tool(
+                    '{"paper_type":"chapter_test","scope_names":["第一章"],'
+                    f'"question_count":{count}}}'
+                ),
+                _final("已更新方案。"),
+            ),
+        )
+        pending = store.get_generation(conversation_id)
+
+        assert result.status == "waiting_confirmation", result.model_dump(mode="json")
+        assert pending.request.question_count == count
+        assert pending.request.total_score == score
+        assert pending.request.scope_names == ["第一章 函数与极限"]
+        assert pending.total_score_source == "teacher_explicit"
+        assert pending.pending_version == 2
+        assert set(pending.request.constraint_provenance) == {
+            "question_count", "total_score",
+        }
+        assert pending.request.constraint_provenance["question_count"].teacher_explicit
+        assert pending.request.constraint_provenance["total_score"].teacher_explicit
+
+
+def test_pending_multifield_patch_waits_for_feasibility_before_replacing_pending(
+    session,
+):
+    _scope(session)
+    conversation_id = "multifield-feasibility-boundary"
+    store = DatabasePendingReplacementStore(session)
+    store.set_generation(
+        conversation_id,
+        PendingGeneration(
+            request=GeneratePaperInput(
+                paper_type="chapter_test",
+                scope_names=["第一章 函数与极限"],
+                question_count=6,
+                total_score=60,
+            ),
+            total_score_source="teacher_explicit",
+        ),
+    )
+
+    result = run_teacher_agent(
+        session,
+        "改成12题120分，章节保持第一章。",
+        conversation_id=conversation_id,
+        backend=_Backend(_tool('{"question_count":12}')),
+    )
+    pending = store.get_generation(conversation_id)
+
+    assert result.status == "needs_clarification"
+    assert "insufficient_candidates" in result.blocking_errors
+    assert pending.request.question_count == 6
+    assert pending.request.total_score == 60
+    assert pending.request.scope_names == ["第一章 函数与极限"]
+    assert pending.pending_version == 1
 
 
 def test_teacher_explicit_total_score_rebalanced_on_count_change(session):
@@ -776,7 +903,7 @@ def test_default_count_change_preserves_unmodified_fields(session):
     pending = DatabasePendingReplacementStore(session).get_generation(conversation_id)
     types = {item.question_type: item for item in pending.request.question_type_requirements}
     assert result.status == "waiting_confirmation"
-    assert pending.request.scope_names == ["第一章"]
+    assert pending.request.scope_names == ["第1章 函数与极限"]
     assert pending.request.difficulty_preference == "从基础逐渐过渡到需要思考"
     assert types["选择题"].count == 4 and types["选择题"].score_each == 5
     assert types["计算题"].count == 4 and types["计算题"].score_each == 15
@@ -898,7 +1025,7 @@ def test_clarification_answer_completes_working_memory_draft(session):
     assert first.status == "needs_clarification"
     assert second.status == "waiting_confirmation"
     assert pending.request.paper_type == "chapter_test"
-    assert pending.request.scope_names == ["第一章"]
+    assert pending.request.scope_names == ["第1章 函数与极限"]
     assert pending.request.knowledge_preferences == []
 
 def test_model_default_total_score_does_not_become_teacher_explicit(session):

@@ -135,8 +135,9 @@ def test_runtime_routes_direct_action_before_first_llm_call(session):
         backend=backend,
     )
 
-    assert result.status == "completed"
-    assert len(backend.requests) == 1
+    assert result.status == "failed"
+    assert "generation_plan_required" in result.blocking_errors
+    assert len(backend.requests) == 2
     assert "当前任务模式：DIRECT_ACTION" in _system_text(backend.requests[0])
     assert "prepare_generation_plan" in _names(backend.requests[0])
 

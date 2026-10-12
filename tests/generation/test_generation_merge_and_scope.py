@@ -43,6 +43,7 @@ from calculus_agent.agent.tools.paper_tools import _scope_node_ids
 
 CONVERSATION_ID = "test-merge"
 SCOPE = ["第三章"]
+CANONICAL_SCOPE = ["第三章 微分中值定理与导数的应用"]
 TOTAL = 100
 
 # Base plan shared by MERGE-Disposable and MERGE-02 (mirrors the MOD-02 setup):
@@ -126,7 +127,7 @@ def _assert_modified_state(final):
     assert req["证明题"].count == 2 and req["证明题"].score_each == 25, "证明题 changed"
 
     # Scope and total preserved.
-    assert request.scope_names == SCOPE, f"scope_names = {request.scope_names}"
+    assert request.scope_names == CANONICAL_SCOPE, f"scope_names = {request.scope_names}"
     assert request.total_score == TOTAL, f"total_score = {request.total_score}"
 
 

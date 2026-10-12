@@ -15,9 +15,9 @@ cannot be resolved falls back to ``"unknown"``; ``canonical_question_type``
 never returns the raw input.
 
 Rationale for deprecated types:
-  * 解答题 / 简答题 / 问答题 / 问答 / 其他 / subjective … — free-form answer
-    types are unified to ``unknown`` (they are no longer a supported canonical
-    type; a human must re-classify, or the bank treats them as untyped).
+  * 解答题 / 解答 — teacher-facing aliases for ``计算题`` in this product.
+  * 简答题 / 问答题 / 问答 / 其他 / subjective … — ambiguous free-form types
+    remain ``unknown`` until a human classifies them.
   * 多选题 — semantically still a choice-type question, so it folds into
     ``选择题``.
 """
@@ -67,12 +67,13 @@ QUESTION_TYPE_ALIASES: dict[str, str] = {
     "prove": "证明题",
     "证明": "证明题",
     "证明题": "证明题",
-    # ── unknown（废弃类型统一归 unknown，不再作为正式题型）──
-    "解答题": "unknown",
+    # ── 教师常用别名：解答题统一视作计算题 ──
+    # 其他模糊题型仍归 unknown，不得全部自动转成计算题。
+    "解答题": "计算题",
     "简答题": "unknown",
     "问答题": "unknown",
     "问答": "unknown",
-    "解答": "unknown",
+    "解答": "计算题",
     "判断题": "unknown",
     "其他": "unknown",
     "other": "unknown",

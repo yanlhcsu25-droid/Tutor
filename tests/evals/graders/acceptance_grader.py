@@ -159,6 +159,51 @@ def grade_acceptance(
         if "confirm_generation" not in names and "confirm_paper_changes" not in names:
             errors.append("confirmation tool was not called")
 
+    evaluated_turns = actual.get("evaluated_turns") or []
+    for turn_contract in config.get("turns") or []:
+        turn_number = turn_contract.get("turn")
+        turn = next(
+            (item for item in evaluated_turns if item.get("turn") == turn_number),
+            None,
+        )
+        if turn is None:
+            errors.append(f"missing turn evidence: {turn_number}")
+            continue
+        turn_calls = ((turn.get("state") or {}).get("trace") or {}).get("tool_calls") or []
+        turn_names = [
+            _tool_name(item) for item in turn_calls if isinstance(item, dict)
+        ]
+        turn_names = [name for name in turn_names if name]
+        missing = [
+            name for name in turn_contract.get("required_tools") or []
+            if name not in turn_names
+        ]
+        if missing:
+            errors.append(f"turn {turn_number}: required tools not called: {missing!r}")
+        forbidden_turn = [
+            name for name in turn_contract.get("forbidden_tools") or []
+            if name in turn_names
+        ]
+        if forbidden_turn:
+            errors.append(f"turn {turn_number}: forbidden tools called: {forbidden_turn!r}")
+        expected_turn_order = turn_contract.get("tool_order") or []
+        cursor = 0
+        for name in turn_names:
+            if cursor < len(expected_turn_order) and name == expected_turn_order[cursor]:
+                cursor += 1
+        if cursor != len(expected_turn_order):
+            errors.append(
+                f"turn {turn_number}: tool order not observed: "
+                f"expected={expected_turn_order!r}, actual={turn_names!r}"
+            )
+        allowed_turn_statuses = turn_contract.get("statuses") or []
+        turn_status = (turn.get("result") or {}).get("status")
+        if allowed_turn_statuses and turn_status not in allowed_turn_statuses:
+            errors.append(
+                f"turn {turn_number}: unexpected status: "
+                f"expected={allowed_turn_statuses!r}, actual={turn_status!r}"
+            )
+
     return {
         "grader": "acceptance",
         "passed": not errors,

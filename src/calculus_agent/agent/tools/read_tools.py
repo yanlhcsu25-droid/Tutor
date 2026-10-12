@@ -54,6 +54,7 @@ class CurrentPaperSummary(BaseModel):
     title: str
     question_count: int
     total_score: float
+    question_type_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class CurrentPaperQuestion(BaseModel):
@@ -205,6 +206,10 @@ def read_current_paper(
         item.position: item
         for item in all_items
     }
+    question_type_counts: dict[str, int] = {}
+    for item in all_items:
+        question_type = canonical_question_type(item.section)
+        question_type_counts[question_type] = question_type_counts.get(question_type, 0) + 1
     section_orders = section_order_map(all_items)
 
     requested_positions = list(
@@ -374,6 +379,7 @@ def read_current_paper(
                 item.score
                 for item in all_items
             ),
+            question_type_counts=question_type_counts,
         ),
         questions=result_questions,
         question_count=len(all_items),

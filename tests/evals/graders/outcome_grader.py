@@ -8,7 +8,7 @@ from typing import Any
 _SUCCESS_CLAIM = re.compile(r"已(?:完成|生成|创建|修改|确认|删除|替换|应用|保存)|操作成功|生成成功")
 _PAPER_CLAIM = re.compile(r"(?:试卷|成卷).*(?:已生成|生成成功)|已生成.*(?:试卷|成卷)")
 _DESIGN_CLAIM = re.compile(r"教学设计.*(?:已创建|已保存|已完成)|已创建.*教学设计")
-_PENDING_ARTIFACT_CONTEXT = re.compile(r"方案|预览|待确认|请确认")
+_PENDING_ARTIFACT_CONTEXT = re.compile(r"方案|草案|预览|待确认|请确认|等待.{0,8}确认")
 
 
 def _calls(turn: dict[str, Any]) -> list[dict[str, Any]]:
@@ -38,7 +38,10 @@ def grade_outcome_integrity(case, actual: dict[str, Any]) -> dict[str, Any]:
         after = turn.get("business_state_after") or {}
         if (
             _PAPER_CLAIM.search(message)
-            and not _PENDING_ARTIFACT_CONTEXT.search(message)
+            and not (
+                status == "waiting_confirmation"
+                and _PENDING_ARTIFACT_CONTEXT.search(message)
+            )
             and before.get("paper") == after.get("paper")
         ):
             errors.append(f"{prefix}: paper completion claimed without persisted Paper change")

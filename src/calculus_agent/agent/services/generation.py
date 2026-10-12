@@ -16,6 +16,7 @@ from typing import Protocol
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from calculus_agent.application.scope_resolution import resolve_deterministic_scope_labels
 from calculus_agent.generation_diagnosis import diagnose_generation_failure
 from calculus_agent.models import Paper
 from calculus_agent.papers.selector import compose_paper_with_evidence
@@ -459,6 +460,13 @@ class GenerationService:
         if "constraint_provenance" in patch.model_fields_set:
             patch_values["constraint_provenance"] = patch.constraint_provenance
         unsupported = patch_values.pop("avoid_previous_paper_questions", None)
+        requested_scopes = patch_values.get("scope_names")
+        if requested_scopes:
+            resolved_scopes = resolve_deterministic_scope_labels(
+                self.session, requested_scopes,
+            )
+            if resolved_scopes.ok:
+                patch_values["scope_names"] = resolved_scopes.validated_scope_names
 
         existing_pending = self._pending()
         # Existing domain pending may predate RuntimeState. Reconcile it once,

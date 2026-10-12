@@ -167,12 +167,23 @@ class ActiveLearningContext(BaseModel):
     source_run_id: str | None = None
 
 
+class LastFocusedQuestion(BaseModel):
+    """A single teacher-selected question, bound to one concrete Paper version."""
+
+    paper_id: str
+    paper_version_id: str
+    question_id: str
+    position: int = Field(ge=1)
+    source: Literal["explicit_user", "read_paper", "pending_change"]
+
+
 class AgentWorkingMemory(BaseModel):
     active_task: dict = Field(default_factory=dict)
     active_learning_context: ActiveLearningContext | None = None
     generation_summary: dict = Field(default_factory=dict)
     last_clarification: dict | None = None
     last_completed_paper: dict | None = None
+    last_focused_question: LastFocusedQuestion | None = None
     unsupported_preferences: list[dict] = Field(default_factory=list)
 
 

@@ -1,8 +1,23 @@
 import json
+import logging
+import socket
+import ssl
 import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from typing import Protocol
+
+
+logger = logging.getLogger(__name__)
+
+
+def provider_error_category(error: BaseException) -> str:
+    reason = error.reason if isinstance(error, URLError) else error
+    if isinstance(reason, (ssl.SSLError, ConnectionError, socket.timeout, TimeoutError)):
+        return "provider_connection_error"
+    if isinstance(error, HTTPError):
+        return "provider_rate_limit" if error.code == 429 else "provider_http_error"
+    return "provider_error"
 
 
 class ChatBackend(Protocol):
@@ -102,21 +117,23 @@ class BailianChatBackend:
             },
         )
         request_timeout = self.timeout if timeout is None else timeout
+        attempts: list[dict] = []
         for attempt in range(self.max_retries + 1):
+            started = time.perf_counter()
             try:
                 with urlopen(request, timeout=request_timeout) as response:
                     body = json.loads(response.read().decode())
+                attempts.append({
+                    "attempt": attempt + 1,
+                    "status": "success",
+                    "latency_seconds": round(time.perf_counter() - started, 4),
+                })
                 break
-            except (HTTPError, TimeoutError, ConnectionError, URLError) as error:
-                retryable = (
-                    isinstance(error, (TimeoutError, ConnectionError))
-                    or isinstance(error, URLError)
-                    and isinstance(error.reason, (TimeoutError, ConnectionError))
-                    or isinstance(error, HTTPError)
-                    and error.code == 429
-                )
-                if not retryable or attempt == self.max_retries:
-                    raise
+            except (HTTPError, TimeoutError, ConnectionError, URLError, ssl.SSLError, socket.timeout) as error:
+                category = provider_error_category(error)
+                retryable = category in {
+                    "provider_connection_error", "provider_rate_limit",
+                }
                 retry_after = (
                     error.headers.get("Retry-After")
                     if isinstance(error, HTTPError) and error.headers
@@ -127,6 +144,24 @@ class BailianChatBackend:
                     if retry_after and retry_after.replace(".", "", 1).isdigit()
                     else self.retry_base_seconds * (2**attempt)
                 )
+                attempts.append({
+                    "attempt": attempt + 1,
+                    "status": "error",
+                    "category": category,
+                    "error_type": type(error).__name__,
+                    "retryable": retryable and attempt < self.max_retries,
+                    "latency_seconds": round(time.perf_counter() - started, 4),
+                    "retry_delay_seconds": min(delay, 60.0) if retryable and attempt < self.max_retries else None,
+                })
+                logger.warning(
+                    "provider request attempt=%s provider=%s status=error category=%s retryable=%s",
+                    attempt + 1, self.provider, category,
+                    retryable and attempt < self.max_retries,
+                )
+                if not retryable or attempt == self.max_retries:
+                    error.provider_error_code = category
+                    error.provider_attempts = attempts
+                    raise
                 time.sleep(min(delay, 60.0))
         choice = body["choices"][0]
         return {
@@ -138,6 +173,7 @@ class BailianChatBackend:
             "id": body.get("id"),
             "created": body.get("created"),
             "system_fingerprint": body.get("system_fingerprint"),
+            "provider_attempts": attempts,
         }
 
     def complete_structured(

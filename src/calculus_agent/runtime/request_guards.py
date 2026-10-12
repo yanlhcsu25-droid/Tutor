@@ -3,6 +3,9 @@
 import re
 from typing import Any
 
+from calculus_agent.question_types import canonical_question_type
+from calculus_agent.runtime.response_policy import ResponsePolicy
+
 
 _KNOWLEDGE_TARGET = r"(?:知识点|考点)"
 _PRESERVE_ACTION = (
@@ -37,17 +40,21 @@ _EXPLICIT_QUESTION_COUNT_PATCH = re.compile(
     r"(?:题量|题数|总题数|题目数量)[^。！？,，；;]{0,8}?"
     r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)?"
 )
+_EXPLICIT_QUESTION_COUNT_ACTION_PATCH = re.compile(
+    r"(?:改成|改为|调整到)\s*"
+    r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道\s*)?题"
+)
 _EXPLICIT_SCORE_PATCH = re.compile(
     r"(?:总分[^。！？,，；;]{0,8}?|改成|改为|降到|提高到|调整到)"
     r"(?P<score>\d{1,3})\s*分"
 )
 _COMPACT_GENERATION_COUNT_SCORE = re.compile(
-    r"(?:生成|出|来|组卷|给我|只要|需要|要|做|共|总共|一共)"
+    r"(?:生成|出|来|组卷|给我|只要|需要|要|做|共|总共|一共|改成|改为|调整到)"
     r"[^。！？,，；;]{0,20}?"
     r"(?:\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)"
     r"[^。！？]{0,10}?(?P<score>\d{1,3})\s*分"
 )
-_QUESTION_TYPE_VALUE = r"选择题?|填空题?|计算题?|证明题?"
+_QUESTION_TYPE_VALUE = r"选择题?|填空题?|计算题?|证明题?|解答题?"
 _ALL_QUESTION_TYPE_PATTERN = re.compile(
     r"(?:全部|均|全都|都是|全是|只要)\s*(?:为|是)?\s*"
     rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
@@ -55,11 +62,11 @@ _ALL_QUESTION_TYPE_PATTERN = re.compile(
 _EXPLICIT_TYPE_COUNT_PATTERNS = (
     re.compile(
         rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
-        r"[^。！？,，；;0-9一二三四五六七八九十两]{0,8}"
-        r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)"
+        r"[^。！？、,，；;0-9一二三四五六七八九十两]{0,8}"
+        r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)?"
     ),
     re.compile(
-        r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)\s*"
+        r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)?\s*"
         rf"(?P<question_type>{_QUESTION_TYPE_VALUE})"
     ),
 )
@@ -67,17 +74,21 @@ _EXPLICIT_LESSON_COUNT_PATTERN = re.compile(
     r"(?P<count>\d{1,3}|[一二三四五六七八九十两]+)\s*课时"
 )
 _EXPLICIT_ASSESSMENT_SCORE_PATTERN = re.compile(
-    r"总分|满分|每题|\d{1,3}\s*分"
+    r"(?:总分|满分)(?!钟)|\d{1,3}(?:\.\d+)?\s*分(?!钟)"
 )
 _QUESTION_TYPE_COUNT_PATTERNS = (
-    re.compile(r"(?:选择题|填空题|计算题|证明题)[^。！？,，；;]{0,8}?\d{1,3}\s*(?:道|题)?"),
-    re.compile(r"(?:选择题|填空题|计算题|证明题)[^。！？,，；;]{0,8}?[一二三四五六七八九十两]+\s*(?:道|题)"),
-    re.compile(r"(?:\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)\s*(?:选择题|填空题|计算题|证明题)"),
+    re.compile(r"(?:选择题|填空题|计算题|证明题|解答题)[^。！？,，；;]{0,8}?\d{1,3}\s*(?:道|题)?"),
+    re.compile(r"(?:选择题|填空题|计算题|证明题|解答题)[^。！？,，；;]{0,8}?[一二三四五六七八九十两]+\s*(?:道|题)"),
+    re.compile(r"(?:\d{1,3}|[一二三四五六七八九十两]+)\s*(?:道|题)\s*(?:选择题|填空题|计算题|证明题|解答题)"),
 )
 
 
 def _explicit_generation_count(message: str) -> int | None:
-    for pattern in (_EXPLICIT_GENERATION_COUNT, _EXPLICIT_QUESTION_COUNT_PATCH):
+    for pattern in (
+        _EXPLICIT_GENERATION_COUNT,
+        _EXPLICIT_QUESTION_COUNT_PATCH,
+        _EXPLICIT_QUESTION_COUNT_ACTION_PATCH,
+    ):
         matches = list(pattern.finditer(message))
         if matches:
             return _count_value(matches[-1].group("count"))
@@ -108,14 +119,37 @@ def _explicit_generation_score(message: str) -> int | None:
     return None
 
 
+def _explicit_question_type_items(message: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    seen: set[tuple[int, int]] = set()
+    for pattern_index, pattern in enumerate(_EXPLICIT_TYPE_COUNT_PATTERNS):
+        for match in pattern.finditer(message):
+            if (
+                pattern_index == 0
+                and match.end("count") == match.end()
+                and message[match.end("question_type"):match.start("count")]
+            ):
+                # Unit-less compact notation is accepted only when adjacent
+                # (选择4); do not reinterpret “计算题多一点” as count=1.
+                continue
+            if match.span() in seen:
+                continue
+            seen.add(match.span())
+            raw_type = match.group("question_type")
+            normalized_type = raw_type if raw_type.endswith("题") else raw_type + "题"
+            items.append({
+                "question_type": raw_type,
+                "count": _count_value(match.group("count")),
+                "canonical_question_type": canonical_question_type(normalized_type),
+            })
+    return items
+
+
 def _explicit_question_type_counts(message: str) -> dict[str, int]:
     counts: dict[str, int] = {}
-    for pattern in _EXPLICIT_TYPE_COUNT_PATTERNS:
-        for match in pattern.finditer(message):
-            question_type = match.group("question_type")
-            if not question_type.endswith("题"):
-                question_type += "题"
-            counts[question_type] = _count_value(match.group("count"))
+    for item in _explicit_question_type_items(message):
+        canonical = item["canonical_question_type"]
+        counts[canonical] = counts.get(canonical, 0) + item["count"]
 
     all_match = _ALL_QUESTION_TYPE_PATTERN.search(message)
     total_count = _explicit_generation_count(message)
@@ -123,8 +157,44 @@ def _explicit_question_type_counts(message: str) -> dict[str, int]:
         question_type = all_match.group("question_type")
         if not question_type.endswith("题"):
             question_type += "题"
-        counts = {question_type: total_count}
+        counts = {canonical_question_type(question_type): total_count}
     return counts
+
+
+def extract_generation_constraint_contract(message: str) -> dict[str, Any] | None:
+    """Keep teacher wording and canonical executable constraints side by side."""
+    raw_items = _explicit_question_type_items(message)
+    canonical_counts = _explicit_question_type_counts(message)
+    explicit_count = _explicit_generation_count(message)
+    explicit_score = _explicit_generation_score(message)
+    if not any((raw_items, explicit_count, explicit_score)):
+        return None
+    canonical_requirements = [
+        {"question_type": question_type, "count": count}
+        for question_type, count in canonical_counts.items()
+    ]
+    derived_count = sum(canonical_counts.values()) if canonical_counts else None
+    return {
+        "original_request": message,
+        "raw": {
+            "question_count": explicit_count,
+            "total_score": explicit_score,
+            "question_type_requirements": [
+                {"question_type": item["question_type"], "count": item["count"]}
+                for item in raw_items
+            ],
+        },
+        "canonical": {
+            "question_count": explicit_count or derived_count,
+            "total_score": explicit_score,
+            "question_type_requirements": canonical_requirements,
+        },
+        "provenance": {
+            "source": "teacher_message",
+            "strength": "hard",
+            "question_count": "explicit" if explicit_count is not None else "derived_from_type_counts",
+        },
+    }
 
 
 def explicit_generation_constraint_mismatches(
@@ -220,6 +290,15 @@ def _apply_explicit_opt_in_guards(
 ) -> dict[str, Any]:
     """Remove executable constraints that have no explicit teacher provenance."""
     updated = dict(arguments)
+    if (
+        tool_name == "read_paper"
+        and ResponsePolicy.question_type_summary_query(message) is not None
+    ):
+        # Counts come from one authoritative whole-version observation, never
+        # by probing section-local addresses until one fails.
+        updated.pop("positions", None)
+        updated.pop("addresses", None)
+
     if tool_name == "prepare_generation_plan":
         explicit_count = _explicit_generation_count(message)
         explicit_score = _explicit_generation_score(message)
@@ -271,10 +350,12 @@ def _apply_explicit_opt_in_guards(
             ]
             updated.pop("question_type_patches", None)
             mark_teacher_explicit("question_type_requirements")
-        elif not (
-            _matches_any(message, _QUESTION_TYPE_COUNT_PATTERNS)
-            or _ALL_QUESTION_TYPE_PATTERN.search(message)
-        ):
+        elif explicit_type_counts:
+            # Retain model arguments so the mismatch guard can validate compact
+            # aliases such as “选择4、解答2”. Provenance is attached only when the
+            # teacher also states the whole-paper count, preserving patch semantics.
+            pass
+        elif not _ALL_QUESTION_TYPE_PATTERN.search(message):
             updated.pop("question_type_requirements", None)
             updated.pop("question_type_patches", None)
         if provenance:

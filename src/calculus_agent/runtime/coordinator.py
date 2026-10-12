@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from typing import Any, Literal, Protocol
 from uuid import uuid4
@@ -88,10 +89,17 @@ from calculus_agent.runtime.tool_execution import (
     trace_entry,
 )
 from calculus_agent.runtime.response_policy import ResponsePolicy
+from calculus_agent.runtime.question_focus import (
+    focus_from_explicit_reference,
+    focus_from_pending_change,
+    focus_from_read_observation,
+    validated_focus_address,
+)
 from calculus_agent.runtime.request_guards import (
     _apply_explicit_opt_in_guards,
     explicit_generation_constraint_mismatches,
     explicit_generation_missing_count,
+    extract_generation_constraint_contract,
     observed_generation_supply_question,
 )
 from calculus_agent.runtime.variants import AgentVariant, STATE_POLICY
@@ -101,6 +109,8 @@ from calculus_agent.runtime.paper_request import (
     _explicit_question_positions,
     _paper_read_messages,
     has_ambiguous_question_mutation,
+    has_contextual_question_reference,
+    is_trusted_single_question_read,
 )
 
 # Historical private import retained by the facade.
@@ -338,8 +348,8 @@ def _run_teacher_agent_turn(
         if existing_run is not None:
             return _replayed_operation_result(existing_run, request_fingerprint)
 
-    # Paper operations require an explicit target from the current request/UI.
-    # Persisted workspace state is never promoted into an executable Paper fact.
+    # Paper operations require an explicit target or a version-bound, database-
+    # validated question focus. Conversation prose alone is never executable fact.
     trace_recorder = trace_recorder or AgentTraceRecorder()
 
     trace_recorder.start(
@@ -428,11 +438,79 @@ def _run_teacher_agent_turn(
                     message="无法读取会话上下文。",
                     blocking_errors=["conversation_context_error"],
                 ))
-        if (paper_id or version_id) and has_ambiguous_question_mutation(message):
-            question = (
-                "“第N题”可能表示全卷序号，也可能表示某个题型内序号。"
-                "请说明是“全卷第N题”还是“某题型第N题”。"
+        store = (
+            state_store or (DatabasePendingReplacementStore(session) if conversation_id else None)
+        ) if variant.persistent_state else None
+        working_memory = (
+            store.get_memory(conversation_id)
+            if store and conversation_id and hasattr(store, "get_memory") else None
+        )
+        current_paper_id = paper_id or version_id
+        current_version_id = version_id or paper_id
+        trusted_focus_address = None
+        if current_paper_id and current_version_id:
+            explicit_focus = focus_from_explicit_reference(
+                session,
+                paper_id=current_paper_id,
+                version_id=current_version_id,
+                addresses=explicit_question_addresses,
+                positions=explicit_question_positions,
             )
+            if explicit_focus is not None and working_memory is not None:
+                working_memory.last_focused_question = explicit_focus
+                store.set_memory(conversation_id, working_memory)
+            trusted_focus_address = validated_focus_address(
+                session,
+                focus=(
+                    explicit_focus
+                    or (working_memory.last_focused_question if working_memory else None)
+                ),
+                paper_id=current_paper_id,
+                version_id=current_version_id,
+            )
+            if (
+                trusted_focus_address is None
+                and store
+                and conversation_id
+                and hasattr(store, "get_adjustment")
+            ):
+                pending_focus = focus_from_pending_change(
+                    session,
+                    paper_id=current_paper_id,
+                    version_id=current_version_id,
+                    plan_id=store.get_adjustment(conversation_id),
+                )
+                trusted_focus_address = validated_focus_address(
+                    session,
+                    focus=pending_focus,
+                    paper_id=current_paper_id,
+                    version_id=current_version_id,
+                )
+                if pending_focus is not None and working_memory is not None:
+                    working_memory.last_focused_question = pending_focus
+                    store.set_memory(conversation_id, working_memory)
+            if (
+                has_contextual_question_reference(message)
+                and trusted_focus_address is not None
+                and not explicit_question_addresses
+                and not explicit_question_positions
+            ):
+                explicit_question_addresses = [trusted_focus_address]
+
+        contextual_focus_missing = bool(
+            has_contextual_question_reference(message)
+            and trusted_focus_address is None
+            and not explicit_question_addresses
+            and not explicit_question_positions
+        )
+        if (paper_id or version_id) and (
+            contextual_focus_missing
+            or has_ambiguous_question_mutation(
+                message,
+                has_trusted_focus=trusted_focus_address is not None,
+            )
+        ):
+            question = "无法唯一定位所指题目，请明确全卷题号或题型内题号。"
             _persist_final_message(history_store, conversation_id, question)
             return finish(TeacherAgentResult(
                 status="needs_clarification",
@@ -449,9 +527,6 @@ def _run_teacher_agent_turn(
             _persist_final_message(history_store, conversation_id, result.message)
             return finish(result)
 
-        store = (
-            state_store or (DatabasePendingReplacementStore(session) if conversation_id else None)
-        ) if variant.persistent_state else None
         context = AgentExecutionContext(
             session=session,
             conversation_id=conversation_id,
@@ -466,11 +541,10 @@ def _run_teacher_agent_turn(
         tools = build_agent_tools(context) if variant.tools_enabled else {}
         toolkit = Toolkit(tools.values())
         tool_executor = ToolExecutor(
-            toolkit, session=session, fault_injector=tool_fault_injector,
-        )
-        working_memory = (
-            store.get_memory(conversation_id)
-            if store and conversation_id and hasattr(store, "get_memory") else None
+            toolkit,
+            session=session,
+            fault_injector=tool_fault_injector,
+            dedup_scope=lambda: (context.paper_id, context.version_id),
         )
         pending = store.get(conversation_id) if store and conversation_id else None
         pending_adjustment = (
@@ -483,6 +557,16 @@ def _run_teacher_agent_turn(
             if store and conversation_id and hasattr(store, "get_generation")
             else None
         )
+        if (
+            pending_generation is not None
+            and ResponsePolicy.pending_generation_pause_intent(message)
+        ):
+            final_text = "已保留当前待确认方案，本轮不会生成、确认或取消。"
+            _persist_final_message(history_store, conversation_id, final_text)
+            return finish(TeacherAgentResult(
+                status="waiting_confirmation",
+                message=final_text,
+            ))
         has_current_paper = bool(version_id or paper_id)
         active_teaching_design = active_teaching_design_snapshot(
             session,
@@ -545,6 +629,19 @@ def _run_teacher_agent_turn(
             )
         )
         deterministic_decision = deterministic_route(message, state=routing_state)
+        if (
+            deterministic_decision is None
+            and trusted_focus_address is not None
+            and ResponsePolicy.contextual_replacement_intent(message)
+        ):
+            deterministic_decision = WorkflowDecision(
+                source="deterministic_state",
+                route=TaskRoute(
+                    task_type=TaskType.DIRECT_ACTION,
+                    confidence=1.0,
+                    reason="validated question focus resolves contextual replacement",
+                ),
+            )
         if deterministic_decision is None and continuing_generation:
             deterministic_decision = WorkflowDecision(
                 source="deterministic_state",
@@ -653,6 +750,7 @@ def _run_teacher_agent_turn(
                 message=question,
                 clarification_questions=[question],
             ))
+        constraint_contract = extract_generation_constraint_contract(message)
         dynamic_context = {
             "current_paper": {
                 "exists": bool(version_id or paper_id),
@@ -681,6 +779,7 @@ def _run_teacher_agent_turn(
                 "global_positions": explicit_question_positions,
             },
             "task_route": task_decision.model_dump(mode="json"),
+            "confirmed_generation_constraints": constraint_contract,
         }
         context_builder = AgentContextBuilder()
 
@@ -715,6 +814,14 @@ def _run_teacher_agent_turn(
                 "validated_scope_names 调用 inspect_curriculum 和 inspect_question_bank，最后才可创建 TeachingDesign。"
                 "不得把候选直接当作 scope，也不得自行生成 curriculum id。若教师只要求初步分析而不要求形成"
                 "可确认教学设计，可以改用 prepare_teaching_planning_draft。"
+            )
+        if constraint_contract:
+            system_parts.append(
+                "<constraint_contract>confirmed_generation_constraints 来自本轮教师原话。"
+                "raw 字段保留原始题型，canonical 字段是系统题型映射后的硬约束。"
+                "新建试卷时，第一次 prepare_generation_plan 必须逐项提交 canonical 中所有非空字段；"
+                "不得遗漏、替换或要求教师重复确认这些已明确信息。Request Guard 将做最终校验。"
+                "</constraint_contract>"
             )
         if task_decision.route.clarification_needed:
             system_parts.append(
@@ -793,17 +900,24 @@ def _run_teacher_agent_turn(
                 message, paper_state_at_turn_start=paper_state_at_turn_start,
             )
         )
+        question_type_summary_query = response_policy.question_type_summary_query(message)
         observed_paper_read_versions: set[str] = set()
         paper_change_reprompted = False
         malformed_response_retried = False
         generation_patch_retried = False
         explicit_constraint_retried = False
-        post_inspection_intent_rechecked = False
+        generation_execution_reprompted = False
+        post_inspection_intent_recheck_count = 0
+        explicit_generation_request = bool(
+            not pending_generation
+            and not has_current_paper
+            and response_policy.explicitly_requests_generation(message)
+        )
         supply_shortage_reprompted = False
         clarification_boundary_reached = False
         terminal_tool_boundary_reached = False
         repeated_validation_boundary_reached = False
-        last_tool_validation_failure: tuple[str, str] | None = None
+        invalid_argument_attempts: dict[str, int] = {}
         trace = run_manager.row
         if trace is None:
             trace = TeacherAgentRunTrace(
@@ -886,6 +1000,72 @@ def _run_teacher_agent_turn(
                             },
                         ])
                         malformed_response_retried = True
+                        continue
+
+                    if (
+                        variant.confirmation_guard
+                        and paper_change_requested
+                        and trusted_focus_address is not None
+                        and response_policy.contextual_replacement_intent(message)
+                        and not trace_calls
+                        and not paper_change_reprompted
+                    ):
+                        messages.extend([
+                            {"role": "assistant", "content": content.strip()},
+                            {
+                                "role": "user",
+                                "content": (
+                                    "<contextual_replacement_guard>题目焦点已由 Python 按当前 "
+                                    "Paper Version 校验，deterministic_hints.question_addresses "
+                                    "就是唯一目标，不得重新询问题号。教师未指定新题、知识点或难度时，"
+                                    "应直接调用 preview_paper_changes，省略的难度按同难度处理；"
+                                    "候选是否存在由 Tool 校验，不得预先假设。</contextual_replacement_guard>"
+                                ),
+                            },
+                        ])
+                        definitions = toolkit.schemas(
+                            names=exposure_policy.boundary_tools(
+                                "paper_change_preview", context=exposure_context,
+                            )
+                        )
+                        paper_change_reprompted = True
+                        continue
+
+                    if (
+                        variant.confirmation_guard
+                        and explicit_generation_request
+                        and not any(
+                            call["tool_name"] in environment_definition_names
+                            for call in trace_calls
+                        )
+                        and not any(
+                            call["tool_name"] == "prepare_generation_plan"
+                            and (call.get("result") or {}).get("ok")
+                            for call in trace_calls
+                        )
+                    ):
+                        if generation_execution_reprompted:
+                            turn_status = "failed"
+                            result_values["blocking_errors"].append(
+                                "generation_plan_required"
+                            )
+                            final_text = (
+                                "本轮没有成功创建可确认的组卷方案，不能标记为完成。"
+                            )
+                            break
+                        messages.extend([
+                            {"role": "assistant", "content": content.strip()},
+                            {
+                                "role": "user",
+                                "content": (
+                                    "<generation_execution_required>教师已明确要求组卷，"
+                                    "不能只回复文字。请执行必要的环境检查，并调用 "
+                                    "prepare_generation_plan 创建待确认方案；已确认的硬约束见 "
+                                    "confirmed_generation_constraints。</generation_execution_required>"
+                                ),
+                            },
+                        ])
+                        generation_execution_reprompted = True
                         continue
 
                     if variant.confirmation_guard and response_policy.requires_pending_paper_change_recheck(
@@ -991,7 +1171,10 @@ def _run_teacher_agent_turn(
                         pending=bool(pending),
                         pending_adjustment=bool(pending_adjustment),
                         pending_generation=bool(pending_generation),
-                        already_rechecked=post_inspection_intent_rechecked,
+                        recheck_count=post_inspection_intent_recheck_count,
+                        max_rechecks=(
+                            2 if explicit_generation_request else 1
+                        ),
                         trace_calls=trace_calls,
                         environment_tool_names=environment_definition_names,
                         design_tool_names=design_definition_names,
@@ -1003,7 +1186,13 @@ def _run_teacher_agent_turn(
                                 "role": "user",
                                 "content": (
                                     "<post_inspection_intent_recheck>"
-                                    "环境调查已经完成。请重新依据教师本轮原始请求判断下一步，"
+                                    + (
+                                        "上一条仍然只描述了方案，没有创建可确认的组卷预览。"
+                                        "这是最后一次执行重试：若教师要求组卷，必须立即调用 prepare_generation_plan，"
+                                        "不得在 Tool 成功前要求教师确认。"
+                                        if post_inspection_intent_recheck_count > 0 else ""
+                                    )
+                                    + "环境调查已经完成。请重新依据教师本轮原始请求判断下一步，"
                                     "不要因为调用过 inspect_curriculum / inspect_question_bank 就默认教师要组卷。"
                                     "如果教师明确要新建/生成试卷，必须在同一轮调用 prepare_generation_plan，"
                                     "生成可编辑 GenerationPlanPreview；Tool 成功后先用聊天正文给出简短的组卷设计意图，"
@@ -1025,7 +1214,7 @@ def _run_teacher_agent_turn(
                                 tool, pending_generation=False,
                             ),
                         )
-                        post_inspection_intent_rechecked = True
+                        post_inspection_intent_recheck_count += 1
                         continue
 
                     current_paper_version_id = context.version_id or context.paper_id
@@ -1170,8 +1359,34 @@ def _run_teacher_agent_turn(
                         break
                     if (
                         variant.confirmation_guard
+                        and explicit_generation_request
+                        and post_inspection_intent_recheck_count >= 2
+                        and not any(
+                            call["tool_name"] == "prepare_generation_plan"
+                            and (call.get("result") or {}).get("ok")
+                            for call in trace_calls
+                        )
+                        and all(
+                            any(
+                                call["tool_name"] == name
+                                and (call.get("result") or {}).get("ok")
+                                for call in trace_calls
+                            )
+                            for name in ("inspect_curriculum", "inspect_question_bank")
+                        )
+                    ):
+                        turn_status = "failed"
+                        result_values["blocking_errors"].append(
+                            "generation_plan_required"
+                        )
+                        final_text = (
+                            "环境调查已经完成，但本轮没有成功创建可确认的组卷方案。"
+                        )
+                        break
+                    if (
+                        variant.confirmation_guard
                         and teaching_design_artifact_requested
-                        and post_inspection_intent_rechecked
+                        and post_inspection_intent_recheck_count > 0
                         and not any(
                             call["tool_name"] == "create_teaching_design"
                             and (call.get("result") or {}).get("ok")
@@ -1281,6 +1496,13 @@ def _run_teacher_agent_turn(
                             "explicit_constraint_mismatch",
                             "The tool arguments omitted or changed a teacher-explicit hard constraint.",
                             details={
+                                "missing_fields": [
+                                    item["field"] for item in constraint_mismatches
+                                ],
+                                "expected_constraints": {
+                                    item["field"]: item["expected"]
+                                    for item in constraint_mismatches
+                                },
                                 "constraint_mismatches": constraint_mismatches,
                                 "retryable": not explicit_constraint_retried,
                             },
@@ -1290,6 +1512,13 @@ def _run_teacher_agent_turn(
                         turn_status = mismatch_result.status
                         merge_result_fields(result_values, mismatch_result.result_fields)
                         explicit_constraint_retry_needed = not explicit_constraint_retried
+                        if explicit_constraint_retried:
+                            terminal_tool_boundary_reached = True
+                            turn_status = "failed"
+                            final_text = (
+                                "模型连续两次提交了相同类别的硬约束错误，"
+                                "本轮组卷方案未执行。"
+                            )
                         run_manager.update_span(
                             tool_span,
                             status="success",
@@ -1385,23 +1614,26 @@ def _run_teacher_agent_turn(
                         turn_status = execution.status
                         merge_result_fields(result_values, execution.result_fields)
                         if execution_payload.get("code") == "invalid_tool_arguments":
-                            signature = (name, "invalid_tool_arguments")
-                            if signature == last_tool_validation_failure:
+                            signature = json.dumps(
+                                {"tool": name, "arguments": arguments},
+                                ensure_ascii=False, sort_keys=True, default=str,
+                            )
+                            invalid_argument_attempts[signature] = (
+                                invalid_argument_attempts.get(signature, 0) + 1
+                            )
+                            if invalid_argument_attempts[signature] >= 2:
                                 repeated_validation_boundary_reached = True
+                                turn_status = "failed"
                                 final_text = (
-                                    "模型连续两次返回无法校验的工具参数，本轮没有执行该操作。"
-                                    "请重新发起请求。"
+                                    "模型连续两次返回完全相同且无法校验的工具参数，"
+                                    "本轮没有执行该操作。"
                                 )
-                            else:
-                                last_tool_validation_failure = signature
                         else:
-                            if last_tool_validation_failure is not None:
-                                result_values["blocking_errors"] = [
-                                    code
-                                    for code in result_values["blocking_errors"]
-                                    if code != "invalid_tool_arguments"
-                                ]
-                            last_tool_validation_failure = None
+                            result_values["blocking_errors"] = [
+                                code
+                                for code in result_values["blocking_errors"]
+                                if code != "invalid_tool_arguments"
+                            ]
                         run_manager.update_span(
                             tool_span, status="success",
                             output=redact_trace_value({
@@ -1440,6 +1672,87 @@ def _run_teacher_agent_turn(
                             and execution_payload.get("ok")
                         ):
                             observed_paper_read_versions.add(observed_version_id)
+                        if (
+                            name == "read_paper"
+                            and execution_payload.get("ok")
+                            and question_type_summary_query is not None
+                        ):
+                            paper_summary = execution_payload.get("paper") or {}
+                            type_counts = paper_summary.get("question_type_counts") or {}
+                            count = int(type_counts.get(question_type_summary_query) or 0)
+                            if re.search(r"(?:有没(?:有)?|是否有)", message):
+                                final_text = (
+                                    f"当前试卷有{count}道{question_type_summary_query}。"
+                                    if count
+                                    else f"当前试卷没有{question_type_summary_query}。"
+                                )
+                            else:
+                                final_text = (
+                                    f"当前试卷共有{count}道{question_type_summary_query}。"
+                                )
+                            terminal_tool_boundary_reached = True
+                            turn_status = "completed"
+                        if (
+                            name == "read_paper"
+                            and execution_payload.get("ok")
+                            and current_paper_id
+                            and current_version_id
+                            and working_memory is not None
+                            and store is not None
+                            and conversation_id
+                            and is_trusted_single_question_read(message)
+                        ):
+                            read_focus = focus_from_read_observation(
+                                session,
+                                paper_id=current_paper_id,
+                                version_id=current_version_id,
+                                questions=execution_payload.get("questions") or [],
+                            )
+                            if read_focus is not None:
+                                working_memory.last_focused_question = read_focus
+                                store.set_memory(conversation_id, working_memory)
+                        if (
+                            name == "preview_paper_changes"
+                            and execution_payload.get("ok")
+                            and current_paper_id
+                            and current_version_id
+                            and working_memory is not None
+                            and store is not None
+                            and conversation_id
+                            and hasattr(store, "get_adjustment")
+                        ):
+                            pending_focus = focus_from_pending_change(
+                                session,
+                                paper_id=current_paper_id,
+                                version_id=current_version_id,
+                                plan_id=store.get_adjustment(conversation_id),
+                            )
+                            if pending_focus is not None:
+                                working_memory.last_focused_question = pending_focus
+                                store.set_memory(conversation_id, working_memory)
+                        if name == "preview_paper_changes":
+                            if execution_payload.get("ok") and execution_payload.get("plan"):
+                                terminal_tool_boundary_reached = True
+                                turn_status = "waiting_confirmation"
+                                final_text = "试卷修改预览已创建，当前等待教师确认；原试卷尚未修改。"
+                            else:
+                                blocker = response_policy.paper_candidate_blocker(
+                                    execution_payload
+                                )
+                                if blocker is not None:
+                                    focus = (
+                                        working_memory.last_focused_question
+                                        if working_memory is not None else None
+                                    )
+                                    final_text = response_policy.paper_candidate_failure_message(
+                                        blocker,
+                                        position=focus.position if focus is not None else None,
+                                    )
+                                    clarification_boundary_reached = True
+                                    terminal_tool_boundary_reached = True
+                                    turn_status = "needs_clarification"
+                                    if final_text not in result_values["clarification_questions"]:
+                                        result_values["clarification_questions"].append(final_text)
                         if (
                             name in {
                                 "create_teaching_design",
@@ -1655,6 +1968,7 @@ def _run_teacher_agent_turn(
             active_design=active_design_after_turn,
             active_task_status=active_task_status_after_turn,
             paper_operation_without_target=paper_operation_without_target,
+            generation_artifact_requested=explicit_generation_request,
         )
         if variant.confirmation_guard:
             finalization = FinalizationPolicy(policy).finalize(finalization_input)
