@@ -5,6 +5,11 @@ from typing import Iterable
 
 from calculus_agent.agent.paper_tool_registry import PAPER_TOOL_NAMES
 from calculus_agent.agent.task_router import TaskType, tool_surface_for
+from calculus_agent.runtime.tool_selection import (
+    ToolSelectionDecision,
+    dynamic_tool_selection_enabled,
+    select_tool_names,
+)
 
 
 _TEACHING_DESIGN_TOOLS = frozenset({
@@ -33,10 +38,18 @@ class ToolExposureContext:
     pending_teaching_design_action: str | None
     teaching_design_artifact_requested: bool
     has_explicit_curriculum_scope: bool
+    route_source: str = "heuristic_fallback"
+    route_confidence: float = 1.0
+    clarification_needed: bool = False
+    route_reason: str = ""
 
 
 class ToolExposurePolicy:
     """The single authority for which Tool names may be shown to the model."""
+
+    def __init__(self, *, dynamic_enabled: bool | None = None) -> None:
+        self.dynamic_enabled = dynamic_tool_selection_enabled(dynamic_enabled)
+        self.last_selection: ToolSelectionDecision | None = None
 
     @staticmethod
     def _available(names: Iterable[str], context: ToolExposureContext) -> list[str]:
@@ -106,7 +119,13 @@ class ToolExposurePolicy:
         elif context.has_current_paper and not context.legacy_teaching_design_active and set(names) != {"create_teaching_design"}:
             generation_words = ("出", "生成", "组卷", "测试卷", "练习卷", "测验", "考试")
             names = list(_EXISTING_PAPER_GENERATION_TOOLS if context.task_type == TaskType.DIRECT_ACTION and any(word in context.message for word in generation_words) else _EXISTING_PAPER_LIFECYCLE_TOOLS)
-        return self._available(names, context)
+        phase1_names = self._available(names, context)
+        self.last_selection = select_tool_names(
+            context,
+            phase1_names,
+            enabled=self.dynamic_enabled,
+        )
+        return list(self.last_selection.selected_names)
 
     def is_teaching_design_tool(self, name: str) -> bool:
         return name in _TEACHING_DESIGN_TOOLS

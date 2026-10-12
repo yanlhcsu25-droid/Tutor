@@ -9,7 +9,7 @@ class _ContextBuilder:
 def test_model_turn_preparation_keeps_skill_order_and_span_data():
     prepared = prepare_model_turn(
         messages=[{"role": "user", "content": "你好"}],
-        definitions=[],
+        definitions=[{"type": "function", "function": {"name": "read_paper"}}],
         serialized_context="{}",
         recent_messages=[],
         context_builder=_ContextBuilder(),
@@ -23,4 +23,5 @@ def test_model_turn_preparation_keeps_skill_order_and_span_data():
     assert prepared.active_skills == ("teaching_design", "paper_question_operations")
     assert prepared.span_input["tool_round"] == 2
     assert prepared.span_input["n_messages"] == 1
+    assert prepared.span_input["tool_names"] == ["read_paper"]
     assert prepared.span_input["context_metrics"] == prepared.context_metrics.as_dict()

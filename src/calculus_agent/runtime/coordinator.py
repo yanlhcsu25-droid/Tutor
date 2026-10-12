@@ -706,6 +706,10 @@ def _run_teacher_agent_turn(
             ),
             teaching_design_artifact_requested=teaching_design_artifact_requested,
             has_explicit_curriculum_scope=has_explicit_curriculum_scope(message),
+            route_source=task_decision.source,
+            route_confidence=task_decision.route.confidence,
+            clarification_needed=task_decision.route.clarification_needed,
+            route_reason=task_decision.route.reason,
         )
         definition_names = exposure_policy.initial_tools(exposure_context)
         consultation_only = (

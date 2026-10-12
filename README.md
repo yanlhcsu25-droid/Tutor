@@ -74,6 +74,19 @@ uv run python -m calculus_agent.evaluations.reliability_report \
   --markdown-output docs/agent_reliability_benchmark.md
 ```
 
+## Token Optimization & Evaluation
+
+Phase 2 P0/P1 is archived as an experimental optimization, **disabled by default**:
+
+- P0 cost profiling: [`docs/token_optimization/phase2_p0_cost_profile.md`](docs/token_optimization/phase2_p0_cost_profile.md)
+- Dynamic Tool Selection: task-aware Tool Schema pruning with lifecycle-safe fallback
+- Shadow Audit: 41.88% offline Schema-character projection reduction; not a Token reduction claim
+- Provider Usage A/B: three manually verified successful scenarios showed 6.64% lower Input Token usage
+- Feature Flag: `AGENT_DYNAMIC_TOOL_SELECTION_ENABLED=false`
+- Archive: [`docs/milestones/phase2_token_optimization_p0_p1_archive.md`](docs/milestones/phase2_token_optimization_p0_p1_archive.md)
+
+The experiment is validated but not production-enabled; raw A/B traces remain local.
+
 ## Architecture
 
 ```text

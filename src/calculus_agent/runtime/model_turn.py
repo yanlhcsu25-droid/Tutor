@@ -46,6 +46,11 @@ def prepare_model_turn(
         span_input={
             "n_messages": len(messages),
             "n_definitions": len(definitions),
+            "tool_names": [
+                (definition.get("function") or {}).get("name")
+                for definition in definitions
+                if (definition.get("function") or {}).get("name")
+            ],
             "active_skills": active_skills,
             "context_metrics": metrics.as_dict(),
             "tool_round": tool_round,

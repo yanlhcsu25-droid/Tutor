@@ -1,0 +1,2265 @@
+{
+  "audit_version": "phase2-p0-v1",
+  "source": {
+    "path": "tests/evals/reports/official-holdout-v3.2.1-69-second-20261006T045441Z.json",
+    "sha256": "7f0ac6090e54cc856450859ca01f4fee04b91f59d8011096e469759c9f3a088b",
+    "generated_at": "2026-10-06T05:30:54.008906+00:00",
+    "metadata": {
+      "git_sha": "f8d9b013fe6b4658a0a507159f24b7ebcbd030d6",
+      "git_dirty": false,
+      "variant": "state-policy",
+      "variant_config": {
+        "name": "state-policy",
+        "tools_enabled": true,
+        "persistent_state": true,
+        "grounding_guard": true,
+        "confirmation_guard": true,
+        "recovery_policy": true
+      },
+      "model_ids": [
+        "Qwen/Qwen3.5-35B-A3B"
+      ],
+      "providers": [
+        "siliconflow"
+      ],
+      "backend_adapters": [
+        "BailianChatBackend"
+      ],
+      "protocols": [
+        "openai_compatible"
+      ],
+      "temperature": 0,
+      "case_delay_seconds": 5.0,
+      "dataset_path": "tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml",
+      "dataset_version": "2f3c9c48936a",
+      "dataset_sha": "2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad"
+    }
+  },
+  "data_contract": {
+    "exact_token_source": "provider usage stored per model span and rolled up per case",
+    "context_proxy_source": "runtime character counters; never converted to exact tokens",
+    "canonical_trace_path": "results[].turns[].observability",
+    "historical_exposed_tool_names": "unavailable; only count and aggregate schema chars were stored",
+    "provider_attempt_detail": "available only when provider_attempts exists in a model span"
+  },
+  "overview": {
+    "cases": 69,
+    "passed": 64,
+    "model_calls": {
+      "sum": 163,
+      "mean": 2.36,
+      "median": 2,
+      "max": 6
+    },
+    "tool_calls": {
+      "sum": 112,
+      "mean": 1.62,
+      "median": 1,
+      "max": 5
+    },
+    "input_tokens": {
+      "sum": 774001,
+      "mean": 16125.02,
+      "median": 16769.0,
+      "max": 29885
+    },
+    "output_tokens": {
+      "sum": 16538,
+      "mean": 344.54,
+      "median": 318.5,
+      "max": 1151
+    },
+    "total_tokens": {
+      "sum": 790539,
+      "mean": 16469.56,
+      "median": 17049.5,
+      "max": 30317
+    },
+    "latency_ms": {
+      "sum": 1734168,
+      "mean": 25132.87,
+      "median": 7618,
+      "max": 555183
+    },
+    "model_calling_case_count": 48,
+    "zero_model_call_case_count": 21,
+    "mean_per_all_case": {
+      "model_calls": 2.36,
+      "tool_calls": 1.62,
+      "input_tokens": 11217.41,
+      "output_tokens": 239.68,
+      "total_tokens": 11457.09,
+      "latency_ms": 25132.87
+    },
+    "mean_per_model_calling_case": {
+      "model_calls": 3.4,
+      "tool_calls": 2.33,
+      "input_tokens": 16125.02,
+      "output_tokens": 344.54,
+      "total_tokens": 16469.56,
+      "latency_ms": 35079.96
+    },
+    "mean_per_model_call": {
+      "input_tokens": 4748.47,
+      "output_tokens": 101.46,
+      "total_tokens": 4849.93
+    },
+    "model_call_distribution": {
+      "0": 21,
+      "1": 4,
+      "2": 10,
+      "3": 11,
+      "4": 10,
+      "5": 12,
+      "6": 1
+    },
+    "final_status_distribution": {
+      "completed": 12,
+      "failed": 1,
+      "needs_clarification": 47,
+      "waiting_confirmation": 9
+    },
+    "model_spans": 163,
+    "tool_spans": 112,
+    "model_spans_missing_provider_usage": 0
+  },
+  "case_metrics": [
+    {
+      "case_id": "EVAL-046",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 3,
+      "input_tokens": 16748,
+      "output_tokens": 211,
+      "total_tokens": 16959,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 7977
+    },
+    {
+      "case_id": "EVAL-047",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 3,
+      "input_tokens": 16763,
+      "output_tokens": 211,
+      "total_tokens": 16974,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 8067
+    },
+    {
+      "case_id": "EVAL-048",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 4,
+      "tool_calls": 3,
+      "input_tokens": 21485,
+      "output_tokens": 400,
+      "total_tokens": 21885,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 11705
+    },
+    {
+      "case_id": "EVAL-049",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25284,
+      "output_tokens": 452,
+      "total_tokens": 25736,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 25037
+    },
+    {
+      "case_id": "EVAL-050",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 4,
+      "tool_calls": 3,
+      "input_tokens": 21157,
+      "output_tokens": 355,
+      "total_tokens": 21512,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 17184
+    },
+    {
+      "case_id": "EVAL-051",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 4,
+      "tool_calls": 3,
+      "input_tokens": 21506,
+      "output_tokens": 371,
+      "total_tokens": 21877,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "joint_constraints_infeasible"
+      ],
+      "latency_ms": 10610
+    },
+    {
+      "case_id": "EVAL-052",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 3,
+      "input_tokens": 16775,
+      "output_tokens": 325,
+      "total_tokens": 17100,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 11236
+    },
+    {
+      "case_id": "EVAL-053",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25331,
+      "output_tokens": 450,
+      "total_tokens": 25781,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 15356
+    },
+    {
+      "case_id": "EVAL-054",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25576,
+      "output_tokens": 288,
+      "total_tokens": 25864,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 9919
+    },
+    {
+      "case_id": "EVAL-055",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 26055,
+      "output_tokens": 567,
+      "total_tokens": 26622,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "missing_question_count"
+      ],
+      "latency_ms": 15551
+    },
+    {
+      "case_id": "EVAL-056",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25169,
+      "output_tokens": 480,
+      "total_tokens": 25649,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 18138
+    },
+    {
+      "case_id": "EVAL-057",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 4,
+      "tool_calls": 3,
+      "input_tokens": 21502,
+      "output_tokens": 383,
+      "total_tokens": 21885,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 19179
+    },
+    {
+      "case_id": "EVAL-058",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25168,
+      "output_tokens": 349,
+      "total_tokens": 25517,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "missing_question_count"
+      ],
+      "latency_ms": 20358
+    },
+    {
+      "case_id": "EVAL-059",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": false,
+      "model_calls": 4,
+      "tool_calls": 3,
+      "input_tokens": 23317,
+      "output_tokens": 312,
+      "total_tokens": 23629,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 9692
+    },
+    {
+      "case_id": "EVAL-060",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 3,
+      "input_tokens": 16736,
+      "output_tokens": 189,
+      "total_tokens": 16925,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 6603
+    },
+    {
+      "case_id": "EVAL-061",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25562,
+      "output_tokens": 305,
+      "total_tokens": 25867,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 25393
+    },
+    {
+      "case_id": "EVAL-062",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25194,
+      "output_tokens": 386,
+      "total_tokens": 25580,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 18050
+    },
+    {
+      "case_id": "EVAL-063",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25729,
+      "output_tokens": 436,
+      "total_tokens": 26165,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "joint_constraints_infeasible"
+      ],
+      "latency_ms": 29245
+    },
+    {
+      "case_id": "EVAL-064",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 3,
+      "input_tokens": 16736,
+      "output_tokens": 263,
+      "total_tokens": 16999,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 23233
+    },
+    {
+      "case_id": "EVAL-065",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 4,
+      "tool_calls": 3,
+      "input_tokens": 21387,
+      "output_tokens": 299,
+      "total_tokens": 21686,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 30170
+    },
+    {
+      "case_id": "EVAL-066",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": false,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 49
+    },
+    {
+      "case_id": "EVAL-067",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 26301,
+      "output_tokens": 857,
+      "total_tokens": 27158,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "joint_constraints_infeasible"
+      ],
+      "latency_ms": 25318
+    },
+    {
+      "case_id": "EVAL-068",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": false,
+      "model_calls": 4,
+      "tool_calls": 2,
+      "input_tokens": 17272,
+      "output_tokens": 356,
+      "total_tokens": 17628,
+      "final_status": "failed",
+      "blocking_errors": [
+        "teaching_design_creation_required"
+      ],
+      "latency_ms": 20950
+    },
+    {
+      "case_id": "EVAL-069",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 4,
+      "tool_calls": 3,
+      "input_tokens": 21168,
+      "output_tokens": 343,
+      "total_tokens": 21511,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 23900
+    },
+    {
+      "case_id": "EVAL-070",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 4,
+      "tool_calls": 3,
+      "input_tokens": 21446,
+      "output_tokens": 326,
+      "total_tokens": 21772,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "joint_constraints_infeasible"
+      ],
+      "latency_ms": 26130
+    },
+    {
+      "case_id": "EVAL-095",
+      "category": "pending",
+      "subtype": "cancel",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 6160,
+      "output_tokens": 24,
+      "total_tokens": 6184,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 555183
+    },
+    {
+      "case_id": "EVAL-096",
+      "category": "pending",
+      "subtype": "cancel",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 6164,
+      "output_tokens": 32,
+      "total_tokens": 6196,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 2775
+    },
+    {
+      "case_id": "EVAL-097",
+      "category": "pending",
+      "subtype": "cancel",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 6156,
+      "output_tokens": 27,
+      "total_tokens": 6183,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 2136
+    },
+    {
+      "case_id": "EVAL-098",
+      "category": "pending",
+      "subtype": "cancel",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 6158,
+      "output_tokens": 23,
+      "total_tokens": 6181,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 1836
+    },
+    {
+      "case_id": "EVAL-099",
+      "category": "pending",
+      "subtype": "cancel",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 6168,
+      "output_tokens": 25,
+      "total_tokens": 6193,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 2196
+    },
+    {
+      "case_id": "EVAL-100",
+      "category": "pending",
+      "subtype": "cancel",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 6162,
+      "output_tokens": 25,
+      "total_tokens": 6187,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 2224
+    },
+    {
+      "case_id": "EVAL-101",
+      "category": "pending",
+      "subtype": "cancel",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 6162,
+      "output_tokens": 25,
+      "total_tokens": 6187,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 2524
+    },
+    {
+      "case_id": "EVAL-102",
+      "category": "pending",
+      "subtype": "cancel",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 6150,
+      "output_tokens": 31,
+      "total_tokens": 6181,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 2079
+    },
+    {
+      "case_id": "EVAL-141",
+      "category": "paper",
+      "subtype": "delete_preview",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 2,
+      "input_tokens": 12935,
+      "output_tokens": 139,
+      "total_tokens": 13074,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 7618
+    },
+    {
+      "case_id": "EVAL-142",
+      "category": "paper",
+      "subtype": "replace_preview",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 2,
+      "input_tokens": 13034,
+      "output_tokens": 132,
+      "total_tokens": 13166,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 5624
+    },
+    {
+      "case_id": "EVAL-143",
+      "category": "paper",
+      "subtype": "replace_preview",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 2,
+      "input_tokens": 12958,
+      "output_tokens": 148,
+      "total_tokens": 13106,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 5799
+    },
+    {
+      "case_id": "EVAL-145",
+      "category": "paper",
+      "subtype": "delete_preview",
+      "passed": false,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "ambiguous_question_address"
+      ],
+      "latency_ms": 42
+    },
+    {
+      "case_id": "EVAL-196",
+      "category": "teaching",
+      "subtype": "design_create",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 3,
+      "input_tokens": 12209,
+      "output_tokens": 932,
+      "total_tokens": 13141,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 27063
+    },
+    {
+      "case_id": "EVAL-197",
+      "category": "teaching",
+      "subtype": "design_create",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 5,
+      "input_tokens": 19899,
+      "output_tokens": 1129,
+      "total_tokens": 21028,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 51431
+    },
+    {
+      "case_id": "EVAL-198",
+      "category": "teaching",
+      "subtype": "design_create",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 3,
+      "input_tokens": 12155,
+      "output_tokens": 1028,
+      "total_tokens": 13183,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 46030
+    },
+    {
+      "case_id": "EVAL-199",
+      "category": "teaching",
+      "subtype": "design_create",
+      "passed": true,
+      "model_calls": 4,
+      "tool_calls": 2,
+      "input_tokens": 17009,
+      "output_tokens": 515,
+      "total_tokens": 17524,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates"
+      ],
+      "latency_ms": 19845
+    },
+    {
+      "case_id": "EVAL-200",
+      "category": "teaching",
+      "subtype": "design_create",
+      "passed": true,
+      "model_calls": 3,
+      "tool_calls": 3,
+      "input_tokens": 12137,
+      "output_tokens": 947,
+      "total_tokens": 13084,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 19631
+    },
+    {
+      "case_id": "EVAL-201",
+      "category": "teaching",
+      "subtype": "design_create",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 5,
+      "input_tokens": 19867,
+      "output_tokens": 1151,
+      "total_tokens": 21018,
+      "final_status": "waiting_confirmation",
+      "blocking_errors": [],
+      "latency_ms": 54252
+    },
+    {
+      "case_id": "EVAL-241",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 5362
+    },
+    {
+      "case_id": "EVAL-242",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 68
+    },
+    {
+      "case_id": "EVAL-243",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 3134
+    },
+    {
+      "case_id": "EVAL-244",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 1,
+      "tool_calls": 0,
+      "input_tokens": 5187,
+      "output_tokens": 33,
+      "total_tokens": 5220,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "no_current_paper"
+      ],
+      "latency_ms": 399165
+    },
+    {
+      "case_id": "EVAL-245",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 3170
+    },
+    {
+      "case_id": "EVAL-246",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 3073
+    },
+    {
+      "case_id": "EVAL-247",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 69
+    },
+    {
+      "case_id": "EVAL-248",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 3451
+    },
+    {
+      "case_id": "EVAL-249",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 49
+    },
+    {
+      "case_id": "EVAL-250",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 12902
+    },
+    {
+      "case_id": "EVAL-251",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 3508
+    },
+    {
+      "case_id": "EVAL-252",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 4781
+    },
+    {
+      "case_id": "EVAL-253",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 3130
+    },
+    {
+      "case_id": "EVAL-254",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 4624
+    },
+    {
+      "case_id": "EVAL-255",
+      "category": "ambiguity",
+      "subtype": "missing_context_or_referent",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 2592
+    },
+    {
+      "case_id": "EVAL-261",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 1,
+      "tool_calls": 0,
+      "input_tokens": 5202,
+      "output_tokens": 425,
+      "total_tokens": 5627,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 8120
+    },
+    {
+      "case_id": "EVAL-262",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 75
+    },
+    {
+      "case_id": "EVAL-263",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 75
+    },
+    {
+      "case_id": "EVAL-264",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 1,
+      "tool_calls": 0,
+      "input_tokens": 5202,
+      "output_tokens": 22,
+      "total_tokens": 5224,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "no_current_paper"
+      ],
+      "latency_ms": 1541
+    },
+    {
+      "case_id": "EVAL-265",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 10532,
+      "output_tokens": 34,
+      "total_tokens": 10566,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 5956
+    },
+    {
+      "case_id": "EVAL-266",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 1,
+      "tool_calls": 0,
+      "input_tokens": 1918,
+      "output_tokens": 111,
+      "total_tokens": 2029,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 7422
+    },
+    {
+      "case_id": "EVAL-267",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": false,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 5225,
+      "output_tokens": 234,
+      "total_tokens": 5459,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "scope_not_found"
+      ],
+      "latency_ms": 6902
+    },
+    {
+      "case_id": "EVAL-268",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 70
+    },
+    {
+      "case_id": "EVAL-269",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 47
+    },
+    {
+      "case_id": "EVAL-270",
+      "category": "adversarial",
+      "subtype": "instruction_boundary",
+      "passed": true,
+      "model_calls": 0,
+      "tool_calls": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "final_status": "needs_clarification",
+      "blocking_errors": [],
+      "latency_ms": 59
+    },
+    {
+      "case_id": "EVAL-279",
+      "category": "multi_turn",
+      "subtype": "generate_then_confirm",
+      "passed": true,
+      "model_calls": 6,
+      "tool_calls": 4,
+      "input_tokens": 29885,
+      "output_tokens": 432,
+      "total_tokens": 30317,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 17485
+    }
+  ],
+  "top_10_by_total_tokens": [
+    {
+      "case_id": "EVAL-279",
+      "category": "multi_turn",
+      "subtype": "generate_then_confirm",
+      "passed": true,
+      "model_calls": 6,
+      "tool_calls": 4,
+      "input_tokens": 29885,
+      "output_tokens": 432,
+      "total_tokens": 30317,
+      "final_status": "completed",
+      "blocking_errors": [],
+      "latency_ms": 17485
+    },
+    {
+      "case_id": "EVAL-067",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 26301,
+      "output_tokens": 857,
+      "total_tokens": 27158,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "joint_constraints_infeasible"
+      ],
+      "latency_ms": 25318
+    },
+    {
+      "case_id": "EVAL-055",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 26055,
+      "output_tokens": 567,
+      "total_tokens": 26622,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "missing_question_count"
+      ],
+      "latency_ms": 15551
+    },
+    {
+      "case_id": "EVAL-063",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25729,
+      "output_tokens": 436,
+      "total_tokens": 26165,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "joint_constraints_infeasible"
+      ],
+      "latency_ms": 29245
+    },
+    {
+      "case_id": "EVAL-061",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25562,
+      "output_tokens": 305,
+      "total_tokens": 25867,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 25393
+    },
+    {
+      "case_id": "EVAL-054",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25576,
+      "output_tokens": 288,
+      "total_tokens": 25864,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "type_supply_shortage"
+      ],
+      "latency_ms": 9919
+    },
+    {
+      "case_id": "EVAL-053",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25331,
+      "output_tokens": 450,
+      "total_tokens": 25781,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 15356
+    },
+    {
+      "case_id": "EVAL-049",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25284,
+      "output_tokens": 452,
+      "total_tokens": 25736,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 25037
+    },
+    {
+      "case_id": "EVAL-056",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25169,
+      "output_tokens": 480,
+      "total_tokens": 25649,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 18138
+    },
+    {
+      "case_id": "EVAL-062",
+      "category": "generation",
+      "subtype": "shortage_or_conflict",
+      "passed": true,
+      "model_calls": 5,
+      "tool_calls": 3,
+      "input_tokens": 25194,
+      "output_tokens": 386,
+      "total_tokens": 25580,
+      "final_status": "needs_clarification",
+      "blocking_errors": [
+        "insufficient_candidates",
+        "no_eligible_candidates"
+      ],
+      "latency_ms": 18050
+    }
+  ],
+  "context_size_proxy": {
+    "unit": "characters_sent; not provider tokens",
+    "calls_with_metrics": 163,
+    "calls_missing_metrics": 0,
+    "aggregate_chars_all_calls": {
+      "system_prompt_chars": 338868,
+      "tool_schema_chars": 1598196,
+      "conversation_chars": 388,
+      "workspace_chars": 176228,
+      "observation_chars": 156007,
+      "other_chars": 40272
+    },
+    "aggregate_workspace_chars_all_calls": {
+      "active_task_chars": 2852,
+      "teaching_design_chars": 0,
+      "generation_chars": 2720,
+      "paper_chars": 19404,
+      "memory_chars": 1004,
+      "other_chars": 150248
+    },
+    "aggregate_workspace_detail_chars_all_calls": {
+      "active_task": {
+        "type": 480,
+        "status": 920
+      },
+      "teaching_design": {
+        "content_chars": 652,
+        "metadata_chars": 652,
+        "constraints_chars": 0,
+        "provenance_chars": 0
+      }
+    },
+    "reconciled_call_count": 162,
+    "reconciliation_failures": [
+      {
+        "case_id": "EVAL-267",
+        "span_id": "14c312ba-e80e-45bb-a7d9-5164861d18ea",
+        "total_chars": 6732,
+        "attributed_chars": 7259,
+        "difference": 527
+      }
+    ],
+    "shares_on_reconciled_calls_pct": {
+      "system_prompt_chars": 14.71,
+      "tool_schema_chars": 69.15,
+      "conversation_chars": 0.02,
+      "workspace_chars": 7.6,
+      "observation_chars": 6.77,
+      "other_chars": 1.75
+    },
+    "by_tool_round": [
+      {
+        "tool_round": 0,
+        "model_calls": 49,
+        "mean_input_tokens": 4335.61,
+        "mean_system_prompt_chars": 2122.76,
+        "mean_tool_schema_chars": 10129.94,
+        "mean_conversation_chars": 3.96,
+        "mean_workspace_chars": 1099.27,
+        "mean_observation_chars": 0,
+        "mean_other_chars": 80.41
+      },
+      {
+        "tool_round": 1,
+        "model_calls": 45,
+        "mean_input_tokens": 4557.96,
+        "mean_system_prompt_chars": 2106.71,
+        "mean_tool_schema_chars": 9895.33,
+        "mean_conversation_chars": 4.31,
+        "mean_workspace_chars": 1104.22,
+        "mean_observation_chars": 609.93,
+        "mean_other_chars": 88.09
+      },
+      {
+        "tool_round": 2,
+        "model_calls": 34,
+        "mean_input_tokens": 5601.53,
+        "mean_system_prompt_chars": 2148.12,
+        "mean_tool_schema_chars": 11614.62,
+        "mean_conversation_chars": 0,
+        "mean_workspace_chars": 1063.71,
+        "mean_observation_chars": 1796.26,
+        "mean_other_chars": 96
+      },
+      {
+        "tool_round": 3,
+        "model_calls": 23,
+        "mean_input_tokens": 4879.43,
+        "mean_system_prompt_chars": 1904.83,
+        "mean_tool_schema_chars": 8267.65,
+        "mean_conversation_chars": 0,
+        "mean_workspace_chars": 1043.22,
+        "mean_observation_chars": 1883.83,
+        "mean_other_chars": 735.17
+      },
+      {
+        "tool_round": 4,
+        "model_calls": 12,
+        "mean_input_tokens": 4480.75,
+        "mean_system_prompt_chars": 1933.67,
+        "mean_tool_schema_chars": 5957.17,
+        "mean_conversation_chars": 0,
+        "mean_workspace_chars": 1042.83,
+        "mean_observation_chars": 2013.25,
+        "mean_other_chars": 1016.25
+      }
+    ]
+  },
+  "tool_schema": {
+    "historical_exposure_distribution": [
+      {
+        "exposed_tool_count": 1,
+        "tool_schema_chars": 4036,
+        "model_calls": 6
+      },
+      {
+        "exposed_tool_count": 1,
+        "tool_schema_chars": 5372,
+        "model_calls": 10
+      },
+      {
+        "exposed_tool_count": 2,
+        "tool_schema_chars": 1216,
+        "model_calls": 4
+      },
+      {
+        "exposed_tool_count": 3,
+        "tool_schema_chars": 2198,
+        "model_calls": 1
+      },
+      {
+        "exposed_tool_count": 3,
+        "tool_schema_chars": 5901,
+        "model_calls": 20
+      },
+      {
+        "exposed_tool_count": 3,
+        "tool_schema_chars": 7667,
+        "model_calls": 15
+      },
+      {
+        "exposed_tool_count": 4,
+        "tool_schema_chars": 7570,
+        "model_calls": 17
+      },
+      {
+        "exposed_tool_count": 4,
+        "tool_schema_chars": 8238,
+        "model_calls": 2
+      },
+      {
+        "exposed_tool_count": 5,
+        "tool_schema_chars": 8883,
+        "model_calls": 6
+      },
+      {
+        "exposed_tool_count": 6,
+        "tool_schema_chars": 6717,
+        "model_calls": 5
+      },
+      {
+        "exposed_tool_count": 8,
+        "tool_schema_chars": 13612,
+        "model_calls": 77
+      }
+    ],
+    "current_registry_tool_count": 21,
+    "current_registry_total_schema_chars": 33335,
+    "current_registry_schemas": [
+      {
+        "name": "read_paper",
+        "schema_chars": 1390
+      },
+      {
+        "name": "analyze_paper",
+        "schema_chars": 289
+      },
+      {
+        "name": "prepare_generation_plan",
+        "schema_chars": 5372
+      },
+      {
+        "name": "prepare_reinforcement_plan",
+        "schema_chars": 2027
+      },
+      {
+        "name": "confirm_generation",
+        "schema_chars": 293
+      },
+      {
+        "name": "preview_paper_changes",
+        "schema_chars": 4201
+      },
+      {
+        "name": "confirm_paper_changes",
+        "schema_chars": 363
+      },
+      {
+        "name": "discard_pending_plan",
+        "schema_chars": 312
+      },
+      {
+        "name": "operate_paper_version",
+        "schema_chars": 510
+      },
+      {
+        "name": "retrieve_curriculum_candidates",
+        "schema_chars": 571
+      },
+      {
+        "name": "inspect_curriculum",
+        "schema_chars": 618
+      },
+      {
+        "name": "inspect_question_bank",
+        "schema_chars": 1009
+      },
+      {
+        "name": "read_active_teaching_design",
+        "schema_chars": 266
+      },
+      {
+        "name": "create_teaching_design",
+        "schema_chars": 6040
+      },
+      {
+        "name": "revise_teaching_design",
+        "schema_chars": 6435
+      },
+      {
+        "name": "confirm_teaching_design",
+        "schema_chars": 383
+      },
+      {
+        "name": "discard_teaching_design",
+        "schema_chars": 300
+      },
+      {
+        "name": "search_teaching_design_history",
+        "schema_chars": 368
+      },
+      {
+        "name": "activate_teaching_design",
+        "schema_chars": 422
+      },
+      {
+        "name": "select_teaching_scope",
+        "schema_chars": 645
+      },
+      {
+        "name": "prepare_teaching_planning_draft",
+        "schema_chars": 1521
+      }
+    ],
+    "historical_tool_usage": {
+      "confirm_generation": 1,
+      "create_teaching_design": 5,
+      "discard_pending_plan": 8,
+      "inspect_curriculum": 31,
+      "inspect_question_bank": 31,
+      "prepare_generation_plan": 25,
+      "preview_paper_changes": 3,
+      "read_paper": 4,
+      "retrieve_curriculum_candidates": 2,
+      "select_teaching_scope": 2
+    },
+    "historical_exposure_by_category": [
+      {
+        "category": "adversarial",
+        "model_calls": 7,
+        "mean_exposed_tool_count": 5.29,
+        "mean_tool_schema_chars": 7808.29,
+        "actually_used_tools": [
+          "prepare_generation_plan",
+          "read_paper"
+        ]
+      },
+      {
+        "category": "ambiguity",
+        "model_calls": 1,
+        "mean_exposed_tool_count": 8,
+        "mean_tool_schema_chars": 13612,
+        "actually_used_tools": []
+      },
+      {
+        "category": "generation",
+        "model_calls": 101,
+        "mean_exposed_tool_count": 6.45,
+        "mean_tool_schema_chars": 11549.4,
+        "actually_used_tools": [
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "prepare_generation_plan"
+        ]
+      },
+      {
+        "category": "multi_turn",
+        "model_calls": 6,
+        "mean_exposed_tool_count": 6.33,
+        "mean_tool_schema_chars": 11041.67,
+        "actually_used_tools": [
+          "confirm_generation",
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "prepare_generation_plan"
+        ]
+      },
+      {
+        "category": "paper",
+        "model_calls": 9,
+        "mean_exposed_tool_count": 2.67,
+        "mean_tool_schema_chars": 4929.67,
+        "actually_used_tools": [
+          "preview_paper_changes",
+          "read_paper"
+        ]
+      },
+      {
+        "category": "pending",
+        "model_calls": 16,
+        "mean_exposed_tool_count": 3,
+        "mean_tool_schema_chars": 5901,
+        "actually_used_tools": [
+          "discard_pending_plan"
+        ]
+      },
+      {
+        "category": "teaching",
+        "model_calls": 23,
+        "mean_exposed_tool_count": 3.39,
+        "mean_tool_schema_chars": 6887.13,
+        "actually_used_tools": [
+          "create_teaching_design",
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "retrieve_curriculum_candidates",
+          "select_teaching_scope"
+        ]
+      }
+    ],
+    "task_scenarios": [
+      {
+        "category": "adversarial",
+        "actually_used_tools_in_historical_trace": [
+          "prepare_generation_plan",
+          "read_paper"
+        ],
+        "current_registry_tools_not_used_by_category": [
+          "activate_teaching_design",
+          "analyze_paper",
+          "confirm_generation",
+          "confirm_paper_changes",
+          "confirm_teaching_design",
+          "create_teaching_design",
+          "discard_pending_plan",
+          "discard_teaching_design",
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "operate_paper_version",
+          "prepare_reinforcement_plan",
+          "prepare_teaching_planning_draft",
+          "preview_paper_changes",
+          "read_active_teaching_design",
+          "retrieve_curriculum_candidates",
+          "revise_teaching_design",
+          "search_teaching_design_history",
+          "select_teaching_scope"
+        ],
+        "current_all_schema_chars": 33335,
+        "used_only_schema_chars": 6762,
+        "theoretical_removed_chars": 26573,
+        "caveat": "Current-schema scenario only; actual required tools and historical exposed names are unavailable."
+      },
+      {
+        "category": "ambiguity",
+        "actually_used_tools_in_historical_trace": [],
+        "current_registry_tools_not_used_by_category": [
+          "activate_teaching_design",
+          "analyze_paper",
+          "confirm_generation",
+          "confirm_paper_changes",
+          "confirm_teaching_design",
+          "create_teaching_design",
+          "discard_pending_plan",
+          "discard_teaching_design",
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "operate_paper_version",
+          "prepare_generation_plan",
+          "prepare_reinforcement_plan",
+          "prepare_teaching_planning_draft",
+          "preview_paper_changes",
+          "read_active_teaching_design",
+          "read_paper",
+          "retrieve_curriculum_candidates",
+          "revise_teaching_design",
+          "search_teaching_design_history",
+          "select_teaching_scope"
+        ],
+        "current_all_schema_chars": 33335,
+        "used_only_schema_chars": 0,
+        "theoretical_removed_chars": 33335,
+        "caveat": "Current-schema scenario only; actual required tools and historical exposed names are unavailable."
+      },
+      {
+        "category": "generation",
+        "actually_used_tools_in_historical_trace": [
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "prepare_generation_plan"
+        ],
+        "current_registry_tools_not_used_by_category": [
+          "activate_teaching_design",
+          "analyze_paper",
+          "confirm_generation",
+          "confirm_paper_changes",
+          "confirm_teaching_design",
+          "create_teaching_design",
+          "discard_pending_plan",
+          "discard_teaching_design",
+          "operate_paper_version",
+          "prepare_reinforcement_plan",
+          "prepare_teaching_planning_draft",
+          "preview_paper_changes",
+          "read_active_teaching_design",
+          "read_paper",
+          "retrieve_curriculum_candidates",
+          "revise_teaching_design",
+          "search_teaching_design_history",
+          "select_teaching_scope"
+        ],
+        "current_all_schema_chars": 33335,
+        "used_only_schema_chars": 6999,
+        "theoretical_removed_chars": 26336,
+        "caveat": "Current-schema scenario only; actual required tools and historical exposed names are unavailable."
+      },
+      {
+        "category": "multi_turn",
+        "actually_used_tools_in_historical_trace": [
+          "confirm_generation",
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "prepare_generation_plan"
+        ],
+        "current_registry_tools_not_used_by_category": [
+          "activate_teaching_design",
+          "analyze_paper",
+          "confirm_paper_changes",
+          "confirm_teaching_design",
+          "create_teaching_design",
+          "discard_pending_plan",
+          "discard_teaching_design",
+          "operate_paper_version",
+          "prepare_reinforcement_plan",
+          "prepare_teaching_planning_draft",
+          "preview_paper_changes",
+          "read_active_teaching_design",
+          "read_paper",
+          "retrieve_curriculum_candidates",
+          "revise_teaching_design",
+          "search_teaching_design_history",
+          "select_teaching_scope"
+        ],
+        "current_all_schema_chars": 33335,
+        "used_only_schema_chars": 7292,
+        "theoretical_removed_chars": 26043,
+        "caveat": "Current-schema scenario only; actual required tools and historical exposed names are unavailable."
+      },
+      {
+        "category": "paper",
+        "actually_used_tools_in_historical_trace": [
+          "preview_paper_changes",
+          "read_paper"
+        ],
+        "current_registry_tools_not_used_by_category": [
+          "activate_teaching_design",
+          "analyze_paper",
+          "confirm_generation",
+          "confirm_paper_changes",
+          "confirm_teaching_design",
+          "create_teaching_design",
+          "discard_pending_plan",
+          "discard_teaching_design",
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "operate_paper_version",
+          "prepare_generation_plan",
+          "prepare_reinforcement_plan",
+          "prepare_teaching_planning_draft",
+          "read_active_teaching_design",
+          "retrieve_curriculum_candidates",
+          "revise_teaching_design",
+          "search_teaching_design_history",
+          "select_teaching_scope"
+        ],
+        "current_all_schema_chars": 33335,
+        "used_only_schema_chars": 5591,
+        "theoretical_removed_chars": 27744,
+        "caveat": "Current-schema scenario only; actual required tools and historical exposed names are unavailable."
+      },
+      {
+        "category": "pending",
+        "actually_used_tools_in_historical_trace": [
+          "discard_pending_plan"
+        ],
+        "current_registry_tools_not_used_by_category": [
+          "activate_teaching_design",
+          "analyze_paper",
+          "confirm_generation",
+          "confirm_paper_changes",
+          "confirm_teaching_design",
+          "create_teaching_design",
+          "discard_teaching_design",
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "operate_paper_version",
+          "prepare_generation_plan",
+          "prepare_reinforcement_plan",
+          "prepare_teaching_planning_draft",
+          "preview_paper_changes",
+          "read_active_teaching_design",
+          "read_paper",
+          "retrieve_curriculum_candidates",
+          "revise_teaching_design",
+          "search_teaching_design_history",
+          "select_teaching_scope"
+        ],
+        "current_all_schema_chars": 33335,
+        "used_only_schema_chars": 312,
+        "theoretical_removed_chars": 33023,
+        "caveat": "Current-schema scenario only; actual required tools and historical exposed names are unavailable."
+      },
+      {
+        "category": "teaching",
+        "actually_used_tools_in_historical_trace": [
+          "create_teaching_design",
+          "inspect_curriculum",
+          "inspect_question_bank",
+          "retrieve_curriculum_candidates",
+          "select_teaching_scope"
+        ],
+        "current_registry_tools_not_used_by_category": [
+          "activate_teaching_design",
+          "analyze_paper",
+          "confirm_generation",
+          "confirm_paper_changes",
+          "confirm_teaching_design",
+          "discard_pending_plan",
+          "discard_teaching_design",
+          "operate_paper_version",
+          "prepare_generation_plan",
+          "prepare_reinforcement_plan",
+          "prepare_teaching_planning_draft",
+          "preview_paper_changes",
+          "read_active_teaching_design",
+          "read_paper",
+          "revise_teaching_design",
+          "search_teaching_design_history"
+        ],
+        "current_all_schema_chars": 33335,
+        "used_only_schema_chars": 8883,
+        "theoretical_removed_chars": 24452,
+        "caveat": "Current-schema scenario only; actual required tools and historical exposed names are unavailable."
+      }
+    ]
+  },
+  "tool_observation_proxy": {
+    "model_visible_observation_chars": 156007,
+    "saved_tool_output_json_chars_by_tool": {
+      "confirm_generation": {
+        "sum": 684,
+        "mean": 684,
+        "median": 684,
+        "max": 684
+      },
+      "create_teaching_design": {
+        "sum": 14431,
+        "mean": 2886.2,
+        "median": 2868,
+        "max": 2990
+      },
+      "discard_pending_plan": {
+        "sum": 1560,
+        "mean": 195,
+        "median": 195.0,
+        "max": 195
+      },
+      "inspect_curriculum": {
+        "sum": 21882,
+        "mean": 705.87,
+        "median": 698,
+        "max": 733
+      },
+      "inspect_question_bank": {
+        "sum": 36900,
+        "mean": 1190.32,
+        "median": 1280,
+        "max": 1280
+      },
+      "prepare_generation_plan": {
+        "sum": 34784,
+        "mean": 1391.36,
+        "median": 1510,
+        "max": 1925
+      },
+      "preview_paper_changes": {
+        "sum": 4057,
+        "mean": 1352.33,
+        "median": 1368,
+        "max": 1368
+      },
+      "read_paper": {
+        "sum": 5531,
+        "mean": 1382.75,
+        "median": 700.0,
+        "max": 3431
+      },
+      "retrieve_curriculum_candidates": {
+        "sum": 2412,
+        "mean": 1206,
+        "median": 1206.0,
+        "max": 1206
+      },
+      "select_teaching_scope": {
+        "sum": 1170,
+        "mean": 585,
+        "median": 585.0,
+        "max": 590
+      }
+    },
+    "caveat": "Saved output JSON length is a size proxy and may differ from serialized model-visible observation text."
+  },
+  "loop_audit": {
+    "exact_repeated_tool_calls_same_turn": [],
+    "failed_tool_then_model_continuations": [],
+    "successful_preview_then_model_continuations": [
+      {
+        "case_id": "EVAL-141",
+        "turn": 1,
+        "later_model_calls": 1,
+        "later_input_tokens": 4592,
+        "later_output_tokens": 60
+      },
+      {
+        "case_id": "EVAL-142",
+        "turn": 1,
+        "later_model_calls": 1,
+        "later_input_tokens": 4666,
+        "later_output_tokens": 45
+      },
+      {
+        "case_id": "EVAL-143",
+        "turn": 1,
+        "later_model_calls": 1,
+        "later_input_tokens": 4630,
+        "later_output_tokens": 60
+      }
+    ],
+    "intermediate_no_tool_output_then_recheck": {
+      "count": 30,
+      "input_tokens": 160092,
+      "output_tokens": 4279,
+      "records": [
+        {
+          "case_id": "EVAL-048",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6055,
+          "output_tokens": 186,
+          "total_tokens": 6241
+        },
+        {
+          "case_id": "EVAL-049",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 5903,
+          "output_tokens": 129,
+          "total_tokens": 6032
+        },
+        {
+          "case_id": "EVAL-049",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4531,
+          "output_tokens": 129,
+          "total_tokens": 4660
+        },
+        {
+          "case_id": "EVAL-050",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 5896,
+          "output_tokens": 152,
+          "total_tokens": 6048
+        },
+        {
+          "case_id": "EVAL-051",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6062,
+          "output_tokens": 194,
+          "total_tokens": 6256
+        },
+        {
+          "case_id": "EVAL-053",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 5913,
+          "output_tokens": 127,
+          "total_tokens": 6040
+        },
+        {
+          "case_id": "EVAL-053",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4539,
+          "output_tokens": 127,
+          "total_tokens": 4666
+        },
+        {
+          "case_id": "EVAL-054",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6067,
+          "output_tokens": 67,
+          "total_tokens": 6134
+        },
+        {
+          "case_id": "EVAL-054",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4633,
+          "output_tokens": 67,
+          "total_tokens": 4700
+        },
+        {
+          "case_id": "EVAL-055",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6096,
+          "output_tokens": 206,
+          "total_tokens": 6302
+        },
+        {
+          "case_id": "EVAL-055",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4801,
+          "output_tokens": 171,
+          "total_tokens": 4972
+        },
+        {
+          "case_id": "EVAL-056",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 5856,
+          "output_tokens": 152,
+          "total_tokens": 6008
+        },
+        {
+          "case_id": "EVAL-056",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4507,
+          "output_tokens": 134,
+          "total_tokens": 4641
+        },
+        {
+          "case_id": "EVAL-057",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6060,
+          "output_tokens": 192,
+          "total_tokens": 6252
+        },
+        {
+          "case_id": "EVAL-058",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 5902,
+          "output_tokens": 92,
+          "total_tokens": 5994
+        },
+        {
+          "case_id": "EVAL-058",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4493,
+          "output_tokens": 92,
+          "total_tokens": 4585
+        },
+        {
+          "case_id": "EVAL-061",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6056,
+          "output_tokens": 90,
+          "total_tokens": 6146
+        },
+        {
+          "case_id": "EVAL-061",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4645,
+          "output_tokens": 62,
+          "total_tokens": 4707
+        },
+        {
+          "case_id": "EVAL-062",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 5900,
+          "output_tokens": 103,
+          "total_tokens": 6003
+        },
+        {
+          "case_id": "EVAL-062",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4502,
+          "output_tokens": 103,
+          "total_tokens": 4605
+        },
+        {
+          "case_id": "EVAL-063",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6055,
+          "output_tokens": 137,
+          "total_tokens": 6192
+        },
+        {
+          "case_id": "EVAL-063",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4691,
+          "output_tokens": 137,
+          "total_tokens": 4828
+        },
+        {
+          "case_id": "EVAL-065",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6050,
+          "output_tokens": 108,
+          "total_tokens": 6158
+        },
+        {
+          "case_id": "EVAL-067",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6061,
+          "output_tokens": 323,
+          "total_tokens": 6384
+        },
+        {
+          "case_id": "EVAL-067",
+          "turn": 1,
+          "model_call_index": 4,
+          "input_tokens": 4883,
+          "output_tokens": 304,
+          "total_tokens": 5187
+        },
+        {
+          "case_id": "EVAL-068",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 4544,
+          "output_tokens": 151,
+          "total_tokens": 4695
+        },
+        {
+          "case_id": "EVAL-069",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 5900,
+          "output_tokens": 150,
+          "total_tokens": 6050
+        },
+        {
+          "case_id": "EVAL-070",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 6056,
+          "output_tokens": 149,
+          "total_tokens": 6205
+        },
+        {
+          "case_id": "EVAL-199",
+          "turn": 1,
+          "model_call_index": 3,
+          "input_tokens": 4378,
+          "output_tokens": 204,
+          "total_tokens": 4582
+        },
+        {
+          "case_id": "EVAL-267",
+          "turn": 1,
+          "model_call_index": 1,
+          "input_tokens": 3057,
+          "output_tokens": 41,
+          "total_tokens": 3098
+        }
+      ],
+      "classification": "historical optimization candidates, not proof every call was unnecessary"
+    }
+  },
+  "provider_attempts": {
+    "calls_with_attempt_detail": 0,
+    "calls_without_attempt_detail": 163,
+    "attempt_records": 0,
+    "retry_attempts": 0,
+    "retry_cost_attribution": "unavailable"
+  },
+  "duplicate_trace_detection": {
+    "model_calls": {
+      "records_across_known_projections": 326,
+      "unique_span_ids": 163,
+      "duplicate_projection_records": 163
+    },
+    "tool_calls": {
+      "records_across_known_projections": 224,
+      "unique_span_ids": 112,
+      "duplicate_projection_records": 112
+    },
+    "note": "Duplicate projection records are storage copies, not additional executions."
+  }
+}

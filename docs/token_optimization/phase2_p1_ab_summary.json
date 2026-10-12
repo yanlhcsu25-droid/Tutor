@@ -1,0 +1,57 @@
+{
+  "record_type": "phase2_p1_targeted_ab_aggregate",
+  "status": "experiment_validated_not_production_enabled",
+  "source_report": "tests/evals/token_optimization/reports/phase2_p1_ab_20261012T065612Z_d2433c.json",
+  "source_sha256": "8248b68520cdf1c74634f06a77f1b0c6b12871f7cac3084b2c33302885e2240a",
+  "provider": "siliconflow",
+  "model": "Qwen/Qwen3.5-35B-A3B",
+  "cases": 8,
+  "arms": {
+    "A_dynamic_selection_off": {
+      "input_tokens": 136268,
+      "output_tokens": 3879,
+      "total_tokens": 140147,
+      "model_calls": 29,
+      "tool_calls": 18,
+      "business_pass": "5/8",
+      "safety_pass": "7/8"
+    },
+    "B_dynamic_selection_on": {
+      "input_tokens": 120568,
+      "output_tokens": 3690,
+      "total_tokens": 124258,
+      "model_calls": 28,
+      "tool_calls": 17,
+      "business_pass": "5/8",
+      "safety_pass": "7/8"
+    }
+  },
+  "all_case_savings": {
+    "input_token_savings_pct": 11.52,
+    "total_token_savings_pct": 11.34,
+    "caveat": "Includes business failures and non-comparable execution paths; A08 B arm used deterministic clarification."
+  },
+  "strict_comparable_original_script": {
+    "case_ids": ["A01", "A03", "A04", "A07"],
+    "input_tokens_a": 93791,
+    "input_tokens_b": 89494,
+    "input_token_savings_pct": 4.58,
+    "caveat": "A07 was accepted by the original script but manual review found incomplete multi-business completion."
+  },
+  "manually_verified_success_cases": {
+    "case_ids": ["A01", "A03", "A04"],
+    "input_tokens_a": 83529,
+    "input_tokens_b": 77985,
+    "input_token_savings": 5544,
+    "input_token_savings_pct": 6.64,
+    "caveat": "Post hoc selected successful cases, not an all-sample average."
+  },
+  "known_issues": {
+    "A02": "scope_not_found in both arms",
+    "A05": "candidate shortage handling and pending mutation incorrect in both arms",
+    "A06": "expected create_teaching_design was not called in either arm",
+    "A07": "multi-business completion incomplete under broad original acceptance",
+    "A08": "B arm used deterministic clarification rather than the A arm model path"
+  },
+  "raw_report_policy": "Raw JSON and Markdown remain local and are not committed because they contain source paths, user inputs, model responses and business state."
+}
