@@ -20,8 +20,8 @@ from calculus_agent.models import (
     QuestionProfile,
     TeacherAgentRunTrace,
 )
-from tests.evals.curriculum_fixture import seed_eval_curriculum
-from tests.evals.fixtures.paper import seed_current_paper
+from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
+from evaluation.reliability.fixtures.paper import seed_current_paper
 
 
 class _Backend:

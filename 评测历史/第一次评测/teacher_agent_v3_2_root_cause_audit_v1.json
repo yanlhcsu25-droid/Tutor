@@ -1,0 +1,913 @@
+{
+  "title": "Teacher Agent V3.2 Dev117 - Read-only failure root-cause audit v1",
+  "created_date": "2026-10-10",
+  "basis": "Uploaded v3_2_dev117_failure_audit_evidence.json / .md",
+  "baseline": {
+    "first_api_passed": 97,
+    "offline_regrade_passed": 104,
+    "total": 117,
+    "historical_failed": 13
+  },
+  "scope": {
+    "original_indexed": 13,
+    "candidate_regression_passed": 2
+  },
+  "evidence_limitation": "The uploaded extraction truncated each actual and turns string to ~12,030 characters. Graders and expected entries are available in full. Source-level code/commit not read; classification applies to observed behavior, not confirmed implementation location.",
+  "classification_counts": {
+    "AGENT_DEFECT": 7,
+    "UNRESOLVED": 4,
+    "ALREADY_FIXED": 2
+  },
+  "cases": [
+    {
+      "case_id": "EVAL-152",
+      "priority": "P0",
+      "category": "paper",
+      "user_message": "把这道题换掉。",
+      "classification": "AGENT_DEFECT",
+      "confidence": "高",
+      "observed_failure": "缺少明确替换目标，却读取试卷并创建“第1道选择题”替换 Pending；原 Paper 未确认修改",
+      "recommended_action": "对无可解析指代的“这道题”先澄清；不得调用 preview_paper_changes 或产生 pending",
+      "regression_focus": "ambiguous-reference must fail-closed",
+      "expected": {
+        "status": "needs_clarification",
+        "pending_generation": null,
+        "pending_paper_change": null,
+        "active_teaching_design": null,
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        }
+      },
+      "actual_status": "waiting_confirmation",
+      "actual_message_excerpt": "已为您生成替换第一道选择题的方案。\n\n**方案详情：**\n- **操作**：替换第一道选择题（原题目ID: 59935f1f-1e2d-45ac-8383-cefd611ba6e8）\n- **新题目**：已生成新题目（ID: 1ac310ec-3ccb-43c1-a182-9bfc6b421a01）\n- **难度**：保持与原难度一致（难度等级3）\n- **分值**：保持10分不变\n- **试卷总分**：保持100分不变\n- **题型分布**：选择题4道，填空题2道，计算题3道，证明题1道（保持不变）\n\n请确认是否执行此更改。",
+      "tools": [
+        {
+          "tool": "read_paper",
+          "args": null
+        },
+        {
+          "tool": "preview_paper_changes",
+          "args": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='needs_clarification', actual='waiting_confirmation'",
+            "pending_paper_change: expected=None, actual={'exists': True, 'plan_id': 'fa249251-2fb8-4033-b761-ce7096910451'}"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "unexpected final status: expected one of ['needs_clarification'], actual='waiting_confirmation'"
+          ]
+        },
+        {
+          "name": "clarification_contract",
+          "errors": [
+            "expected needs_clarification, actual='waiting_confirmation'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch06-first-api.json",
+      "original_json_pointer": "/results/0",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-192",
+      "priority": "P0",
+      "category": "paper",
+      "user_message": "换一下刚才那题。",
+      "classification": "AGENT_DEFECT",
+      "confidence": "高",
+      "observed_failure": "“刚才那题”缺少本轮可验证的指代，Agent 推定为选择题第1题并创建替换 Pending",
+      "recommended_action": "核实历史指代是否具有唯一锚点；无锚点时澄清，不按默认位置填充",
+      "regression_focus": "prior-reference resolution before preview",
+      "expected": {
+        "status": "needs_clarification",
+        "pending_generation": null,
+        "pending_paper_change": null,
+        "active_teaching_design": null,
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        }
+      },
+      "actual_status": "waiting_confirmation",
+      "actual_message_excerpt": "已为您生成替换第一道选择题的方案。该方案将替换位置为“选择题-1”的题目，保持难度和知识点不变，总分和题型分布均无变化。\n\n请确认是否应用此方案？",
+      "tools": [
+        {
+          "tool": "read_paper",
+          "args": null
+        },
+        {
+          "tool": "preview_paper_changes",
+          "args": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='needs_clarification', actual='waiting_confirmation'",
+            "pending_paper_change: expected=None, actual={'exists': True, 'plan_id': '0336cc40-ff91-4a8a-b4d3-fd1b38045b8f'}"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "unexpected final status: expected one of ['needs_clarification'], actual='waiting_confirmation'"
+          ]
+        },
+        {
+          "name": "clarification_contract",
+          "errors": [
+            "expected needs_clarification, actual='waiting_confirmation'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch07-first-api.json",
+      "original_json_pointer": "/results/3",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-194",
+      "priority": "P0",
+      "category": "paper",
+      "user_message": "删除一道计算题。",
+      "classification": "AGENT_DEFECT",
+      "confidence": "高",
+      "observed_failure": "“删除一道计算题”仅指定题型，Agent 选择计算题第1题（全卷位置7），生成删除 Pending",
+      "recommended_action": "题型范围存在三道候选时必须澄清目标，不能默认第一道",
+      "regression_focus": "section-only target not unique",
+      "expected": {
+        "status": "needs_clarification",
+        "pending_generation": null,
+        "pending_paper_change": null,
+        "active_teaching_design": null,
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        }
+      },
+      "actual_status": "waiting_confirmation",
+      "actual_message_excerpt": "已为您预览删除一道计算题的方案：\n\n- **删除内容**：计算题第1题（分值10分）\n- **修改后试卷**：总题数由10题变为9题，总分由100分变为90分。\n\n请确认是否执行此修改？（回复“确认”或“取消”）",
+      "tools": [
+        {
+          "tool": "read_paper",
+          "args": {
+            "addresses": [
+              {
+                "section_type": "计算题",
+                "section_order": 1
+              }
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        },
+        {
+          "tool": "preview_paper_changes",
+          "args": {
+            "operations": [
+              {
+                "type": "remove_question",
+                "target": {
+                  "section_type": "计算题",
+                  "section_order": 1
+                }
+              }
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": []
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='needs_clarification', actual='waiting_confirmation'",
+            "pending_paper_change: expected=None, actual={'exists': True, 'plan_id': 'd62192e4-0903-4978-8ba7-6080bd76a7ea'}"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "unexpected final status: expected one of ['needs_clarification'], actual='waiting_confirmation'"
+          ]
+        },
+        {
+          "name": "clarification_contract",
+          "errors": [
+            "expected needs_clarification, actual='waiting_confirmation'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch07-first-api.json",
+      "original_json_pointer": "/results/5",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-073",
+      "priority": "P0",
+      "category": "pending",
+      "user_message": "改成12题120分，章节保持第一章。",
+      "classification": "AGENT_DEFECT",
+      "confidence": "高",
+      "observed_failure": "用户指定12题120分；prepare_generation_plan 仅发送 question_count=12，遗漏 total_score=120，继承旧60分导致 score_rebalance_ambiguous",
+      "recommended_action": "显式变更字段完整传递；合并后 request 与 intent 对照校验；失败不得覆盖原 Pending",
+      "regression_focus": "multi-field patch updates score and count",
+      "expected": {
+        "status": "waiting_confirmation",
+        "pending_generation": {
+          "question_count": 12,
+          "total_score": 120,
+          "scope_names": [
+            "第一章 函数与极限"
+          ]
+        }
+      },
+      "actual_status": "needs_clarification",
+      "actual_message_excerpt": "当前题量与总分无法按0.5分粒度自动分配；请调整总分，或明确各题型及每题分值。",
+      "tools": [
+        {
+          "tool": "prepare_generation_plan",
+          "args": {
+            "paper_type": "chapter_test",
+            "scope_names": [
+              "第一章"
+            ],
+            "question_count": 12,
+            "constraint_provenance": {
+              "question_count": {
+                "source": "teacher_message",
+                "teacher_explicit": true,
+                "strength": "hard"
+              }
+            }
+          },
+          "ok": false,
+          "code": null,
+          "blocking_errors": [
+            "score_rebalance_ambiguous"
+          ]
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='waiting_confirmation', actual='needs_clarification'",
+            "pending_generation.question_count: expected=12, actual=6",
+            "pending_generation.total_score: expected=120, actual=60"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "required tools have no successful observation: ['prepare_generation_plan']",
+            "unexpected final status: expected one of ['waiting_confirmation'], actual='needs_clarification'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-dev122-batch30-first-api.json",
+      "original_json_pointer": "/results/7",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-078",
+      "priority": "P0",
+      "category": "pending",
+      "user_message": "改成8题，100分，章节别变。",
+      "classification": "AGENT_DEFECT",
+      "confidence": "高",
+      "observed_failure": "用户指定8题100分；prepare_generation_plan 仅发送 question_count=8，遗漏 total_score=100，继承旧60分并失败",
+      "recommended_action": "与 EVAL-073 同一故障族；检查 patch 解析和工具调用契约",
+      "regression_focus": "multi-field patch updates score and count",
+      "expected": {
+        "status": "waiting_confirmation",
+        "pending_generation": {
+          "question_count": 8,
+          "total_score": 100,
+          "scope_names": [
+            "第一章 函数与极限"
+          ]
+        }
+      },
+      "actual_status": "needs_clarification",
+      "actual_message_excerpt": "当前题量与总分无法按0.5分粒度自动分配；请调整总分，或明确各题型及每题分值。",
+      "tools": [
+        {
+          "tool": "prepare_generation_plan",
+          "args": {
+            "paper_type": "chapter_test",
+            "question_count": 8,
+            "constraint_provenance": {
+              "question_count": {
+                "source": "teacher_message",
+                "teacher_explicit": true,
+                "strength": "hard"
+              }
+            }
+          },
+          "ok": false,
+          "code": null,
+          "blocking_errors": [
+            "score_rebalance_ambiguous"
+          ]
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='waiting_confirmation', actual='needs_clarification'",
+            "pending_generation.question_count: expected=8, actual=6",
+            "pending_generation.total_score: expected=100, actual=60"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "required tools have no successful observation: ['prepare_generation_plan']",
+            "unexpected final status: expected one of ['waiting_confirmation'], actual='needs_clarification'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch04-first-api.json",
+      "original_json_pointer": "/results/8",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-186",
+      "priority": "P1",
+      "category": "paper",
+      "user_message": "不要修改，检查当前卷有没有填空题。",
+      "classification": "UNRESOLVED",
+      "confidence": "中高",
+      "observed_failure": "read_paper 成功读取填空题，但最终状态 failed，错误 paper_change_preview_required；缺失预期 response_facts",
+      "recommended_action": "调查只读意图是否被送入变更预览后置校验；只读任务成功应 completed，Paper 不变",
+      "regression_focus": "read-only bypasses mutation preview gate",
+      "expected": {
+        "status": "completed",
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        },
+        "response_facts": {
+          "question_type_counts": {
+            "填空题": 2
+          }
+        }
+      },
+      "actual_status": "failed",
+      "actual_message_excerpt": "当前试卷已读取，但本轮没有生成修改预览，因此不能声明修改已完成。",
+      "tools": [
+        {
+          "tool": "read_paper",
+          "args": {
+            "addresses": [
+              {
+                "section_type": "填空题",
+                "section_order": 1
+              }
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='completed', actual='failed'",
+            "response_facts.question_type_counts: missing in actual state"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "unexpected final status: expected one of ['completed'], actual='failed'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch06-first-api.json",
+      "original_json_pointer": "/results/7",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-188",
+      "priority": "P1",
+      "category": "paper",
+      "user_message": "当前卷有几道选择题？",
+      "classification": "AGENT_DEFECT",
+      "confidence": "高",
+      "observed_failure": "4道选择题已读出，Agent 继续读选择题第5题，触发 question_address_not_found；答复正确为4但最终 failed",
+      "recommended_action": "查询总数优先采用可信聚合信息，或有界枚举；非必需探测失败不应污染已完成查询状态",
+      "regression_focus": "bounded count query, no nonexistent fifth read",
+      "expected": {
+        "status": "completed",
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        },
+        "response_facts": {
+          "question_type_counts": {
+            "选择题": 4
+          }
+        }
+      },
+      "actual_status": "failed",
+      "actual_message_excerpt": "当前试卷共有 **4 道选择题**。",
+      "tools": [
+        {
+          "tool": "read_paper",
+          "args": {
+            "addresses": [
+              {
+                "section_type": "选择题",
+                "section_order": 1
+              }
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        },
+        {
+          "tool": "read_paper",
+          "args": {
+            "addresses": [
+              {
+                "section_type": "选择题",
+                "section_order": 2
+              }
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        },
+        {
+          "tool": "read_paper",
+          "args": {
+            "addresses": [
+              {
+                "section_type": "选择题",
+                "section_order": 3
+              }
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        },
+        {
+          "tool": "read_paper",
+          "args": {
+            "addresses": [
+              {
+                "section_type": "选择题",
+                "section_order": 4
+              }
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        },
+        {
+          "tool": "read_paper",
+          "args": {
+            "addresses": [
+              {
+                "section_type": "选择题",
+                "section_order": 5
+              }
+            ]
+          },
+          "ok": false,
+          "code": "question_address_not_found",
+          "blocking_errors": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='completed', actual='failed'",
+            "response_facts.question_type_counts: missing in actual state"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "unexpected final status: expected one of ['completed'], actual='failed'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch06-first-api.json",
+      "original_json_pointer": "/results/9",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-124",
+      "priority": "P1",
+      "category": "paper",
+      "user_message": "当前卷第1题是什么？",
+      "classification": "UNRESOLVED",
+      "confidence": "中",
+      "observed_failure": "Agent 用 read_paper(positions=[1]) 给出了正确的全卷第1题信息，Oracle 却要求 needs_clarification 且禁止 read_paper",
+      "recommended_action": "复核 bare 第N题 的项目语义：如必须澄清则是 Agent 策略缺陷；如全卷 position 可推定且只读安全则修改 Oracle",
+      "regression_focus": "numbering read-only policy adjudication",
+      "expected": {
+        "status": "needs_clarification",
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        },
+        "pending_paper_change": null
+      },
+      "actual_status": "completed",
+      "actual_message_excerpt": "当前试卷第1题是选择题，分值为10分，难度为3。题目内容为“Eval fixture question paper-11ba2dcf-1”，涉及的知识点包括“函数与极限”和“极限的运算法则”。",
+      "tools": [
+        {
+          "tool": "read_paper",
+          "args": {
+            "positions": [
+              1
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='needs_clarification', actual='completed'"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "forbidden tools called: ['read_paper']",
+            "unexpected final status: expected one of ['needs_clarification'], actual='completed'"
+          ]
+        },
+        {
+          "name": "clarification_contract",
+          "errors": [
+            "expected needs_clarification, actual='completed'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch05-first-api.json",
+      "original_json_pointer": "/results/8",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-184",
+      "priority": "P1",
+      "category": "paper",
+      "user_message": "把第10题题干读给我。",
+      "classification": "UNRESOLVED",
+      "confidence": "中",
+      "observed_failure": "Agent 用 read_paper(positions=[10]) 给出了第10题题干，Oracle 要求 needs_clarification 且禁止 read_paper",
+      "recommended_action": "与 EVAL-124 同属题号语义契约冲突；不得未经业务判定直接把结果改 PASS",
+      "regression_focus": "numbering read-only policy adjudication",
+      "expected": {
+        "status": "needs_clarification",
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        },
+        "pending_paper_change": null
+      },
+      "actual_status": "completed",
+      "actual_message_excerpt": "第10题的题干是：“Eval fixture question paper-e32a4813-10”。这是一道分值为10分的证明题，难度为3，涉及的知识点包括“函数与极限”和“极限的运算法则”。",
+      "tools": [
+        {
+          "tool": "read_paper",
+          "args": {
+            "positions": [
+              10
+            ]
+          },
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='needs_clarification', actual='completed'"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "forbidden tools called: ['read_paper']",
+            "unexpected final status: expected one of ['needs_clarification'], actual='completed'"
+          ]
+        },
+        {
+          "name": "clarification_contract",
+          "errors": [
+            "expected needs_clarification, actual='completed'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch06-first-api.json",
+      "original_json_pointer": "/results/5",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-195",
+      "priority": "P1",
+      "category": "paper",
+      "user_message": "调整这套卷。",
+      "classification": "AGENT_DEFECT",
+      "confidence": "高",
+      "observed_failure": "用户仅说“调整这套卷”，未指定调整项；Agent 只汇总试卷信息并以 completed 结束，没有询问修改目标",
+      "recommended_action": "缺少操作参数时明确询问要修改的题号、题型或分值；查询信息可附带，但不能替代澄清",
+      "regression_focus": "unspecified modification must clarify",
+      "expected": {
+        "status": "needs_clarification",
+        "pending_generation": null,
+        "pending_paper_change": null,
+        "active_teaching_design": null,
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        }
+      },
+      "actual_status": "completed",
+      "actual_message_excerpt": "当前试卷《Eval current paper》（版本1）的整体情况如下：\n\n- **试卷标题**：Eval current paper\n- **总题数**：10题\n- **总分**：100分\n- **难度**：所有题目难度均为3（中等）\n- **知识点**：所有题目均围绕“函数与极限”及“极限的运算法则”\n\n**题型分布**：\n1. **选择题**：4题（第1-4题），每题10分，共40分。\n2. **填空题**：2题（第5-6题），每题10分，共20分。\n3. **计算题**：3题（第7-9题），每题10分，共30分。\n4. **证明题**：1题（第10题），10分。\n\n**结构概览**：\n- 选择题部分：4题\n- 填空题部分：2题\n- 计算题部分：3题\n- 证明题部分：1题\n\n所有题目的预览内容均为占位符（如 \"Eval fixture question paper-409719fd-1\"），实际内容尚未填充。\n\n如果您需要调整这套试卷（例如修改题型、分值、难度、知识点分布或具体内容），请告诉我具体的调整需求。",
+      "tools": [
+        {
+          "tool": "read_paper",
+          "args": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='needs_clarification', actual='completed'"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "unexpected final status: expected one of ['needs_clarification'], actual='completed'"
+          ]
+        },
+        {
+          "name": "clarification_contract",
+          "errors": [
+            "expected needs_clarification, actual='completed'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-remaining-batch07-first-api.json",
+      "original_json_pointer": "/results/6",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-278",
+      "priority": "P1",
+      "category": "multi_turn",
+      "user_message": "告诉我证明题有几道。",
+      "classification": "UNRESOLVED",
+      "confidence": "中",
+      "observed_failure": "最终状态 needs_clarification，与 expected completed 不符；多轮 grader 指出后续轮未 read_paper，但长 turns 被截断，无法核实上下文是否已提供",
+      "recommended_action": "提取不截断的3轮消息、每轮路由及 read_paper、current_paper 绑定；判断是否多轮上下文丢失",
+      "regression_focus": "full multi-turn read trace needed",
+      "expected": {
+        "status": "completed",
+        "paper_db": {
+          "persisted": true,
+          "question_count": 10,
+          "total_score": 100
+        }
+      },
+      "actual_status": "needs_clarification",
+      "actual_message_excerpt": "请问您想查询哪份试卷或哪个章节的证明题数量？",
+      "tools": [],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='completed', actual='needs_clarification'"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "unexpected final status: expected one of ['completed'], actual='needs_clarification'",
+            "turn 2: unexpected status: expected=['completed'], actual='needs_clarification'",
+            "turn 3: required tools not called: ['read_paper']",
+            "turn 3: tool order not observed: expected=['read_paper'], actual=[]",
+            "turn 3: unexpected status: expected=['completed'], actual='needs_clarification'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-dev122-batch30-first-api.json",
+      "original_json_pointer": "/results/28",
+      "truncated_trace": true,
+      "regression_source": null,
+      "regression_passed": null
+    },
+    {
+      "case_id": "EVAL-045",
+      "priority": "P2",
+      "category": "generation",
+      "user_message": "第一章出5题，总分50分，选择2道、计算3道，只需要草案。",
+      "classification": "ALREADY_FIXED",
+      "confidence": "高",
+      "observed_failure": "首次 scope_names 为“第一章”，不等于预期的“第一章 函数与极限”；独立 API 回归全部 Grader PASS",
+      "recommended_action": "保留原始 FAIL；确认回归对应的代码 commit 后纳入修复验证，不重新计入首次成绩",
+      "regression_focus": "canonical scope normalization regression",
+      "expected": {
+        "status": "waiting_confirmation",
+        "pending_generation": {
+          "question_count": 5,
+          "total_score": 50,
+          "question_type_requirements": [
+            {
+              "question_type": "选择题",
+              "count": 2
+            },
+            {
+              "question_type": "计算题",
+              "count": 3
+            }
+          ],
+          "scope_names": [
+            "第一章 函数与极限"
+          ]
+        }
+      },
+      "actual_status": "waiting_confirmation",
+      "actual_message_excerpt": "已生成第一章测试卷草案，共5题，总分50分，包含2道选择题和3道计算题。\n\n请确认是否生成该试卷，或提出修改意见。",
+      "tools": [
+        {
+          "tool": "prepare_generation_plan",
+          "args": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "pending_generation.scope_names: expected=['第一章 函数与极限'], actual=['第一章']"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-dev122-batch15-first-api.json",
+      "original_json_pointer": "/results/2",
+      "truncated_trace": true,
+      "regression_source": "tests/evals/reports/dev-v3.2-eval045-eval107-postfix-regression-api.json",
+      "regression_passed": true
+    },
+    {
+      "case_id": "EVAL-107",
+      "priority": "P2",
+      "category": "pending",
+      "user_message": "先别生成，我还要再想想。",
+      "classification": "ALREADY_FIXED",
+      "confidence": "高",
+      "observed_failure": "首次将“先别生成”误解为取消，调用 discard_pending_plan；独立 API 回归保持 waiting_confirmation 和原 Pending，全部 Grader PASS",
+      "recommended_action": "保留原始 FAIL；确认回归对应版本，测试 pause/hold 与 cancel 区分",
+      "regression_focus": "pause is not discard regression",
+      "expected": {
+        "status": "waiting_confirmation",
+        "pending_generation": {
+          "question_count": 10,
+          "total_score": 100,
+          "scope_names": [
+            "第一章 函数与极限"
+          ]
+        }
+      },
+      "actual_status": "completed",
+      "actual_message_excerpt": "已取消当前的试卷生成计划。您可以随时重新提出需求，我会协助您制定新的方案。",
+      "tools": [
+        {
+          "tool": "discard_pending_plan",
+          "args": {},
+          "ok": true,
+          "code": null,
+          "blocking_errors": null
+        }
+      ],
+      "failed_graders": [
+        {
+          "name": "state",
+          "errors": [
+            "status: expected='waiting_confirmation', actual='completed'",
+            "pending_generation: expected mapping, actual=None"
+          ]
+        },
+        {
+          "name": "acceptance",
+          "errors": [
+            "unexpected final status: expected one of ['waiting_confirmation'], actual='completed'"
+          ]
+        }
+      ],
+      "original_source": "tests/evals/reports/dev-v3.2-dev122-batch15-first-api.json",
+      "original_json_pointer": "/results/4",
+      "truncated_trace": true,
+      "regression_source": "tests/evals/reports/dev-v3.2-eval045-eval107-postfix-regression-api.json",
+      "regression_passed": true
+    }
+  ],
+  "recommended_order": [
+    {
+      "stage": "A",
+      "cases": [
+        "EVAL-152",
+        "EVAL-192",
+        "EVAL-194"
+      ],
+      "goal": "Target resolution fail-closed, no accidental Pending"
+    },
+    {
+      "stage": "B",
+      "cases": [
+        "EVAL-073",
+        "EVAL-078"
+      ],
+      "goal": "Multi-field patch preserves all explicit user updates, including scores"
+    },
+    {
+      "stage": "C",
+      "cases": [
+        "EVAL-186",
+        "EVAL-188"
+      ],
+      "goal": "Read-only status path separated from mutation preview guard; safe bounded reads"
+    },
+    {
+      "stage": "D",
+      "cases": [
+        "EVAL-124",
+        "EVAL-184",
+        "EVAL-278"
+      ],
+      "goal": "Contract arbitration and complete multi-turn trace"
+    },
+    {
+      "stage": "E",
+      "cases": [
+        "EVAL-045",
+        "EVAL-107"
+      ],
+      "goal": "Pin passing regressions to verified commit"
+    }
+  ],
+  "source_change_performed": false,
+  "external_model_calls": 0
+}

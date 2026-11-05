@@ -17,7 +17,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from tests.conftest import create_isolated_test_session
-from tests.evals.curriculum_fixture import seed_eval_curriculum
+from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
 
 from calculus_agent.agent.conversation_state import (
     DatabasePendingReplacementStore,

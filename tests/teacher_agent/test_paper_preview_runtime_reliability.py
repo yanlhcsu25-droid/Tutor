@@ -7,8 +7,8 @@ from calculus_agent.agent.agent import run_teacher_agent
 from calculus_agent.agent.conversation_state import DatabasePendingReplacementStore
 from calculus_agent.agent.paper_change_service import PaperChangeService
 from calculus_agent.models import AdjustmentPlanRecord, PaperItem
-from tests.evals.curriculum_fixture import seed_eval_curriculum
-from tests.evals.fixtures.paper import seed_current_paper
+from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
+from evaluation.reliability.fixtures.paper import seed_current_paper
 
 
 class SequenceBackend:

@@ -1,0 +1,956 @@
+{
+  "fixture_id": "question_bank/chapter3_rich_v1",
+  "case_id": "TQ-PQ-002",
+  "database": {
+    "sqlite_user_version": 0,
+    "schema_sha256": "773a351ffcf4c236d5dbc30ff38d0fd913678471141613f35251c6c70b46bb66",
+    "source_path": "/Users/shengyue/Documents/Teacher_Agent/calculus_knowledge_agent/calculus_agent.db",
+    "source_sha256": "b09195589d04a3a54d42eb37a1622f1153c1596dd706a42b0325aced139b08b6",
+    "fixture_sha256": "1b9983f48a27a18d71102933398093e85bf4982eb80e722b42015c7fd4436065"
+  },
+  "alias_contract": {
+    "解答题": "计算题"
+  },
+  "required_canonical_question_type_counts": {
+    "选择题": 4,
+    "填空题": 4,
+    "计算题": 4,
+    "证明题": 2
+  },
+  "fixture_question_type_counts": {
+    "填空题": 6,
+    "计算题": 6,
+    "证明题": 6,
+    "选择题": 6
+  },
+  "question_ids": [
+    "4306626e-8db8-40f2-8951-890153a66049",
+    "53d4da2b-30a6-4207-97c4-9fd3316bb1b1",
+    "5ce7a878-181d-4e18-b2d4-d91e24c22b5d",
+    "863021c6-c71f-4fc4-ac0d-da8cfbdc45be",
+    "e272d22c-9897-4d89-8cbd-1d7180b32910",
+    "7838b2b1-06bc-4b62-9dd8-e0e72804c3b9",
+    "53fe22ca-f38e-4867-acf9-712136dc895e",
+    "eb8dd0ee-0b81-4d34-8417-be135ce550cc",
+    "3abc1778-90bd-4c32-9678-f2cf0113ca25",
+    "77904b1b-cd9b-41b4-83c3-4980dc97fc99",
+    "784fb46e-3bf8-461c-a16e-b89fbfb6f3af",
+    "906a8bdf-9b54-4b77-921e-8da01bd37b3b",
+    "06b9f714-07cc-44c2-9c1c-3928494292b2",
+    "2828e20b-1cdd-4d3c-b45e-3a5f2a212b0d",
+    "a1ff67c2-d909-4407-b8f6-f6c4007e9fb9",
+    "b59244fe-e93a-475c-9c86-8a4d8602d2a9",
+    "cbc94158-4e12-4b39-860d-86a78539aa48",
+    "e3bf8c72-a43a-4e74-99ab-8d94802fa0c6",
+    "1c715445-7eb0-43fc-9860-c0f414f14c21",
+    "0914761c-8b7a-409a-b2a6-72872d1fd389",
+    "6194e288-d34b-415a-9820-891aae486d19",
+    "85dcdcaa-e2a6-423b-878b-cb34dec5c4cd",
+    "94606222-bc1a-4c15-9e97-902000e42bd7",
+    "e2e07db8-31e9-464f-a72e-79f82ae3cca7"
+  ],
+  "questions": [
+    {
+      "question_id": "3abc1778-90bd-4c32-9678-f2cf0113ca25",
+      "draft_id": "edbc6629-b610-4558-ac06-c05d54737226",
+      "source_name": "ocr_import",
+      "source_item_id": "q_482f3db186ea402384484a557a66bcef",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "9d36dbd32ba2743e1e76e607ded1792e3c7aa9e445b56b48e98579e5a8671b0b",
+      "knowledge_points": [
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "53fe22ca-f38e-4867-acf9-712136dc895e",
+      "draft_id": "a5336071-52e9-4a17-927c-4bee430a87f7",
+      "source_name": "ocr_import",
+      "source_item_id": "q_2206b50c062842eabf7b4488eafbc7e6",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "d07cc0ef076c5f037a9601528256ad9c78c4dc8e855309f58deefb21dad1bc77",
+      "knowledge_points": [
+        {
+          "id": "77b646f2-3650-49f3-ba92-7be3f1900683",
+          "name": "拐点",
+          "curriculum_node_id": "a66a24e7-ce76-4dd5-b1ea-17ab8a4b14dd",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "77904b1b-cd9b-41b4-83c3-4980dc97fc99",
+      "draft_id": "33a9be95-b3ae-4dc8-8c27-e8e5eec46fc2",
+      "source_name": "ocr_import",
+      "source_item_id": "q_f327ba712d0d4d6f9001b91c35326452",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "86415fa048fcab4c56a1211161a5ac5afed7f8dc9be05fa819d80db477b96385",
+      "knowledge_points": [
+        {
+          "id": "01d65eca-562b-4b29-ae90-0b387690c771",
+          "name": "微分中值定理",
+          "curriculum_node_id": "4a6496b3-7c18-452e-9fb4-9bb59e70bdf3",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "784fb46e-3bf8-461c-a16e-b89fbfb6f3af",
+      "draft_id": "7b928667-dd55-4214-b282-96703fe3c0c6",
+      "source_name": "ocr_import",
+      "source_item_id": "q_2fe9c2d1a98c450ab721882ffcaf96d3",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "ba9445edc39a120805c7074fb46d3c84a375e60d4add05f2049886a6e7d4ddd0",
+      "knowledge_points": [
+        {
+          "id": "3ed46671-ac52-41b5-90f3-83d842178748",
+          "name": "拉格朗日中值定理",
+          "curriculum_node_id": "7b3d828c-c771-490b-9f65-042bb203682b",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "8004a881-371f-45bd-8ead-30c5042e3fe0",
+          "name": "泰勒公式",
+          "curriculum_node_id": "541644e9-4377-4c38-9269-d7bd63b67bad",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "906a8bdf-9b54-4b77-921e-8da01bd37b3b",
+      "draft_id": "fcfc5d4c-36e6-4b87-b0b8-6a6c235b7bcf",
+      "source_name": "ocr_import",
+      "source_item_id": "q_214c7d86a1d5460a8341a39c7537ce2f",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "2e845fd60ae089e36a588f0ffa879acce941e0b7e085e83cd60015f453bfef91",
+      "knowledge_points": [
+        {
+          "id": "8a382dc4-025b-454a-9428-1b42063aa6e8",
+          "name": "斜渐近线",
+          "curriculum_node_id": "ae9fae34-df70-4899-8fae-d728fde98f49",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "ee46df79-bc84-4734-8417-a578b966ac5b",
+          "name": "0/0型未定式的洛必达法则",
+          "curriculum_node_id": "fb9815a9-7852-4900-a80c-ba68a1700f79",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "eb8dd0ee-0b81-4d34-8417-be135ce550cc",
+      "draft_id": "f44d15b9-9cfd-404c-bcbd-bddaa0089a13",
+      "source_name": "ocr_import",
+      "source_item_id": "q_962ce032429244e1a36bfb7672e2b416",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "03c9bb4afedbd12b27d9f2854198a920ecec0f7ce28d1269a1c686063676e434",
+      "knowledge_points": [
+        {
+          "id": "1fb7ee65-12fa-46a0-9cb8-7ec0bfd333a4",
+          "name": "曲线凹凸性的判定",
+          "curriculum_node_id": "9e3e2cae-47bd-4824-8418-eb5a219112f5",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "bbe04042-e002-4bd8-99e6-5298eb4c1e51",
+          "name": "利用导数判定函数单调性",
+          "curriculum_node_id": "f21264f6-a94d-454d-b27c-244e2a3083c2",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "06b9f714-07cc-44c2-9c1c-3928494292b2",
+      "draft_id": "c9b83dce-5ae1-4e9c-affe-3b88c0895e7f",
+      "source_name": "ocr_import",
+      "source_item_id": "q_eaeaf9f6fbf047c7a3cfa2d59d075d67",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "186ec4f43d81d7fad02a0b88d581b976f34b094f12503010659d5d548e6918a2",
+      "knowledge_points": [
+        {
+          "id": "e46612d6-6654-4901-ab9e-bd0025188f52",
+          "name": "微分中值定理与导数的应用",
+          "curriculum_node_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f9d27ece-5688-4c71-88f1-51e43e81ceb1",
+          "name": "函数的单调性与曲线的凹凸性",
+          "curriculum_node_id": "248ab792-5512-4b2a-a43f-45939dcb71d3",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "2828e20b-1cdd-4d3c-b45e-3a5f2a212b0d",
+      "draft_id": "16567f8a-cc90-4771-a7f6-8955f2b3fe1b",
+      "source_name": "ocr_import",
+      "source_item_id": "q_f6f61b199756467c9dce7a4b27b1c815",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "553706776e392d91decdd8b2d1286269e639b7006ea6b157d83605d71870c7f9",
+      "knowledge_points": [
+        {
+          "id": "efca72e0-b9fc-4cd5-8837-32e41eee5ed0",
+          "name": "曲率",
+          "curriculum_node_id": "d4e6f461-b51e-40ec-8c89-6fad5b5c0eff",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "a1ff67c2-d909-4407-b8f6-f6c4007e9fb9",
+      "draft_id": "0a742ae6-61e2-4e00-bc92-fc33480ced3a",
+      "source_name": "ocr_import",
+      "source_item_id": "q_773e8c6753104ae28a61d0ce4d8b2846",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "dbd0640eb3f656997c3037e698018ce00d1efe69d8068f7f890e8f940cb43f47",
+      "knowledge_points": [
+        {
+          "id": "77b646f2-3650-49f3-ba92-7be3f1900683",
+          "name": "拐点",
+          "curriculum_node_id": "a66a24e7-ce76-4dd5-b1ea-17ab8a4b14dd",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "b59244fe-e93a-475c-9c86-8a4d8602d2a9",
+      "draft_id": "76df0977-f2ac-498a-945b-3d903929b535",
+      "source_name": "ocr_import",
+      "source_item_id": "q_c40f91f5120f4f8984a0ee854376ffbb",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "c359f5efd8915c6ecb5b290d8dfd0ffacd30669f7b348e4c0b1fb7122931e38a",
+      "knowledge_points": [
+        {
+          "id": "9bf49b18-aedf-4734-bb61-38c962b76433",
+          "name": "函数图形的描绘",
+          "curriculum_node_id": "5a59a0cc-7c74-440c-8cc5-d45ce96003ee",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f9d27ece-5688-4c71-88f1-51e43e81ceb1",
+          "name": "函数的单调性与曲线的凹凸性",
+          "curriculum_node_id": "248ab792-5512-4b2a-a43f-45939dcb71d3",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "cbc94158-4e12-4b39-860d-86a78539aa48",
+      "draft_id": "5ad4a054-adf7-4e91-885e-a58c61a24aed",
+      "source_name": "ocr_import",
+      "source_item_id": "q_0edde8198ba042c99ac838fa110f39c5",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 3,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "45e06c386b33f1abc38bb315cf163a86559dc3a179bc32ee89853acf62d2dbf9",
+      "knowledge_points": [
+        {
+          "id": "ee46df79-bc84-4734-8417-a578b966ac5b",
+          "name": "0/0型未定式的洛必达法则",
+          "curriculum_node_id": "fb9815a9-7852-4900-a80c-ba68a1700f79",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "e3bf8c72-a43a-4e74-99ab-8d94802fa0c6",
+      "draft_id": "9eb51352-951d-4c5b-9c0f-caff5b889892",
+      "source_name": "ocr_import",
+      "source_item_id": "q_83c99f585cd14d7c937f73ee4fb8cab0",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "d79e5b0dc72a644e5fcd4b00081126c640806609ed089ec856a075b3a5a06001",
+      "knowledge_points": [
+        {
+          "id": "77b646f2-3650-49f3-ba92-7be3f1900683",
+          "name": "拐点",
+          "curriculum_node_id": "a66a24e7-ce76-4dd5-b1ea-17ab8a4b14dd",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "bbe04042-e002-4bd8-99e6-5298eb4c1e51",
+          "name": "利用导数判定函数单调性",
+          "curriculum_node_id": "f21264f6-a94d-454d-b27c-244e2a3083c2",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "0914761c-8b7a-409a-b2a6-72872d1fd389",
+      "draft_id": "451827a2-4a92-4616-a09b-b5b1fd81aa99",
+      "source_name": "ocr_import",
+      "source_item_id": "q_091756cc2c6a4a0b95690a36d9fe8379",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "80c7005793224bb6813c97fe57c3688af4680db988f4d786a697b0400960592d",
+      "knowledge_points": [
+        {
+          "id": "3dce74b4-9b0c-403a-a86c-8389bd462f8a",
+          "name": "罗尔定理",
+          "curriculum_node_id": "c1d0b219-d0bf-4597-9dff-be4ccb3011be",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "6703de0a-4598-4e24-9526-a6a1fa725ca5",
+          "name": "零点定理",
+          "curriculum_node_id": "c1cf013b-f74a-4c2f-8f93-d1d90c364079",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "1c715445-7eb0-43fc-9860-c0f414f14c21",
+      "draft_id": "65754ab2-7e50-4c35-8238-b80828e5e2af",
+      "source_name": "ocr_import",
+      "source_item_id": "q_42bf8aedbd7c400fa3f63587928e0378",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "85b4c1992da37d1d3431c816b340370ffeffe94cd79890c3e157c18f3b703ff9",
+      "knowledge_points": [
+        {
+          "id": "01d65eca-562b-4b29-ae90-0b387690c771",
+          "name": "微分中值定理",
+          "curriculum_node_id": "4a6496b3-7c18-452e-9fb4-9bb59e70bdf3",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "6194e288-d34b-415a-9820-891aae486d19",
+      "draft_id": "4b34c5f9-dff7-4a4f-bcb0-cb2f26223c2a",
+      "source_name": "ocr_import",
+      "source_item_id": "q_aa66d79816dc4f0886a0ba37a779923d",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "8d8674c23b6fe2b2e15e22cc6ae69618d56cd107a712c11eb77ff25a93f0b5e2",
+      "knowledge_points": [
+        {
+          "id": "8004a881-371f-45bd-8ead-30c5042e3fe0",
+          "name": "泰勒公式",
+          "curriculum_node_id": "541644e9-4377-4c38-9269-d7bd63b67bad",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "924ce287-07a5-4269-b3c9-fc3c3cae263c",
+          "name": "带拉格朗日余项的泰勒公式",
+          "curriculum_node_id": "1694da66-40aa-421d-a21d-032723494b48",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "85dcdcaa-e2a6-423b-878b-cb34dec5c4cd",
+      "draft_id": "85097e49-46e2-4e1d-8b44-b2737ebbd896",
+      "source_name": "ocr_import",
+      "source_item_id": "q_a2a340f62d014f8491dd5dd588b7644e",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "4dcbc2e37bf74b7222dd8024104d06aaf1acd288d78dde232ac10792b672b4c7",
+      "knowledge_points": [
+        {
+          "id": "bbe04042-e002-4bd8-99e6-5298eb4c1e51",
+          "name": "利用导数判定函数单调性",
+          "curriculum_node_id": "f21264f6-a94d-454d-b27c-244e2a3083c2",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "94606222-bc1a-4c15-9e97-902000e42bd7",
+      "draft_id": "9c1fdf60-62b9-42fe-8421-c6ee5b5d9f08",
+      "source_name": "ocr_import",
+      "source_item_id": "q_a2a28c1bb7fc400ba9bb8d531d75620e",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "1d44ea0acd4af3804a5e9585fe7e8bba699d51ea461972009d9616bb40c60fbb",
+      "knowledge_points": [
+        {
+          "id": "3ed46671-ac52-41b5-90f3-83d842178748",
+          "name": "拉格朗日中值定理",
+          "curriculum_node_id": "7b3d828c-c771-490b-9f65-042bb203682b",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "e2e07db8-31e9-464f-a72e-79f82ae3cca7",
+      "draft_id": "d92711b4-da54-485c-8164-461ae9760825",
+      "source_name": "ocr_import",
+      "source_item_id": "q_56c9cfc577a347d79ef6abd387c11a56",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "7f3e5db280fcd1d00111c83b2c396992632d372b4b769bcd2d636a50265268b2",
+      "knowledge_points": [
+        {
+          "id": "01d65eca-562b-4b29-ae90-0b387690c771",
+          "name": "微分中值定理",
+          "curriculum_node_id": "4a6496b3-7c18-452e-9fb4-9bb59e70bdf3",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "8004a881-371f-45bd-8ead-30c5042e3fe0",
+          "name": "泰勒公式",
+          "curriculum_node_id": "541644e9-4377-4c38-9269-d7bd63b67bad",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "4306626e-8db8-40f2-8951-890153a66049",
+      "draft_id": "9aa25553-9f46-46d6-b613-a6f1e4559508",
+      "source_name": "ocr_import",
+      "source_item_id": "q_4075cdd02cc24bb8b7fb5487a52d421c",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "59bab2cc4ea162679422b6a196f0c8dcfccd29700233b24d7fe4a1c83409051f",
+      "knowledge_points": [
+        {
+          "id": "77b646f2-3650-49f3-ba92-7be3f1900683",
+          "name": "拐点",
+          "curriculum_node_id": "a66a24e7-ce76-4dd5-b1ea-17ab8a4b14dd",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "53d4da2b-30a6-4207-97c4-9fd3316bb1b1",
+      "draft_id": "99856eaa-c129-4eb9-889b-be9e1438c880",
+      "source_name": "ocr_import",
+      "source_item_id": "q_7b85338f1b764e98bbcd066b7f8d40d6",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "92442affca355620569bb4759be43cc3c85ba449b4af766f1bebe1f1b91f19e5",
+      "knowledge_points": [
+        {
+          "id": "f6af52ab-4ac3-48c9-97eb-faf9b91d3141",
+          "name": "函数的求导法则",
+          "curriculum_node_id": "cbafd50c-8a30-498c-9c88-c57339b17837",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f9d27ece-5688-4c71-88f1-51e43e81ceb1",
+          "name": "函数的单调性与曲线的凹凸性",
+          "curriculum_node_id": "248ab792-5512-4b2a-a43f-45939dcb71d3",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "5ce7a878-181d-4e18-b2d4-d91e24c22b5d",
+      "draft_id": "42c7f229-3642-4bf7-adfc-818ea89c9e0a",
+      "source_name": "ocr_import",
+      "source_item_id": "q_6b45fb90da884e2e86dfae22529618dc",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "82c599c62353a4ffda50ea30fba84318db6010e98a6452c751e982335eecb4a2",
+      "knowledge_points": [
+        {
+          "id": "0408a46d-9554-44cc-abbd-bfbf2f2cb8fa",
+          "name": "无穷小的比较",
+          "curriculum_node_id": "407d325f-0dad-4bc1-a2d3-e20dc38d352f",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "4aa3b5a6-4573-4311-b6bd-d417629abd45",
+          "name": "洛必达法则",
+          "curriculum_node_id": "d95d1e12-44cf-436b-9b4c-3a10b2949f75",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "7838b2b1-06bc-4b62-9dd8-e0e72804c3b9",
+      "draft_id": "96cda8fa-b1c5-4f2d-93d4-3753d1a3dbaa",
+      "source_name": "ocr_import",
+      "source_item_id": "q_4a776a2dfe2a4613a127c76753508277",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "a3ab9a90f48bf5ee11024d915be0fd6d3baa5205f4cabab75607a69f22f44a96",
+      "knowledge_points": [
+        {
+          "id": "3ed46671-ac52-41b5-90f3-83d842178748",
+          "name": "拉格朗日中值定理",
+          "curriculum_node_id": "7b3d828c-c771-490b-9f65-042bb203682b",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "863021c6-c71f-4fc4-ac0d-da8cfbdc45be",
+      "draft_id": "087647d5-7500-4757-ba14-a227a4ae4793",
+      "source_name": "ocr_import",
+      "source_item_id": "q_16f2eb138cec4d3ab5b8c2bf723dc807",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "d6a5339bee133d24fff4064735716f3b417015ef796b755d3e6ab649a5da111c",
+      "knowledge_points": [
+        {
+          "id": "11403404-94df-4234-afe3-ea168feab448",
+          "name": "函数的微分",
+          "curriculum_node_id": "54bd2901-cd48-4b4f-a50f-badb193e8503",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "1fb7ee65-12fa-46a0-9cb8-7ec0bfd333a4",
+          "name": "曲线凹凸性的判定",
+          "curriculum_node_id": "9e3e2cae-47bd-4824-8418-eb5a219112f5",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "3ed46671-ac52-41b5-90f3-83d842178748",
+          "name": "拉格朗日中值定理",
+          "curriculum_node_id": "7b3d828c-c771-490b-9f65-042bb203682b",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "e272d22c-9897-4d89-8cbd-1d7180b32910",
+      "draft_id": "b0d3fedf-f796-4b90-8451-72585dc45739",
+      "source_name": "ocr_import",
+      "source_item_id": "q_030a5ec4954644a5806d344dedb2bfad",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "8bd72a6142ca3c580bf0295ee03f8fc634d5a96c1f6d67065ce82dc497e6ed9b",
+      "knowledge_points": [
+        {
+          "id": "8004a881-371f-45bd-8ead-30c5042e3fe0",
+          "name": "泰勒公式",
+          "curriculum_node_id": "541644e9-4377-4c38-9269-d7bd63b67bad",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    }
+  ],
+  "constraint_checks": {
+    "all_questions_present": true,
+    "question_ids_are_uuid": true,
+    "single_textbook": true,
+    "third_chapter_only": true,
+    "canonical_supply_exceeds_requirements": true,
+    "approved_current_active": true,
+    "approved_difficulty_available": true,
+    "knowledge_links_valid": true,
+    "candidate_pool_is_exact": true,
+    "question_texts_are_distinct": true
+  },
+  "validation_passed": true,
+  "manifest_sha256": "43ed4bded7379ca2ee6e7b194a91b76b11cbed12f19dce741fdb5319a7805851"
+}

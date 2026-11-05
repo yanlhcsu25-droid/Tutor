@@ -75,7 +75,7 @@ def run_evaluation(cases_path: Path, *, mode: str, settings: Settings) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate paper-agent tool routing")
-    parser.add_argument("--cases", type=Path, default=Path("evaluations/cases.jsonl"))
+    parser.add_argument("--cases", type=Path, default=Path("evaluation/reliability/datasets/legacy/cases.jsonl"))
     parser.add_argument("--mode", choices=["single_agent", "multi_agent"], required=True)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()

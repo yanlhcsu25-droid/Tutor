@@ -7,7 +7,7 @@ from sqlalchemy import select
 from calculus_agent.agent.agent import run_teacher_agent
 from calculus_agent.agent.conversation_state import DatabasePendingReplacementStore
 from calculus_agent.models import TeacherAgentRunTrace
-from tests.evals.curriculum_fixture import seed_eval_curriculum
+from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
 
 
 class PrepareThenTimeoutBackend:

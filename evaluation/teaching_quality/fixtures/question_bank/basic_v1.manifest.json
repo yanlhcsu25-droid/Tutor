@@ -1,0 +1,259 @@
+{
+  "fixture_id": "question_bank/basic_v1",
+  "case_id": "TQ-PQ-001",
+  "database": {
+    "sqlite_user_version": 0,
+    "schema_sha256": "773a351ffcf4c236d5dbc30ff38d0fd913678471141613f35251c6c70b46bb66",
+    "source_path": "/Users/shengyue/Documents/Teacher_Agent/calculus_knowledge_agent/calculus_agent.db",
+    "source_sha256": "b09195589d04a3a54d42eb37a1622f1153c1596dd706a42b0325aced139b08b6",
+    "fixture_sha256": "05268262737c2e770a8cdcbff64e2577306c7bff96d8595d8fb9757df320a844"
+  },
+  "question_ids": [
+    "57c35e8c-eba6-4e4d-a7ac-edf8aafe759a",
+    "9c378f55-fb37-4718-b8fc-bff07fcc5676",
+    "aa3255ab-4760-44cc-a5a1-232dbef7125d",
+    "136a45b7-c4e6-4611-a838-fdaa14fe3d31",
+    "2fdba987-9749-49ff-902e-da21e3058091",
+    "72c15f32-66ad-4749-880c-cc4c5a135b75"
+  ],
+  "questions": [
+    {
+      "question_id": "136a45b7-c4e6-4611-a838-fdaa14fe3d31",
+      "draft_id": "82c99cd8-90de-4b43-ada0-a7c0eb84b39b",
+      "source_name": "ocr_import",
+      "source_item_id": "q_07f93e40b90745658db2a14e89c6250e",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "e5712aaad153e13214317113cf1422197872c5ba48bc225dcf7c17231de176aa",
+      "knowledge_points": [
+        {
+          "id": "0408a46d-9554-44cc-abbd-bfbf2f2cb8fa",
+          "name": "无穷小的比较",
+          "curriculum_node_id": "407d325f-0dad-4bc1-a2d3-e20dc38d352f",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "be5376e7-9492-4350-af69-bb5b1baae6c2",
+          "name": "无穷小与无穷大",
+          "curriculum_node_id": "7c3c9a06-6229-48eb-8a04-e95c9b07d24d",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "2fdba987-9749-49ff-902e-da21e3058091",
+      "draft_id": "1f497aaf-9795-40c9-8c96-8c809680a61f",
+      "source_name": "ocr_import",
+      "source_item_id": "q_471d93f30f1b4c65882b73b2839e46b6",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 5,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "1307a8a9d5ccd362af2b76cf98c690114f7bdecf94664a1df3ca3c62cd87ee9c",
+      "knowledge_points": [
+        {
+          "id": "2f29e803-c585-4b4e-aad5-4b0b01710f48",
+          "name": "极限运算法则",
+          "curriculum_node_id": "3ecdb873-9d6d-4043-92f8-7d31dced072a",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "57c35e8c-eba6-4e4d-a7ac-edf8aafe759a",
+      "draft_id": "c89902e4-da2c-48ad-bd14-34946d0ae2ae",
+      "source_name": "ocr_import",
+      "source_item_id": "q_fb7b89ee766341f8b810685c9cde7c70",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "ef4837df1768aab2f49febebd6709b6414041e7891fcfda2d7709c520e328bab",
+      "knowledge_points": [
+        {
+          "id": "98af0136-189b-49f3-955c-b3b28a6524db",
+          "name": "函数的连续性与间断点",
+          "curriculum_node_id": "5f432237-dced-4d0f-8131-8c8224f2e6e7",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "72c15f32-66ad-4749-880c-cc4c5a135b75",
+      "draft_id": "02de7647-48f4-4292-a6ac-3b41b897ef9e",
+      "source_name": "ocr_import",
+      "source_item_id": "q_c6b6541c714948859327ca9b83ddd807",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "d05746bd69117044a92dee1b30c01f6c939da0704128f8c60fba6304f98622d1",
+      "knowledge_points": [
+        {
+          "id": "be5376e7-9492-4350-af69-bb5b1baae6c2",
+          "name": "无穷小与无穷大",
+          "curriculum_node_id": "7c3c9a06-6229-48eb-8a04-e95c9b07d24d",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "9c378f55-fb37-4718-b8fc-bff07fcc5676",
+      "draft_id": "2e0b788f-18f5-451d-b99a-4d4d819a85e8",
+      "source_name": "ocr_import",
+      "source_item_id": "q_9b3a9fb371e54109b78ac67dbdf2d5f5",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "a53a8f83dd377b157a1a1271134940e1c751457ee5132d0c9514e08cd588e5fd",
+      "knowledge_points": [
+        {
+          "id": "2f29e803-c585-4b4e-aad5-4b0b01710f48",
+          "name": "极限运算法则",
+          "curriculum_node_id": "3ecdb873-9d6d-4043-92f8-7d31dced072a",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "378ff957-9047-424d-b5ef-450792d7facf",
+          "name": "数列的极限",
+          "curriculum_node_id": "2487989d-f6d6-4cf8-b65d-7a1dabc7b976",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "aa3255ab-4760-44cc-a5a1-232dbef7125d",
+      "draft_id": "e81ec116-651b-4b5d-8ee6-53e64e7723d7",
+      "source_name": "ocr_import",
+      "source_item_id": "q_02d6da1ad2f14e199f2d7645ee5247b5",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 5,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "ba2dbcbaf4279d9c6b91d87373884ecf92d627c698c3d3d2be676d7cc45b3cbb",
+      "knowledge_points": [
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "98af0136-189b-49f3-955c-b3b28a6524db",
+          "name": "函数的连续性与间断点",
+          "curriculum_node_id": "5f432237-dced-4d0f-8131-8c8224f2e6e7",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    }
+  ],
+  "constraint_checks": {
+    "all_six_questions_present": true,
+    "question_ids_are_uuid": true,
+    "single_textbook": true,
+    "first_chapter_only": true,
+    "question_types_support_default_six_item_blueprint": true,
+    "approved_current_active": true,
+    "eligible_real_sources": true,
+    "approved_difficulty_available": true,
+    "knowledge_links_valid": true,
+    "candidate_pool_is_exact": true,
+    "question_texts_are_distinct": true,
+    "score_plan_is_representable": true
+  },
+  "validation_passed": true,
+  "manifest_sha256": "af2552e400f548ee4d758a02e07914a435aa43ea2da5724e5bce74db99009514"
+}

@@ -1,5 +1,5 @@
-from tests.evals.curriculum_fixture import seed_eval_curriculum
-from tests.evals.runner import create_eval_session
+from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
+from evaluation.reliability.runner import create_eval_session
 
 from calculus_agent.application.scope_resolution import resolve_deterministic_scope_labels
 

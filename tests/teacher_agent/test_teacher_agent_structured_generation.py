@@ -16,8 +16,8 @@ from calculus_agent.agent.tools.paper_tools import (
     build_structured_generation_request,
     generate_paper_from_input,
 )
-from tests.evals.curriculum_fixture import seed_eval_curriculum
-from tests.evals.fixtures.paper import seed_success_question_bank
+from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
+from evaluation.reliability.fixtures.paper import seed_success_question_bank
 
 from calculus_agent.models import (
     CurriculumNode,

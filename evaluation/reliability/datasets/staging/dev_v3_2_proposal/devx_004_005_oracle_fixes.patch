@@ -1,0 +1,150 @@
+--- /tmp/new20_before.yaml	2026-10-10 09:57:49
++++ tests/evals/staging/dev_v3_2_proposal/new_capability_20_candidate.yaml	2026-10-10 10:01:40
+@@ -160,6 +160,11 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    preview_paper_change:
++      persisted: true
++      operations:
++      - type: replace_question
++        position: 3
+   graders:
+   - type: state
+   - type: acceptance
+@@ -174,6 +179,21 @@
+     - create_teaching_design
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - completed
++      required_tools:
++      - read_paper
++    - turn: 2
++      statuses:
++      - waiting_confirmation
++      required_tools:
++      - read_paper
++      - preview_paper_changes
++      tool_order:
++      - read_paper
++      - preview_paper_changes
+   - type: workflow_safety
+     paper_unchanged: true
+     forbidden_tools:
+@@ -183,8 +203,8 @@
+     - confirm_teaching_design
+   review:
+     status: pending
+-    readiness: NEEDS_VALIDATION
+-    blocker: ''
++    readiness: READY
++    blocker: 逐轮读取、目标position=3、预览及Paper不变性离线通过
+     objective: 跨轮目标指代与预览确认边界
+     source: newly_authored_dev_only_not_from_holdout
+ - id: DEVX-005
+@@ -209,6 +229,11 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    preview_paper_change:
++      persisted: true
++      operations:
++      - type: remove_question
++        position: 5
+   graders:
+   - type: state
+   - type: acceptance
+@@ -223,6 +248,21 @@
+     - create_teaching_design
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - completed
++      required_tools:
++      - read_paper
++    - turn: 2
++      statuses:
++      - waiting_confirmation
++      required_tools:
++      - read_paper
++      - preview_paper_changes
++      tool_order:
++      - read_paper
++      - preview_paper_changes
+   - type: workflow_safety
+     paper_unchanged: true
+     forbidden_tools:
+@@ -232,8 +272,8 @@
+     - confirm_teaching_design
+   review:
+     status: pending
+-    readiness: NEEDS_VALIDATION
+-    blocker: ''
++    readiness: READY
++    blocker: 唯一近期读取指代、目标position=5、预览及Paper不变性离线通过
+     objective: 多轮删除与Paper不变性
+     source: newly_authored_dev_only_not_from_holdout
+ - id: DEVX-006
+@@ -381,8 +421,8 @@
+     - confirm_teaching_design
+   review:
+     status: pending
+-    readiness: NEEDS_VALIDATION
+-    blocker: ''
++    readiness: READY
++    blocker: 离线通过；首批真实SiliconFlow评测PASS
+     objective: 类型约束Contract和Pending冻结
+     source: newly_authored_dev_only_not_from_holdout
+ - id: DEVX-009
+@@ -501,6 +541,7 @@
+       - 第一章 函数与极限
+   graders:
+   - type: state
++  - type: constraint_preservation
+   - type: acceptance
+     statuses:
+     - waiting_confirmation
+@@ -521,10 +562,14 @@
+     - confirm_teaching_design
+   review:
+     status: pending
+-    readiness: NEEDS_VALIDATION
+-    blocker: ''
++    readiness: READY
++    blocker: 数量patch parser修复及离线Runner通过
+     objective: 持久化Pending局部Patch时保留未改字段
+     source: newly_authored_dev_only_not_from_holdout
++  preserve:
++  - paper_type
++  - scope_names
++  - total_score
+ - id: DEVX-012
+   split: dev_candidate
+   category: pending
+@@ -623,8 +668,8 @@
+     - confirm_teaching_design
+   review:
+     status: pending
+-    readiness: NEEDS_VALIDATION
+-    blocker: ''
++    readiness: READY
++    blocker: 离线通过；首批真实SiliconFlow评测PASS
+     objective: 独立Paper与Pending生命周期，取消无副作用
+     source: newly_authored_dev_only_not_from_holdout
+ - id: DEVX-014
+@@ -721,8 +766,8 @@
+     - confirm_teaching_design
+   review:
+     status: pending
+-    readiness: NEEDS_VALIDATION
+-    blocker: ''
++    readiness: BLOCKED
++    blocker: 当前业务模型未定义Generation Pending与Teaching Design Pending并发优先级；不开发新能力
+     objective: 不同Pending域隔离，不能误确认或删除教学设计
+     source: newly_authored_dev_only_not_from_holdout
+ - id: DEVX-016

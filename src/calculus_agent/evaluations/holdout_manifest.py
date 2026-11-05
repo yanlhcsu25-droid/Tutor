@@ -16,12 +16,12 @@ from calculus_agent.evaluations.smoke_manifest import dataset_sha, load_dataset_
 ROOT = Path(__file__).resolve().parents[3]
 COMPONENT_PATHS = {
     "runtime": sorted((ROOT / "src/calculus_agent/runtime").rglob("*.py")),
-    "graders": sorted((ROOT / "tests/evals/graders").glob("*.py")),
+    "graders": sorted((ROOT / "evaluation/reliability/evaluators").glob("*.py")),
     "fixture": [
-        *sorted((ROOT / "tests/evals/fixtures").glob("*.py")),
-        ROOT / "tests/evals/curriculum_fixture.py",
+        *sorted((ROOT / "evaluation/reliability/fixtures").glob("*.py")),
+        ROOT / "evaluation/reliability/curriculum_fixture.py",
     ],
-    "runner": [ROOT / "tests/evals/runner.py"],
+    "runner": [ROOT / "evaluation/reliability/runner.py"],
     "model_configuration": [
         ROOT / "src/calculus_agent/config.py",
         ROOT / "src/calculus_agent/runtime/backend.py",

@@ -44,7 +44,7 @@ Context Size Proxy（字符数，不是 Provider Token）：
 
 因此 P0 优先选择 Tool Schema，而不是把字符占比直接换算为 Token 节省。
 
-详情：[`phase2_p0_cost_profile.md`](../token_optimization/phase2_p0_cost_profile.md)。
+详情：[`token_cost_baseline_202610.md`](../evaluation/efficiency/token_cost_baseline_202610.md)。
 
 ## 4. Dynamic Tool Selection 架构
 
@@ -82,14 +82,14 @@ Feature Flag 关闭时保持 Phase 1 工具暴露行为。
 
 审计限制：历史 Trace 没有完整保存实际 Task Route 和每轮原始暴露工具集合。Shadow Audit 使用当前确定性/启发式 Router 重建路由，并使用保守多轮工具链检查历史成功调用覆盖。因此该结果不能替代同条件线上前测。
 
-机器结果：[`phase2_p1_tool_schema_shadow_audit.json`](../token_optimization/reports/phase2_p1_tool_schema_shadow_audit.json)。
+机器结果：[`tool_schema_audit_202610.json`](../../evaluation/artifacts/reports/efficiency/reviewed/tool_schema_audit_202610.json)。
 
 ## 6. 真实模型 A/B 实验
 
 原始实验文件保留在本地，不提交到公开仓库：
 
-- JSON：`tests/evals/token_optimization/reports/phase2_p1_ab_20261012T065612Z_d2433c.json`
-- Markdown：`tests/evals/token_optimization/reports/phase2_p1_ab_20261012T065612Z_d2433c.md`
+- JSON：`evaluation/artifacts/reports/efficiency/runs/phase2_p1_ab_20261012T065612Z_d2433c.json`
+- Markdown：`evaluation/artifacts/reports/efficiency/runs/phase2_p1_ab_20261012T065612Z_d2433c.md`
 - JSON SHA256：`8248b68520cdf1c74634f06a77f1b0c6b12871f7cac3084b2c33302885e2240a`
 - Markdown SHA256：`87ab596c29147bbdd45343811bd7b5bcd880964b3fd0a8a174bcd7a2c604cb4a`
 
@@ -157,10 +157,10 @@ Feature Flag 关闭时保持 Phase 1 工具暴露行为。
 复现离线分析：
 
 ```bash
-.venv/bin/python tests/evals/token_optimization/token_baseline_audit.py
-.venv/bin/python tests/evals/token_optimization/tool_schema_shadow_audit.py
-.venv/bin/pytest tests/teacher_agent/test_dynamic_tool_selection.py tests/teacher_agent/test_model_turn.py tests/evals/token_optimization -q
-.venv/bin/ruff check src/calculus_agent tests/teacher_agent tests/evals/token_optimization
+.venv/bin/python evaluation/efficiency/baseline_audit.py
+.venv/bin/python evaluation/efficiency/tool_schema_audit.py
+.venv/bin/pytest tests/teacher_agent/test_dynamic_tool_selection.py tests/teacher_agent/test_model_turn.py tests/evaluation/efficiency -q
+.venv/bin/ruff check src/calculus_agent tests/teacher_agent evaluation/efficiency
 ```
 
 本次归档不重新运行真实模型 A/B，不运行完整 Dev117，不修改历史报告。

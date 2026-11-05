@@ -300,8 +300,8 @@ def test_natural_replacement_reads_then_previews_and_waits_for_confirmation(sess
     )).tool_calls_json] == ["read_paper", "preview_paper_changes"]
 
 def test_followup_generation_inherits_validated_learning_context(session):
-    from tests.evals.curriculum_fixture import seed_eval_curriculum
-    from tests.evals.fixtures.paper import seed_success_question_bank
+    from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
+    from evaluation.reliability.fixtures.paper import seed_success_question_bank
 
     seed_eval_curriculum(session)
     seed_success_question_bank(session)

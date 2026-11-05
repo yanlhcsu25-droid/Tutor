@@ -1,0 +1,176 @@
+[
+  {
+    "case_id": "EVAL-116",
+    "remaining_issues": [
+      "RESPONSE_FACTS_PARSER_VALIDATION"
+    ]
+  },
+  {
+    "case_id": "EVAL-117",
+    "remaining_issues": [
+      "RESPONSE_FACTS_PARSER_VALIDATION"
+    ]
+  },
+  {
+    "case_id": "EVAL-118",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-119",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-120",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-121",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-122",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-123",
+    "remaining_issues": [
+      "RESPONSE_FACTS_PARSER_VALIDATION"
+    ]
+  },
+  {
+    "case_id": "EVAL-124",
+    "remaining_issues": [
+      "READ_ITEM_CONTENT_GRADER_GAP"
+    ]
+  },
+  {
+    "case_id": "EVAL-125",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-181",
+    "remaining_issues": [
+      "READ_ITEM_CONTENT_GRADER_GAP"
+    ]
+  },
+  {
+    "case_id": "EVAL-182",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-183",
+    "remaining_issues": [
+      "RESPONSE_FACTS_PARSER_VALIDATION"
+    ]
+  },
+  {
+    "case_id": "EVAL-184",
+    "remaining_issues": [
+      "READ_ITEM_CONTENT_GRADER_GAP"
+    ]
+  },
+  {
+    "case_id": "EVAL-185",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-186",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-187",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-188",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-189",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-190",
+    "remaining_issues": [
+      "WEAK_READ_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-271",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  },
+  {
+    "case_id": "EVAL-272",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  },
+  {
+    "case_id": "EVAL-273",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  },
+  {
+    "case_id": "EVAL-274",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  },
+  {
+    "case_id": "EVAL-275",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  },
+  {
+    "case_id": "EVAL-276",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  },
+  {
+    "case_id": "EVAL-277",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  },
+  {
+    "case_id": "EVAL-278",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  },
+  {
+    "case_id": "EVAL-280",
+    "remaining_issues": [
+      "INTERMEDIATE_TURN_ORACLE_WEAK"
+    ]
+  }
+]

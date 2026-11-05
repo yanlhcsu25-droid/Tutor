@@ -37,7 +37,7 @@
 - `uv run ruff check src tests`：通过。
 - `uv run pytest -q`：通过；pytest 缓存记录 1043 个已收集测试节点，环境相关用例按既有条件跳过，无失败。
 - API 与 Paper 相关定向回归：通过。
-- `tests/evals/test_failure_injection.py`、`test_acceptance_grader.py`、`test_fixture_repair_a.py`：6 个测试通过。
+- `tests/evaluation/reliability/test_failure_injection.py`、`test_acceptance_grader.py`、`test_fixture_repair_a.py`：6 个测试通过。
 - `web/npm run build`：通过。
 - `git diff --check`：通过。
 
@@ -46,7 +46,7 @@
 1. 前端主 Bundle 仍约 1.21 MB，Vite 提示超过 500 KB；在没有首屏性能目标前不作为发布阻塞项，后续可按 Admin、OCR、题库和教材模块使用 `React.lazy` 拆包。
 2. 前端尚无 Vitest/React Testing Library；建议未来优先覆盖 GenerationPlanCard 的 Pending 恢复、修改后重新校验和确认按钮状态。
 3. `api.py`、`runtime/coordinator.py` 等模块仍较大；不建议仅按行数整体重构，应在新增功能时沿已存在领域边界渐进迁移。
-4. `tests/evals/reports/latest.json` 已被 Git 跟踪，但 `.gitignore` 又忽略同类 JSON。本轮未直接修改 Git index；建议后续单独提交一次报告治理变更：原始报告转 CI artifact，只保留精简、可复现的 Markdown/JSON 摘要。
+4. `evaluation/artifacts/reports/reliability/runs/latest.json` 已被 Git 跟踪，但 `.gitignore` 又忽略同类 JSON。本轮未直接修改 Git index；建议后续单独提交一次报告治理变更：原始报告转 CI artifact，只保留精简、可复现的 Markdown/JSON 摘要。
 5. 本轮只执行确定性 failure-injection 测试，没有调用真实付费 LLM；Live Eval 应在模型凭据和预算明确后单独运行并保存版本元数据。
 
 ## 当前结论

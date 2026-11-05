@@ -17,8 +17,18 @@ data/external/
 uploads/
 workbench_data/
 logs/
-# Raw evaluation runs are local/CI artifacts. Commit reviewed summaries under docs/.
-tests/evals/reports/*.json
+# Keep reviewed baselines visible even when a developer globally ignores artifacts/.
+!/evaluation/artifacts/
+!/evaluation/artifacts/reports/
+!/evaluation/artifacts/reports/*/
+!/evaluation/artifacts/reports/*/reviewed/
+!/evaluation/artifacts/reports/*/reviewed/**
+
+# Raw evaluation runs are local/CI artifacts. Promote reviewed baselines explicitly.
+/evaluation/artifacts/**/runs/
+/evaluation/artifacts/reports/reliability/audits/
+/evaluation/artifacts/reports/reliability/system_review/
+/evaluation/artifacts/experiments/
 *.preprocess.json
 web/node_modules/
 web/dist/

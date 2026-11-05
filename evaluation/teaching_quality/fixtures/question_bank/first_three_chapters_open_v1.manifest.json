@@ -1,0 +1,986 @@
+{
+  "fixture_id": "question_bank/first_three_chapters_open_v1",
+  "case_id": "TQ-PQ-003",
+  "database": {
+    "sqlite_user_version": 0,
+    "schema_sha256": "773a351ffcf4c236d5dbc30ff38d0fd913678471141613f35251c6c70b46bb66",
+    "source_path": "/Users/shengyue/Documents/Teacher_Agent/calculus_knowledge_agent/calculus_agent.db",
+    "source_sha256": "b09195589d04a3a54d42eb37a1622f1153c1596dd706a42b0325aced139b08b6",
+    "fixture_sha256": "ffb5f07a2ebeb395ab80db867f5c64c079179d32a39075ce72e075ad5545eb0a"
+  },
+  "question_ids": [
+    "9c378f55-fb37-4718-b8fc-bff07fcc5676",
+    "c5b8bcf6-079f-4eba-98e8-3bc1c270e14a",
+    "aa3255ab-4760-44cc-a5a1-232dbef7125d",
+    "2fdba987-9749-49ff-902e-da21e3058091",
+    "1291a207-7055-478a-90b4-720ff7dc9a84",
+    "9102cb70-40b2-4d95-939c-380fea2f7d8d",
+    "1ab685d0-da44-49ea-a19f-f5e73161fc6c",
+    "b3d77fa7-4c91-419e-9d0f-4ba4f051ce5f",
+    "43302d57-1dd3-4de3-a866-7da1117397aa",
+    "7838b2b1-06bc-4b62-9dd8-e0e72804c3b9",
+    "3abc1778-90bd-4c32-9678-f2cf0113ca25",
+    "a1ff67c2-d909-4407-b8f6-f6c4007e9fb9",
+    "b59244fe-e93a-475c-9c86-8a4d8602d2a9",
+    "1c715445-7eb0-43fc-9860-c0f414f14c21",
+    "0914761c-8b7a-409a-b2a6-72872d1fd389",
+    "6194e288-d34b-415a-9820-891aae486d19",
+    "16110015-beea-4fcb-bffd-f363f6cc9d2f",
+    "bf244942-2c8d-42e0-9e86-7e9e185138be",
+    "fe06ab39-a41a-4dcd-98ed-ad0d9f8125db",
+    "7da852f6-184e-4fda-a8e9-3b84a5ee9c8d",
+    "da89dde6-ebe0-4ef1-9851-256be863b320",
+    "50267c64-d09c-4c22-bc1a-1cea9c2c3192"
+  ],
+  "in_scope_question_ids": [
+    "9c378f55-fb37-4718-b8fc-bff07fcc5676",
+    "c5b8bcf6-079f-4eba-98e8-3bc1c270e14a",
+    "aa3255ab-4760-44cc-a5a1-232dbef7125d",
+    "2fdba987-9749-49ff-902e-da21e3058091",
+    "1291a207-7055-478a-90b4-720ff7dc9a84",
+    "9102cb70-40b2-4d95-939c-380fea2f7d8d",
+    "1ab685d0-da44-49ea-a19f-f5e73161fc6c",
+    "b3d77fa7-4c91-419e-9d0f-4ba4f051ce5f",
+    "43302d57-1dd3-4de3-a866-7da1117397aa",
+    "7838b2b1-06bc-4b62-9dd8-e0e72804c3b9",
+    "3abc1778-90bd-4c32-9678-f2cf0113ca25",
+    "a1ff67c2-d909-4407-b8f6-f6c4007e9fb9",
+    "b59244fe-e93a-475c-9c86-8a4d8602d2a9",
+    "1c715445-7eb0-43fc-9860-c0f414f14c21",
+    "0914761c-8b7a-409a-b2a6-72872d1fd389",
+    "6194e288-d34b-415a-9820-891aae486d19"
+  ],
+  "chapter4_control_question_ids": [
+    "16110015-beea-4fcb-bffd-f363f6cc9d2f",
+    "bf244942-2c8d-42e0-9e86-7e9e185138be",
+    "fe06ab39-a41a-4dcd-98ed-ad0d9f8125db",
+    "7da852f6-184e-4fda-a8e9-3b84a5ee9c8d",
+    "da89dde6-ebe0-4ef1-9851-256be863b320",
+    "50267c64-d09c-4c22-bc1a-1cea9c2c3192"
+  ],
+  "source_chapter_supply": {
+    "一": {
+      "total": 88,
+      "by_type_and_difficulty": {
+        "填空题/difficulty_2": 3,
+        "填空题/difficulty_3": 1,
+        "计算题/difficulty_1": 1,
+        "计算题/difficulty_2": 33,
+        "计算题/difficulty_3": 3,
+        "计算题/difficulty_4": 2,
+        "证明题/difficulty_2": 12,
+        "证明题/difficulty_3": 7,
+        "证明题/difficulty_4": 3,
+        "选择题/difficulty_1": 3,
+        "选择题/difficulty_2": 8,
+        "选择题/difficulty_3": 7,
+        "选择题/difficulty_4": 5
+      }
+    },
+    "三": {
+      "total": 57,
+      "by_type_and_difficulty": {
+        "填空题/difficulty_2": 2,
+        "填空题/difficulty_3": 11,
+        "填空题/difficulty_4": 2,
+        "计算题/difficulty_3": 5,
+        "计算题/difficulty_4": 4,
+        "证明题/difficulty_3": 1,
+        "证明题/difficulty_4": 9,
+        "选择题/difficulty_1": 7,
+        "选择题/difficulty_2": 9,
+        "选择题/difficulty_3": 4,
+        "选择题/difficulty_4": 2,
+        "选择题/difficulty_5": 1
+      }
+    },
+    "二": {
+      "total": 8,
+      "by_type_and_difficulty": {
+        "计算题/difficulty_1": 3,
+        "计算题/difficulty_2": 3,
+        "选择题/difficulty_1": 1,
+        "选择题/difficulty_2": 1
+      }
+    }
+  },
+  "fixture_chapter_supply": {
+    "一": {
+      "total": 7,
+      "question_type_counts": {
+        "填空题": 1,
+        "计算题": 1,
+        "证明题": 3,
+        "选择题": 2
+      },
+      "difficulty_counts": {
+        "2": 3,
+        "4": 2,
+        "3": 2
+      }
+    },
+    "二": {
+      "total": 2,
+      "question_type_counts": {
+        "计算题": 1,
+        "选择题": 1
+      },
+      "difficulty_counts": {
+        "2": 1,
+        "1": 1
+      }
+    },
+    "三": {
+      "total": 7,
+      "question_type_counts": {
+        "填空题": 1,
+        "计算题": 2,
+        "证明题": 3,
+        "选择题": 1
+      },
+      "difficulty_counts": {
+        "3": 4,
+        "4": 3
+      }
+    }
+  },
+  "default_blueprint": {
+    "total_questions": 10,
+    "question_type_counts": {
+      "选择题": 4,
+      "填空题": 2,
+      "计算题": 4
+    }
+  },
+  "questions": [
+    {
+      "question_id": "aa3255ab-4760-44cc-a5a1-232dbef7125d",
+      "draft_id": "e81ec116-651b-4b5d-8ee6-53e64e7723d7",
+      "source_name": "ocr_import",
+      "source_item_id": "q_02d6da1ad2f14e199f2d7645ee5247b5",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 5,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "ba2dbcbaf4279d9c6b91d87373884ecf92d627c698c3d3d2be676d7cc45b3cbb",
+      "knowledge_points": [
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "98af0136-189b-49f3-955c-b3b28a6524db",
+          "name": "函数的连续性与间断点",
+          "curriculum_node_id": "5f432237-dced-4d0f-8131-8c8224f2e6e7",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "2fdba987-9749-49ff-902e-da21e3058091",
+      "draft_id": "1f497aaf-9795-40c9-8c96-8c809680a61f",
+      "source_name": "ocr_import",
+      "source_item_id": "q_471d93f30f1b4c65882b73b2839e46b6",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 5,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "1307a8a9d5ccd362af2b76cf98c690114f7bdecf94664a1df3ca3c62cd87ee9c",
+      "knowledge_points": [
+        {
+          "id": "2f29e803-c585-4b4e-aad5-4b0b01710f48",
+          "name": "极限运算法则",
+          "curriculum_node_id": "3ecdb873-9d6d-4043-92f8-7d31dced072a",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "1291a207-7055-478a-90b4-720ff7dc9a84",
+      "draft_id": "a8a1d06e-622b-4fcf-bb06-ce648f6e947a",
+      "source_name": "ocr_import",
+      "source_item_id": "q_50f1dd7b44a24b1589fecb50aaf802d3",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 5,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "89c2bde2c11d480f0bcb4cf2af838d43f6aa8fbf9cc4529db5aa3bc994642dc7",
+      "knowledge_points": [
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "ff80f187-7597-4c69-93bb-9811a9589717",
+          "name": "极限存在准则 两个重要极限",
+          "curriculum_node_id": "6deb6e28-0395-44da-b93c-7314cb16166a",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "1ab685d0-da44-49ea-a19f-f5e73161fc6c",
+      "draft_id": "c6fb5305-413c-4138-ad9c-f080a1aa9517",
+      "source_name": "ocr_import",
+      "source_item_id": "q_fb3aab4aac7b490d9ac2b8b6e0ba7801",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 5,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "562839e127aea24433f2bd811184802bb9c24bb5b7567444c17a71661a68d9c8",
+      "knowledge_points": [
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "ff80f187-7597-4c69-93bb-9811a9589717",
+          "name": "极限存在准则 两个重要极限",
+          "curriculum_node_id": "6deb6e28-0395-44da-b93c-7314cb16166a",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "9102cb70-40b2-4d95-939c-380fea2f7d8d",
+      "draft_id": "bfb04549-4497-4ff5-9997-2a26397a8c74",
+      "source_name": "ocr_import",
+      "source_item_id": "q_09c1d54471364fa7848613e8f3f85ac3",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 5,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "893ea812b244846c146d608e4cd01bebaf8d22d2debaa43efb8ba9dc4baa89c8",
+      "knowledge_points": [
+        {
+          "id": "98af0136-189b-49f3-955c-b3b28a6524db",
+          "name": "函数的连续性与间断点",
+          "curriculum_node_id": "5f432237-dced-4d0f-8131-8c8224f2e6e7",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "9c378f55-fb37-4718-b8fc-bff07fcc5676",
+      "draft_id": "2e0b788f-18f5-451d-b99a-4d4d819a85e8",
+      "source_name": "ocr_import",
+      "source_item_id": "q_9b3a9fb371e54109b78ac67dbdf2d5f5",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "a53a8f83dd377b157a1a1271134940e1c751457ee5132d0c9514e08cd588e5fd",
+      "knowledge_points": [
+        {
+          "id": "2f29e803-c585-4b4e-aad5-4b0b01710f48",
+          "name": "极限运算法则",
+          "curriculum_node_id": "3ecdb873-9d6d-4043-92f8-7d31dced072a",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "378ff957-9047-424d-b5ef-450792d7facf",
+          "name": "数列的极限",
+          "curriculum_node_id": "2487989d-f6d6-4cf8-b65d-7a1dabc7b976",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "c5b8bcf6-079f-4eba-98e8-3bc1c270e14a",
+      "draft_id": "e5b5cc05-0b60-470d-9389-15ef25403513",
+      "source_name": "ocr_import",
+      "source_item_id": "q_d4a03a55797a4278ac483a7e3b0d3628",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0da4ed79-4490-4c11-a7eb-639b2b646157",
+      "chapter_code": "一",
+      "chapter_title": "函数与极限",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "ae8675f8c4a76effde639efb72e2b1252bfa240102e6ad9edb4bc2063d1892e2",
+      "knowledge_points": [
+        {
+          "id": "0408a46d-9554-44cc-abbd-bfbf2f2cb8fa",
+          "name": "无穷小的比较",
+          "curriculum_node_id": "407d325f-0dad-4bc1-a2d3-e20dc38d352f",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "2f29e803-c585-4b4e-aad5-4b0b01710f48",
+          "name": "极限运算法则",
+          "curriculum_node_id": "3ecdb873-9d6d-4043-92f8-7d31dced072a",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "43302d57-1dd3-4de3-a866-7da1117397aa",
+      "draft_id": "5573ad76-c387-4d15-b676-89e04de0851f",
+      "source_name": "ocr_import",
+      "source_item_id": "q_96d67e67f4cf4d88a46aadcd4085ffd8",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "02545638-0d34-4aa2-ad87-3c50a690a465",
+      "chapter_code": "二",
+      "chapter_title": "导数与微分",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "4ea977501bac0c023f20d1aefb9718a418f87d2422c39bbf8050263286d762ca",
+      "knowledge_points": [
+        {
+          "id": "57392aef-3798-4e76-8677-266a16bc99f4",
+          "name": "高阶导数",
+          "curriculum_node_id": "4d167e25-b970-4965-a63f-c4292187754b",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "d8b5e478-d9e2-4673-a74f-cf2b0b44268e",
+          "name": "隐函数及由参数方程所确定的函数的导数 相关变化率",
+          "curriculum_node_id": "5d9040e3-96f1-44bf-b628-d2ce217cf10b",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f6af52ab-4ac3-48c9-97eb-faf9b91d3141",
+          "name": "函数的求导法则",
+          "curriculum_node_id": "cbafd50c-8a30-498c-9c88-c57339b17837",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "b3d77fa7-4c91-419e-9d0f-4ba4f051ce5f",
+      "draft_id": "3be56055-4e6f-4edd-9ed0-a08b6f91a729",
+      "source_name": "ocr_import",
+      "source_item_id": "q_687daf76b557487eb6f6f7ee3166f2a7",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "02545638-0d34-4aa2-ad87-3c50a690a465",
+      "chapter_code": "二",
+      "chapter_title": "导数与微分",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 1,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 2,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "aec496b308986684ee450324e61c536de4bfddd90de704f5eff73fd8b453072e",
+      "knowledge_points": [
+        {
+          "id": "11403404-94df-4234-afe3-ea168feab448",
+          "name": "函数的微分",
+          "curriculum_node_id": "54bd2901-cd48-4b4f-a50f-badb193e8503",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "3abc1778-90bd-4c32-9678-f2cf0113ca25",
+      "draft_id": "edbc6629-b610-4558-ac06-c05d54737226",
+      "source_name": "ocr_import",
+      "source_item_id": "q_482f3db186ea402384484a557a66bcef",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "9d36dbd32ba2743e1e76e607ded1792e3c7aa9e445b56b48e98579e5a8671b0b",
+      "knowledge_points": [
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "a1ff67c2-d909-4407-b8f6-f6c4007e9fb9",
+      "draft_id": "0a742ae6-61e2-4e00-bc92-fc33480ced3a",
+      "source_name": "ocr_import",
+      "source_item_id": "q_773e8c6753104ae28a61d0ce4d8b2846",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "dbd0640eb3f656997c3037e698018ce00d1efe69d8068f7f890e8f940cb43f47",
+      "knowledge_points": [
+        {
+          "id": "77b646f2-3650-49f3-ba92-7be3f1900683",
+          "name": "拐点",
+          "curriculum_node_id": "a66a24e7-ce76-4dd5-b1ea-17ab8a4b14dd",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "b59244fe-e93a-475c-9c86-8a4d8602d2a9",
+      "draft_id": "76df0977-f2ac-498a-945b-3d903929b535",
+      "source_name": "ocr_import",
+      "source_item_id": "q_c40f91f5120f4f8984a0ee854376ffbb",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "c359f5efd8915c6ecb5b290d8dfd0ffacd30669f7b348e4c0b1fb7122931e38a",
+      "knowledge_points": [
+        {
+          "id": "9bf49b18-aedf-4734-bb61-38c962b76433",
+          "name": "函数图形的描绘",
+          "curriculum_node_id": "5a59a0cc-7c74-440c-8cc5-d45ce96003ee",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f15a5d4d-fd69-4bdf-a96d-98da9693ed9c",
+          "name": "函数的极值与最大值最小值",
+          "curriculum_node_id": "01f2e070-e702-44dd-ac56-d9d7cbffe4c4",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f9d27ece-5688-4c71-88f1-51e43e81ceb1",
+          "name": "函数的单调性与曲线的凹凸性",
+          "curriculum_node_id": "248ab792-5512-4b2a-a43f-45939dcb71d3",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "0914761c-8b7a-409a-b2a6-72872d1fd389",
+      "draft_id": "451827a2-4a92-4616-a09b-b5b1fd81aa99",
+      "source_name": "ocr_import",
+      "source_item_id": "q_091756cc2c6a4a0b95690a36d9fe8379",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "80c7005793224bb6813c97fe57c3688af4680db988f4d786a697b0400960592d",
+      "knowledge_points": [
+        {
+          "id": "3dce74b4-9b0c-403a-a86c-8389bd462f8a",
+          "name": "罗尔定理",
+          "curriculum_node_id": "c1d0b219-d0bf-4597-9dff-be4ccb3011be",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "6703de0a-4598-4e24-9526-a6a1fa725ca5",
+          "name": "零点定理",
+          "curriculum_node_id": "c1cf013b-f74a-4c2f-8f93-d1d90c364079",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "1c715445-7eb0-43fc-9860-c0f414f14c21",
+      "draft_id": "65754ab2-7e50-4c35-8238-b80828e5e2af",
+      "source_name": "ocr_import",
+      "source_item_id": "q_42bf8aedbd7c400fa3f63587928e0378",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "85b4c1992da37d1d3431c816b340370ffeffe94cd79890c3e157c18f3b703ff9",
+      "knowledge_points": [
+        {
+          "id": "01d65eca-562b-4b29-ae90-0b387690c771",
+          "name": "微分中值定理",
+          "curriculum_node_id": "4a6496b3-7c18-452e-9fb4-9bb59e70bdf3",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "6194e288-d34b-415a-9820-891aae486d19",
+      "draft_id": "4b34c5f9-dff7-4a4f-bcb0-cb2f26223c2a",
+      "source_name": "ocr_import",
+      "source_item_id": "q_aa66d79816dc4f0886a0ba37a779923d",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 2,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "8d8674c23b6fe2b2e15e22cc6ae69618d56cd107a712c11eb77ff25a93f0b5e2",
+      "knowledge_points": [
+        {
+          "id": "8004a881-371f-45bd-8ead-30c5042e3fe0",
+          "name": "泰勒公式",
+          "curriculum_node_id": "541644e9-4377-4c38-9269-d7bd63b67bad",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "924ce287-07a5-4269-b3c9-fc3c3cae263c",
+          "name": "带拉格朗日余项的泰勒公式",
+          "curriculum_node_id": "1694da66-40aa-421d-a21d-032723494b48",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "7838b2b1-06bc-4b62-9dd8-e0e72804c3b9",
+      "draft_id": "96cda8fa-b1c5-4f2d-93d4-3753d1a3dbaa",
+      "source_name": "ocr_import",
+      "source_item_id": "q_4a776a2dfe2a4613a127c76753508277",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "0197728b-ca38-4b63-86de-1213185dfed5",
+      "chapter_code": "三",
+      "chapter_title": "微分中值定理与导数的应用",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "a3ab9a90f48bf5ee11024d915be0fd6d3baa5205f4cabab75607a69f22f44a96",
+      "knowledge_points": [
+        {
+          "id": "3ed46671-ac52-41b5-90f3-83d842178748",
+          "name": "拉格朗日中值定理",
+          "curriculum_node_id": "7b3d828c-c771-490b-9f65-042bb203682b",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "16110015-beea-4fcb-bffd-f363f6cc9d2f",
+      "draft_id": "f41f6692-fe63-4eb7-85a6-6319fd0f544e",
+      "source_name": "ocr_import",
+      "source_item_id": "q_f82986605f534f6eb562c29219943dec",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "08510393-6ba0-493d-914d-40b77937dcc8",
+      "chapter_code": "四",
+      "chapter_title": "不定积分",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "e59f1e737513850cf23bf4c6d55b4f59451963de21f836567b38d1b41f58d839",
+      "knowledge_points": [
+        {
+          "id": "3b020d24-f701-49bb-a283-6d9b077a416e",
+          "name": "不定积分的概念与性质",
+          "curriculum_node_id": "f798e57a-0b23-48a8-b8f9-f2eec7c1a932",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "403ff282-0d7e-4f82-878e-c3c1a2c70d37",
+          "name": "函数的极限",
+          "curriculum_node_id": "8e3b5b2a-c943-4c5d-85f8-9e2baab46604",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "bf244942-2c8d-42e0-9e86-7e9e185138be",
+      "draft_id": "59a2b47a-8be6-4bab-9c3d-150bc9388636",
+      "source_name": "ocr_import",
+      "source_item_id": "q_7ed0d6a57ff249c39f085102ad70c8d0",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "08510393-6ba0-493d-914d-40b77937dcc8",
+      "chapter_code": "四",
+      "chapter_title": "不定积分",
+      "question_type": "填空题",
+      "raw_question_difficulty": null,
+      "difficulty": 3,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 7,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "3199d39c9c9c3efdcf6152d17a3c8a3d34f4bd60562b73a8ba3f19988a6631ea",
+      "knowledge_points": [
+        {
+          "id": "3b020d24-f701-49bb-a283-6d9b077a416e",
+          "name": "不定积分的概念与性质",
+          "curriculum_node_id": "f798e57a-0b23-48a8-b8f9-f2eec7c1a932",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "fe06ab39-a41a-4dcd-98ed-ad0d9f8125db",
+      "draft_id": "a6686d1f-7269-40f1-b856-73faa39ef70d",
+      "source_name": "ocr_import",
+      "source_item_id": "q_de6ac8e5d374412fb0d8550aa70e293e",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "08510393-6ba0-493d-914d-40b77937dcc8",
+      "chapter_code": "四",
+      "chapter_title": "不定积分",
+      "question_type": "计算题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "59ea76658c543f2354b8bb0602b5618d806514d5544364c86eb7656712584d5f",
+      "knowledge_points": [
+        {
+          "id": "3b020d24-f701-49bb-a283-6d9b077a416e",
+          "name": "不定积分的概念与性质",
+          "curriculum_node_id": "f798e57a-0b23-48a8-b8f9-f2eec7c1a932",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "f6af52ab-4ac3-48c9-97eb-faf9b91d3141",
+          "name": "函数的求导法则",
+          "curriculum_node_id": "cbafd50c-8a30-498c-9c88-c57339b17837",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "7da852f6-184e-4fda-a8e9-3b84a5ee9c8d",
+      "draft_id": "808e3f48-a194-4087-a21e-1942714e3d5a",
+      "source_name": "ocr_import",
+      "source_item_id": "q_47c7a9a972c14917bea6e22a174dc9b6",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "08510393-6ba0-493d-914d-40b77937dcc8",
+      "chapter_code": "四",
+      "chapter_title": "不定积分",
+      "question_type": "证明题",
+      "raw_question_difficulty": null,
+      "difficulty": 4,
+      "profile_version": 1,
+      "profile_source": "auto",
+      "profile_status": "approved",
+      "estimated_time_min": 11,
+      "default_score": 10,
+      "verification_status": "ai_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "ai_auto",
+      "question_text_sha256": "899b8609907557038f97216ea98493aac4a81778efc9d9c5cc4c984bdd5f23e9",
+      "knowledge_points": [
+        {
+          "id": "3b020d24-f701-49bb-a283-6d9b077a416e",
+          "name": "不定积分的概念与性质",
+          "curriculum_node_id": "f798e57a-0b23-48a8-b8f9-f2eec7c1a932",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "8004a881-371f-45bd-8ead-30c5042e3fe0",
+          "name": "泰勒公式",
+          "curriculum_node_id": "541644e9-4377-4c38-9269-d7bd63b67bad",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "50267c64-d09c-4c22-bc1a-1cea9c2c3192",
+      "draft_id": "9ba8beaa-1e72-499e-b862-e5e1a8b0459c",
+      "source_name": "ocr_import",
+      "source_item_id": "q_bd4680494ea64b22af3bb725c63b0f37",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "08510393-6ba0-493d-914d-40b77937dcc8",
+      "chapter_code": "四",
+      "chapter_title": "不定积分",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 2,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 4,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "3551f74459925760bd03d1dea40e1f84ee05f15af891a98ba332b3362f5b13cb",
+      "knowledge_points": [
+        {
+          "id": "3930fe75-a81e-48ce-a99c-e819e4c0a995",
+          "name": "闭区间上连续函数的性质",
+          "curriculum_node_id": "e76a7491-7850-40ab-9392-c213979a4842",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        },
+        {
+          "id": "3b020d24-f701-49bb-a283-6d9b077a416e",
+          "name": "不定积分的概念与性质",
+          "curriculum_node_id": "f798e57a-0b23-48a8-b8f9-f2eec7c1a932",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    },
+    {
+      "question_id": "da89dde6-ebe0-4ef1-9851-256be863b320",
+      "draft_id": "27f1958a-c952-43cc-8504-c7538f6448af",
+      "source_name": "ocr_import",
+      "source_item_id": "q_2183e89425df4f52ba6f220eecd599c3",
+      "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9",
+      "chapter_id": "08510393-6ba0-493d-914d-40b77937dcc8",
+      "chapter_code": "四",
+      "chapter_title": "不定积分",
+      "question_type": "选择题",
+      "raw_question_difficulty": null,
+      "difficulty": 1,
+      "profile_version": 1,
+      "profile_source": "human",
+      "profile_status": "approved",
+      "estimated_time_min": 2,
+      "default_score": 10,
+      "verification_status": "manual_verified",
+      "review_status": "approved",
+      "is_active": 1,
+      "knowledge_match_status": "current",
+      "publish_source": "manual",
+      "question_text_sha256": "8b9d849a7d2303188bbf2029ba78420540dfbc7d88db4936cb2acfd8618744bf",
+      "knowledge_points": [
+        {
+          "id": "3b020d24-f701-49bb-a283-6d9b077a416e",
+          "name": "不定积分的概念与性质",
+          "curriculum_node_id": "f798e57a-0b23-48a8-b8f9-f2eec7c1a932",
+          "textbook_id": "c7dc3632-163f-427c-8366-32edefea60f9"
+        }
+      ]
+    }
+  ],
+  "constraint_checks": {
+    "all_questions_present": true,
+    "question_ids_are_uuid": true,
+    "single_textbook": true,
+    "first_three_chapters_present": true,
+    "chapter_four_control_present": true,
+    "in_scope_pool_exceeds_default_paper": true,
+    "default_blueprint_supply_exact": true,
+    "approved_current_active": true,
+    "eligible_real_sources": true,
+    "approved_difficulty_available": true,
+    "knowledge_links_valid": true,
+    "candidate_pool_is_exact": true,
+    "question_texts_are_distinct": true
+  },
+  "validation_passed": true,
+  "manifest_sha256": "64ffbcf9d38129e6fe8c83bee9b9ece9026bdf8a996682a4f08a8a9cd2cc93bd"
+}

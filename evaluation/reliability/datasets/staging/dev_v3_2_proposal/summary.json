@@ -1,0 +1,96 @@
+{
+  "original": 200,
+  "revised_unique": 122,
+  "removed_duplicate_case_ids": 78,
+  "new_capability_candidates": 20,
+  "unique_candidate_total": 142,
+  "modified_unique_case_ids": 67,
+  "field_level_changes": 80,
+  "changes_by_field": {
+    "scope_names": 45,
+    "setup.pending_generation": 12,
+    "question_count": 5,
+    "total_score": 6,
+    "status": 3,
+    "statuses": 3,
+    "required_tools": 3,
+    "graders.acceptance.forbidden_tools": 3
+  },
+  "new_readiness": {
+    "NEEDS_GRADER_EXTENSION": 3,
+    "NEEDS_SEMANTIC_REVIEW": 1,
+    "READY": 5,
+    "NEEDS_PARSER_VALIDATION": 2,
+    "NEEDS_PER_TURN_GRADER": 2,
+    "NEEDS_FIXTURE": 2,
+    "BLOCKED": 1,
+    "NEEDS_QUALITY_JUDGE": 1,
+    "NEEDS_FAULT_TEST": 1,
+    "NEEDS_SEMANTIC_GRADER": 1,
+    "NEEDS_RUNNER_EXTENSION": 1
+  },
+  "pending_original_review": 122,
+  "new_pending_review": 20,
+  "api_calls": 60,
+  "limitations": [
+    "only DEVX-008 and DEVX-013 model-tested",
+    "not all candidates production-runner-tested",
+    "not full DB fixture verified for blocked candidates"
+  ],
+  "remaining_original_review": 10,
+  "deterministic_review_repairs": 29,
+  "first_real_api": {
+    "cases": [
+      "DEVX-008",
+      "DEVX-013"
+    ],
+    "passed": 2,
+    "failed": 0,
+    "report": "tests/evals/reports/dev-v3.2-proposal-ready2-first-api.json"
+  },
+  "real_api_cases_run": 20,
+  "next_real_api": {
+    "cases": [
+      "DEVX-004",
+      "DEVX-005",
+      "DEVX-011"
+    ],
+    "raw_passed": 2,
+    "raw_failed": 1,
+    "deterministically_regraded_passed": 3,
+    "source_report": "tests/evals/reports/dev-v3.2-proposal-ready-next3-api.json",
+    "regraded_report": "tests/evals/reports/dev-v3.2-proposal-ready-next3-api.regraded.json",
+    "additional_api_model_calls": 10
+  },
+  "dev_122_batch15": {
+    "cases": [
+      "EVAL-007",
+      "EVAL-011",
+      "EVAL-045",
+      "EVAL-071",
+      "EVAL-107",
+      "EVAL-113",
+      "EVAL-119",
+      "EVAL-144",
+      "EVAL-151",
+      "EVAL-234",
+      "EVAL-236",
+      "EVAL-239",
+      "EVAL-271",
+      "EVAL-274",
+      "EVAL-276"
+    ],
+    "passed": 13,
+    "failed": 2,
+    "report": "tests/evals/reports/dev-v3.2-dev122-batch15-first-api.json",
+    "analysis": "tests/evals/reports/dev-v3.2-dev122-batch15-first-api.analysis.json"
+  },
+  "first_20_dev_results": {
+    "raw_passed": 17,
+    "raw_failed": 3,
+    "effective_passed_after_preserved_devx005_regrade": 18,
+    "effective_failed": 2,
+    "total_tokens": 281465,
+    "latency_ms": 269992
+  }
+}

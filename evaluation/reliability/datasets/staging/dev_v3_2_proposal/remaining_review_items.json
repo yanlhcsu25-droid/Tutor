@@ -1,0 +1,62 @@
+[
+  {
+    "case_id": "EVAL-149",
+    "remaining_issues": [
+      "ADDRESS_SEMANTICS_NEEDS_REVIEW"
+    ]
+  },
+  {
+    "case_id": "EVAL-150",
+    "remaining_issues": [
+      "ADDRESS_SEMANTICS_NEEDS_REVIEW"
+    ]
+  },
+  {
+    "case_id": "EVAL-214",
+    "remaining_issues": [
+      "WEAK_TEACHING_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-215",
+    "remaining_issues": [
+      "WEAK_TEACHING_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-216",
+    "remaining_issues": [
+      "WEAK_TEACHING_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-217",
+    "remaining_issues": [
+      "WEAK_TEACHING_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-218",
+    "remaining_issues": [
+      "WEAK_TEACHING_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-219",
+    "remaining_issues": [
+      "WEAK_TEACHING_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-220",
+    "remaining_issues": [
+      "WEAK_TEACHING_RESPONSE_ORACLE"
+    ]
+  },
+  {
+    "case_id": "EVAL-221",
+    "remaining_issues": [
+      "WEAK_TEACHING_RESPONSE_ORACLE"
+    ]
+  }
+]

@@ -15,7 +15,7 @@ def create_isolated_test_session() -> Session:
     (or wrapping in a ``with factory.begin()`` block) when done.
 
     Used by both the ``session`` pytest fixture below and the standalone
-    Eval Runner (``tests/evals/runner.py``), so eval cases can run outside
+    Eval Runner (``evaluation/reliability/runner.py``), so eval cases can run outside
     pytest against the exact same test DB bootstrap logic.
     """
     tmp_dir = Path(tempfile.mkdtemp(prefix="test-isolated-"))

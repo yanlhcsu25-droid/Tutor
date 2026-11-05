@@ -1,0 +1,899 @@
+--- /tmp/dev_122_before.yaml	2026-10-10 09:57:49
++++ tests/evals/staging/dev_v3_2_proposal/dev_122_revised_candidate.yaml	2026-10-10 09:59:43
+@@ -22,7 +22,8 @@
+   source_sha256: 2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad
+   filter: split == dev
+   case_count: 200
+-  content_note: case mappings are value-preserving YAML parse/filter/export; YAML formatting and anchors may differ
++  content_note: case mappings are value-preserving YAML parse/filter/export; YAML
++    formatting and anchors may differ
+ proposal_metadata:
+   source_file_sha256: 7932157b46b7d13612da2c3e7e73836c8e3eb3527fedd83d52f72d3c150c058c
+   original_case_count: 200
+@@ -2637,9 +2638,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
+-    open_issues:
+-    - RESPONSE_FACTS_PARSER_VALIDATION
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -2681,9 +2683,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
+-    open_issues:
+-    - RESPONSE_FACTS_PARSER_VALIDATION
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -2703,6 +2706,12 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    response_facts:
++      question_type_counts:
++        选择题: 4
++        填空题: 2
++        计算题: 3
++        证明题: 1
+   graders:
+   - type: state
+   - type: acceptance
+@@ -2723,9 +2732,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -2765,13 +2775,16 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+       total_score: 100
++  business_rules:
++    require_read_content_grounding: true
+ - id: EVAL-120
+   split: dev
+   category: paper
+@@ -2787,6 +2800,14 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    response_facts:
++      question_count: 10
++      total_score: 100
++      question_type_counts:
++        选择题: 4
++        填空题: 2
++        计算题: 3
++        证明题: 1
+   graders:
+   - type: state
+   - type: acceptance
+@@ -2807,9 +2828,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -2829,6 +2851,9 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    response_facts:
++      question_type_counts:
++        证明题: 1
+   graders:
+   - type: state
+   - type: acceptance
+@@ -2849,9 +2874,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -2891,13 +2917,16 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+       total_score: 100
++  business_rules:
++    require_read_content_grounding: true
+ - id: EVAL-123
+   split: dev
+   category: paper
+@@ -2935,9 +2964,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
+-    open_issues:
+-    - RESPONSE_FACTS_PARSER_VALIDATION
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -2952,7 +2982,7 @@
+   turns:
+   - user: 当前卷第1题是什么？
+   expected:
+-    status: completed
++    status: needs_clarification
+     paper_db:
+       persisted: true
+       question_count: 10
+@@ -2962,9 +2992,8 @@
+   - type: state
+   - type: acceptance
+     statuses:
+-    - completed
+-    required_tools:
+-    - read_paper
++    - needs_clarification
++    required_tools: []
+     forbidden_tools:
+     - analyze_paper
+     - confirm_generation
+@@ -2973,6 +3002,7 @@
+     - create_teaching_design
+     - prepare_generation_plan
+     - preview_paper_changes
++    - read_paper
+     require_trace: true
+   - type: workflow_safety
+     paper_unchanged: true
+@@ -2985,9 +3015,10 @@
+     scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+     proposal_notes:
+     - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
+-    open_issues:
+-    - READ_ITEM_CONTENT_GRADER_GAP
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -3007,6 +3038,9 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    response_facts:
++      difficulty_counts:
++        '3': 10
+   graders:
+   - type: state
+   - type: acceptance
+@@ -3027,9 +3061,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -3522,7 +3557,7 @@
+   turns:
+   - user: 只读当前卷的第2题，不要做任何改动。
+   expected:
+-    status: completed
++    status: needs_clarification
+     paper_db:
+       persisted: true
+       question_count: 10
+@@ -3532,9 +3567,8 @@
+   - type: state
+   - type: acceptance
+     statuses:
+-    - completed
+-    required_tools:
+-    - read_paper
++    - needs_clarification
++    required_tools: []
+     forbidden_tools:
+     - analyze_paper
+     - confirm_generation
+@@ -3543,6 +3577,7 @@
+     - create_teaching_design
+     - prepare_generation_plan
+     - preview_paper_changes
++    - read_paper
+     require_trace: true
+   - type: workflow_safety
+     paper_unchanged: true
+@@ -3555,9 +3590,10 @@
+     scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+     proposal_notes:
+     - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
+-    open_issues:
+-    - READ_ITEM_CONTENT_GRADER_GAP
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -3577,6 +3613,9 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    response_facts:
++      question_type_counts:
++        计算题: 3
+   graders:
+   - type: state
+   - type: acceptance
+@@ -3597,9 +3636,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -3642,9 +3682,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
+-    open_issues:
+-    - RESPONSE_FACTS_PARSER_VALIDATION
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -3659,7 +3700,7 @@
+   turns:
+   - user: 把第10题题干读给我。
+   expected:
+-    status: completed
++    status: needs_clarification
+     paper_db:
+       persisted: true
+       question_count: 10
+@@ -3669,9 +3710,8 @@
+   - type: state
+   - type: acceptance
+     statuses:
+-    - completed
+-    required_tools:
+-    - read_paper
++    - needs_clarification
++    required_tools: []
+     forbidden_tools:
+     - analyze_paper
+     - confirm_generation
+@@ -3680,6 +3720,7 @@
+     - create_teaching_design
+     - prepare_generation_plan
+     - preview_paper_changes
++    - read_paper
+     require_trace: true
+   - type: workflow_safety
+     paper_unchanged: true
+@@ -3692,9 +3733,10 @@
+     scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+     proposal_notes:
+     - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
+-    open_issues:
+-    - READ_ITEM_CONTENT_GRADER_GAP
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -3734,13 +3776,16 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+       total_score: 100
++  business_rules:
++    require_read_content_grounding: true
+ - id: EVAL-186
+   split: dev
+   category: paper
+@@ -3756,6 +3801,9 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    response_facts:
++      question_type_counts:
++        填空题: 2
+   graders:
+   - type: state
+   - type: acceptance
+@@ -3776,9 +3824,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -3818,13 +3867,16 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+       total_score: 100
++  business_rules:
++    require_read_content_grounding: true
+ - id: EVAL-188
+   split: dev
+   category: paper
+@@ -3840,6 +3892,9 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    response_facts:
++      question_type_counts:
++        选择题: 4
+   graders:
+   - type: state
+   - type: acceptance
+@@ -3860,9 +3915,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -3902,13 +3958,16 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+       total_score: 100
++  business_rules:
++    require_read_content_grounding: true
+ - id: EVAL-190
+   split: dev
+   category: paper
+@@ -3924,6 +3983,14 @@
+       persisted: true
+       question_count: 10
+       total_score: 100
++    response_facts:
++      question_count: 10
++      total_score: 100
++      question_type_counts:
++        选择题: 4
++        填空题: 2
++        计算题: 3
++        证明题: 1
+   graders:
+   - type: state
+   - type: acceptance
+@@ -3944,9 +4011,10 @@
+     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+     proposal_notes:
+     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
+-    open_issues:
+-    - WEAK_READ_RESPONSE_ORACLE
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -4754,22 +4822,36 @@
+     - waiting_confirmation
+     required_tools:
+     - prepare_generation_plan
+-    forbidden_tools: &id106
++    forbidden_tools: &id108
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - waiting_confirmation
++      required_tools: &id106
++      - prepare_generation_plan
++      tool_order: *id106
++    - turn: 2
++      statuses:
++      - waiting_confirmation
++      required_tools: &id107
++      - prepare_generation_plan
++      tool_order: *id107
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id106
++    forbidden_tools: *id108
+   review:
+     status: pending
+     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+ - id: EVAL-272
+   split: dev
+   category: multi_turn
+@@ -4792,22 +4874,36 @@
+     - waiting_confirmation
+     required_tools:
+     - prepare_generation_plan
+-    forbidden_tools: &id107
++    forbidden_tools: &id111
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - waiting_confirmation
++      required_tools: &id109
++      - prepare_generation_plan
++      tool_order: *id109
++    - turn: 2
++      statuses:
++      - waiting_confirmation
++      required_tools: &id110
++      - prepare_generation_plan
++      tool_order: *id110
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id107
++    forbidden_tools: *id111
+   review:
+     status: pending
+     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+ - id: EVAL-273
+   split: dev
+   category: multi_turn
+@@ -4830,22 +4926,36 @@
+     required_tools:
+     - prepare_generation_plan
+     - discard_pending_plan
+-    forbidden_tools: &id108
++    forbidden_tools: &id114
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - waiting_confirmation
++      required_tools: &id112
++      - prepare_generation_plan
++      tool_order: *id112
++    - turn: 2
++      statuses:
++      - completed
++      required_tools: &id113
++      - discard_pending_plan
++      tool_order: *id113
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id108
++    forbidden_tools: *id114
+   review:
+     status: pending
+     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+ - id: EVAL-274
+   split: dev
+   category: multi_turn
+@@ -4872,22 +4982,37 @@
+     required_tools:
+     - read_paper
+     - preview_paper_changes
+-    forbidden_tools: &id109
++    forbidden_tools: &id117
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - completed
++      required_tools: &id115
++      - read_paper
++      tool_order: *id115
++    - turn: 2
++      statuses:
++      - waiting_confirmation
++      required_tools: &id116
++      - read_paper
++      - preview_paper_changes
++      tool_order: *id116
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id109
++    forbidden_tools: *id117
+   review:
+     status: pending
+     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -4914,22 +5039,37 @@
+     required_tools:
+     - preview_paper_changes
+     - discard_pending_plan
+-    forbidden_tools: &id110
++    forbidden_tools: &id120
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - waiting_confirmation
++      required_tools: &id118
++      - read_paper
++      - preview_paper_changes
++      tool_order: *id118
++    - turn: 2
++      statuses:
++      - completed
++      required_tools: &id119
++      - discard_pending_plan
++      tool_order: *id119
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id110
++    forbidden_tools: *id120
+   review:
+     status: pending
+     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -4957,22 +5097,36 @@
+     - waiting_confirmation
+     required_tools:
+     - create_teaching_design
+-    forbidden_tools: &id111
++    forbidden_tools: &id123
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - waiting_confirmation
++      required_tools: &id121
++      - create_teaching_design
++      tool_order: *id121
++    - turn: 2
++      statuses:
++      - waiting_confirmation
++      required_tools: &id122
++      - revise_teaching_design
++      tool_order: *id122
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id111
++    forbidden_tools: *id123
+   review:
+     status: pending
+     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+ - id: EVAL-277
+   split: dev
+   category: multi_turn
+@@ -4996,22 +5150,42 @@
+     - waiting_confirmation
+     required_tools:
+     - prepare_generation_plan
+-    forbidden_tools: &id112
++    forbidden_tools: &id127
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - waiting_confirmation
++      required_tools: &id124
++      - prepare_generation_plan
++      tool_order: *id124
++    - turn: 2
++      statuses:
++      - waiting_confirmation
++      required_tools: &id125
++      - prepare_generation_plan
++      tool_order: *id125
++    - turn: 3
++      statuses:
++      - waiting_confirmation
++      required_tools: &id126
++      - prepare_generation_plan
++      tool_order: *id126
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id112
++    forbidden_tools: *id127
+   review:
+     status: pending
+     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+ - id: EVAL-278
+   split: dev
+   category: multi_turn
+@@ -5036,22 +5210,43 @@
+     - completed
+     required_tools:
+     - read_paper
+-    forbidden_tools: &id113
++    forbidden_tools: &id130
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - completed
++      required_tools: &id128
++      - read_paper
++      tool_order: *id128
++    - turn: 2
++      statuses:
++      - completed
++      forbidden_tools:
++      - confirm_generation
++      - confirm_paper_changes
++      - confirm_teaching_design
++    - turn: 3
++      statuses:
++      - completed
++      required_tools: &id129
++      - read_paper
++      tool_order: *id129
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id113
++    forbidden_tools: *id130
+   review:
+     status: pending
+     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1
+   setup:
+     current_paper:
+       question_count: 10
+@@ -5079,19 +5274,40 @@
+     required_tools:
+     - prepare_generation_plan
+     - discard_pending_plan
+-    forbidden_tools: &id114
++    forbidden_tools: &id133
+     - confirm_generation
+     - confirm_paper_changes
+     - confirm_teaching_design
+     require_trace: true
++    turns:
++    - turn: 1
++      statuses:
++      - waiting_confirmation
++      required_tools: &id131
++      - prepare_generation_plan
++      tool_order: *id131
++    - turn: 2
++      statuses:
++      - waiting_confirmation
++      forbidden_tools:
++      - confirm_generation
++      - confirm_paper_changes
++      - confirm_teaching_design
++    - turn: 3
++      statuses:
++      - completed
++      required_tools: &id132
++      - discard_pending_plan
++      tool_order: *id132
+   - type: workflow_safety
+     paper_unchanged: true
+-    forbidden_tools: *id114
++    forbidden_tools: *id133
+   review:
+     status: pending
+     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
+     proposal_notes:
+     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
+-    open_issues:
+-    - INTERMEDIATE_TURN_ORACLE_WEAK
+-    proposal_revision: dev_122_dedup_patch_v1
++    - 'Dev V3.2 deterministic Oracle repair: fixture facts, read Observation grounding,
++      or per-turn lifecycle contract.'
++    open_issues: []
++    proposal_revision: dev_v3_2_deterministic_oracle_patch_v1

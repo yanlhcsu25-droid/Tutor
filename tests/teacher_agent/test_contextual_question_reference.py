@@ -17,10 +17,10 @@ from calculus_agent.runtime.question_focus import (
     focus_from_pending_change,
     validated_focus_address,
 )
-from tests.evals.curriculum_fixture import seed_eval_curriculum
-from tests.evals.case_loader import load_eval_suite
-from tests.evals.fixtures.paper import seed_current_paper
-from tests.evals.runner import run_case
+from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
+from evaluation.reliability.case_loader import load_eval_suite
+from evaluation.reliability.fixtures.paper import seed_current_paper
+from evaluation.reliability.runner import run_case
 
 
 class SequenceBackend:
@@ -72,7 +72,7 @@ def _paper(session):
 
 def test_frozen_ambiguous_target_cases_pass_without_calling_backend():
     suite = load_eval_suite(
-        "tests/evals/staging/dev_v3_2_proposal/dev_122_revised_candidate.yaml"
+        "evaluation/reliability/datasets/staging/dev_v3_2_proposal/dev_122_revised_candidate.yaml"
     )
     for case_id in ("EVAL-152", "EVAL-192", "EVAL-194"):
         case = next(case for case in suite.cases if case.id == case_id)

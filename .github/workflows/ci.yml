@@ -23,9 +23,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-groups
       - name: Reject tracked raw evaluation reports
-        run: test -z "$(git ls-files 'tests/evals/reports/*.json')"
+        run: test -z "$(git ls-files 'evaluation/artifacts/**/runs/**')"
       - name: Ruff
-        run: uv run ruff check src tests
+        run: uv run ruff check src tests evaluation
       - name: Pytest
         run: uv run pytest -q
 

@@ -47,10 +47,10 @@ Runtime 在执行前使用确定性信号纠正高风险误路由，并仅向模
 
 该基线仅用于历史参照，**不能直接视为 Phase 2 新分支上的同条件优化前测**；开始优化前应确认代码、数据集、Provider、模型和运行配置是否可比。
 
-- 原始报告：`tests/evals/reports/official-holdout-v3.2.1-69-second-20261006T045441Z.json`（本地忽略，不提交）
+- 原始报告：`evaluation/artifacts/reports/reliability/runs/official-holdout-v3.2.1-69-second-20261006T045441Z.json`（本地忽略，不提交）
 - 报告时间：`2026-10-06T05:30:54.008906+00:00`
 - 历史 Commit：`f8d9b013fe6b4658a0a507159f24b7ebcbd030d6`，报告记录 `git_dirty=false`
-- 数据集：`tests/evals/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml`
+- 数据集：`evaluation/reliability/datasets/staging/tutor_workflow_eval_300_v3_1/tutor_workflow_eval_300_v3_1.yaml`
 - 数据集版本 / SHA256：`2f3c9c48936a` / `2f3c9c48936a8208a53f850194d15118be9601e380e1249726a42cc140e394ad`
 - Provider / 模型：`siliconflow` / `Qwen/Qwen3.5-35B-A3B`
 - Adapter / 协议：`BailianChatBackend` / `openai_compatible`

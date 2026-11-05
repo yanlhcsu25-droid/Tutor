@@ -58,27 +58,43 @@ Tutor 的核心约束：
 - Teacher Acceptance Eval 覆盖 TeachingDesign、Generation、Paper 修改、Pending Cancel、题库不足和 Tool failure；
 - 同一 Runtime 通过 `AgentVariant` 配置运行 `state-policy`、`tool-agent`、`prompt-only`，不复制 Agent；
 - 7 个确定性失败注入覆盖工具超时、旧版本确认、题库不足、重复确认、参数损坏、模型返回损坏和 ToolResult 损坏；
-- 可复现对照见 [`docs/agent_reliability_benchmark.md`](docs/agent_reliability_benchmark.md)，失败注入见 [`docs/agent_reliability_failure_injection.md`](docs/agent_reliability_failure_injection.md)；分数只从原始报告生成。
+- 可复现对照见 [`docs/evaluation/reliability/agent_reliability_benchmark.md`](docs/evaluation/reliability/agent_reliability_benchmark.md)，失败注入见 [`docs/evaluation/reliability/agent_reliability_failure_injection.md`](docs/evaluation/reliability/agent_reliability_failure_injection.md)；分数只从原始报告生成。
 
 ```bash
 for variant in state-policy tool-agent prompt-only; do
-  RUN_LIVE_LLM=1 uv run python -m tests.evals.runner \
-    --cases-file tests/evals/cases/teacher_acceptance_v0.yaml \
-    --variant "$variant" --report "tests/evals/reports/$variant.json"
+  RUN_LIVE_LLM=1 uv run python -m evaluation.reliability.runner \
+    --cases-file evaluation/reliability/datasets/cases/teacher_acceptance_v0.yaml \
+    --variant "$variant" --report "evaluation/artifacts/reports/reliability/runs/$variant.json"
 done
 uv run python -m calculus_agent.evaluations.reliability_report \
-  state-policy=tests/evals/reports/state-policy.json \
-  tool-agent=tests/evals/reports/tool-agent.json \
-  prompt-only=tests/evals/reports/prompt-only.json \
-  --json-output tests/evals/reports/reliability_latest.json \
-  --markdown-output docs/agent_reliability_benchmark.md
+  state-policy=evaluation/artifacts/reports/reliability/runs/state-policy.json \
+  tool-agent=evaluation/artifacts/reports/reliability/runs/tool-agent.json \
+  prompt-only=evaluation/artifacts/reports/reliability/runs/prompt-only.json \
+  --json-output evaluation/artifacts/reports/reliability/runs/reliability_latest.json \
+  --markdown-output docs/evaluation/reliability/agent_reliability_benchmark.md
 ```
+
+## Evaluation
+
+### Workflow Reliability
+
+The frozen suite is a **69-case human-reviewed, deduplicated Blind Holdout** for workflow reliability. It is not a large-scale teaching-quality benchmark.
+
+- V3.1 First Official: **25/69 = 36.23%**
+- V3.2.1 Second Official: **64/69 = 92.75%**
+- Improvement: **+56.52 percentage points**
+- Regressions: **0**
+- Provider failures in V3.2.1 Second Official: **0**
+
+Evaluation also includes the [`Golden Smoke V2 regression suite`](evaluation/reliability/datasets/cases/golden_smoke_v2.yaml) and the pytest software test suite. Raw Official artifact paths, hashes, frozen configuration, and reproducibility evidence are recorded in the [`Second Official report`](docs/evaluation/reliability/official_holdout_v3_2_1_69_second_report.md) and its [`provenance record`](evaluation/artifacts/reports/reliability/reviewed/official_holdout_v3_2_1_69_second_provenance.json).
+
+See the [`Workflow Eval closure`](docs/evaluation/reliability/workflow_eval_closure_v3_2_1.md) and [`known limitations`](docs/evaluation/reliability/workflow_eval_known_limitations_v3_2_1.md). Teaching quality is a separate future evaluation phase.
 
 ## Token Optimization & Evaluation
 
 Phase 2 P0/P1 is archived as an experimental optimization, **disabled by default**:
 
-- P0 cost profiling: [`docs/token_optimization/phase2_p0_cost_profile.md`](docs/token_optimization/phase2_p0_cost_profile.md)
+- P0 cost profiling: [`docs/evaluation/efficiency/token_cost_baseline_202610.md`](docs/evaluation/efficiency/token_cost_baseline_202610.md)
 - Dynamic Tool Selection: task-aware Tool Schema pruning with lifecycle-safe fallback
 - Shadow Audit: 41.88% offline Schema-character projection reduction; not a Token reduction claim
 - Provider Usage A/B: three manually verified successful scenarios showed 6.64% lower Input Token usage
@@ -191,7 +207,7 @@ SILICONFLOW_VL_MODEL=zai-org/GLM-4.5V
 
 ```bash
 uv run pytest -q
-uv run ruff check src tests
+uv run ruff check src tests evaluation
 ```
 
 ### Teacher Acceptance Evaluation
@@ -199,7 +215,7 @@ uv run ruff check src tests
 该评测使用隔离数据库与确定性题库 Fixture，并调用真实配置的 LLM：
 
 ```bash
-RUN_LIVE_LLM=1 uv run pytest -q tests/evals/test_teacher_acceptance.py -s
+RUN_LIVE_LLM=1 uv run pytest -q tests/evaluation/reliability/test_teacher_acceptance.py -s
 ```
 
 当前覆盖：
@@ -212,7 +228,7 @@ RUN_LIVE_LLM=1 uv run pytest -q tests/evals/test_teacher_acceptance.py -s
 | Pending | 取消待生成计划 |
 | Reliability | Tool failure 不伪造成功、Trace 记录 |
 
-评测报告写入 `tests/evals/reports/teacher_acceptance_v0.json`（本地文件，不提交）。
+评测报告写入 `evaluation/artifacts/reports/reliability/runs/teacher_acceptance_v0.json`（本地文件，不提交）。
 
 ## Project Structure
 
@@ -227,8 +243,14 @@ src/calculus_agent/
 
 tests/
   teacher_agent/        # Deterministic runtime and lifecycle regressions
-  evals/                # YAML-driven live acceptance evaluations
+  evaluation/           # Evaluation-system unit and integration tests
   curriculum_context/   # Curriculum context and migration checks
+
+evaluation/
+  reliability/          # Workflow capability datasets, evaluators, fixtures, runner
+  teaching_quality/     # Teaching-quality datasets, Judge, rubrics, runners
+  efficiency/           # Token, context, latency, and schema efficiency audits
+  artifacts/            # Raw runs and reviewed baselines
 ```
 
 ## Engineering Notes

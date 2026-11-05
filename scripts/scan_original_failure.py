@@ -15,7 +15,7 @@ MARKERS = ["insufficient_candidates", "difficulty_progression_is_soft", "constra
 FILES = [
     "logs/agent/2026-08-15.jsonl",
     "logs/agent/2026-08-16.jsonl",
-    "evaluations/cases.jsonl",
+    "evaluation/reliability/datasets/legacy/cases.jsonl",
     "artifacts/scope_not_found_diagnosis.md",
     "artifacts/phase2_fix_report.md",
 ]

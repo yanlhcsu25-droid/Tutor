@@ -1,7 +1,7 @@
 from calculus_agent.agent.schemas import GenerationPlanPatch
 from calculus_agent.agent.services.generation import GenerationService
-from tests.evals.curriculum_fixture import seed_eval_curriculum
-from tests.evals.fixtures.paper import seed_success_question_bank
+from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
+from evaluation.reliability.fixtures.paper import seed_success_question_bank
 
 
 def _preview(session, scope_names):

@@ -1,0 +1,173 @@
+{
+  "generated_at": "2026-10-10T07:48:12.195549+00:00",
+  "scope": "saved trace, two graders only; not an official full benchmark rerun",
+  "external_api_calls": 0,
+  "results": {
+    "EVAL-120": {
+      "original_file": "tests/evals/reports/dev-v3.2-remaining-batch05-first-api.json",
+      "original_passed": false,
+      "original_failed_graders": [
+        "content_consistency",
+        "state"
+      ],
+      "old_response_facts": {
+        "question_count": 4
+      },
+      "new_response_facts": {
+        "question_count": 10,
+        "total_score": 100,
+        "question_type_counts": {
+          "选择题": 4,
+          "填空题": 2,
+          "计算题": 3,
+          "证明题": 1
+        },
+        "difficulty_counts": {
+          "3": 10
+        }
+      },
+      "state": {
+        "grader": "state",
+        "passed": true,
+        "errors": []
+      },
+      "content_consistency": {
+        "grader": "content_consistency",
+        "passed": true,
+        "errors": []
+      },
+      "eligible_candidate_pass": true,
+      "notes": "No model replay. Existing non-target graders retain original PASS. Inspect latest repository compatibility before official regrade."
+    },
+    "EVAL-121": {
+      "original_file": "tests/evals/reports/dev-v3.2-remaining-batch05-first-api.json",
+      "original_passed": false,
+      "original_failed_graders": [
+        "state"
+      ],
+      "old_response_facts": {
+        "question_count": 10
+      },
+      "new_response_facts": {
+        "question_count": 10,
+        "question_type_counts": {
+          "证明题": 1,
+          "选择题": 4,
+          "填空题": 2,
+          "计算题": 3
+        }
+      },
+      "state": {
+        "grader": "state",
+        "passed": true,
+        "errors": []
+      },
+      "content_consistency": {
+        "grader": "content_consistency",
+        "passed": true,
+        "errors": []
+      },
+      "eligible_candidate_pass": true,
+      "notes": "No model replay. Existing non-target graders retain original PASS. Inspect latest repository compatibility before official regrade."
+    },
+    "EVAL-125": {
+      "original_file": "tests/evals/reports/dev-v3.2-remaining-batch05-first-api.json",
+      "original_passed": false,
+      "original_failed_graders": [
+        "state"
+      ],
+      "old_response_facts": {
+        "question_count": 10
+      },
+      "new_response_facts": {
+        "question_count": 10,
+        "question_type_counts": {
+          "选择题": 4,
+          "填空题": 2,
+          "计算题": 3,
+          "证明题": 1
+        },
+        "difficulty_counts": {
+          "3": 10
+        }
+      },
+      "state": {
+        "grader": "state",
+        "passed": true,
+        "errors": []
+      },
+      "content_consistency": {
+        "grader": "content_consistency",
+        "passed": true,
+        "errors": []
+      },
+      "eligible_candidate_pass": true,
+      "notes": "No model replay. Existing non-target graders retain original PASS. Inspect latest repository compatibility before official regrade."
+    },
+    "EVAL-182": {
+      "original_file": "tests/evals/reports/dev-v3.2-remaining-batch06-first-api.json",
+      "original_passed": false,
+      "original_failed_graders": [
+        "state"
+      ],
+      "old_response_facts": {
+        "question_count": 10
+      },
+      "new_response_facts": {
+        "question_count": 10,
+        "question_type_counts": {
+          "计算题": 3,
+          "选择题": 4,
+          "填空题": 2,
+          "证明题": 1
+        }
+      },
+      "state": {
+        "grader": "state",
+        "passed": true,
+        "errors": []
+      },
+      "content_consistency": {
+        "grader": "content_consistency",
+        "passed": true,
+        "errors": []
+      },
+      "eligible_candidate_pass": true,
+      "notes": "No model replay. Existing non-target graders retain original PASS. Inspect latest repository compatibility before official regrade."
+    },
+    "EVAL-190": {
+      "original_file": "tests/evals/reports/dev-v3.2-remaining-batch07-first-api.json",
+      "original_passed": false,
+      "original_failed_graders": [
+        "content_consistency",
+        "state"
+      ],
+      "old_response_facts": {
+        "question_count": 4
+      },
+      "new_response_facts": {
+        "question_count": 10,
+        "total_score": 100,
+        "question_type_counts": {
+          "选择题": 4,
+          "填空题": 2,
+          "计算题": 3,
+          "证明题": 1
+        }
+      },
+      "state": {
+        "grader": "state",
+        "passed": true,
+        "errors": []
+      },
+      "content_consistency": {
+        "grader": "content_consistency",
+        "passed": true,
+        "errors": []
+      },
+      "eligible_candidate_pass": true,
+      "notes": "No model replay. Existing non-target graders retain original PASS. Inspect latest repository compatibility before official regrade."
+    }
+  },
+  "candidate_pass_count": 5
+}

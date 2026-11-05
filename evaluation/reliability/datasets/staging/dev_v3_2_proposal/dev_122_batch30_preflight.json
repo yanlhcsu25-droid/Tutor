@@ -1,0 +1,165 @@
+{
+  "api_calls": 0,
+  "selected": 30,
+  "passed": 30,
+  "failed": 0,
+  "category_counts": {
+    "generation": 6,
+    "pending": 7,
+    "paper": 7,
+    "teaching": 4,
+    "multi_turn": 6
+  },
+  "results": [
+    {
+      "case_id": "EVAL-001",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-008",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-012",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-025",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-031",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-044",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-072",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-073",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-074",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-075",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-108",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-110",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-114",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-116",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-118",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-146",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-147",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-148",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-153",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-155",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-235",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-237",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-238",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-240",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-272",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-273",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-275",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-277",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-278",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case_id": "EVAL-280",
+      "passed": true,
+      "errors": []
+    }
+  ]
+}

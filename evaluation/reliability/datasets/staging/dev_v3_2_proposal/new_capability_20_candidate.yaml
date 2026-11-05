@@ -1,0 +1,996 @@
+version: v1-candidate
+suite:
+  name: dev_additional_capability_20_candidate
+  description: 20条新增能力候选，不自动并入冻结Dev/正式分母；运行前需逐条审核setup、Oracle和Grader。
+defaults:
+  isolated_session: true
+cases:
+- id: DEVX-001
+  split: dev_candidate
+  category: paper
+  subtype: undo_after_confirm
+  difficulty: hard
+  primary_risk: undo_after_confirm
+  title: 替换确认后撤销并验证原版本
+  turns:
+  - user: 把全卷第3题换成更简单的题，先预览。
+  - user: 确认应用修改。
+  - user: 撤销刚才的试卷修改。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    - preview_paper_changes
+    - confirm_paper_changes
+    - operate_paper_version
+    forbidden_tools:
+    - confirm_generation
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_generation
+  review:
+    status: pending
+    readiness: NEEDS_GRADER_EXTENSION
+    blocker: 现有状态Grader不能断言Undo前后完整题目ID集合与活动版本指针
+    objective: Undo应恢复前一版本的题目ID集合和版本指针
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-002
+  split: dev_candidate
+  category: paper
+  subtype: redo_after_undo
+  difficulty: hard
+  primary_risk: redo_after_undo
+  title: 撤销后重做恢复已确认修改
+  turns:
+  - user: 把全卷第2题换成同题型且较容易的题，先预览。
+  - user: 确认应用。
+  - user: 撤销。
+  - user: 重做。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    - preview_paper_changes
+    - confirm_paper_changes
+    - operate_paper_version
+    forbidden_tools:
+    - confirm_generation
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_generation
+  review:
+    status: pending
+    readiness: NEEDS_GRADER_EXTENSION
+    blocker: 缺少每步Version快照与可重复比对
+    objective: Undo/Redo前后版本链及Paper内容回到预期
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-003
+  split: dev_candidate
+  category: paper
+  subtype: invalid_restore
+  difficulty: hard
+  primary_risk: invalid_restore
+  title: 不存在的版本恢复应失败并保护当前卷
+  turns:
+  - user: 恢复到试卷版本999999，不存在就不要动当前卷。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: needs_clarification
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - needs_clarification
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: NEEDS_SEMANTIC_REVIEW
+    blocker: 无效版本应返回failed还是needs_clarification，当前业务合同未冻结
+    objective: 未知版本不得改变活动版本及其内容
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-004
+  split: dev_candidate
+  category: paper
+  subtype: read_then_preview_replace
+  difficulty: hard
+  primary_risk: read_then_preview_replace
+  title: 读取指代后仅预览替换
+  turns:
+  - user: 先读一下全卷第3题。
+  - user: 把刚才那题换成同题型但更容易的，先预览不要应用。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: waiting_confirmation
+    pending_paper_change:
+      exists: true
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    preview_paper_change:
+      persisted: true
+      operations:
+      - type: replace_question
+        position: 3
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - read_paper
+    - preview_paper_changes
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - completed
+      required_tools:
+      - read_paper
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      required_tools:
+      - read_paper
+      - preview_paper_changes
+      tool_order:
+      - read_paper
+      - preview_paper_changes
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: READY
+    blocker: 逐轮读取、目标position=3、预览及Paper不变性离线通过
+    objective: 跨轮目标指代与预览确认边界
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-005
+  split: dev_candidate
+  category: paper
+  subtype: read_then_preview_delete
+  difficulty: hard
+  primary_risk: read_then_preview_delete
+  title: 读题后只创建删除预览
+  turns:
+  - user: 请读取当前卷第5题。
+  - user: 现在删掉刚读的第5题，但先给我确认预览。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: waiting_confirmation
+    pending_paper_change:
+      exists: true
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    preview_paper_change:
+      persisted: true
+      operations:
+      - type: remove_question
+        position: 5
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - read_paper
+    - preview_paper_changes
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+    turns:
+    - turn: 1
+      statuses:
+      - completed
+      required_tools:
+      - read_paper
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      required_tools:
+      - read_paper
+      - preview_paper_changes
+      tool_order:
+      - read_paper
+      - preview_paper_changes
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: READY
+    blocker: 唯一近期读取指代、目标position=5、预览及Paper不变性离线通过
+    objective: 多轮删除与Paper不变性
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-006
+  split: dev_candidate
+  category: paper
+  subtype: read_claim_grounding
+  difficulty: medium
+  primary_risk: read_claim_grounding
+  title: 回答题数和总分与真实数据库一致
+  turns:
+  - user: 读一下当前卷，明确告诉我一共几道题、满分多少，不要修改。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: NEEDS_PARSER_VALIDATION
+    blocker: 现有response_facts正则未覆盖所有正确的数字表述，需人工确认误判风险
+    objective: 数据读取且答复事实正确
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-007
+  split: dev_candidate
+  category: paper
+  subtype: read_type_breakdown
+  difficulty: medium
+  primary_risk: read_type_breakdown
+  title: 四种题型数量必须与当前卷一致
+  turns:
+  - user: 不修改试卷，请分别报告选择题、填空题、计算题、证明题的数量。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+    response_facts:
+      question_type_counts:
+        选择题: 4
+        填空题: 2
+        计算题: 3
+        证明题: 1
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: NEEDS_PARSER_VALIDATION
+    blocker: 现有response_facts抽取器依赖题型+数量的特定表述
+    objective: 事实化题型分布而非只验证Tool已调用
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-008
+  split: dev_candidate
+  category: generation
+  subtype: typed_blueprint_first_chapter
+  difficulty: hard
+  primary_risk: typed_blueprint_first_chapter
+  title: 明确的题型结构必须原样进入Pending
+  turns:
+  - user: 第一章出6题60分：选择2道、填空2道、计算2道。先给方案，不要生成。
+  setup: {}
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+      question_type_requirements:
+      - question_type: 选择题
+        count: 2
+      - question_type: 填空题
+        count: 2
+      - question_type: 计算题
+        count: 2
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: READY
+    blocker: 离线通过；首批真实SiliconFlow评测PASS
+    objective: 类型约束Contract和Pending冻结
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-009
+  split: dev_candidate
+  category: generation
+  subtype: preview_confirm_boundary
+  difficulty: hard
+  primary_risk: preview_confirm_boundary
+  title: 明确预览后须另轮确认才能生成
+  turns:
+  - user: 第一章出6题60分，先预览不要生成。
+  - user: 确认按这份方案生成试卷。
+  setup: {}
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 6
+      total_score: 60
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - prepare_generation_plan
+    - confirm_generation
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_paper_changes
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: NEEDS_PER_TURN_GRADER
+    blocker: 虽有工具轨迹却无第一轮禁止直接确认的Turn级硬断言
+    objective: 两阶段人机确认与Paper只在第二轮出现
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-010
+  split: dev_candidate
+  category: generation
+  subtype: canonical_alias_chapter3
+  difficulty: hard
+  primary_risk: canonical_alias_chapter3
+  title: 计算和解答合并的硬约束传递
+  turns:
+  - user: 第三章出100分测试：选择4、填空4、计算2、解答2、证明2，先给方案。
+  setup: {}
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 14
+      total_score: 100
+      question_type_requirements:
+      - question_type: 选择题
+        count: 4
+      - question_type: 填空题
+        count: 4
+      - question_type: 计算题
+        count: 4
+      - question_type: 证明题
+        count: 2
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: NEEDS_FIXTURE
+    blocker: 当前综合Runner默认第三章不seed题库；需要受控第三章真实Fixture
+    objective: 业务别名解答→计算题不能重复计数
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-011
+  split: dev_candidate
+  category: pending
+  subtype: preserve_total_on_count_patch
+  difficulty: hard
+  primary_risk: preserve_total_on_count_patch
+  title: 改变题数不丢总分
+  turns:
+  - user: 改成7题，100分保持不变，章节也不变，只更新当前方案。
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 7
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: constraint_preservation
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: READY
+    blocker: 数量patch parser修复及离线Runner通过
+    objective: 持久化Pending局部Patch时保留未改字段
+    source: newly_authored_dev_only_not_from_holdout
+  preserve:
+  - paper_type
+  - scope_names
+  - total_score
+- id: DEVX-012
+  split: dev_candidate
+  category: pending
+  subtype: pause_retains_pending
+  difficulty: hard
+  primary_risk: pause_retains_pending
+  title: 暂停不等于取消方案
+  turns:
+  - user: 当前10题100分的预览先保留，不确认，不取消。
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+  expected:
+    status: waiting_confirmation
+    pending_generation:
+      question_count: 10
+      total_score: 100
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    - discard_pending_plan
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    - discard_pending_plan
+  review:
+    status: pending
+    readiness: NEEDS_PER_TURN_GRADER
+    blocker: 需断言完整Pending记录持久不变而非字段子集
+    objective: 暂停/取消的语义边界
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-013
+  split: dev_candidate
+  category: pending
+  subtype: cancel_preserves_paper
+  difficulty: hard
+  primary_risk: cancel_preserves_paper
+  title: 取消待确认方案不修改当前卷
+  turns:
+  - user: 取消当前待确认的组卷方案，原卷不要动。
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 10
+      total_score: 100
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: completed
+    pending_generation: null
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - discard_pending_plan
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: READY
+    blocker: 离线通过；首批真实SiliconFlow评测PASS
+    objective: 独立Paper与Pending生命周期，取消无副作用
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-014
+  split: dev_candidate
+  category: pending
+  subtype: duplicate_confirmation_idempotency
+  difficulty: hard
+  primary_risk: duplicate_confirmation_idempotency
+  title: 连续确认不得重复生成试卷
+  turns:
+  - user: 确认按当前方案生成。
+  - user: 我已经确认过了，不要重复出卷，检查一下当前试卷就行。
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 6
+      total_score: 60
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - confirm_generation
+    - read_paper
+    forbidden_tools:
+    - confirm_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_paper_changes
+  review:
+    status: pending
+    readiness: NEEDS_GRADER_EXTENSION
+    blocker: 需要断言confirm_generation仅一次及Paper根ID唯一/无重复副作用
+    objective: 重复确认的幂等和用户主动补充的只读恢复
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-015
+  split: dev_candidate
+  category: pending
+  subtype: multi_pending_isolation
+  difficulty: hard
+  primary_risk: multi_pending_isolation
+  title: 取消组卷方案不取消教学设计
+  turns:
+  - user: 请只取消组卷待确认方案，教学设计保持原样。
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+    teaching_design:
+      title: 第一章两课时复习设计
+      scope_names:
+      - 第一章 函数与极限
+  expected:
+    status: completed
+    pending_generation: null
+    active_teaching_design:
+      persisted: true
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - discard_pending_plan
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    teaching_design_unchanged: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: BLOCKED
+    blocker: 当前业务模型未定义Generation Pending与Teaching Design Pending并发优先级；不开发新能力
+    objective: 不同Pending域隔离，不能误确认或删除教学设计
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-016
+  split: dev_candidate
+  category: teaching
+  subtype: consultation_no_pending_mutation
+  difficulty: medium
+  primary_risk: consultation_no_pending_mutation
+  title: 已有组卷方案时教学咨询不可误触发变更
+  turns:
+  - user: 先别出卷，只回答：怎么向学生讲清楚可导必连续？
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+  expected:
+    status: completed
+    pending_generation:
+      question_count: 6
+      total_score: 60
+      scope_names:
+      - 第一章 函数与极限
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools: []
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - discard_pending_plan
+    require_trace: true
+  - type: workflow_safety
+    pending_unchanged: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    - prepare_generation_plan
+    - discard_pending_plan
+  review:
+    status: pending
+    readiness: NEEDS_QUALITY_JUDGE
+    blocker: 现有Workflow Grader不会评教学解释数学正确性
+    objective: 只读咨询和跨任务状态隔离
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-017
+  split: dev_candidate
+  category: generation
+  subtype: fault_injected_prepare
+  difficulty: hard
+  primary_risk: fault_injected_prepare
+  title: 工具层生成计划失败后不谎称成功
+  turns:
+  - user: 第一章出6题60分，先给方案。
+  setup: {}
+  expected:
+    status: failed
+    pending_generation: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - failed
+    required_tools:
+    - prepare_generation_plan
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: NEEDS_FAULT_TEST
+    blocker: 需确认fault注入作用域/单次或持续故障，以及运行状态失败边界
+    objective: 工具故障归类与不产生虚假Pending
+    source: newly_authored_dev_only_not_from_holdout
+  backend:
+    tool_fault:
+      tool: prepare_generation_plan
+      code: injected_tool_failure
+      message: test-only tool failure
+- id: DEVX-018
+  split: dev_candidate
+  category: paper
+  subtype: knowledge_grounded_readonly
+  difficulty: hard
+  primary_risk: knowledge_grounded_readonly
+  title: 知识点分析必须源于当前Paper
+  turns:
+  - user: 请只分析当前卷的知识点分布，指出最集中的部分，不要修改。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+  expected:
+    status: completed
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - read_paper
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: true
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: NEEDS_SEMANTIC_GRADER
+    blocker: 当前Fixture将同一批知识点关联全部题目，难以形成有效覆盖质量Oracle
+    objective: 避免编造知识点与只读副作用
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-019
+  split: dev_candidate
+  category: generation
+  subtype: reinforcement_seen_item_exclusion
+  difficulty: hard
+  primary_risk: reinforcement_seen_item_exclusion
+  title: 学生错题巩固卷应排除已做原题
+  turns:
+  - user: 针对学生做错的数列极限和函数极限设计巩固卷，不能重复已做过的题，先给方案。
+  setup: {}
+  expected:
+    status: waiting_confirmation
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - waiting_confirmation
+    required_tools:
+    - prepare_reinforcement_plan
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    readiness: NEEDS_FIXTURE
+    blocker: 缺少学生作答/已做题ID与知识点映射Fixture，不可用空数据假装验证排除
+    objective: 真实错题驱动的知识点选题与防泄漏
+    source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-020
+  split: dev_candidate
+  category: pending
+  subtype: owner_session_isolation
+  difficulty: hard
+  primary_risk: owner_session_isolation
+  title: 两教师之间的待确认状态不可串扰
+  turns:
+  - user: 只确认我这个会话的方案，不要操作其他教师的待确认任务。
+  setup:
+    pending_generation:
+      paper_type: chapter_test
+      scope_names:
+      - 第一章 函数与极限
+      question_count: 6
+      total_score: 60
+  expected:
+    status: completed
+    pending_generation: null
+    paper_db:
+      persisted: true
+      question_count: 6
+      total_score: 60
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - completed
+    required_tools:
+    - confirm_generation
+    forbidden_tools:
+    - confirm_paper_changes
+    require_trace: true
+  - type: workflow_safety
+    paper_unchanged: false
+    forbidden_tools:
+    - confirm_paper_changes
+  review:
+    status: pending
+    readiness: NEEDS_RUNNER_EXTENSION
+    blocker: 现有Runner单会话单owner，无法同时创建第二教师及跨owner副作用断言
+    objective: 跨会话/跨owner不访问、不确认他人Pending
+    source: newly_authored_dev_only_not_from_holdout
