@@ -8,9 +8,9 @@ dataset_sha: ef0dfc04aa7ebe7074a4f1bb60a931805e40adf15205f44675f109109118457d
 dataset_file_sha256: ef0dfc04aa7ebe7074a4f1bb60a931805e40adf15205f44675f109109118457d
 benchmark_eligible: true
 benchmark_eligible_case_count: 129
-execution_authorized: true
-authorization_note: Exact approved 129-case subset authorized for the first formal Development Benchmark
-  after a successful 5-case live API diagnostic.
+execution_authorized: false
+authorization_note: Mechanically derived from the frozen reviewed 142-case manifest. Selection and freezing
+  do not authorize live execution.
 execution:
   provider: siliconflow
   model: Qwen/Qwen3.5-35B-A3B
@@ -26,6 +26,10 @@ execution:
     retry_max_delay_seconds: 60.0
     retryable_failures:
     - http_429
+    - http_500
+    - http_502
+    - http_503
+    - http_504
     - timeout
     - connection_error
   case_delay_seconds: 5.0
@@ -41,19 +45,20 @@ execution:
 versions:
   fixture: eval-fixture-v1
   grader: grader-v2-dev-v3.2-reviewed
-  runtime: source-commit-477a32d667ce
+  runtime: source-commit-465a9d02000d
 freeze_lock:
   human_reviewed: true
   reviewed_case_count: 129
   approved_case_count: 129
   not_ready_case_count: 0
   reviewed_at: '2026-11-06T08:33:36Z'
-  frozen_at: '2026-11-06T09:19:44.621247Z'
-  code_git_sha: 477a32d667cefea554709bfa76f469814345c9d4
+  frozen_at: '2026-11-06T11:33:40.417842Z'
+  code_git_sha: 465a9d02000d775c1909f205ca904754301e315e
+  source_manifest_path: evaluation/reliability/datasets/staging/dev_v3_2_proposal/MANIFEST.dev_v3_2_reviewed_142.yaml
   source_manifest_sha256: fc9b79b0f3b4c5405ea98fe2d4a0e9a2bbbee9476d6d5861690742dccf323882
 component_locks:
   runtime:
-    sha256: 4071a78510394e700085b37ed02e9b3488ab572375b9bda2c95ca36c203bad8a
+    sha256: 2f480b09c52dc10032daad0b7e23956501f3f85a6d3fb84a095aa9c3b53ff949
     file_count: 22
   agent:
     sha256: 170da8a9652383262e85710e64cfa69efb67eca5cd7f7cbbb3c445f06f7147cf
@@ -77,23 +82,23 @@ component_locks:
     sha256: 43def03bbb7b4b4fc5adc343b10c4c5a6fd53d0c1fff6b7f34d9eb9e937508d2
     file_count: 15
   model_configuration:
-    sha256: 21fa85476f05e490e3dccfac0ab473bee43221fea8080c1f61dcddcf0c288a72
+    sha256: 615abdbc138ff71b45294b902d9c3f3a71e97c3953f3d275230d45d9e615c31d
     file_count: 2
 required_distribution:
   category:
     generation: 47
-    multi_turn: 9
-    paper: 38
     pending: 19
+    paper: 38
     teaching: 16
+    multi_turn: 9
   difficulty:
     easy: 42
-    hard: 31
     medium: 56
+    hard: 31
   expected_status:
+    waiting_confirmation: 76
     completed: 35
     needs_clarification: 18
-    waiting_confirmation: 76
 unresolved_case_ids: []
 cases:
 - case_id: EVAL-001
@@ -871,24 +876,10 @@ cases:
   review_status: approved
   readiness: READY
 freeze_requirements:
-- approved_subset_from_142_case_contract_review
+- 142_case_contract_review
 - dataset_sha256_lock
 - source_commit_ancestor_lock
 - runtime_fixture_grader_component_locks
 - model_provider_execution_lock
 - explicit_live_llm_and_judge_authorization
 - no_langfuse_scores
-excluded_case_ids:
-- EVAL-149
-- DEVX-001
-- DEVX-002
-- DEVX-003
-- DEVX-006
-- DEVX-007
-- DEVX-009
-- DEVX-012
-- DEVX-014
-- DEVX-017
-- DEVX-019
-- DEVX-020
-- DEVX-021
