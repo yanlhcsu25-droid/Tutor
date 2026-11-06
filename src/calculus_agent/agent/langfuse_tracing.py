@@ -12,6 +12,7 @@ propagate out of this module.
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import contextmanager
 from typing import Any, Iterator
 
@@ -24,9 +25,13 @@ _CLIENT_CACHE: dict[str, Any] = {"client": None}
 
 
 def safe_get_client() -> Any | None:
-    """Return the Langfuse client, or ``None`` when unavailable. Never raises."""
+    """Return the configured shared Langfuse client, or ``None``. Never raises."""
     if _CLIENT_CACHE["client"] is not None:
         return _CLIENT_CACHE["client"]
+    if os.getenv("LANGFUSE_TRACING_ENABLED", "true").lower() == "false":
+        return None
+    if not os.getenv("LANGFUSE_PUBLIC_KEY") or not os.getenv("LANGFUSE_SECRET_KEY"):
+        return None
     try:
         from langfuse import get_client  # type: ignore
         client = get_client()

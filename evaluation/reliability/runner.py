@@ -51,6 +51,7 @@ from evaluation.reliability.case_loader import (
 from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
 from evaluation.reliability.fixtures.context import EvalFixtureContext
 from evaluation.reliability.fixtures.paper import seed_current_paper, seed_success_question_bank
+from evaluation.reliability.langfuse_scores import flush_case_scores, publish_case_scores
 from evaluation.reliability.evaluators.constraint import grade_constraints
 from evaluation.reliability.evaluators.score import grade_score
 from evaluation.reliability.evaluators.state import grade_state
@@ -2173,21 +2174,25 @@ def main() -> int:
 
     results = []
 
-    for index, case in enumerate(cases):
-        result = run_case(case, variant=variant)
+    try:
+        for index, case in enumerate(cases):
+            result = run_case(case, variant=variant)
 
-        results.append(result)
-        write_report(
-            results,
-            args.report,
-            variant=variant,
-            dataset_path=args.cases_file,
-            case_delay_seconds=args.case_delay_seconds,
-        )
+            results.append(result)
+            publish_case_scores(result)
+            write_report(
+                results,
+                args.report,
+                variant=variant,
+                dataset_path=args.cases_file,
+                case_delay_seconds=args.case_delay_seconds,
+            )
 
-        print_result(result)
-        if index + 1 < len(cases):
-            time.sleep(max(0, args.case_delay_seconds))
+            print_result(result)
+            if index + 1 < len(cases):
+                time.sleep(max(0, args.case_delay_seconds))
+    finally:
+        flush_case_scores()
 
     print("=" * 60)
 
