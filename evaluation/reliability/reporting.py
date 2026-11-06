@@ -137,7 +137,10 @@ def _compatibility_fingerprint(report: dict[str, Any]) -> dict[str, Any]:
     reproducibility = metadata.get("reproducibility") or {}
     execution = metadata.get("execution") or {}
     components: dict[str, Any] = {}
-    for name in ("runner", "graders", "prompt", "fixture"):
+    for name in (
+        "runtime", "agent", "tools", "services", "prompt", "graders",
+        "fixture", "runner", "model_configuration",
+    ):
         value = reproducibility.get(name)
         if not isinstance(value, dict) or not value.get("sha256"):
             raise EvaluationControlError(f"report lacks reproducibility.{name}.sha256")

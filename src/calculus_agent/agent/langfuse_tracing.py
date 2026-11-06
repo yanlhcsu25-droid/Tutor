@@ -22,16 +22,29 @@ logger = logging.getLogger(__name__)
 
 # Lazy single-client cache: we pay for get_client() at most once per process.
 _CLIENT_CACHE: dict[str, Any] = {"client": None}
+_DISABLED_VALUES = frozenset({"0", "false", "no", "off"})
+
+
+def langfuse_enabled() -> bool:
+    """Use one policy for tracing, evaluation scores, and report metadata."""
+    flags = (
+        os.getenv("LANGFUSE_ENABLED", "true"),
+        os.getenv("LANGFUSE_TRACING_ENABLED", "true"),
+    )
+    return (
+        all(value.strip().lower() not in _DISABLED_VALUES for value in flags)
+        and bool(os.getenv("LANGFUSE_PUBLIC_KEY"))
+        and bool(os.getenv("LANGFUSE_SECRET_KEY"))
+    )
 
 
 def safe_get_client() -> Any | None:
     """Return the configured shared Langfuse client, or ``None``. Never raises."""
+    # Explicit disable always wins, even if a client was cached earlier.
+    if not langfuse_enabled():
+        return None
     if _CLIENT_CACHE["client"] is not None:
         return _CLIENT_CACHE["client"]
-    if os.getenv("LANGFUSE_TRACING_ENABLED", "true").lower() == "false":
-        return None
-    if not os.getenv("LANGFUSE_PUBLIC_KEY") or not os.getenv("LANGFUSE_SECRET_KEY"):
-        return None
     try:
         from langfuse import get_client  # type: ignore
         client = get_client()

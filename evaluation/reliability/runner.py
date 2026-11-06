@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import importlib
 import json
-import os
 import subprocess
 import sys
 import tempfile
@@ -49,9 +48,12 @@ from evaluation.reliability.execution_control import (
     EvaluationControlError,
     classify_execution_status,
     consume_holdout_authorization,
+    clean_git_sha,
     enforce_review_policy,
+    require_live_llm_authorization,
     select_cases_fail_closed,
     source_provenance,
+    validate_manifest_component_locks,
     validate_manifest_execution_config,
 )
 from evaluation.reliability.reporting import summarize_results
@@ -59,6 +61,7 @@ from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
 from evaluation.reliability.fixtures.context import EvalFixtureContext
 from evaluation.reliability.fixtures.paper import seed_current_paper, seed_success_question_bank
 from evaluation.reliability.langfuse_scores import flush_case_scores, publish_case_scores
+from calculus_agent.agent.langfuse_tracing import langfuse_enabled
 from evaluation.reliability.evaluators.constraint import grade_constraints
 from evaluation.reliability.evaluators.score import grade_score
 from evaluation.reliability.evaluators.state import grade_state
@@ -83,6 +86,9 @@ DEFAULT_CASE_FILE = (
 DEFAULT_REPORT = (
     ROOT / "evaluation/artifacts/reports/reliability/runs/latest.json"
 )
+
+FIXTURE_VERSION = "eval-fixture-v1"
+GRADER_VERSION = "grader-v1"
 
 
 # ============================================================
@@ -249,6 +255,7 @@ def create_eval_backend(case: EvalCase):
 
         return RaisingBackend()
 
+    require_live_llm_authorization()
     settings = get_settings()
 
     backend = build_teacher_agent_backend(settings)
@@ -1853,8 +1860,8 @@ def run_case(
                 case_usage["protocols"][0]
                 if len(case_usage["protocols"]) == 1 else None
             ),
-            "fixture_version": "eval-fixture-v1",
-            "grader_version": "grader-v1",
+            "fixture_version": FIXTURE_VERSION,
+            "grader_version": GRADER_VERSION,
             "run_metadata": {
                 "model_id": getattr(backend, "model", type(backend).__name__),
                 "provider": case_usage["providers"],
@@ -1922,8 +1929,8 @@ def run_case(
                 locals().get("backend"), "backend_adapter", None
             ),
             "protocol": getattr(locals().get("backend"), "protocol", None),
-            "fixture_version": "eval-fixture-v1",
-            "grader_version": "grader-v1",
+            "fixture_version": FIXTURE_VERSION,
+            "grader_version": GRADER_VERSION,
             "expected": case.expected,
             "actual": {},
             "graders": [],
@@ -2169,11 +2176,6 @@ def parse_args():
         type=Path,
         help="Single-use machine-readable authorization (required for Holdout).",
     )
-    parser.add_argument(
-        "--authorization-consumption-file",
-        type=Path,
-        help="Optional atomic consumption receipt path.",
-    )
     parser.add_argument("--run-id", help="Stable run ID; generated when omitted.")
     parser.add_argument(
         "--expected-grader-sha256",
@@ -2213,28 +2215,39 @@ def main() -> int:
             categories=getattr(args, "categories", None) or (),
         )
         enforce_review_policy(selection, mode=mode, dataset_role=dataset_role)
-        provenance = source_provenance()
-
-        manifest = selection.manifest
-        if mode == "benchmark" and manifest and dataset_role != "holdout":
-            if not getattr(args, "manifest_sha256", None):
-                raise EvaluationControlError(
-                    "non-Holdout Benchmark manifests require --manifest-sha256"
-                )
-            expected_grader = getattr(args, "expected_grader_sha256", None)
-            if not expected_grader:
-                raise EvaluationControlError(
-                    "non-Holdout Benchmark manifests require --expected-grader-sha256"
-                )
-            if expected_grader != provenance["graders"]["sha256"]:
-                raise EvaluationControlError("grader implementation SHA256 mismatch")
-
         authorization_receipt = None
         authorization_file = getattr(args, "authorization_file", None)
         if dataset_role == "holdout" and authorization_file is None:
             raise EvaluationControlError(
                 "Holdout Benchmark requires --authorization-file"
             )
+        if mode == "benchmark" and not getattr(args, "manifest_sha256", None):
+            raise EvaluationControlError(
+                "formal Benchmark requires --manifest-sha256"
+            )
+
+        provenance = source_provenance()
+        manifest = selection.manifest
+        if mode == "benchmark":
+            validate_manifest_component_locks(
+                selection,
+                provenance=provenance,
+                git_sha=clean_git_sha(),
+                grader_version=GRADER_VERSION,
+            )
+            expected_grader = getattr(args, "expected_grader_sha256", None)
+            if (
+                expected_grader is not None
+                and expected_grader != provenance["graders"]["sha256"]
+            ):
+                raise EvaluationControlError("grader implementation SHA256 mismatch")
+
+        if any(
+            (case.backend or {}).get("behavior")
+            not in {"scripted", "invalid_response", "tool_failure", "raise"}
+            for case in selection.cases
+        ):
+            require_live_llm_authorization()
         if mode == "benchmark" and manifest:
             validate_manifest_execution_config(
                 selection,
@@ -2256,7 +2269,6 @@ def main() -> int:
                 selection=selection,
                 provenance=provenance,
                 run_id=run_id,
-                consumption_path=getattr(args, "authorization_consumption_file", None),
             )
         elif authorization_file is not None:
             raise EvaluationControlError(
@@ -2266,11 +2278,7 @@ def main() -> int:
         print(f"Evaluation preflight failed: {exc}", file=sys.stderr)
         return 2
 
-    langfuse_enabled = bool(
-        os.getenv("LANGFUSE_PUBLIC_KEY")
-        and os.getenv("LANGFUSE_SECRET_KEY")
-        and os.getenv("LANGFUSE_ENABLED", "true").lower() not in {"0", "false", "no"}
-    )
+    langfuse_is_enabled = langfuse_enabled()
     execution_metadata = {
         "run_id": run_id,
         "started_at": started_at,
@@ -2309,7 +2317,7 @@ def main() -> int:
             "max_retries": settings.siliconflow_max_retries,
             "retry_base_seconds": settings.siliconflow_retry_base_seconds,
             "case_delay_seconds": args.case_delay_seconds,
-            "langfuse_enabled": langfuse_enabled,
+            "langfuse_enabled": langfuse_is_enabled,
         },
         "reproducibility": provenance,
     }

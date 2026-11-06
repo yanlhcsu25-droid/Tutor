@@ -9,9 +9,11 @@ from calculus_agent.evaluations.metrics import score_trace
 from calculus_agent.agent.agent import build_teacher_agent_backend, run_teacher_agent
 from calculus_agent.models import TeacherAgentRunTrace
 from calculus_agent.runtime.trace_types import TraceEntry
+from evaluation.reliability.execution_control import require_live_llm_authorization
 
 
 def run_evaluation(cases_path: Path, *, mode: str, settings: Settings) -> dict:
+    require_live_llm_authorization()
     if not settings.siliconflow_api_key:
         raise RuntimeError("评测需要配置 SILICONFLOW_API_KEY")
     cases = [

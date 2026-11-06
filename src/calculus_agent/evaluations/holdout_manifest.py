@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -12,30 +11,14 @@ from typing import Any
 import yaml
 
 from calculus_agent.evaluations.smoke_manifest import dataset_sha, load_dataset_cases
+from evaluation.reliability.execution_control import (
+    EvaluationControlError,
+    clean_git_sha,
+    git_commit_is_ancestor,
+    source_provenance,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
-COMPONENT_PATHS = {
-    "runtime": sorted((ROOT / "src/calculus_agent/runtime").rglob("*.py")),
-    "graders": sorted((ROOT / "evaluation/reliability/evaluators").glob("*.py")),
-    "fixture": [
-        *sorted((ROOT / "evaluation/reliability/fixtures").glob("*.py")),
-        ROOT / "evaluation/reliability/curriculum_fixture.py",
-    ],
-    "runner": [ROOT / "evaluation/reliability/runner.py"],
-    "model_configuration": [
-        ROOT / "src/calculus_agent/config.py",
-        ROOT / "src/calculus_agent/runtime/backend.py",
-    ],
-}
-
-
-def component_sha(paths: list[Path]) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(paths):
-        digest.update(str(path.relative_to(ROOT)).encode())
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-    return digest.hexdigest()
 
 
 def validate_holdout_manifest(
@@ -98,17 +81,28 @@ def validate_holdout_manifest(
         errors.append("freeze_lock.human_reviewed must be true")
     if freeze.get("reviewed_case_count") != len(selected_ids):
         errors.append("freeze_lock.reviewed_case_count is incorrect")
-    if re.fullmatch(r"[0-9a-f]{40}", str(freeze.get("code_git_sha") or "")) is None:
+    frozen_git_sha = str(freeze.get("code_git_sha") or "")
+    if re.fullmatch(r"[0-9a-f]{40}", frozen_git_sha) is None:
         errors.append("freeze_lock.code_git_sha must be a full Git SHA")
 
     locks = manifest.get("component_locks") or {}
     actual_components = {
-        name: component_sha(paths) for name, paths in COMPONENT_PATHS.items()
+        name: value["sha256"] for name, value in source_provenance().items()
     }
     if verify_current_components:
         for name, actual_sha in actual_components.items():
             if (locks.get(name) or {}).get("sha256") != actual_sha:
                 errors.append(f"component_locks.{name}.sha256 mismatch")
+        try:
+            current_git_sha = clean_git_sha(ROOT)
+            if not git_commit_is_ancestor(
+                frozen_git_sha, current_git_sha, root=ROOT
+            ):
+                errors.append(
+                    "freeze_lock.code_git_sha is not an ancestor of current HEAD"
+                )
+        except EvaluationControlError as exc:
+            errors.append(str(exc))
 
     return {
         "valid": not errors,

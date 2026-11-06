@@ -10,6 +10,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import subprocess
+
+try:
+    import pwd
+except ImportError:  # pragma: no cover - Windows fallback
+    pwd = None  # type: ignore[assignment]
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,6 +28,14 @@ from evaluation.reliability.case_loader import EvalCase, load_eval_suite
 
 ROOT = Path(__file__).resolve().parents[2]
 HOLDOUT_SPLITS = frozenset({"holdout", "holdout_candidate"})
+_ACCOUNT_HOME = (
+    Path(pwd.getpwuid(os.getuid()).pw_dir)
+    if pwd is not None and hasattr(os, "getuid")
+    else Path.home()
+)
+HOLDOUT_CONSUMPTION_DIR = (
+    _ACCOUNT_HOME / ".local/state/calculus-agent/holdout-authorizations"
+)
 INFRASTRUCTURE_ERROR_CODES = frozenset({
     "provider_rate_limit",
     "provider_connection_error",
@@ -52,15 +67,24 @@ def sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
-def sha256_sources(paths: Iterable[str | Path]) -> dict[str, Any]:
+def sha256_sources(
+    paths: Iterable[str | Path],
+    *,
+    root: Path = ROOT,
+) -> dict[str, Any]:
     """Hash a stable bundle of actual source files, including their names."""
+    resolved_root = root.resolve()
     resolved = sorted({Path(path).resolve() for path in paths})
     digest = hashlib.sha256()
     sources: list[dict[str, str]] = []
     for path in resolved:
         if not path.is_file():
             raise EvaluationControlError(f"required source file missing: {path}")
-        relative = str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)
+        relative = (
+            str(path.relative_to(resolved_root))
+            if path.is_relative_to(resolved_root)
+            else str(path)
+        )
         file_hash = sha256_file(path)
         digest.update(relative.encode())
         digest.update(b"\0")
@@ -69,33 +93,178 @@ def sha256_sources(paths: Iterable[str | Path]) -> dict[str, Any]:
     return {"sha256": digest.hexdigest(), "sources": sources}
 
 
-def source_provenance() -> dict[str, Any]:
-    evaluator_dir = ROOT / "evaluation/reliability/evaluators"
-    fixture_dir = ROOT / "evaluation/reliability/fixtures"
-    prompt_sources = [
-        ROOT / "src/calculus_agent/runtime/coordinator.py",
-        ROOT / "src/calculus_agent/agent/semantic_router.py",
-        ROOT / "src/calculus_agent/agent/task_router.py",
-        ROOT / "src/calculus_agent/agent/skills/loader.py",
-        ROOT / "src/calculus_agent/agent/skills/paper_question_operations/SKILL.md",
-        ROOT / "src/calculus_agent/agent/skills/teaching_design/SKILL.md",
-    ]
-    return {
-        "runner": sha256_sources([
-            ROOT / "evaluation/reliability/runner.py",
-            ROOT / "evaluation/reliability/execution_control.py",
-            ROOT / "evaluation/reliability/reporting.py",
-            ROOT / "evaluation/reliability/langfuse_scores.py",
-        ]),
-        "graders": sha256_sources(evaluator_dir.glob("*.py")),
-        "prompt": sha256_sources(prompt_sources),
-        "fixture": sha256_sources([
-            *fixture_dir.glob("*.py"),
-            ROOT / "evaluation/reliability/curriculum_fixture.py",
-            ROOT / "evaluation/reliability/case_loader.py",
-            ROOT / "tests/conftest.py",
-        ]),
+def component_source_paths(root: Path = ROOT) -> dict[str, list[Path]]:
+    """Return the single component definition used by manifests and the Runner."""
+    src = root / "src/calculus_agent"
+    agent = src / "agent"
+    reliability = root / "evaluation/reliability"
+    agent_python = set(agent.rglob("*.py"))
+    skill_files = {
+        path for path in (agent / "skills").rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts
     }
+    prompt_paths = {agent / "prompts.py", *skill_files}
+    tool_paths = {
+        *(agent / "tools").rglob("*.py"),
+        *(agent / "tool_adapters").rglob("*.py"),
+        agent / "paper_tool_registry.py",
+        agent / "tool_registry.py",
+        agent / "toolkit.py",
+    }
+    service_paths = {
+        *(agent / "services").rglob("*.py"),
+        *(agent / "state").rglob("*.py"),
+        *(path for path in agent_python if path.name.endswith("service.py")),
+        *(
+            path for path in src.rglob("*.py")
+            if agent not in path.parents
+            and (src / "runtime") not in path.parents
+            and path != src / "config.py"
+        ),
+    }
+    agent_paths = agent_python - prompt_paths - tool_paths - service_paths
+    runner_paths = {
+        path for path in reliability.rglob("*.py")
+        if not set(path.relative_to(reliability).parts) & {
+            "datasets", "evaluators", "fixtures"
+        }
+    }
+    return {
+        "runtime": sorted((src / "runtime").rglob("*.py")),
+        "agent": sorted(agent_paths),
+        "tools": sorted(tool_paths),
+        "services": sorted(service_paths),
+        "prompt": sorted(prompt_paths),
+        "graders": sorted((reliability / "evaluators").rglob("*.py")),
+        "fixture": sorted({
+            *(reliability / "fixtures").rglob("*.py"),
+            reliability / "curriculum_fixture.py",
+            reliability / "case_loader.py",
+            root / "tests/conftest.py",
+        }),
+        "runner": sorted(runner_paths),
+        "model_configuration": [
+            src / "config.py",
+            src / "runtime/backend.py",
+        ],
+    }
+
+
+def source_provenance(root: Path = ROOT) -> dict[str, Any]:
+    return {
+        name: sha256_sources(paths, root=root)
+        for name, paths in component_source_paths(root).items()
+    }
+
+
+def require_live_llm_authorization() -> None:
+    """Fail before an evaluation creates or calls a real model backend."""
+    if os.getenv("RUN_LIVE_LLM") != "1":
+        raise EvaluationControlError(
+            "Real model evaluation is disabled. Set RUN_LIVE_LLM=1 to enable it."
+        )
+
+
+def clean_git_sha(root: Path = ROOT) -> str:
+    """Return HEAD only when tracked and untracked worktree state is clean."""
+    try:
+        sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=root, text=True,
+        ).strip()
+        status = subprocess.check_output(
+            ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+            cwd=root,
+            text=True,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise EvaluationControlError("cannot verify Git worktree state") from exc
+    if status:
+        changed = ", ".join(line[3:] for line in status.splitlines()[:5])
+        raise EvaluationControlError(
+            f"formal Benchmark requires a clean Git worktree; changed: {changed}"
+        )
+    return sha
+
+
+def git_commit_is_ancestor(
+    frozen_git_sha: str,
+    current_git_sha: str,
+    *,
+    root: Path = ROOT,
+) -> bool:
+    """Return whether the frozen source commit is HEAD or an ancestor of HEAD."""
+    full_sha = re.compile(r"[0-9a-f]{40}")
+    if full_sha.fullmatch(frozen_git_sha) is None:
+        raise EvaluationControlError(
+            "freeze_lock.code_git_sha must be a full lowercase Git SHA"
+        )
+    if full_sha.fullmatch(current_git_sha) is None:
+        raise EvaluationControlError("current Git SHA must be a full lowercase Git SHA")
+    if frozen_git_sha == current_git_sha:
+        return True
+    completed = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", frozen_git_sha, current_git_sha],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        return True
+    if completed.returncode == 1:
+        return False
+    raise EvaluationControlError(
+        "cannot verify frozen source commit ancestry: "
+        f"{completed.stderr.strip() or completed.stdout.strip()}"
+    )
+
+
+def validate_manifest_component_locks(
+    selection: Selection,
+    *,
+    provenance: dict[str, Any],
+    git_sha: str,
+    grader_version: str,
+    root: Path = ROOT,
+) -> None:
+    """Verify every result-affecting component and the frozen Git revision."""
+    manifest = selection.manifest
+    if manifest is None:
+        raise EvaluationControlError("formal Benchmark requires a frozen manifest")
+    versions = manifest.get("versions") or {}
+    declared_grader_version = versions.get("grader")
+    if not isinstance(declared_grader_version, str) or not declared_grader_version:
+        raise EvaluationControlError("benchmark manifest requires versions.grader")
+    if declared_grader_version != grader_version:
+        raise EvaluationControlError(
+            "benchmark grader version mismatch: "
+            f"expected {declared_grader_version!r}, got {grader_version!r}"
+        )
+    locks = manifest.get("component_locks")
+    if not isinstance(locks, dict):
+        raise EvaluationControlError("benchmark manifest requires component_locks")
+
+    mismatches: list[str] = []
+    for name, actual in provenance.items():
+        declared = locks.get(name)
+        expected = declared.get("sha256") if isinstance(declared, dict) else None
+        observed = actual.get("sha256") if isinstance(actual, dict) else None
+        if expected != observed:
+            mismatches.append(
+                f"{name} (expected {expected!r}, got {observed!r})"
+            )
+    frozen_git_sha = (manifest.get("freeze_lock") or {}).get("code_git_sha")
+    if not isinstance(frozen_git_sha, str):
+        mismatches.append("git (freeze_lock.code_git_sha is missing)")
+    elif not git_commit_is_ancestor(frozen_git_sha, git_sha, root=root):
+        mismatches.append(
+            f"git (frozen source {frozen_git_sha!r} is not an ancestor of "
+            f"current HEAD {git_sha!r})"
+        )
+    if mismatches:
+        raise EvaluationControlError(
+            "benchmark source lock mismatch: " + "; ".join(mismatches)
+        )
 
 
 def _load_mapping(path: Path, *, label: str) -> dict[str, Any]:
@@ -233,6 +402,28 @@ def enforce_review_policy(
     contains_holdout = bool(selected_splits & HOLDOUT_SPLITS)
     if contains_holdout and dataset_role != "holdout":
         raise EvaluationControlError("holdout cases must use --dataset-role holdout")
+
+    if mode == "benchmark":
+        manifest = selection.manifest
+        if manifest is None:
+            raise EvaluationControlError("formal Benchmark requires a frozen manifest")
+        if manifest.get("status") != "frozen":
+            raise EvaluationControlError("benchmark manifest must have status: frozen")
+        freeze_lock = manifest.get("freeze_lock") or {}
+        if freeze_lock.get("human_reviewed") is not True:
+            raise EvaluationControlError(
+                "benchmark manifest must have freeze_lock.human_reviewed=true"
+            )
+        expected_count = manifest.get("expected_case_count")
+        if expected_count != len(selection.cases):
+            raise EvaluationControlError(
+                "benchmark manifest expected_case_count does not match selected cases"
+            )
+        if not isinstance(manifest.get("dataset_file_sha256"), str):
+            raise EvaluationControlError(
+                "benchmark manifest requires dataset_file_sha256"
+            )
+
     if dataset_role == "holdout":
         if mode != "benchmark":
             raise EvaluationControlError("holdout cases may run only in benchmark mode")
@@ -245,13 +436,6 @@ def enforce_review_policy(
         if str(selection.manifest.get("split")) not in HOLDOUT_SPLITS:
             raise EvaluationControlError(
                 "holdout manifest must declare a Holdout split"
-            )
-        if selection.manifest.get("status") != "frozen":
-            raise EvaluationControlError("holdout manifest must have status: frozen")
-        freeze_lock = selection.manifest.get("freeze_lock") or {}
-        if freeze_lock.get("human_reviewed") is not True:
-            raise EvaluationControlError(
-                "holdout manifest must have freeze_lock.human_reviewed=true"
             )
     if dataset_role == "duplicate-regression" and mode == "benchmark":
         raise EvaluationControlError(
@@ -344,18 +528,31 @@ def consume_holdout_authorization(
     selection: Selection,
     provenance: dict[str, Any],
     run_id: str,
-    consumption_path: str | Path | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    """Validate and atomically consume one authorization before any model call."""
+    """Validate and atomically consume one authorization before any model call.
+
+    Single-use is enforced for this OS user on this machine/filesystem. A
+    centralized store is required for a cross-machine global guarantee.
+    """
     if selection.manifest is None or selection.manifest_sha256 is None:
         raise EvaluationControlError("holdout authorization requires a manifest selection")
     path = Path(authorization_path).resolve()
     authorization = _load_mapping(path, label="authorization")
+    component_fields = {
+        "runtime": "runtime_sha256",
+        "agent": "agent_sha256",
+        "tools": "tools_sha256",
+        "services": "services_sha256",
+        "prompt": "prompt_sha256",
+        "graders": "grader_sha256",
+        "fixture": "fixture_sha256",
+        "runner": "runner_sha256",
+        "model_configuration": "model_configuration_sha256",
+    }
     required = {
         "authorization_id", "dataset_sha256", "manifest_sha256", "expires_at",
-        "status", "single_use", "declared_grader_version", "grader_sha256",
-        "runner_sha256", "prompt_sha256", "fixture_sha256",
+        "status", "single_use", "declared_grader_version", *component_fields.values(),
     }
     missing = sorted(required - set(authorization))
     if missing:
@@ -366,14 +563,18 @@ def consume_holdout_authorization(
     if _parse_expiration(authorization["expires_at"]) <= current_time:
         raise EvaluationControlError("authorization has expired")
 
+    authorization_id = authorization.get("authorization_id")
+    if not isinstance(authorization_id, str) or not authorization_id.strip():
+        raise EvaluationControlError("authorization_id must be a non-empty string")
+
     expected_values = {
         "dataset_sha256": selection.dataset_sha256,
         "manifest_sha256": selection.manifest_sha256,
-        "grader_sha256": provenance["graders"]["sha256"],
-        "runner_sha256": provenance["runner"]["sha256"],
-        "prompt_sha256": provenance["prompt"]["sha256"],
-        "fixture_sha256": provenance["fixture"]["sha256"],
         "declared_grader_version": (selection.manifest.get("versions") or {}).get("grader"),
+        **{
+            field: provenance[name]["sha256"]
+            for name, field in component_fields.items()
+        },
     }
     for key, expected in expected_values.items():
         if authorization.get(key) != expected:
@@ -382,13 +583,13 @@ def consume_holdout_authorization(
                 f"got {authorization.get(key)!r}"
             )
 
-    consumed = (
-        Path(consumption_path).resolve()
-        if consumption_path is not None
-        else path.with_suffix(path.suffix + ".consumed.json")
-    )
+    # The caller cannot choose this path. The ID-derived claim also means a
+    # copied authorization file resolves to the same machine-local receipt.
+    HOLDOUT_CONSUMPTION_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+    claim_name = hashlib.sha256(authorization_id.encode("utf-8")).hexdigest()
+    consumed = HOLDOUT_CONSUMPTION_DIR / f"{claim_name}.json"
     receipt = {
-        "authorization_id": authorization["authorization_id"],
+        "authorization_id": authorization_id,
         "run_id": run_id,
         "consumed_at": current_time.isoformat().replace("+00:00", "Z"),
         "authorization_sha256": sha256_file(path),

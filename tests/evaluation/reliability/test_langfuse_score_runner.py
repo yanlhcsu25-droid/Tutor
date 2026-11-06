@@ -23,8 +23,14 @@ class FailFirstScoreClient:
 
 def test_suite_publishes_once_per_case_and_flushes_once(tmp_path, monkeypatch):
     cases = [
-        EvalCase(id="multi-turn", category="test", title="multi"),
-        EvalCase(id="next-case", category="test", title="next"),
+        EvalCase(
+            id="multi-turn", category="test", title="multi",
+            backend={"behavior": "scripted"},
+        ),
+        EvalCase(
+            id="next-case", category="test", title="next",
+            backend={"behavior": "scripted"},
+        ),
     ]
     dataset_path = tmp_path / "score-runner-test.yaml"
     dataset_path.write_text("cases: []\n", encoding="utf-8")
@@ -46,6 +52,7 @@ def test_suite_publishes_once_per_case_and_flushes_once(tmp_path, monkeypatch):
             "variant": "state-policy",
             "grader_version": "grader-v1",
             "passed": True,
+            "execution_status": "passed",
             "total_turns": 3,
             "graders": [{"grader": "outcome_integrity", "passed": True}],
         },
@@ -56,6 +63,7 @@ def test_suite_publishes_once_per_case_and_flushes_once(tmp_path, monkeypatch):
             "variant": "state-policy",
             "grader_version": "grader-v1",
             "passed": True,
+            "execution_status": "passed",
             "total_turns": 1,
             "graders": [{"grader": "outcome_integrity", "passed": True}],
         },

@@ -413,7 +413,9 @@ def run_case(case: dict[str, Any], *, source: Path | None, run_dir: Path,
     from calculus_agent.models import AgentPendingGeneration, Paper, TeacherAgentRunTrace, TeacherAgentSpan
     from sqlalchemy import select
     from calculus_agent.runtime.coordinator import build_teacher_agent_backend, run_teacher_agent
+    from evaluation.reliability.execution_control import require_live_llm_authorization
 
+    require_live_llm_authorization()
     get_settings.cache_clear()
     settings = Settings(database_url=url)
     if agent_model:

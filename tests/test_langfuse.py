@@ -42,6 +42,7 @@ def test_langfuse_boolean_score_is_linked_to_expected_session():
         "variant": "state-policy",
         "grader_version": "grader-v1",
         "passed": True,
+        "execution_status": "passed",
         "graders": [{"grader": "outcome_integrity", "passed": True}],
     }
 

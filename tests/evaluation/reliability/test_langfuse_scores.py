@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+from calculus_agent.agent import langfuse_tracing
 from evaluation.reliability import langfuse_scores
 
 
@@ -25,6 +26,7 @@ def _result():
         "variant": "state-policy",
         "grader_version": "grader-v1",
         "passed": True,
+        "execution_status": "passed",
         "graders": [
             {"grader": "outcome_integrity", "passed": True, "errors": []},
             {"grader": "constraint_preservation", "passed": False, "errors": ["x"]},
@@ -70,6 +72,30 @@ def test_skips_skipped_ineligible_and_invalid_grader_results(monkeypatch, caplog
     assert "passed must be boolean" in caplog.text
 
 
+def test_infrastructure_failure_does_not_publish_agent_or_grader_scores(monkeypatch):
+    client = FakeClient()
+    monkeypatch.setattr(langfuse_scores, "safe_get_client", lambda: client)
+    result = _result()
+    result.update({"passed": False, "execution_status": "infrastructure_failed"})
+
+    langfuse_scores.publish_case_scores(result)
+
+    assert client.calls == []
+
+
+def test_agent_failure_publishes_false_case_score(monkeypatch):
+    client = FakeClient()
+    monkeypatch.setattr(langfuse_scores, "safe_get_client", lambda: client)
+    result = _result()
+    result.update({"passed": False, "execution_status": "agent_failed", "graders": []})
+
+    langfuse_scores.publish_case_scores(result)
+
+    assert [(call["name"], call["value"]) for call in client.calls] == [
+        ("tutor_eval_case_passed", 0.0)
+    ]
+
+
 def test_case_score_requires_boolean_passed(monkeypatch):
     client = FakeClient()
     monkeypatch.setattr(langfuse_scores, "safe_get_client", lambda: client)
@@ -93,6 +119,23 @@ def test_repeated_publish_uses_same_score_ids(monkeypatch):
 
     assert [call["score_id"] for call in client.calls[3:]] == first_ids
     assert all(len(score_id) == 16 for score_id in first_ids)
+
+
+def test_disabled_langfuse_does_not_initialize_client_or_publish(monkeypatch):
+    import langfuse
+
+    initialized = []
+    langfuse_tracing._CLIENT_CACHE["client"] = None
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "public")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "secret")
+    monkeypatch.setenv("LANGFUSE_ENABLED", "false")
+    monkeypatch.setenv("LANGFUSE_TRACING_ENABLED", "true")
+    monkeypatch.setattr(langfuse, "get_client", lambda: initialized.append(True))
+
+    langfuse_scores.publish_case_scores(_result())
+
+    assert initialized == []
+    assert langfuse_tracing.langfuse_enabled() is False
 
 
 def test_unconfigured_langfuse_is_a_noop(monkeypatch):

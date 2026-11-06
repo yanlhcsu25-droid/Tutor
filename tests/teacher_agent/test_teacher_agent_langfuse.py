@@ -89,6 +89,28 @@ def _reset_client_cache():
     langfuse_tracing._CLIENT_CACHE["client"] = None
 
 
+@pytest.mark.parametrize(
+    ("disabled_flag", "other_value"),
+    [("LANGFUSE_ENABLED", "1"), ("LANGFUSE_TRACING_ENABLED", "1")],
+)
+def test_langfuse_disable_flag_prevents_client_initialization(
+    monkeypatch, disabled_flag, other_value
+):
+    import langfuse
+
+    calls = []
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "public")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "secret")
+    monkeypatch.setenv("LANGFUSE_ENABLED", other_value)
+    monkeypatch.setenv("LANGFUSE_TRACING_ENABLED", other_value)
+    monkeypatch.setenv(disabled_flag, "false")
+    monkeypatch.setattr(langfuse, "get_client", lambda: calls.append("initialized"))
+
+    assert langfuse_tracing.langfuse_enabled() is False
+    assert langfuse_tracing.safe_get_client() is None
+    assert calls == []
+
+
 # ── Test 1 ──────────────────────────────────────────────────────────────
 def test_langfuse_unavailable_does_not_block_agent(session, monkeypatch):
     """When Langfuse is unreachable, the Teacher Agent still returns a result."""

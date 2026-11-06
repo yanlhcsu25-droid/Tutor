@@ -70,6 +70,10 @@ def publish_case_scores(result: dict[str, Any]) -> None:
     if client is None:
         return
 
+    execution_status = result.get("execution_status")
+    if execution_status not in {"passed", "agent_failed"}:
+        return
+
     conversation_id = result.get("conversation_id")
     if not isinstance(conversation_id, str) or not conversation_id:
         logger.warning("Skipping Langfuse scores: missing conversation_id")
@@ -106,9 +110,7 @@ def publish_case_scores(result: dict[str, Any]) -> None:
         if not isinstance(grader_name, str) or not grader_name:
             logger.warning("Skipping Langfuse grader score: missing grader name")
             continue
-        # This grader defines eligible=False when neither expected nor actual
-        # behavior involves clarification, so the grade is not applicable.
-        if grader_name == "clarification_contract" and grader.get("eligible") is False:
+        if grader.get("eligible") is False:
             continue
 
         passed = grader.get("passed")

@@ -33,9 +33,9 @@ Reports contain per-case outcomes plus aggregate pass rate, latency, model usage
 
 ### Hardened execution modes
 
-`--mode diagnostic` permits pending Dev cases, but the report sets `benchmark_eligible` to false. `--mode benchmark` accepts only `review.status: approved` cases. A `BLOCKED` case is rejected in either mode. Use `--dataset-role` to keep Development, Smoke/regression, Holdout, and historical duplicate regression runs separate.
+`--mode diagnostic` permits pending Dev cases and flexible case filters, but the report sets `benchmark_eligible` to false. `--mode benchmark` requires a frozen, human-reviewed exact manifest, approved cases, a clean Git worktree, and matching Git/component locks. A `BLOCKED` case is rejected in either mode. Use `--dataset-role` to keep Development, Smoke/regression, Holdout, and historical duplicate regression runs separate.
 
-A manifest is an exact selection: it cannot be narrowed with `--case` or `--category`. The runner aborts on unknown/duplicate IDs, count mismatches, or dataset/manifest hash mismatches. For example, a pinned non-Holdout manifest Benchmark also requires `--expected-grader-sha256`:
+A manifest is an exact selection: it cannot be narrowed with `--case` or `--category`. The runner aborts on unknown/duplicate IDs, count mismatches, dataset/manifest hash mismatches, or source-lock mismatches. Existing manifests missing the full component locks must be reviewed and frozen again; the runner does not upgrade them automatically. For example:
 
 ```bash
 uv run python -m evaluation.reliability.runner \
@@ -63,4 +63,6 @@ The suite pass-rate denominator is `passed + agent_failed`. Infrastructure, fixt
 
 Frozen Holdout cases are execution-controlled. Never inspect Blind outcomes to tune prompts, runtime behavior, evaluators, thresholds, or datasets. Use Dev and Golden Smoke for iteration.
 
-Holdout requires Benchmark mode, an exact Holdout manifest, and a new active single-use authorization. The authorization must include `authorization_id`, `dataset_sha256`, `manifest_sha256`, `expires_at`, `status: active`, `single_use: true`, `declared_grader_version`, and the exact `grader_sha256`, `runner_sha256`, `prompt_sha256`, and `fixture_sha256`. The runner atomically creates a `.consumed.json` receipt before the first case; a consumed, expired, historical, or hash-mismatched authorization fails closed. Authorization issuance is intentionally outside the runner.
+Holdout requires Benchmark mode, an exact Holdout manifest, and a new active single-use authorization. The authorization must include `authorization_id`, `dataset_sha256`, `manifest_sha256`, `expires_at`, `status: active`, `single_use: true`, `declared_grader_version`, and the exact SHA256 for every manifest component (`runtime`, `agent`, `tools`, `services`, `prompt`, `graders`, `fixture`, `runner`, and `model_configuration`). The runner atomically claims the authorization ID in the fixed user state directory before the first case; callers cannot select a receipt path, and copying the authorization file does not create a new claim. A consumed, expired, historical, or hash-mismatched authorization fails closed. Authorization issuance is intentionally outside the runner.
+
+Single-use consumption is guaranteed only for the same OS user on one machine/filesystem. A global cross-machine guarantee requires a separately designed centralized authorization store; this runner does not claim to provide one.
