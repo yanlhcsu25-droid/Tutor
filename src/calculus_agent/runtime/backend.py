@@ -131,9 +131,11 @@ class BailianChatBackend:
                 break
             except (HTTPError, TimeoutError, ConnectionError, URLError, ssl.SSLError, socket.timeout) as error:
                 category = provider_error_category(error)
-                retryable = category in {
-                    "provider_connection_error", "provider_rate_limit",
-                }
+                retryable = (
+                    category in {"provider_connection_error", "provider_rate_limit"}
+                    or isinstance(error, HTTPError)
+                    and error.code in {500, 502, 503, 504}
+                )
                 retry_after = (
                     error.headers.get("Retry-After")
                     if isinstance(error, HTTPError) and error.headers

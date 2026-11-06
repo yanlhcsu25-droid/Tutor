@@ -2,6 +2,8 @@ import json
 from io import BytesIO
 from urllib.error import HTTPError
 
+import pytest
+
 import calculus_agent.runtime.backend as backend_module
 from calculus_agent.agent.trace_log import redact_trace_value
 from calculus_agent.runtime.backend import BailianChatBackend
@@ -55,6 +57,97 @@ def test_openai_compatible_adapter_retries_429_with_retry_after(monkeypatch):
 
     assert backend.complete([], [])["message"]["content"] == "ok"
     assert sleeps == [3.0]
+
+
+@pytest.mark.parametrize("status", [500, 502, 503, 504])
+def test_openai_compatible_adapter_retries_transient_http_errors(monkeypatch, status):
+    calls = iter([
+        HTTPError("url", status, "temporary", {"Retry-After": "2"}, BytesIO()),
+        type("Response", (), {
+            "__enter__": lambda self: self,
+            "__exit__": lambda self, *args: None,
+            "read": lambda self: json.dumps({
+                "choices": [{"message": {"role": "assistant", "content": "ok"}}]
+            }).encode(),
+        })(),
+    ])
+    sleeps = []
+
+    def fake_urlopen(*args, **kwargs):
+        result = next(calls)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    monkeypatch.setattr(backend_module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(backend_module.time, "sleep", sleeps.append)
+    backend = BailianChatBackend(
+        api_key="test",
+        base_url="https://silicon.example/v1",
+        model="test-model",
+    )
+
+    response = backend.complete([], [])
+
+    assert response["message"]["content"] == "ok"
+    assert response["provider_attempts"][0]["category"] == "provider_http_error"
+    assert sleeps == [2.0]
+
+
+def test_openai_compatible_adapter_stops_after_transient_http_retry_limit(monkeypatch):
+    calls = 0
+    sleeps = []
+
+    def fake_urlopen(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        raise HTTPError("url", 503, "temporary", {}, BytesIO())
+
+    monkeypatch.setattr(backend_module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(backend_module.time, "sleep", sleeps.append)
+    backend = BailianChatBackend(
+        api_key="test",
+        base_url="https://silicon.example/v1",
+        model="test-model",
+        max_retries=2,
+        retry_base_seconds=1,
+    )
+
+    with pytest.raises(HTTPError) as caught:
+        backend.complete([], [])
+
+    assert calls == 3
+    assert sleeps == [1, 2]
+    assert len(caught.value.provider_attempts) == 3
+    assert caught.value.provider_attempts[-1]["retryable"] is False
+
+
+@pytest.mark.parametrize("status", [400, 401, 403])
+def test_openai_compatible_adapter_does_not_retry_permanent_http_errors(
+    monkeypatch, status
+):
+    calls = 0
+    sleeps = []
+
+    def fake_urlopen(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        raise HTTPError("url", status, "permanent", {}, BytesIO())
+
+    monkeypatch.setattr(backend_module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(backend_module.time, "sleep", sleeps.append)
+    backend = BailianChatBackend(
+        api_key="test",
+        base_url="https://silicon.example/v1",
+        model="test-model",
+    )
+
+    with pytest.raises(HTTPError) as caught:
+        backend.complete([], [])
+
+    assert calls == 1
+    assert sleeps == []
+    assert len(caught.value.provider_attempts) == 1
 
 
 def test_openai_compatible_adapter_retries_transport_timeout(monkeypatch):
