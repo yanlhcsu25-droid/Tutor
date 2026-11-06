@@ -53,7 +53,7 @@ freeze_lock:
   not_ready_case_count: 0
   reviewed_at: '2026-11-06T08:33:36Z'
   frozen_at: '2026-11-06T11:33:40.417842Z'
-  code_git_sha: 465a9d02000d775c1909f205ca904754301e315e
+  code_git_sha: 513507fcc29ffe9c7bba15896b22d630116f43bc
   source_manifest_path: evaluation/reliability/datasets/staging/dev_v3_2_proposal/MANIFEST.dev_v3_2_reviewed_142.yaml
   source_manifest_sha256: fc9b79b0f3b4c5405ea98fe2d4a0e9a2bbbee9476d6d5861690742dccf323882
 component_locks:
@@ -76,7 +76,7 @@ component_locks:
     sha256: 5c5390176c112dae4659cde5199d23ad8c2e9278af2f17a48cc134f754cb0266
     file_count: 11
   fixture:
-    sha256: 1715b20cfee9e9337da6ef6204f7666abf5567d931fb306e5cc9bafd710fe46c
+    sha256: 25b0b6d37d404ab804957e2f7295e45681982ef67d0d7ef3b54502a657cb7895
     file_count: 6
   runner:
     sha256: 43def03bbb7b4b4fc5adc343b10c4c5a6fd53d0c1fff6b7f34d9eb9e937508d2
