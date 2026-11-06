@@ -186,6 +186,14 @@ cp .env.example .env
 ./scripts/start.sh
 ```
 
+启用 Langfuse 时，在 `.env` 配置 `LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 和 `LANGFUSE_BASE_URL`，然后运行：
+
+```bash
+./scripts/start-with-langfuse.sh
+```
+
+脚本会先验证 Langfuse API，再启动 Tutor 前后端。Teacher Agent 的 Turn、LLM Generation 和 Tool Call 会自动写入 Langfuse；连接失败不会改变 Agent 业务结果。
+
 > Python package 目前仍为 `calculus_agent`，以避免破坏已有数据库迁移与导入路径；产品名称为 **Tutor**。
 
 ## Model Configuration

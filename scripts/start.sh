@@ -10,8 +10,20 @@ if [ ! -x web/node_modules/.bin/vite ]; then
 fi
 
 HOST="${HOST:-127.0.0.1}"
+UV_BIN="${UV_BIN:-$(command -v uv || true)}"
+if [ -z "$UV_BIN" ] && [ -x "$HOME/.local/bin/uv" ]; then
+  UV_BIN="$HOME/.local/bin/uv"
+fi
+if [ -z "$UV_BIN" ]; then
+  echo "未找到 uv，请先运行 ./scripts/setup.sh"
+  exit 1
+fi
+UV_RUN=("$UV_BIN" run)
+if [ -f .env ]; then
+  UV_RUN+=(--env-file .env)
+fi
 
-uv run uvicorn calculus_agent.main:app --host "$HOST" --port 8000 &
+"${UV_RUN[@]}" uvicorn calculus_agent.main:app --host "$HOST" --port 8000 &
 BACKEND_PID=$!
 (cd web && ./node_modules/.bin/vite --host "$HOST" --port 5173) &
 FRONTEND_PID=$!

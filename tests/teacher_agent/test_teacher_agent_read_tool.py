@@ -314,19 +314,17 @@ def test_invalid_paper_version_never_returns_question_type_count(session):
     assert result.paper is None
 
 
-def test_analysis_does_not_replace_required_current_version_read(session):
+def test_analysis_satisfies_current_version_summary_evidence(session):
     paper = _seed_paper(session)
     backend = _Backend(
         _tool("analyze_paper"),
-        _final("这套卷满分12分。"),
-        _tool("read_paper"),
         _final("这套卷满分12分。"),
     )
 
     result = run_teacher_agent(
         session,
         "这套卷满分多少？",
-        conversation_id="analysis-then-read",
+        conversation_id="analysis-without-redundant-read",
         paper_id=paper.id,
         version_id=paper.id,
         backend=backend,
@@ -334,10 +332,10 @@ def test_analysis_does_not_replace_required_current_version_read(session):
 
     assert result.status == "completed"
     trace = session.scalars(select(TeacherAgentRunTrace).where(
-        TeacherAgentRunTrace.conversation_id == "analysis-then-read"
+        TeacherAgentRunTrace.conversation_id == "analysis-without-redundant-read"
     )).one()
     assert [call["tool_name"] for call in trace.tool_calls_json] == [
-        "analyze_paper", "read_paper",
+        "analyze_paper",
     ]
 
 

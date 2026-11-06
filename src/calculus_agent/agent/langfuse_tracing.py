@@ -47,7 +47,10 @@ def _safe_cm_exit(cm: Any) -> None:
 
 @contextmanager
 def teacher_turn_span(
-    conversation_id: str | None, user_message: str
+    conversation_id: str | None,
+    user_message: str,
+    *,
+    run_id: str | None = None,
 ) -> Iterator[Any | None]:
     """Wrap one Agent turn as a Langfuse agent observation.
 
@@ -76,10 +79,24 @@ def teacher_turn_span(
         return
 
     propagate_cm: Any | None = None
+
     try:
-        from langfuse import propagate_attributes  # type: ignore
-        propagate_cm = propagate_attributes(session_id=conversation_id)
+        from langfuse import propagate_attributes
+
+        propagation_kwargs: dict[str, Any] = {
+            "session_id": conversation_id,
+        }
+
+        if run_id is not None:
+            propagation_kwargs["metadata"] = {
+                "tutor_run_id": run_id,
+            }
+
+        propagate_cm = propagate_attributes(
+            **propagation_kwargs
+        )
         propagate_cm.__enter__()
+
     except Exception:
         propagate_cm = None
 

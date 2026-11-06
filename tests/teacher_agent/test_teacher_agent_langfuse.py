@@ -248,3 +248,54 @@ def test_langfuse_sdk_exception_does_not_break_agent(session, monkeypatch):
     )
     assert result.status == "completed"
     assert result.message == "OK"
+
+
+def test_teacher_turn_span_propagates_tutor_run_id(monkeypatch):
+    """Tutor run_id should be propagated as Langfuse trace metadata."""
+    import langfuse
+
+    captured = {}
+    fake_span = object()
+
+    class FakeContextManager:
+        def __init__(self, value=None):
+            self.value = value
+
+        def __enter__(self):
+            return self.value
+
+        def __exit__(self, *args):
+            return False
+
+    class FakeClient:
+        def start_as_current_observation(self, **kwargs):
+            return FakeContextManager(fake_span)
+
+    def fake_propagate_attributes(**kwargs):
+        captured.update(kwargs)
+        return FakeContextManager()
+
+    monkeypatch.setattr(
+        langfuse_tracing,
+        "safe_get_client",
+        lambda: FakeClient(),
+    )
+    monkeypatch.setattr(
+        langfuse,
+        "propagate_attributes",
+        fake_propagate_attributes,
+    )
+
+    with langfuse_tracing.teacher_turn_span(
+        conversation_id="conversation-001",
+        user_message="生成第一章试卷",
+        run_id="run-123",
+    ) as span:
+        assert span is fake_span
+
+    assert captured == {
+        "session_id": "conversation-001",
+        "metadata": {
+            "tutor_run_id": "run-123",
+        },
+    }

@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from calculus_agent.config import Settings
 from calculus_agent.models import TeacherAgentRunTrace
+from calculus_agent.papers.addressing import QuestionAddress
 from calculus_agent.runtime.backend import BailianChatBackend
 from calculus_agent.application.teaching_design_execution import (
     TeachingDesignPaperGenerationResult,
@@ -162,7 +163,7 @@ _SYSTEM_PROMPT = """你是 Teacher Agent，负责理解教师自然语言并通�
 ## 业务流程
 新建试卷调用 `prepare_generation_plan` 生成待确认方案，教师明确确认后才调用 `confirm_generation`；已有 pending generation 时只提交本轮变化，题型变化使用 `question_type_patches`，不要重发完整结构；明确放弃时调用 `discard_pending_plan`。教师用自然语言描述重点知识时，先通过 `inspect_curriculum`（必要时再用题库 `chapter_detail`）读取当前章节的标准知识点，理解语义后将教师表述映射为 Observation 中最贴近的标准名称，再传给 `prepare_generation_plan`；不要把教师原话当作数据库精确名称，也不要在存在合理语义对应项时追问改名。映射成功但题库供给不足时仍保留该知识目标，并依据 Tool Observation 明确报告缺口，不得将供给不足误报为知识点无法识别。教师明确指定的题量、题型分布、分值、范围和知识目标都是硬约束：即使题库不足，也必须完整、原样传给 `prepare_generation_plan`，不得省略约束、套用默认题型结构或用其他条件凑足；无法满足时依据 Tool Observation 报告每项缺口并等待教师决定。明确创建教学设计时直接调用 `create_teaching_design`，不要模拟内部 Workflow；创建后等待确认，同轮不得自动确认或生成试卷。普通教学讨论直接回答；已有未完成 TeachingDesign 时，只能读取、修改、确认或放弃该设计。错题反馈的知识点、章节和强化权重必须来自 Tool Observation，巩固卷继续遵守 Preview/Confirm。
 
-当前试卷事实必须通过 `read_paper` 或 `analyze_paper` 获取。已有试卷写操作调用 `preview_paper_changes`，确认后才调用 `confirm_paper_changes`；放弃 pending 调用 `discard_pending_plan`。版本操作调用 `operate_paper_version(action=undo|redo|restore)`，restore 必须提供 `target_version`。
+当前试卷事实必须通过 `read_paper` 或 `analyze_paper` 获取。统计回答只能复述 `analyze_paper` 返回的字段；不得根据聚合分布自行推断知识点与题型等交叉统计。已有试卷写操作调用 `preview_paper_changes`，确认后才调用 `confirm_paper_changes`；放弃 pending 调用 `discard_pending_plan`。版本操作调用 `operate_paper_version(action=undo|redo|restore)`，restore 必须提供 `target_version`。
 
 ## 参数与定位
 教师可见题号默认是题型内编号，如“填空题第2题”使用 `QuestionAddress(section_type, section_order)`；只有明确说“全卷第N题”时才使用全卷 position。无法唯一定位必须澄清。新增题目只提交题型、数量和教师明确指定的分值，不指定 Question ID；候选选择、去重、scope、难度、知识点解析和约束校验由 Python 完成。仅在教师明确要求保持原知识点时设置 `preserve_knowledge_points`；删除题目时，除非教师明确要求保持或修改总分，否则不要填写 `target_total_score`。
@@ -388,7 +389,7 @@ def _run_teacher_agent_turn(
     context: AgentExecutionContext | None = None
     turn_error: dict[str, Any] | None = None
 
-    with teacher_turn_span(conversation_id, message) as turn_span:
+    with teacher_turn_span(conversation_id, message, run_id=run_id) as turn_span:
         _emit_turn_output = _build_turn_output_emitter(turn_span)
 
         def finish(result: TeacherAgentResult, error: dict[str, Any] | None = None) -> TeacherAgentResult:
@@ -754,7 +755,31 @@ def _run_teacher_agent_turn(
                 message=question,
                 clarification_questions=[question],
             ))
-        constraint_contract = extract_generation_constraint_contract(message)
+        read_only_paper_request = bool(
+            has_current_paper
+            and (
+                "只读" in message
+                or any(
+                    phrase in message
+                    for phrase in ("不要修改", "不修改", "只需读取", "只需要读取", "仅查看")
+                )
+            )
+        )
+        generation_constraint_context = bool(
+            not read_only_paper_request
+            and (
+                pending_generation
+                or (
+                    not has_current_paper
+                    and task_decision.route.task_type == TaskType.DIRECT_ACTION
+                )
+            )
+        )
+        constraint_contract = (
+            extract_generation_constraint_contract(message)
+            if generation_constraint_context
+            else None
+        )
         dynamic_context = {
             "current_paper": {
                 "exists": bool(version_id or paper_id),
@@ -905,7 +930,9 @@ def _run_teacher_agent_turn(
             )
         )
         question_type_summary_query = response_policy.question_type_summary_query(message)
-        observed_paper_read_versions: set[str] = set()
+        observed_paper_evidence: dict[str, set[str]] = {}
+        grounding_addresses = list(explicit_question_addresses)
+        grounding_positions = list(explicit_question_positions)
         paper_change_reprompted = False
         malformed_response_retried = False
         generation_patch_retried = False
@@ -1224,10 +1251,10 @@ def _run_teacher_agent_turn(
                     current_paper_version_id = context.version_id or context.paper_id
                     grounding = GroundingPolicy.evaluate(
                         message=message,
-                        addresses=explicit_question_addresses,
-                        positions=explicit_question_positions,
+                        addresses=grounding_addresses,
+                        positions=grounding_positions,
                         current_version_id=current_paper_version_id,
-                        observed_read_versions=observed_paper_read_versions,
+                        observed_paper_evidence=observed_paper_evidence,
                     )
                     if (
                         variant.grounding_guard
@@ -1671,11 +1698,104 @@ def _run_teacher_agent_turn(
                                     exposure_context
                                 )
                             )
-                        if (
-                            name in {"read_paper", "prepare_reinforcement_plan"}
-                            and execution_payload.get("ok")
-                        ):
-                            observed_paper_read_versions.add(observed_version_id)
+                        if execution_payload.get("ok") and observed_version_id:
+                            if name == "analyze_paper":
+                                if execution_payload.get("paper_id") == observed_version_id:
+                                    evidence = observed_paper_evidence.setdefault(
+                                        observed_version_id,
+                                        set(),
+                                    )
+                                    analysis_fields = {
+                                        "score_total",
+                                        "question_count",
+                                        "question_type_distribution",
+                                        "difficulty_distribution",
+                                        "knowledge_distribution",
+                                    }
+                                    evidence.update(
+                                        field
+                                        for field in analysis_fields
+                                        if execution_payload.get(field) is not None
+                                    )
+
+                            elif name == "read_paper":
+                                paper = execution_payload.get("paper") or {}
+                                if paper.get("paper_id") == observed_version_id:
+                                    evidence = observed_paper_evidence.setdefault(
+                                        observed_version_id,
+                                        set(),
+                                    )
+                                    if paper.get("total_score") is not None:
+                                        evidence.add("score_total")
+                                    if paper.get("question_count") is not None:
+                                        evidence.add("question_count")
+                                    if paper.get("question_type_counts") is not None:
+                                        evidence.add("question_type_distribution")
+
+                                    questions = execution_payload.get("questions") or []
+                                    full_overview = (
+                                        not arguments.get("positions")
+                                        and not arguments.get("addresses")
+                                        and len(questions) == paper.get("question_count")
+                                    )
+                                    if full_overview:
+                                        evidence.add("question_overview")
+
+                                    detail_questions = [
+                                        question
+                                        for question in questions
+                                        if question.get("content") is not None
+                                    ]
+                                    for question in detail_questions:
+                                        evidence.add(
+                                            f"question_detail:position:{question['position']}"
+                                        )
+                                        evidence.add(
+                                            "question_detail:address:"
+                                            f"{question['question_type']}:"
+                                            f"{question['section_order']}"
+                                        )
+                                    if (
+                                        detail_questions
+                                        and not grounding_addresses
+                                        and not grounding_positions
+                                    ):
+                                        raw_addresses = arguments.get("addresses") or []
+                                        raw_positions = arguments.get("positions") or []
+                                        if raw_addresses:
+                                            grounding_addresses = [
+                                                QuestionAddress.model_validate(address)
+                                                for address in raw_addresses
+                                            ]
+                                        elif raw_positions:
+                                            grounding_positions = [
+                                                position
+                                                for position in raw_positions
+                                                if isinstance(position, int)
+                                            ]
+
+                            elif name == "prepare_reinforcement_plan":
+                                reinforcement = (
+                                    execution_payload.get("reinforcement_context") or {}
+                                )
+                                if reinforcement.get("source_paper_id") == observed_version_id:
+                                    evidence = observed_paper_evidence.setdefault(
+                                        observed_version_id,
+                                        set(),
+                                    )
+                                    for item in reinforcement.get("evidence") or []:
+                                        position = item.get("position")
+                                        section_type = item.get("section_type")
+                                        section_order = item.get("section_order")
+                                        if isinstance(position, int):
+                                            evidence.add(
+                                                f"question_detail:position:{position}"
+                                            )
+                                        if section_type and isinstance(section_order, int):
+                                            evidence.add(
+                                                "question_detail:address:"
+                                                f"{section_type}:{section_order}"
+                                            )
                         if (
                             name == "read_paper"
                             and execution_payload.get("ok")
