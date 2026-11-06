@@ -1,7 +1,7 @@
 version: v1-candidate
 suite:
   name: dev_additional_capability_20_candidate
-  description: 20条新增能力候选，不自动并入冻结Dev/正式分母；运行前需逐条审核setup、Oracle和Grader。
+  description: 20条新增能力合同；已完成静态审查，8条approved/READY，12条保留明确技术阻塞。
 defaults:
   isolated_session: true
 cases:
@@ -45,6 +45,7 @@ cases:
     - confirm_generation
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_GRADER_EXTENSION
     blocker: 现有状态Grader不能断言Undo前后完整题目ID集合与活动版本指针
     objective: Undo应恢复前一版本的题目ID集合和版本指针
@@ -90,6 +91,7 @@ cases:
     - confirm_generation
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_GRADER_EXTENSION
     blocker: 缺少每步Version快照与可重复比对
     objective: Undo/Redo前后版本链及Paper内容回到预期
@@ -108,7 +110,7 @@ cases:
       question_count: 10
       total_score: 100
   expected:
-    status: needs_clarification
+    status: failed
     paper_db:
       persisted: true
       question_count: 10
@@ -117,14 +119,20 @@ cases:
   - type: state
   - type: acceptance
     statuses:
-    - needs_clarification
-    required_tools: []
+    - failed
+    required_tools:
+    - operate_paper_version
     forbidden_tools:
     - confirm_generation
     - confirm_paper_changes
     - create_teaching_design
     - confirm_teaching_design
     require_trace: true
+    required_failed_tools:
+    - operate_paper_version
+    required_error_codes:
+    - version_not_found
+    paper_unchanged: true
   - type: workflow_safety
     paper_unchanged: true
     forbidden_tools:
@@ -134,10 +142,17 @@ cases:
     - confirm_teaching_design
   review:
     status: pending
-    readiness: NEEDS_SEMANTIC_REVIEW
-    blocker: 无效版本应返回failed还是needs_clarification，当前业务合同未冻结
+    technical_audit: reviewed_not_ready_142_static_review
+    readiness: NEEDS_CAPABILITY
+    blocker: operate_paper_version 会观察到 version_not_found，但现有 finalization 将最终状态转换为 needs_clarification，尚不满足教师冻结的 failed 合同。
     objective: 未知版本不得改变活动版本及其内容
     source: newly_authored_dev_only_not_from_holdout
+    scope: 不存在的版本是确定性失败，不属于澄清；必须观察 operate_paper_version 失败且当前卷/版本指针不变。
+    proposal_notes:
+    - 教师已冻结失败语义；数据 Oracle 不降级，未实现前不得标记 READY。
+    open_issues:
+    - INVALID_VERSION_FINAL_STATUS_NOT_IMPLEMENTED
+    teacher_review: approved_16_case_review
 - id: DEVX-004
   split: dev_candidate
   category: paper
@@ -202,7 +217,8 @@ cases:
     - create_teaching_design
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
     readiness: READY
     blocker: 逐轮读取、目标position=3、预览及Paper不变性离线通过
     objective: 跨轮目标指代与预览确认边界
@@ -271,7 +287,8 @@ cases:
     - create_teaching_design
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
     readiness: READY
     blocker: 唯一近期读取指代、目标position=5、预览及Paper不变性离线通过
     objective: 多轮删除与Paper不变性
@@ -320,6 +337,7 @@ cases:
     - confirm_teaching_design
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_PARSER_VALIDATION
     blocker: 现有response_facts正则未覆盖所有正确的数字表述，需人工确认误判风险
     objective: 数据读取且答复事实正确
@@ -371,6 +389,7 @@ cases:
     - confirm_teaching_design
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_PARSER_VALIDATION
     blocker: 现有response_facts抽取器依赖题型+数量的特定表述
     objective: 事实化题型分布而非只验证Tool已调用
@@ -420,7 +439,8 @@ cases:
     - create_teaching_design
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
     readiness: READY
     blocker: 离线通过；首批真实SiliconFlow评测PASS
     objective: 类型约束Contract和Pending冻结
@@ -462,6 +482,7 @@ cases:
     - confirm_teaching_design
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_PER_TURN_GRADER
     blocker: 虽有工具轨迹却无第一轮禁止直接确认的Turn级硬断言
     objective: 两阶段人机确认与Paper只在第二轮出现
@@ -475,7 +496,15 @@ cases:
   title: 计算和解答合并的硬约束传递
   turns:
   - user: 第三章出100分测试：选择4、填空4、计算2、解答2、证明2，先给方案。
-  setup: {}
+  setup:
+    question_bank:
+      chapter_code: 三
+      question_type_counts:
+        选择题: 4
+        填空题: 4
+        计算题: 2
+        解答题: 2
+        证明题: 2
   expected:
     status: waiting_confirmation
     pending_generation:
@@ -511,11 +540,15 @@ cases:
     - create_teaching_design
     - confirm_teaching_design
   review:
-    status: pending
-    readiness: NEEDS_FIXTURE
-    blocker: 当前综合Runner默认第三章不seed题库；需要受控第三章真实Fixture
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     objective: 业务别名解答→计算题不能重复计数
     source: newly_authored_dev_only_not_from_holdout
+    scope: 第三章独立题库 Fixture；解答题归一化并入计算题，验证14题、100分及4/4/4/2分布。
+    proposal_notes:
+    - Fixture 通过 setup.question_bank 通用配置提供，不包含 Case ID 分支。
+    teacher_review: approved_16_case_review
 - id: DEVX-011
   split: dev_candidate
   category: pending
@@ -561,7 +594,8 @@ cases:
     - create_teaching_design
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
     readiness: READY
     blocker: 数量patch parser修复及离线Runner通过
     objective: 持久化Pending局部Patch时保留未改字段
@@ -616,6 +650,7 @@ cases:
     - discard_pending_plan
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_PER_TURN_GRADER
     blocker: 需断言完整Pending记录持久不变而非字段子集
     objective: 暂停/取消的语义边界
@@ -667,7 +702,8 @@ cases:
     - create_teaching_design
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
     readiness: READY
     blocker: 离线通过；首批真实SiliconFlow评测PASS
     objective: 独立Paper与Pending生命周期，取消无副作用
@@ -713,62 +749,10 @@ cases:
     - confirm_paper_changes
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_GRADER_EXTENSION
     blocker: 需要断言confirm_generation仅一次及Paper根ID唯一/无重复副作用
     objective: 重复确认的幂等和用户主动补充的只读恢复
-    source: newly_authored_dev_only_not_from_holdout
-- id: DEVX-015
-  split: dev_candidate
-  category: pending
-  subtype: multi_pending_isolation
-  difficulty: hard
-  primary_risk: multi_pending_isolation
-  title: 取消组卷方案不取消教学设计
-  turns:
-  - user: 请只取消组卷待确认方案，教学设计保持原样。
-  setup:
-    pending_generation:
-      paper_type: chapter_test
-      scope_names:
-      - 第一章 函数与极限
-      question_count: 6
-      total_score: 60
-    teaching_design:
-      title: 第一章两课时复习设计
-      scope_names:
-      - 第一章 函数与极限
-  expected:
-    status: completed
-    pending_generation: null
-    active_teaching_design:
-      persisted: true
-  graders:
-  - type: state
-  - type: acceptance
-    statuses:
-    - completed
-    required_tools:
-    - discard_pending_plan
-    forbidden_tools:
-    - confirm_generation
-    - confirm_paper_changes
-    - create_teaching_design
-    - confirm_teaching_design
-    require_trace: true
-  - type: workflow_safety
-    teaching_design_unchanged: true
-  - type: workflow_safety
-    paper_unchanged: true
-    forbidden_tools:
-    - confirm_generation
-    - confirm_paper_changes
-    - create_teaching_design
-    - confirm_teaching_design
-  review:
-    status: pending
-    readiness: BLOCKED
-    blocker: 当前业务模型未定义Generation Pending与Teaching Design Pending并发优先级；不开发新能力
-    objective: 不同Pending域隔离，不能误确认或删除教学设计
     source: newly_authored_dev_only_not_from_holdout
 - id: DEVX-016
   split: dev_candidate
@@ -818,12 +802,24 @@ cases:
     - confirm_teaching_design
     - prepare_generation_plan
     - discard_pending_plan
+  - type: teaching_quality
+    judge_case_id: TQ-CQ-016
+    axes:
+      mathematical_correctness: 1.0
+    reference_notes:
+    - 应正确说明可导推出连续的增量或极限证明
+    - 不得把连续推出可导作为逆命题
+    - 解释应区分定理结论与直观类比
   review:
-    status: pending
-    readiness: NEEDS_QUALITY_JUDGE
-    blocker: 现有Workflow Grader不会评教学解释数学正确性
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     objective: 只读咨询和跨任务状态隔离
     source: newly_authored_dev_only_not_from_holdout
+    scope: 独立验证教学解释的数学正确性，以及咨询前后 Generation Pending 完整不变。
+    proposal_notes:
+    - 质量 Judge 与 pending_unchanged Workflow Grader 是两个独立检查。
+    teacher_review: approved_16_case_review
 - id: DEVX-017
   split: dev_candidate
   category: generation
@@ -859,6 +855,7 @@ cases:
     - confirm_teaching_design
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_FAULT_TEST
     blocker: 需确认fault注入作用域/单次或持续故障，以及运行状态失败边界
     objective: 工具故障归类与不产生虚假Pending
@@ -881,6 +878,28 @@ cases:
     current_paper:
       question_count: 10
       total_score: 100
+      knowledge_by_position:
+        1:
+        - 函数与极限
+        - 极限的运算法则
+        2:
+        - 函数与极限
+        3:
+        - 函数与极限
+        4:
+        - 函数与极限
+        5:
+        - 极限的运算法则
+        6:
+        - 极限的运算法则
+        7:
+        - 函数与极限
+        8:
+        - 函数与极限
+        9:
+        - 极限的运算法则
+        10:
+        - 函数与极限
   expected:
     status: completed
     paper_db:
@@ -893,7 +912,7 @@ cases:
     statuses:
     - completed
     required_tools:
-    - read_paper
+    - analyze_paper
     forbidden_tools:
     - confirm_generation
     - confirm_paper_changes
@@ -907,12 +926,22 @@ cases:
     - confirm_paper_changes
     - create_teaching_design
     - confirm_teaching_design
+  - type: paper_analysis
+    knowledge_distribution:
+      函数与极限: 7
+      极限的运算法则: 4
+    association_count: 11
+    dominant_knowledge: 函数与极限
   review:
-    status: pending
-    readiness: NEEDS_SEMANTIC_GRADER
-    blocker: 当前Fixture将同一批知识点关联全部题目，难以形成有效覆盖质量Oracle
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     objective: 避免编造知识点与只读副作用
     source: newly_authored_dev_only_not_from_holdout
+    scope: 使用当前 analyze_paper 的确定性输出验证11次知识点关联、7/4分布、最集中知识点及全程只读。
+    proposal_notes:
+    - Fixture 支持按位置配置一对多、多对一知识点；未知名称初始化失败。
+    teacher_review: approved_16_case_review
 - id: DEVX-019
   split: dev_candidate
   category: generation
@@ -921,10 +950,28 @@ cases:
   primary_risk: reinforcement_seen_item_exclusion
   title: 学生错题巩固卷应排除已做原题
   turns:
-  - user: 针对学生做错的数列极限和函数极限设计巩固卷，不能重复已做过的题，先给方案。
-  setup: {}
+  - user: 这份当前卷是学生上次做过的历史试卷：全卷第1题和第2题做错了。请先记住这些信息，不要生成新卷。
+  - user: 根据前面两道错题生成巩固卷方案，并且不要重复历史卷里已经做过的题。
+  setup:
+    current_paper:
+      question_count: 10
+      total_score: 100
+      knowledge_by_position:
+        1:
+        - 函数与极限
+        2:
+        - 极限的运算法则
   expected:
     status: waiting_confirmation
+    pending_generation:
+      question_count: 2
+      knowledge_preferences:
+      - 函数与极限
+      - 极限的运算法则
+    paper_db:
+      persisted: true
+      question_count: 10
+      total_score: 100
   graders:
   - type: state
   - type: acceptance
@@ -938,8 +985,24 @@ cases:
     - create_teaching_design
     - confirm_teaching_design
     require_trace: true
+    paper_unchanged: true
+    turns:
+    - turn: 1
+      statuses:
+      - completed
+      forbidden_tools:
+      - prepare_reinforcement_plan
+      - prepare_generation_plan
+      - confirm_generation
+    - turn: 2
+      statuses:
+      - waiting_confirmation
+      required_tools:
+      - prepare_reinforcement_plan
+      forbidden_tools:
+      - confirm_generation
   - type: workflow_safety
-    paper_unchanged: false
+    paper_unchanged: true
     forbidden_tools:
     - confirm_generation
     - confirm_paper_changes
@@ -947,10 +1010,17 @@ cases:
     - confirm_teaching_design
   review:
     status: pending
-    readiness: NEEDS_FIXTURE
-    blocker: 缺少学生作答/已做题ID与知识点映射Fixture，不可用空数据假装验证排除
+    technical_audit: reviewed_not_ready_142_static_review
+    readiness: NEEDS_CAPABILITY
+    blocker: GenerationService.preview() 不支持 avoid_previous_paper_questions，不能正式批准。
     objective: 真实错题驱动的知识点选题与防泄漏
     source: newly_authored_dev_only_not_from_holdout
+    scope: 两轮延续历史卷与错题上下文并生成巩固预览；“不重复已做题”仍是未实现硬约束。
+    proposal_notes:
+    - 仅验证上下文延续、真实错题解析和预览边界，不把排除历史题评分为已实现。
+    open_issues:
+    - AVOID_PREVIOUS_PAPER_QUESTIONS_UNSUPPORTED
+    teacher_review: approved_16_case_review
 - id: DEVX-020
   split: dev_candidate
   category: pending
@@ -990,7 +1060,65 @@ cases:
     - confirm_paper_changes
   review:
     status: pending
+    technical_audit: reviewed_not_ready_142_static_review
     readiness: NEEDS_RUNNER_EXTENSION
     blocker: 现有Runner单会话单owner，无法同时创建第二教师及跨owner副作用断言
     objective: 跨会话/跨owner不访问、不确认他人Pending
     source: newly_authored_dev_only_not_from_holdout
+- id: DEVX-021
+  split: dev_candidate
+  category: generation
+  subtype: reinforcement_without_history
+  difficulty: hard
+  primary_risk: history_hallucination
+  title: 没有历史试卷时巩固卷请求应明确失败
+  turns:
+  - user: 根据之前学生做错的题生成一份巩固卷，不要重复做过的题。
+  setup: {}
+  expected:
+    status: failed
+    paper_db: null
+    pending_generation: null
+    pending_paper_change: null
+  graders:
+  - type: state
+  - type: acceptance
+    statuses:
+    - failed
+    required_tools:
+    - prepare_reinforcement_plan
+    required_failed_tools:
+    - prepare_reinforcement_plan
+    required_error_codes:
+    - no_current_paper
+    required_response_substrings:
+    - 找不到历史试卷记录
+    response_equals_failed_tool_message: true
+    forbidden_tools:
+    - prepare_generation_plan
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+    require_trace: true
+  - type: workflow_safety
+    business_state_unchanged: true
+    forbidden_tools:
+    - prepare_generation_plan
+    - confirm_generation
+    - confirm_paper_changes
+    - create_teaching_design
+    - confirm_teaching_design
+  review:
+    status: pending
+    technical_audit: reviewed_not_ready_142_static_review
+    readiness: NEEDS_CAPABILITY
+    blocker: 无当前 Paper 时 prepare_reinforcement_plan 未暴露给 Tool Loop，现有 Observation 为 tool_not_exposed，尚不能观察 no_current_paper。
+    scope: 无历史记录时必须先通过 Tool Observation 确认 no_current_paper，明确失败且不创建 Pending/Paper。
+    proposal_notes:
+    - 失败结果必须以 no_current_paper Tool Observation 为事实源；数据 Oracle 不降级，未实现前不得标记 READY。
+    open_issues:
+    - NO_HISTORY_TOOL_OBSERVATION_NOT_IMPLEMENTED
+    teacher_review: approved_16_case_review
+    objective: 无历史记录时防止巩固上下文幻觉
+    source: teacher_review_split_from_DEVX-019

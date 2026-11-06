@@ -2,7 +2,16 @@
 
 > **状态：候选提案，不是已冻结的正式 Benchmark，也不是“142/142 已审核通过”。**
 >
-> 来源：用户提供的 `teacher-agent-eval-review-bundle.zip`（Dev 200 YAML 与部分核心代码）。没有完整真实题库数据库，也没有运行模型或正式 Agent。
+> 来源：用户提供的 `teacher-agent-eval-review-bundle.zip`（Dev 200 YAML 与部分核心代码）。
+
+## 教师审核更新（当前有效合同）
+
+- 有效候选保持 **Dev 122 + DEVX 20 = 142**。
+- `DEVX-015` 已排除：并发 Pending 不符合教师实际使用习惯；新增拆分场景 `DEVX-021`。
+- 142 条已完成静态合同审查：**129 条 approved/READY，13 条 pending/not-ready**；逐项证据见 `dataset_review_142.json`。
+- `EVAL-149` 与 12 条 DEVX 仍保留明确的能力、Grader、Parser、故障测试或 Runner 阻塞，不得进入正式批准；详见 `remaining_review_items.json`。
+- EVAL-217/218/219/221 与 DEVX-016 接入现有 Consultation Judge；只有 `RUN_LIVE_JUDGE=1` 才允许调用 Judge API。Judge 失败归类为评测基础设施失败。
+- 本轮只做离线代码、Fixture、Schema 和测试验证；未调用真实 LLM、Smoke、Dev、Holdout 或 Langfuse，未冻结 Manifest。
 
 ## 已完成的可验证工作
 
@@ -12,7 +21,7 @@
 | 严格重复归档 | 78 | `turns + setup + expected + graders` 完全相同，不作为新能力重复计算 |
 | 保留独立测试定义 | 122 | 200 - 78，保留原 Case ID 和原教师 `turns` |
 | 修改了业务字段的原有定义 | 67 | 80 项字段级变更，详见日志 |
-| 新增能力候选 | 20 | 独立 `DEVX-001~020`；无一条从冻结 Holdout 复制 |
+| 新增能力候选 | 20 | 有效 ID 为 `DEVX-001~014, 016~021`；无一条从冻结 Holdout 复制 |
 | 当前候选定义合计 | 142 | 122+20；**不是全数 READY** |
 
 ### 改动类型（按字段变更次数）
@@ -25,10 +34,10 @@
 
 ### 仍未修复的部分
 
-当前 `dev_122_revised_candidate.yaml` 中，83 条没有 `open_issues`，39 条仍有一项或多项标注。
-**83 条没有已知未决问题 ≠ 83 条正式审核通过。** 它们尚未在真实数据库及模型 Runner 下执行。
+当前完整 142 条审查中保留 13 个未就绪项，详见 `remaining_review_items.json`。
+没有已知未决问题也不等于未经审核即可自动批准；未在本轮教师审核范围内的 Case 保持原状态。
 
-主要未决：
+历史主要未决类别如下；本轮相关 16 条已按教师意见更新：
 
 - `WEAK_READ_RESPONSE_ORACLE`：单纯调用 `read_paper` 并不足以证明最终回复准确。
 - `WEAK_TEACHING_RESPONSE_ORACLE`：Workflow Grader 不等同于教学质量 Judge。
@@ -43,7 +52,9 @@
 - `excluded_duplicates_78.yaml`：被移出的 78 条原始定义，完整留档。
 - `duplicate_map.csv`：重复 ID → 保留 ID 对应表。
 - `dev_200_archive_with_review_flags.yaml`：按旧 200 个 ID 顺序保留的历史对照版。**不得把它作为去重后的评分分母。**
-- `new_capability_20_candidate.yaml`：20 条新能力场景候选，包含依赖和实施条件；与既有 Dev 编号不重合。
+- `new_capability_20_candidate.yaml`：20 条有效新能力场景候选；已删除 DEVX-015 并新增 DEVX-021。
+- `dev_v3_2_reviewed_142.yaml`：Dev 122 + DEVX 20 的单文件冻结输入快照。
+- `dataset_review_142.json`：142 条分类、输入、预期、Fixture、Grader 对应关系的静态审查证据。
 - `change_log.jsonl`：原用例每个业务字段更改的前后值、原因和证据等级。
 - `remaining_review_items.json`：未解决旧用例的汇总。
 - `offline_validation.json`：本地 YAML roundtrip、CaseLoader、去重、保留原 turns 等基本离线验证结果。
@@ -54,7 +65,7 @@
 
 新的 DEVX 用例主要覆盖版本恢复、连续确认幂等、目标指代、多轮只读、防写入、题型别名、跨 Pending 隔离、故障注入、知识点溯源、学生错题巩固、跨用户会话隔离等。
 
-有 **6 条**标记 `NEEDS_VALIDATION`，可优先在用户完整仓库中验证 Fixture + Grader 的适配性；其他 **14 条**已明确记录 `NEEDS_FIXTURE`、`NEEDS_GRADER_EXTENSION`、`NEEDS_SEMANTIC_REVIEW` 等前置阻塞。所有新增 20 条仍为 `review.status=pending`，不能直接纳入正式通过率。
+审核状态以每条 Case 的 `review.status` 和 `review.readiness` 为准。教师确认不等于能力已实现：尤其 DEVX-019 必须保持 `NEEDS_CAPABILITY`；未审核的历史 READY 候选也不会被自动改为 approved。
 
 ## 建议导入位置与不调用模型的静态检查
 

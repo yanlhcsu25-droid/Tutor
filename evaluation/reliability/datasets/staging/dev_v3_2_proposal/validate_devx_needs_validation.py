@@ -1,4 +1,4 @@
-"""Run the six Dev V3.2 validation candidates without external model APIs."""
+"""Run the five retained legacy validation candidates without external APIs."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from evaluation.reliability.runner import run_case, write_report
 ROOT = Path(__file__).parent
 CASES = ROOT / "new_capability_20_candidate.yaml"
 REPORT = ROOT / "devx_needs_validation_offline_run.json"
-CASE_IDS = ("DEVX-004", "DEVX-005", "DEVX-008", "DEVX-011", "DEVX-013", "DEVX-015")
+CASE_IDS = ("DEVX-004", "DEVX-005", "DEVX-008", "DEVX-011", "DEVX-013")
 
 
 def tool_call(name: str, arguments: dict) -> dict:
@@ -76,10 +76,6 @@ SCRIPTS = {
     "DEVX-013": [
         tool_call("discard_pending_plan", {}),
         final("已取消组卷待确认方案，原卷未修改。"),
-    ],
-    "DEVX-015": [
-        tool_call("discard_pending_plan", {}),
-        final("仅取消了组卷待确认方案，教学设计保持原样。"),
     ],
 }
 

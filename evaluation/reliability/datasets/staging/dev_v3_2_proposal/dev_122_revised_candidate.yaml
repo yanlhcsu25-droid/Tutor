@@ -1,7 +1,7 @@
 version: 3.2-dev-proposal
 suite:
   name: tutor_workflow_eval_dev_122_unique_v3_2_proposal
-  description: 去重后的122条Dev候选；部分确定性Oracle/Fixture矛盾已修正，但尚未经业务负责人批准，不能标注为正式冻结基准。
+  description: 去重后的122条Dev合同；已完成静态审查，121条approved，EVAL-149因地址别名能力未实现保持pending。
   splits:
     dev_candidate: 122
   derived_from: evaluation/reliability/datasets/staging/tutor_workflow_eval_300_v3/tutor_workflow_eval_300_v3.yaml
@@ -64,7 +64,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id001
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -102,7 +104,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id002
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -140,7 +144,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id003
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -178,7 +184,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id004
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -216,7 +224,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id005
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -254,7 +264,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id006
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -292,7 +304,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id007
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -330,7 +344,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id008
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -368,7 +384,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id009
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -406,7 +424,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id010
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -451,7 +471,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id011
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -496,7 +518,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id012
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -541,7 +565,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id013
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -586,7 +612,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id014
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -629,7 +657,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id015
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -667,7 +697,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id016
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -705,7 +737,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id017
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -743,7 +777,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id018
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -781,7 +817,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id019
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -819,7 +857,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id020
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -857,7 +897,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id021
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -895,7 +937,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id022
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -933,7 +977,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id023
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -971,7 +1017,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id024
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1009,7 +1057,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id025
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1054,7 +1104,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id026
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1099,7 +1151,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id027
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1144,7 +1198,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id028
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1189,7 +1245,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id029
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1232,7 +1290,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id030
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1270,7 +1330,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id031
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1308,7 +1370,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id032
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1346,7 +1410,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id033
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1384,7 +1450,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id034
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1422,7 +1490,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id035
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1460,7 +1530,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id036
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1498,7 +1570,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id037
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1536,7 +1610,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id038
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1574,7 +1650,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id039
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1612,7 +1690,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id040
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1657,7 +1737,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id041
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1702,7 +1784,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id042
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1747,7 +1831,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id043
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1792,7 +1878,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id044
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1835,7 +1923,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id045
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 第一章scope断言已增强；章节名需用项目实际解析器核验
@@ -1873,7 +1963,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id046
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -1918,7 +2010,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id047
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -1963,7 +2057,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id048
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -2007,7 +2103,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id049
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2052,7 +2150,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id050
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2097,7 +2197,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id051
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2142,7 +2244,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id052
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2187,7 +2291,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id053
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -2230,7 +2336,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id054
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2274,7 +2382,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id055
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2318,7 +2428,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id056
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2362,7 +2474,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id057
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2406,7 +2520,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id058
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2450,7 +2566,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id059
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 原Fixture基线6/60已按Oracle与原话统一到10/100；仍待运行时Fixture验证
@@ -2496,7 +2614,9 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 显式确认必须依据已有Pending创建真实Paper，并验证Tool Observation成功、持久化对象和版本指针。
     proposal_notes:
     - 生成最终Paper的题数与总分断言已增强
@@ -2542,7 +2662,9 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 显式确认必须依据已有Pending创建真实Paper，并验证Tool Observation成功、持久化对象和版本指针。
     proposal_notes:
     - 生成最终Paper的题数与总分断言已增强
@@ -2588,7 +2710,9 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 显式确认必须依据已有Pending创建真实Paper，并验证Tool Observation成功、持久化对象和版本指针。
     proposal_notes:
     - 生成最终Paper的题数与总分断言已增强
@@ -2634,7 +2758,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id060
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
@@ -2679,7 +2805,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id061
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
@@ -2728,7 +2856,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id062
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -2771,7 +2901,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id063
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -2824,7 +2956,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id064
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -2870,7 +3004,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id065
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -2913,7 +3049,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id066
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -2960,7 +3098,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id067
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
@@ -3011,7 +3151,9 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
     proposal_notes:
     - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
@@ -3057,7 +3199,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id068
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -3102,7 +3246,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id069
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3144,7 +3290,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id070
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3186,7 +3334,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id071
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3228,7 +3378,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id072
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3247,27 +3399,35 @@ cases:
   turns:
   - user: 当前卷第3题太难了，简单一点。
   expected:
-    status: needs_clarification
+    status: waiting_confirmation
     paper_db:
       persisted: true
       question_count: 10
       total_score: 100
-    pending_paper_change: null
+    pending_paper_change:
+      exists: true
+    preview_paper_change:
+      status: pending
+      operations:
+      - type: replace_question
+        position: 3
   graders:
   - type: state
   - type: acceptance
     statuses:
-    - needs_clarification
-    required_tools: []
+    - waiting_confirmation
+    required_tools:
+    - preview_paper_changes
+    required_preview_operations:
+    - type: replace_question
+      position: 3
     forbidden_tools:
-    - analyze_paper
     - confirm_generation
     - confirm_paper_changes
     - confirm_teaching_design
     - create_teaching_design
     - prepare_generation_plan
-    - preview_paper_changes
-    - read_paper
+    paper_unchanged: true
     require_trace: true
   - type: workflow_safety
     paper_unchanged: true
@@ -3277,12 +3437,16 @@ cases:
     - confirm_teaching_design
   review:
     status: pending
-    scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+    technical_audit: reviewed_not_ready_142_static_review
+    scope: “当前卷第3题”按全卷 position=3 解释，只允许生成替换预览。
     proposal_notes:
-    - 全卷位置/题型内序号的地址语义仍需业务负责人确认，未改变Oracle
+    - 教师业务语义已审核；当前地址守卫尚未把“当前卷第N题”实现为全卷地址，因此不得标记 READY。
     open_issues:
-    - ADDRESS_SEMANTICS_NEEDS_REVIEW
+    - CURRENT_PAPER_POSITION_ALIAS_NOT_IMPLEMENTED
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: NEEDS_CAPABILITY
+    blocker: 业务预期已冻结，但当前 runtime 仍会把该变更地址判为歧义。
+    teacher_review: approved_16_case_review
   setup:
     current_paper:
       question_count: 10
@@ -3326,13 +3490,14 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
-    scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 裸称“第4题”保持澄清；可以询问是否指当前卷全卷第4题，不得猜测执行。
     proposal_notes:
-    - 全卷位置/题型内序号的地址语义仍需业务负责人确认，未改变Oracle
-    open_issues:
-    - ADDRESS_SEMANTICS_NEEDS_REVIEW
+    - 教师已确认裸题号没有全卷/题型命名空间时必须澄清。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
   setup:
     current_paper:
       question_count: 10
@@ -3370,7 +3535,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id073
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3412,7 +3579,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id074
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3454,7 +3623,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id075
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3496,7 +3667,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id076
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3538,7 +3711,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id077
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 修改任务必须正确解析目标并区分预览与应用；确认前不得创建已应用的新Paper版本。
     proposal_notes: []
     open_issues: []
@@ -3586,7 +3761,9 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
     proposal_notes:
     - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
@@ -3632,7 +3809,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id078
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -3678,7 +3857,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id079
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - response_facts是基于正则的抽取；若真实回答格式未匹配，应区分抽取失败与业务失败
@@ -3729,7 +3910,9 @@ cases:
     - confirm_paper_changes
     - confirm_teaching_design
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 未限定题型或全卷的第N题必须澄清地址；不得读取、预览或修改猜测目标。
     proposal_notes:
     - 仅可离线确定读取动作合法；题干真实性需要读题内容断言，现Runner未提供通用解析
@@ -3772,7 +3955,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id080
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -3820,7 +4005,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id081
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -3863,7 +4050,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id082
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -3911,7 +4100,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id083
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -3954,7 +4145,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id084
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -4007,7 +4200,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id085
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes:
     - 仍缺少对真实题干/题型分布/难度回复的语义核验；不可认定内容质量已通过
@@ -4052,7 +4247,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id086
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4094,7 +4291,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id087
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4136,7 +4335,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id088
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4178,7 +4379,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id089
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4220,7 +4423,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id090
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4261,13 +4466,14 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id091
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 正常教学咨询；只验证完成状态与无业务副作用，不追加严格数学质量评分。
     proposal_notes:
-    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
-    open_issues:
-    - WEAK_TEACHING_RESPONSE_ORACLE
+    - 教师已确认本轮不为该咨询增加严格质量 Judge。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
 - id: EVAL-215
   split: dev
   category: teaching
@@ -4300,13 +4506,14 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id092
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 正常教学咨询；只验证完成状态与无业务副作用，不追加严格数学质量评分。
     proposal_notes:
-    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
-    open_issues:
-    - WEAK_TEACHING_RESPONSE_ORACLE
+    - 教师已确认本轮不为该咨询增加严格质量 Judge。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
 - id: EVAL-216
   split: dev
   category: teaching
@@ -4339,13 +4546,14 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id093
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 正常教学咨询；只验证完成状态与无业务副作用，不追加严格数学质量评分。
     proposal_notes:
-    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
-    open_issues:
-    - WEAK_TEACHING_RESPONSE_ORACLE
+    - 教师已确认本轮不为该咨询增加严格质量 Judge。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
 - id: EVAL-217
   split: dev
   category: teaching
@@ -4377,14 +4585,24 @@ cases:
   - type: workflow_safety
     paper_unchanged: true
     forbidden_tools: *id094
+  - type: teaching_quality
+    judge_case_id: TQ-CQ-217
+    axes:
+      mathematical_correctness: 0.6
+      condition_rigor: 0.4
+    reference_notes:
+    - 应准确说明洛必达法则针对0/0或∞/∞未定式
+    - 应说明邻域内可导、分母导数非零及导数比极限等适用条件
+    - 不能把洛必达法则表述为所有极限的机械求导规则
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 评价洛必达法则适用条件的数学正确性与严谨性。
     proposal_notes:
-    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
-    open_issues:
-    - WEAK_TEACHING_RESPONSE_ORACLE
+    - 已接入现有 consultation Judge；评分维度、权重和依据均为 Case-local。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
 - id: EVAL-218
   split: dev
   category: teaching
@@ -4416,14 +4634,25 @@ cases:
   - type: workflow_safety
     paper_unchanged: true
     forbidden_tools: *id095
+  - type: teaching_quality
+    judge_case_id: TQ-CQ-218
+    axes:
+      review_content_quality: 0.45
+      coverage: 0.25
+      actionability: 0.3
+    reference_notes:
+    - 复习建议应覆盖第一章核心概念、极限计算、连续性等主要内容
+    - 应有合理复习顺序、练习或自检方式
+    - 不得转为出卷或创建业务对象
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 评价第一章复习计划的内容质量、覆盖与可执行性。
     proposal_notes:
-    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
-    open_issues:
-    - WEAK_TEACHING_RESPONSE_ORACLE
+    - 已接入现有 consultation Judge；评分维度、权重和依据均为 Case-local。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
 - id: EVAL-219
   split: dev
   category: teaching
@@ -4455,14 +4684,25 @@ cases:
   - type: workflow_safety
     paper_unchanged: true
     forbidden_tools: *id096
+  - type: teaching_quality
+    judge_case_id: TQ-CQ-219
+    axes:
+      mathematical_accuracy: 0.4
+      coverage: 0.3
+      actionability: 0.3
+    reference_notes:
+    - 应准确覆盖高阶导数的概念、记号、计算方法与典型用途
+    - 教学重点应可转成课堂讲解、例题或检查活动
+    - 不得创建教学设计业务对象
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 评价高阶导数教学重点的数学准确性、覆盖和可操作性。
     proposal_notes:
-    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
-    open_issues:
-    - WEAK_TEACHING_RESPONSE_ORACLE
+    - 已接入现有 consultation Judge；评分维度、权重和依据均为 Case-local。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
 - id: EVAL-220
   split: dev
   category: teaching
@@ -4495,13 +4735,14 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id097
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 正常教学咨询；只验证完成状态与无业务副作用，不追加严格数学质量评分。
     proposal_notes:
-    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
-    open_issues:
-    - WEAK_TEACHING_RESPONSE_ORACLE
+    - 教师已确认本轮不为该咨询增加严格质量 Judge。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
 - id: EVAL-221
   split: dev
   category: teaching
@@ -4533,14 +4774,25 @@ cases:
   - type: workflow_safety
     paper_unchanged: true
     forbidden_tools: *id098
+  - type: teaching_quality
+    judge_case_id: TQ-CQ-221
+    axes:
+      classification_correctness: 0.5
+      criterion_explanation: 0.35
+      clarity: 0.15
+    reference_notes:
+    - 应区分可去间断点、跳跃间断点和无穷间断点
+    - 判定应基于左右极限、函数值及极限是否有限/相等
+    - 解释应帮助学生按步骤分类而非只罗列名称
   review:
-    status: pending
-    scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
+    status: approved
+    technical_audit: approved_142_static_review
+    scope: 评价可去、跳跃、无穷间断点的分类及判定解释。
     proposal_notes:
-    - 当前Runner只能检验工作流与副作用，不能自动证明教学建议正确；需独立Teaching Quality Judge，不硬写关键词
-    open_issues:
-    - WEAK_TEACHING_RESPONSE_ORACLE
+    - 已接入现有 consultation Judge；评分维度、权重和依据均为 Case-local。
     proposal_revision: dev_122_dedup_patch_v1
+    readiness: READY
+    teacher_review: approved_16_case_review
 - id: EVAL-234
   split: dev
   category: teaching
@@ -4573,7 +4825,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id099
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4610,7 +4864,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id100
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4647,7 +4903,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id101
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4684,7 +4942,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id102
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4721,7 +4981,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id103
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4758,7 +5020,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id104
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4795,7 +5059,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id105
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 冻结前人工审核业务语义、fixture可满足性、结构化状态和副作用；自动检查通过不等于任务成功。
     proposal_notes: []
     open_issues: []
@@ -4844,7 +5110,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id108
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
@@ -4896,7 +5164,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id111
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
@@ -4948,7 +5218,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id114
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
@@ -5005,7 +5277,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id117
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
@@ -5062,7 +5336,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id120
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
@@ -5119,7 +5395,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id123
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
@@ -5178,7 +5456,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id127
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
@@ -5239,7 +5519,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id130
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 重点审核前轮约束继承、后轮局部修改、取消/确认语义与副作用。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹
@@ -5303,7 +5585,9 @@ cases:
     paper_unchanged: true
     forbidden_tools: *id133
   review:
-    status: pending
+    status: approved
+    technical_audit: approved_142_static_review
+    readiness: READY
     scope: 取消必须调用 discard_pending_plan，清除对应 Pending；不得确认或创建新 Paper。
     proposal_notes:
     - 多轮中间态需要Turn级校验；当前Runner聚合后只验证最终态和工具轨迹

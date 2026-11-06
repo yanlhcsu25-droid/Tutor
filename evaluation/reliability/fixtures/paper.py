@@ -19,6 +19,7 @@ from calculus_agent.models import (
     QuestionProfile,
 )
 
+from calculus_agent.question_types import canonical_question_type
 from evaluation.reliability.curriculum_fixture import EVAL_TEXTBOOK_ID
 from evaluation.reliability.fixtures.context import EvalFixtureContext
 
@@ -174,22 +175,47 @@ def _create_question(
     return question
 
 
-def seed_success_question_bank(session: Session) -> None:
-    """Seed approved, production-shaped candidates for generation evals.
+def seed_question_bank(session: Session, config: dict[str, Any]) -> None:
+    """Seed a case-configured chapter bank, normalizing question-type aliases."""
+    chapter_code = str(config.get("chapter_code", "一"))
+    raw_counts = config.get("question_type_counts")
+    if not isinstance(raw_counts, dict) or not raw_counts:
+        raise ValueError("setup.question_bank.question_type_counts must be a non-empty object")
 
-    This is intentionally separate from ``seed_current_paper``: generation
-    cases need question supply, while paper mutation cases need a current Paper.
-    Chapter three is left unseeded so shortage cases remain deterministic.
-    """
+    counts: dict[str, int] = {}
+    for raw_type, count in raw_counts.items():
+        if not isinstance(raw_type, str) or not isinstance(count, int) or count <= 0:
+            raise ValueError("setup.question_bank question types need positive integer counts")
+        question_type = canonical_question_type(raw_type)
+        if question_type == "unknown":
+            raise ValueError(f"setup.question_bank has unknown question type: {raw_type!r}")
+        counts[question_type] = counts.get(question_type, 0) + count
+
+    chapter, knowledge = _chapter_scope(session, chapter_code=chapter_code)
+    knowledge_ids = [node.id for node in knowledge]
+    for question_type, count in counts.items():
+        for index in range(count):
+            _create_question(
+                session,
+                key=f"bank-chapter{chapter_code}-{question_type}-{index}",
+                question_type=question_type,
+                difficulty=3,
+                chapter_id=chapter.id,
+                knowledge_ids=knowledge_ids,
+            )
+    session.flush()
+
+
+def seed_success_question_bank(session: Session) -> None:
+    """Seed the unchanged default generation bank used by existing evals."""
     chapter, knowledge = _chapter_scope(session, chapter_code="一")
     knowledge_ids = [node.id for node in knowledge]
-    requirements = (
+    for question_type, count in (
         ("选择题", 4),
         ("填空题", 3),
         ("计算题", 5),
         ("证明题", 2),
-    )
-    for question_type, count in requirements:
+    ):
         for index in range(count):
             _create_question(
                 session,
@@ -226,6 +252,31 @@ def seed_current_paper(
         chapter_code=chapter_code,
     )
     knowledge_ids = [node.id for node in knowledge]
+    knowledge_by_name = {node.name: node.id for node in knowledge}
+    raw_knowledge_by_position = config.get("knowledge_by_position")
+    knowledge_by_position: dict[int, list[str]] = {}
+    if raw_knowledge_by_position is not None:
+        if not isinstance(raw_knowledge_by_position, dict):
+            raise ValueError("setup.current_paper.knowledge_by_position must be an object")
+        for raw_position, names in raw_knowledge_by_position.items():
+            try:
+                position = int(raw_position)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("knowledge_by_position keys must be question positions") from exc
+            if position < 1 or position > question_count:
+                raise ValueError(f"knowledge_by_position contains invalid position {position}")
+            if not isinstance(names, list) or not names or not all(
+                isinstance(name, str) for name in names
+            ):
+                raise ValueError(f"knowledge_by_position[{position}] must be a non-empty list")
+            unknown = sorted(set(names) - set(knowledge_by_name))
+            if unknown:
+                raise ValueError(
+                    f"knowledge_by_position[{position}] contains unknown knowledge: {unknown}"
+                )
+            knowledge_by_position[position] = list(
+                dict.fromkeys(knowledge_by_name[name] for name in names)
+            )
 
     metadata = {
         "scope_chapter_ids": [chapter.id],
@@ -267,7 +318,7 @@ def seed_current_paper(
             question_type=question_type,
             difficulty=3,
             chapter_id=chapter.id,
-            knowledge_ids=knowledge_ids,
+            knowledge_ids=knowledge_by_position.get(position, knowledge_ids),
         )
         session.add(
             PaperItem(

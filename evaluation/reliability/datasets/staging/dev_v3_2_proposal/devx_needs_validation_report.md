@@ -1,5 +1,7 @@
 # Teacher Agent Dev V3.2：6 条 NEEDS_VALIDATION 离线验证报告
 
+> **教师审核后的当前状态：** 本文主体保留早期离线验证证据，不代表当前有效集合。DEVX-015 已从有效集合排除，原因是并发 Pending 不符合教师实际使用习惯；DEVX-021 已新增为“无历史记录”失败场景。DEVX-010/016/018 的技术合同已落实并批准；DEVX-003/019/021 保持 `NEEDS_CAPABILITY`，不得宣称尚未落实的最终状态、历史排重或无历史 Tool Observation 已可用。本轮未运行任何真实 API。
+
 ## 结论
 
 本轮只使用完整仓库中的真实 `CaseLoader`、隔离 SQLite Fixture、`run_case` Runner、业务 Tool 和 Grader；模型端统一替换为 `behavior=scripted` 的本地 Backend。**外部模型 API 调用数为 0**。
@@ -83,7 +85,7 @@ PYTHONPATH=. .venv/bin/python -m pytest -q \
 - 结果：状态 `completed`，`pending_generation=null`，Paper 仍为 10 题 100 分。
 - Required/Forbidden Tools、Oracle 和 workflow safety 一致。
 
-### DEVX-015 — BLOCKED
+### DEVX-015 — EXCLUDED（以下为排除前历史证据）
 
 - Setup：数据库层可以同时创建 Pending Generation 与 `awaiting_confirmation` Teaching Design。
 - 实际流程：确定性路由没有执行脚本要求的 `discard_pending_plan`，而是尝试 `discard_teaching_design`；随后得到 `tool_not_exposed`，最终仍为 `waiting_confirmation`，Generation Pending 保留。
@@ -120,13 +122,13 @@ uv run python evaluation/reliability/runner.py \
   --report evaluation/artifacts/reports/reliability/runs/dev-v3.2-proposal-ready2-first-api.json
 ```
 
-完成 DEVX-004/005 Oracle 修订、DEVX-011 parser 修复及 DEVX-015 业务状态决策后，重新离线验证六条；全部达到 READY 后再运行：
+以下命令是历史计划，**不得执行**；DEVX-015 已排除，且本轮禁止真实 API：
 
 ```bash
 uv run python evaluation/reliability/runner.py \
   --cases-file evaluation/reliability/datasets/staging/dev_v3_2_proposal/new_capability_20_candidate.yaml \
   --case DEVX-004 --case DEVX-005 --case DEVX-008 \
-  --case DEVX-011 --case DEVX-013 --case DEVX-015 \
+  --case DEVX-011 --case DEVX-013 \
   --variant state-policy \
   --case-delay-seconds 5 \
   --report evaluation/artifacts/reports/reliability/runs/dev-v3.2-proposal-six-first-api.json

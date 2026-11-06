@@ -159,6 +159,35 @@ def grade_acceptance(
         if "confirm_generation" not in names and "confirm_paper_changes" not in names:
             errors.append("confirmation tool was not called")
 
+    message = str(actual.get("message") or "")
+    for text in config.get("required_response_substrings") or []:
+        if text not in message:
+            errors.append(f"required response text missing: {text!r}")
+    for text in config.get("forbidden_response_substrings") or []:
+        if text in message:
+            errors.append(f"forbidden response text found: {text!r}")
+    if config.get("response_equals_failed_tool_message"):
+        failure_messages = {
+            str(_tool_result(item).get("message"))
+            for item in calls
+            if _tool_result(item).get("ok") is False
+            and _tool_result(item).get("message")
+        }
+        if message not in failure_messages:
+            errors.append(
+                "final response is not exactly grounded in a failed Tool message"
+            )
+
+    expected_operations = config.get("required_preview_operations") or []
+    actual_operations = (actual.get("preview_paper_change") or {}).get("operations") or []
+    for expected_operation in expected_operations:
+        if not any(
+            isinstance(operation, dict)
+            and all(operation.get(key) == value for key, value in expected_operation.items())
+            for operation in actual_operations
+        ):
+            errors.append(f"required preview operation missing: {expected_operation!r}")
+
     evaluated_turns = actual.get("evaluated_turns") or []
     for turn_contract in config.get("turns") or []:
         turn_number = turn_contract.get("turn")

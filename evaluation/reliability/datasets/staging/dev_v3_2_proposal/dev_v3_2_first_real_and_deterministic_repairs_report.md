@@ -1,6 +1,8 @@
 # Teacher Agent Dev V3.2 — 第一批真实评测与确定性修复报告
 
-## 1. 首批真实 SiliconFlow Smoke Test
+> **教师审核后的当前状态：** 本文保留既有历史运行证据，不是本轮评测结果。本轮没有调用真实 LLM、Smoke、Dev、Holdout 或 Langfuse。有效集合现为 Dev 122 + DEVX 20；DEVX-015 已排除，DEVX-021 已新增。EVAL-149、DEVX-003、DEVX-019、DEVX-021 因能力合同未完整实现保持 `NEEDS_CAPABILITY`；不得因教师审核自动标记 READY。
+
+## 1. 首批真实 SiliconFlow Smoke Test（历史记录）
 
 执行范围严格限定为 `DEVX-008`、`DEVX-013`，每条一次。未运行 Holdout，也未重复运行其他候选。
 
@@ -91,7 +93,7 @@ Parser 已支持：
 - 未调用 confirm；
 - 真实 Fixture + Runner 离线 PASS。
 
-### DEVX-015 — BLOCKED
+### DEVX-015 — EXCLUDED（以下为排除前历史分析）
 
 只做了业务语义检查，没有为通过 Case 开发并发工作流功能。
 
@@ -169,12 +171,13 @@ Parser 已支持：
 | DEVX-012 | 暂停但保留 Pending | NEEDS_PER_TURN_GRADER |
 | DEVX-013 | 取消 Pending 且 Paper 不变 | **READY / API PASS** |
 | DEVX-014 | 重复确认幂等 | NEEDS_GRADER_EXTENSION |
-| DEVX-015 | Generation/Teaching 双 Pending | **BLOCKED** |
+| DEVX-015 | Generation/Teaching 双 Pending | **EXCLUDED：不符合教师实际使用习惯** |
 | DEVX-016 | 教学咨询无业务副作用 | NEEDS_QUALITY_JUDGE |
 | DEVX-017 | Prepare 故障注入 | NEEDS_FAULT_TEST |
 | DEVX-018 | 知识点溯源只读 | NEEDS_SEMANTIC_GRADER |
-| DEVX-019 | 错题巩固与已做题排除 | NEEDS_FIXTURE |
+| DEVX-019 | 有历史上下文的错题巩固与已做题排除 | **NEEDS_CAPABILITY** |
 | DEVX-020 | Owner/Session 隔离 | NEEDS_RUNNER_EXTENSION |
+| DEVX-021 | 无历史记录时明确失败 | **NEEDS_CAPABILITY：Tool 尚未暴露 no_current_paper Observation** |
 
 因此当前可进入下一轮正式 Dev 候选验证的是 5 条，而不是把 20 条全部计入正式通过率。其余 15 条继续保留明确门槛。
 

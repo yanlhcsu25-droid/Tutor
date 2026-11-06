@@ -18,26 +18,24 @@
   },
   "new_readiness": {
     "NEEDS_GRADER_EXTENSION": 3,
-    "NEEDS_SEMANTIC_REVIEW": 1,
-    "READY": 5,
+    "READY": 8,
     "NEEDS_PARSER_VALIDATION": 2,
     "NEEDS_PER_TURN_GRADER": 2,
-    "NEEDS_FIXTURE": 2,
-    "BLOCKED": 1,
-    "NEEDS_QUALITY_JUDGE": 1,
     "NEEDS_FAULT_TEST": 1,
-    "NEEDS_SEMANTIC_GRADER": 1,
+    "NEEDS_CAPABILITY": 3,
     "NEEDS_RUNNER_EXTENSION": 1
   },
-  "pending_original_review": 122,
-  "new_pending_review": 20,
+  "pending_original_review": 1,
+  "new_pending_review": 12,
   "api_calls": 60,
   "limitations": [
-    "only DEVX-008 and DEVX-013 model-tested",
-    "not all candidates production-runner-tested",
-    "not full DB fixture verified for blocked candidates"
+    "EVAL-149 的“当前卷第N题”全卷地址别名尚未由 runtime 实现",
+    "DEVX-003 的 version_not_found 最终状态仍被 finalization 转为 needs_clarification",
+    "DEVX-019 的不重复已做题约束未由 GenerationService.preview() 实现",
+    "DEVX-021 在无当前 Paper 时尚不能观察 no_current_paper Tool Observation",
+    "教学质量 Judge 仅在 RUN_LIVE_JUDGE=1 时允许调用，本轮未调用任何真实模型"
   ],
-  "remaining_original_review": 10,
+  "remaining_original_review": 1,
   "deterministic_review_repairs": 29,
   "first_real_api": {
     "cases": [
@@ -92,5 +90,59 @@
     "effective_failed": 2,
     "total_tokens": 281465,
     "latency_ms": 269992
-  }
+  },
+  "remaining_capability_review": 13,
+  "teacher_reviewed_case_ids": [
+    "EVAL-149",
+    "EVAL-150",
+    "EVAL-214",
+    "EVAL-215",
+    "EVAL-216",
+    "EVAL-217",
+    "EVAL-218",
+    "EVAL-219",
+    "EVAL-220",
+    "EVAL-221",
+    "DEVX-003",
+    "DEVX-010",
+    "DEVX-015",
+    "DEVX-016",
+    "DEVX-018",
+    "DEVX-019"
+  ],
+  "teacher_review_approved": 12,
+  "teacher_review_pending_capability": [
+    "EVAL-149",
+    "DEVX-003",
+    "DEVX-019",
+    "DEVX-021"
+  ],
+  "excluded_capability_cases": {
+    "DEVX-015": "并发 Pending 场景不符合教师实际使用习惯，暂不作为本轮测试能力。"
+  },
+  "added_capability_cases": [
+    "DEVX-021"
+  ],
+  "review_result_active_case_ids": [
+    "EVAL-149",
+    "EVAL-150",
+    "EVAL-214",
+    "EVAL-215",
+    "EVAL-216",
+    "EVAL-217",
+    "EVAL-218",
+    "EVAL-219",
+    "EVAL-220",
+    "EVAL-221",
+    "DEVX-003",
+    "DEVX-010",
+    "DEVX-016",
+    "DEVX-018",
+    "DEVX-019",
+    "DEVX-021"
+  ],
+  "current_review_update_api_calls": 0,
+  "technical_audit_approved": 129,
+  "technical_audit_pending": 13,
+  "technical_audit_report": "dataset_review_142.json"
 }

@@ -115,7 +115,7 @@ def build_paper_tools(context: AgentExecutionContext) -> dict[str, AgentTool]:
         if not current_paper_id:
             return _failed(
                 "no_current_paper",
-                "当前没有可操作的试卷版本，无法根据错题生成巩固卷。",
+                "找不到历史试卷记录，无法根据错题生成巩固卷。",
             )
         input_model = PrepareReinforcementPlanInput.model_validate(raw)
         try:

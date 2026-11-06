@@ -59,7 +59,11 @@ from evaluation.reliability.execution_control import (
 from evaluation.reliability.reporting import summarize_results
 from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
 from evaluation.reliability.fixtures.context import EvalFixtureContext
-from evaluation.reliability.fixtures.paper import seed_current_paper, seed_success_question_bank
+from evaluation.reliability.fixtures.paper import (
+    seed_current_paper,
+    seed_question_bank,
+    seed_success_question_bank,
+)
 from evaluation.reliability.langfuse_scores import flush_case_scores, publish_case_scores
 from calculus_agent.agent.langfuse_tracing import langfuse_enabled
 from evaluation.reliability.evaluators.constraint import grade_constraints
@@ -88,7 +92,7 @@ DEFAULT_REPORT = (
 )
 
 FIXTURE_VERSION = "eval-fixture-v1"
-GRADER_VERSION = "grader-v1"
+GRADER_VERSION = "grader-v2-dev-v3.2-reviewed"
 
 
 # ============================================================
@@ -866,6 +870,7 @@ SUPPORTED_SETUP_KEYS = {
     "pending_generation",
     "pending_replacement",
     "current_paper",
+    "question_bank",
     "teaching_design",
 }
 
@@ -894,6 +899,12 @@ def apply_case_setup(
             "不要把它们转换成 synthetic user turn；"
             "应为对应业务状态补确定性 fixture builder。"
         )
+
+    question_bank = setup.get("question_bank")
+    if question_bank is not None:
+        if not isinstance(question_bank, dict):
+            raise ValueError(f"{case.id}.setup.question_bank must be an object")
+        seed_question_bank(session, question_bank)
 
     current_paper = setup.get(
         "current_paper"
@@ -1427,6 +1438,16 @@ def run_graders(
                 grade_acceptance(case, actual, grader_config)
             )
 
+        elif grader_type == "paper_analysis":
+            from evaluation.reliability.evaluators.paper_analysis import grade_paper_analysis
+
+            results.append(grade_paper_analysis(case, actual, grader_config))
+
+        elif grader_type == "teaching_quality":
+            from evaluation.reliability.evaluators.teaching_quality import grade_teaching_quality
+
+            results.append(grade_teaching_quality(case, actual, grader_config))
+
         elif grader_type == (
             "constraint_preservation"
         ):
@@ -1742,10 +1763,20 @@ def run_case(
         )
 
         actual["evaluated_turns"] = turn_results
-        grader_results = run_graders(
-            case,
-            actual,
-        )
+        phase = "runner"
+        try:
+            grader_results = run_graders(
+                case,
+                actual,
+            )
+        except Exception as exc:
+            from evaluation.reliability.evaluators.teaching_quality import (
+                TeachingQualityInfrastructureError,
+            )
+
+            if isinstance(exc, TeachingQualityInfrastructureError):
+                phase = "infrastructure"
+            raise
 
         executed_graders = [
             grader

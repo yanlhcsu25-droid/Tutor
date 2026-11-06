@@ -2,61 +2,105 @@
   {
     "case_id": "EVAL-149",
     "remaining_issues": [
-      "ADDRESS_SEMANTICS_NEEDS_REVIEW"
-    ]
+      "CURRENT_PAPER_POSITION_ALIAS_NOT_IMPLEMENTED"
+    ],
+    "readiness": "NEEDS_CAPABILITY",
+    "blocker": "业务预期已冻结，但当前 runtime 仍会把该变更地址判为歧义。"
   },
   {
-    "case_id": "EVAL-150",
+    "case_id": "DEVX-001",
     "remaining_issues": [
-      "ADDRESS_SEMANTICS_NEEDS_REVIEW"
-    ]
+      "NEEDS_GRADER_EXTENSION"
+    ],
+    "readiness": "NEEDS_GRADER_EXTENSION",
+    "blocker": "现有状态Grader不能断言Undo前后完整题目ID集合与活动版本指针"
   },
   {
-    "case_id": "EVAL-214",
+    "case_id": "DEVX-002",
     "remaining_issues": [
-      "WEAK_TEACHING_RESPONSE_ORACLE"
-    ]
+      "NEEDS_GRADER_EXTENSION"
+    ],
+    "readiness": "NEEDS_GRADER_EXTENSION",
+    "blocker": "缺少每步Version快照与可重复比对"
   },
   {
-    "case_id": "EVAL-215",
+    "case_id": "DEVX-003",
     "remaining_issues": [
-      "WEAK_TEACHING_RESPONSE_ORACLE"
-    ]
+      "INVALID_VERSION_FINAL_STATUS_NOT_IMPLEMENTED"
+    ],
+    "readiness": "NEEDS_CAPABILITY",
+    "blocker": "operate_paper_version 会观察到 version_not_found，但现有 finalization 将最终状态转换为 needs_clarification，尚不满足教师冻结的 failed 合同。"
   },
   {
-    "case_id": "EVAL-216",
+    "case_id": "DEVX-006",
     "remaining_issues": [
-      "WEAK_TEACHING_RESPONSE_ORACLE"
-    ]
+      "NEEDS_PARSER_VALIDATION"
+    ],
+    "readiness": "NEEDS_PARSER_VALIDATION",
+    "blocker": "现有response_facts正则未覆盖所有正确的数字表述，需人工确认误判风险"
   },
   {
-    "case_id": "EVAL-217",
+    "case_id": "DEVX-007",
     "remaining_issues": [
-      "WEAK_TEACHING_RESPONSE_ORACLE"
-    ]
+      "NEEDS_PARSER_VALIDATION"
+    ],
+    "readiness": "NEEDS_PARSER_VALIDATION",
+    "blocker": "现有response_facts抽取器依赖题型+数量的特定表述"
   },
   {
-    "case_id": "EVAL-218",
+    "case_id": "DEVX-009",
     "remaining_issues": [
-      "WEAK_TEACHING_RESPONSE_ORACLE"
-    ]
+      "NEEDS_PER_TURN_GRADER"
+    ],
+    "readiness": "NEEDS_PER_TURN_GRADER",
+    "blocker": "虽有工具轨迹却无第一轮禁止直接确认的Turn级硬断言"
   },
   {
-    "case_id": "EVAL-219",
+    "case_id": "DEVX-012",
     "remaining_issues": [
-      "WEAK_TEACHING_RESPONSE_ORACLE"
-    ]
+      "NEEDS_PER_TURN_GRADER"
+    ],
+    "readiness": "NEEDS_PER_TURN_GRADER",
+    "blocker": "需断言完整Pending记录持久不变而非字段子集"
   },
   {
-    "case_id": "EVAL-220",
+    "case_id": "DEVX-014",
     "remaining_issues": [
-      "WEAK_TEACHING_RESPONSE_ORACLE"
-    ]
+      "NEEDS_GRADER_EXTENSION"
+    ],
+    "readiness": "NEEDS_GRADER_EXTENSION",
+    "blocker": "需要断言confirm_generation仅一次及Paper根ID唯一/无重复副作用"
   },
   {
-    "case_id": "EVAL-221",
+    "case_id": "DEVX-017",
     "remaining_issues": [
-      "WEAK_TEACHING_RESPONSE_ORACLE"
-    ]
+      "NEEDS_FAULT_TEST"
+    ],
+    "readiness": "NEEDS_FAULT_TEST",
+    "blocker": "需确认fault注入作用域/单次或持续故障，以及运行状态失败边界"
+  },
+  {
+    "case_id": "DEVX-019",
+    "remaining_issues": [
+      "AVOID_PREVIOUS_PAPER_QUESTIONS_UNSUPPORTED"
+    ],
+    "readiness": "NEEDS_CAPABILITY",
+    "blocker": "GenerationService.preview() 不支持 avoid_previous_paper_questions，不能正式批准。"
+  },
+  {
+    "case_id": "DEVX-020",
+    "remaining_issues": [
+      "NEEDS_RUNNER_EXTENSION"
+    ],
+    "readiness": "NEEDS_RUNNER_EXTENSION",
+    "blocker": "现有Runner单会话单owner，无法同时创建第二教师及跨owner副作用断言"
+  },
+  {
+    "case_id": "DEVX-021",
+    "remaining_issues": [
+      "NO_HISTORY_TOOL_OBSERVATION_NOT_IMPLEMENTED"
+    ],
+    "readiness": "NEEDS_CAPABILITY",
+    "blocker": "无当前 Paper 时 prepare_reinforcement_plan 未暴露给 Tool Loop，现有 Observation 为 tool_not_exposed，尚不能观察 no_current_paper。"
   }
 ]
