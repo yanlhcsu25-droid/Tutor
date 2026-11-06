@@ -1,10 +1,10 @@
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 from evaluation.reliability import langfuse_scores
 from evaluation.reliability import runner
-from evaluation.reliability.case_loader import EvalCase, EvalSuite
+from evaluation.reliability.case_loader import EvalCase
+from evaluation.reliability.execution_control import Selection
 
 
 class FailFirstScoreClient:
@@ -26,16 +26,12 @@ def test_suite_publishes_once_per_case_and_flushes_once(tmp_path, monkeypatch):
         EvalCase(id="multi-turn", category="test", title="multi"),
         EvalCase(id="next-case", category="test", title="next"),
     ]
-    suite = EvalSuite(
-        version="1",
-        name="score-runner-test",
-        description="",
-        defaults={},
-        cases=cases,
-    )
+    dataset_path = tmp_path / "score-runner-test.yaml"
+    dataset_path.write_text("cases: []\n", encoding="utf-8")
+    selection = Selection(cases, dataset_path, "d" * 64)
     report_path = tmp_path / "report.json"
     args = SimpleNamespace(
-        cases_file=Path("score-runner-test.yaml"),
+        cases_file=dataset_path,
         case_ids=None,
         categories=None,
         report=report_path,
@@ -67,7 +63,9 @@ def test_suite_publishes_once_per_case_and_flushes_once(tmp_path, monkeypatch):
     client = FailFirstScoreClient()
 
     monkeypatch.setattr(runner, "parse_args", lambda: args)
-    monkeypatch.setattr(runner, "load_eval_suite", lambda _: suite)
+    monkeypatch.setattr(
+        runner, "select_cases_fail_closed", lambda *args, **kwargs: selection
+    )
     monkeypatch.setattr(
         runner,
         "run_case",
@@ -86,7 +84,10 @@ def test_suite_publishes_once_per_case_and_flushes_once(tmp_path, monkeypatch):
     ]
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report["summary"] == {"cases": 2, "passed": 2, "failed": 0, "pass_rate": 1.0}
+    assert report["summary"]["cases"] == 2
+    assert report["summary"]["passed"] == 2
+    assert report["summary"]["failed"] == 0
+    assert report["summary"]["pass_rate"] == 1.0
     assert report["results"][0]["passed"] is True
     assert report["results"][0]["graders"] == local_results["multi-turn"]["graders"]
     assert "langfuse_scores" not in report["results"][0]

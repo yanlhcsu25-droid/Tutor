@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import importlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -43,11 +44,17 @@ from calculus_agent.runtime import ToolResult, get_variant
 from calculus_agent.runtime.variants import AgentVariant, STATE_POLICY
 
 from tests.conftest import create_isolated_test_session
-from evaluation.reliability.case_loader import (
-    EvalCase,
-    filter_cases,
-    load_eval_suite,
+from evaluation.reliability.case_loader import EvalCase
+from evaluation.reliability.execution_control import (
+    EvaluationControlError,
+    classify_execution_status,
+    consume_holdout_authorization,
+    enforce_review_policy,
+    select_cases_fail_closed,
+    source_provenance,
+    validate_manifest_execution_config,
 )
+from evaluation.reliability.reporting import summarize_results
 from evaluation.reliability.curriculum_fixture import seed_eval_curriculum
 from evaluation.reliability.fixtures.context import EvalFixtureContext
 from evaluation.reliability.fixtures.paper import seed_current_paper, seed_success_question_bank
@@ -1507,17 +1514,19 @@ def run_case(
         f"{uuid4().hex[:8]}"
     )
 
-    session = create_eval_session()
-
-    # Deterministic, isolated curriculum so generation scopes (e.g. 第三章)
-    # resolve exactly like production without touching the developer's DB.
-    seed_eval_curriculum(session)
-    seed_success_question_bank(session)
-
+    session = None
+    phase = "fixture"
     turn_results: list[dict] = []
     backend_call_deltas: list[int] = []
 
     try:
+        session = create_eval_session()
+
+        # Deterministic, isolated curriculum so generation scopes (e.g. 第三章)
+        # resolve exactly like production without touching the developer's DB.
+        seed_eval_curriculum(session)
+        seed_success_question_bank(session)
+
         # ----------------------------------------------------
         # 1. fixture 先确定性落地
         # ----------------------------------------------------
@@ -1532,9 +1541,11 @@ def run_case(
         # 2. setup 完成后才创建 backend
         # ----------------------------------------------------
 
+        phase = "infrastructure"
         backend = create_eval_backend(
             case
         )
+        phase = "fixture"
 
         turns = build_case_turns(
             case
@@ -1601,6 +1612,7 @@ def run_case(
 
             business_state_before = snapshot_business_state(session, conversation_id)
             backend_calls_before = int(getattr(backend, "calls", 0) or 0)
+            phase = "execution"
             result = run_teacher_agent(
                 session,
                 user_message,
@@ -1619,6 +1631,7 @@ def run_case(
                 ),
             )
 
+            phase = "runner"
             backend_call_deltas.append(
                 int(getattr(backend, "calls", 0) or 0) - backend_calls_before
             )
@@ -1766,6 +1779,10 @@ def run_case(
             for turn_result in turn_results
         )
         runtime_error = actual.get("error") or {}
+        execution_status = classify_execution_status(
+            passed=passed,
+            runtime_error=runtime_error,
+        )
 
         return {
             "case_id": case.id,
@@ -1778,6 +1795,7 @@ def run_case(
                 conversation_id
             ),
             "passed": passed,
+            "execution_status": execution_status,
             "task_success": passed,
             "constraint_preserved": (
                 grader_by_name["constraint_preservation"].get("passed")
@@ -1852,10 +1870,16 @@ def run_case(
         }
 
     except Exception as exc:
-        try:
-            session.rollback()
-        except Exception:
-            pass
+        if session is not None:
+            try:
+                session.rollback()
+            except Exception:
+                pass
+        execution_status = classify_execution_status(
+            passed=False,
+            exception=exc,
+            phase=phase,
+        )
 
         return {
             "case_id": case.id,
@@ -1868,6 +1892,7 @@ def run_case(
                 conversation_id
             ),
             "passed": False,
+            "execution_status": execution_status,
             "task_success": False,
             "constraint_preserved": None,
             "clarification_correct": None,
@@ -1886,7 +1911,11 @@ def run_case(
             "reasoning_tokens": None,
             "actual_usage_available": False,
             "latency_ms": 0,
-            "failure_type": "fixture_issue",
+            "failure_type": {
+                "fixture_failed": "fixture_issue",
+                "infrastructure_failed": "provider_failure",
+                "runner_failed": "runner_failure",
+            }.get(execution_status, "model_reasoning"),
             "model": getattr(locals().get("backend"), "model", None),
             "provider": getattr(locals().get("backend"), "provider", None),
             "backend_adapter": getattr(
@@ -1902,6 +1931,8 @@ def run_case(
             "error": {
                 "type": type(exc).__name__,
                 "message": str(exc),
+                "classification": execution_status,
+                "phase": phase,
                 "traceback": (
                     traceback.format_exc()
                 ),
@@ -1909,7 +1940,8 @@ def run_case(
         }
 
     finally:
-        session.close()
+        if session is not None:
+            session.close()
 
 
 # ============================================================
@@ -1942,20 +1974,10 @@ def write_report(
     variant: AgentVariant = STATE_POLICY,
     dataset_path: Path | None = None,
     case_delay_seconds: float = 0,
+    run_metadata: dict[str, Any] | None = None,
 ) -> None:
-
-    output_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    passed = sum(
-        1
-        for result in results
-        if result["passed"]
-    )
-
-    failed = len(results) - passed
+    """Write the primary local record atomically."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     models = sorted({
         str((result.get("run_metadata") or {}).get("model_id"))
@@ -1975,54 +1997,54 @@ def write_report(
     dataset_bytes = dataset_path.read_bytes() if dataset_path and dataset_path.exists() else b""
     git_sha = _git_sha()
     dataset_sha = hashlib.sha256(dataset_bytes).hexdigest() if dataset_bytes else None
+    try:
+        relative_dataset_path = (
+            str(dataset_path.resolve().relative_to(ROOT)) if dataset_path else None
+        )
+    except ValueError:
+        relative_dataset_path = str(dataset_path.resolve()) if dataset_path else None
+
+    metadata: dict[str, Any] = {
+        "git_sha": git_sha,
+        "git_dirty": _git_dirty(),
+        "variant": variant.name,
+        "variant_config": asdict(variant),
+        "model_ids": models,
+        "providers": providers,
+        "backend_adapters": backend_adapters,
+        "protocols": protocols,
+        "temperature": 0,
+        "case_delay_seconds": case_delay_seconds,
+        "dataset_path": relative_dataset_path,
+        "dataset_version": dataset_sha[:12] if dataset_sha else None,
+        "dataset_sha": dataset_sha,
+    }
+    if run_metadata:
+        metadata.update(run_metadata)
+    metadata["completed_at"] = datetime.now(timezone.utc).isoformat()
+    mode = str((metadata.get("execution") or {}).get("mode") or "diagnostic")
+    effective_dataset_sha = (metadata.get("dataset") or {}).get("sha256") or dataset_sha
     enriched_results = [
-        {
-            **result,
-            "git_sha": git_sha,
-            "dataset_sha": dataset_sha,
-        }
+        {**result, "git_sha": git_sha, "dataset_sha": effective_dataset_sha}
         for result in results
     ]
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "metadata": {
-            "git_sha": git_sha,
-            "git_dirty": _git_dirty(),
-            "variant": variant.name,
-            "variant_config": asdict(variant),
-            "model_ids": models,
-            "providers": providers,
-            "backend_adapters": backend_adapters,
-            "protocols": protocols,
-            "temperature": 0,
-            "case_delay_seconds": case_delay_seconds,
-            "dataset_path": (
-                str(dataset_path.resolve().relative_to(ROOT)) if dataset_path else None
-            ),
-            "dataset_version": dataset_sha[:12] if dataset_sha else None,
-            "dataset_sha": dataset_sha,
-        },
-        "summary": {
-            "cases": len(results),
-            "passed": passed,
-            "failed": failed,
-            "pass_rate": (
-                passed / len(results)
-                if results
-                else 0
-            ),
-        },
+        "generated_at": metadata["completed_at"],
+        "metadata": metadata,
+        "summary": summarize_results(
+            enriched_results,
+            mode=mode,
+            expected_cases=(metadata.get("dataset") or {}).get("case_count"),
+        ),
         "results": enriched_results,
     }
 
-    output_path.write_text(
-        json.dumps(
-            to_jsonable(payload),
-            ensure_ascii=False,
-            indent=2,
-        ),
+    temporary = output_path.with_suffix(output_path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(to_jsonable(payload), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    temporary.replace(output_path)
 
 
 # ============================================================
@@ -2125,6 +2147,39 @@ def parse_args():
         default=DEFAULT_REPORT,
     )
     parser.add_argument(
+        "--manifest",
+        type=Path,
+        help="Exact case-selection manifest. Cannot be combined with --case/--category.",
+    )
+    parser.add_argument("--manifest-sha256", help="Expected manifest SHA256 pin.")
+    parser.add_argument("--dataset-sha256", help="Expected dataset SHA256 pin.")
+    parser.add_argument(
+        "--mode",
+        choices=("diagnostic", "benchmark"),
+        default="diagnostic",
+        help="Diagnostic permits pending cases; Benchmark requires approved cases.",
+    )
+    parser.add_argument(
+        "--dataset-role",
+        choices=("development", "regression", "holdout", "duplicate-regression"),
+        default="development",
+    )
+    parser.add_argument(
+        "--authorization-file",
+        type=Path,
+        help="Single-use machine-readable authorization (required for Holdout).",
+    )
+    parser.add_argument(
+        "--authorization-consumption-file",
+        type=Path,
+        help="Optional atomic consumption receipt path.",
+    )
+    parser.add_argument("--run-id", help="Stable run ID; generated when omitted.")
+    parser.add_argument(
+        "--expected-grader-sha256",
+        help="Required component pin for non-Holdout Benchmark manifests.",
+    )
+    parser.add_argument(
         "--variant",
         choices=("state-policy", "tool-agent", "prompt-only"),
         default="state-policy",
@@ -2142,41 +2197,150 @@ def parse_args():
 def main() -> int:
     args = parse_args()
     variant = get_variant(args.variant)
+    mode = getattr(args, "mode", "diagnostic")
+    dataset_role = getattr(args, "dataset_role", "development")
+    run_id = getattr(args, "run_id", None) or f"eval-{uuid4().hex}"
+    started_at = datetime.now(timezone.utc).isoformat()
+    settings = get_settings()
 
-    suite = load_eval_suite(
-        args.cases_file
+    try:
+        selection = select_cases_fail_closed(
+            args.cases_file,
+            manifest_path=getattr(args, "manifest", None),
+            expected_dataset_sha256=getattr(args, "dataset_sha256", None),
+            expected_manifest_sha256=getattr(args, "manifest_sha256", None),
+            case_ids=getattr(args, "case_ids", None) or (),
+            categories=getattr(args, "categories", None) or (),
+        )
+        enforce_review_policy(selection, mode=mode, dataset_role=dataset_role)
+        provenance = source_provenance()
+
+        manifest = selection.manifest
+        if mode == "benchmark" and manifest and dataset_role != "holdout":
+            if not getattr(args, "manifest_sha256", None):
+                raise EvaluationControlError(
+                    "non-Holdout Benchmark manifests require --manifest-sha256"
+                )
+            expected_grader = getattr(args, "expected_grader_sha256", None)
+            if not expected_grader:
+                raise EvaluationControlError(
+                    "non-Holdout Benchmark manifests require --expected-grader-sha256"
+                )
+            if expected_grader != provenance["graders"]["sha256"]:
+                raise EvaluationControlError("grader implementation SHA256 mismatch")
+
+        authorization_receipt = None
+        authorization_file = getattr(args, "authorization_file", None)
+        if dataset_role == "holdout" and authorization_file is None:
+            raise EvaluationControlError(
+                "Holdout Benchmark requires --authorization-file"
+            )
+        if mode == "benchmark" and manifest:
+            validate_manifest_execution_config(
+                selection,
+                actual={
+                    "provider": "siliconflow",
+                    "model": settings.siliconflow_agent_model,
+                    "backend_adapter": "BailianChatBackend",
+                    "protocol": "openai_compatible",
+                    "temperature": 0,
+                    "timeout_seconds": settings.siliconflow_timeout_seconds,
+                    "max_retries": settings.siliconflow_max_retries,
+                    "retry_base_seconds": settings.siliconflow_retry_base_seconds,
+                    "case_delay_seconds": args.case_delay_seconds,
+                },
+            )
+        if dataset_role == "holdout":
+            authorization_receipt = consume_holdout_authorization(
+                authorization_file,
+                selection=selection,
+                provenance=provenance,
+                run_id=run_id,
+                consumption_path=getattr(args, "authorization_consumption_file", None),
+            )
+        elif authorization_file is not None:
+            raise EvaluationControlError(
+                "authorization files are accepted only for Holdout Benchmark runs"
+            )
+    except (EvaluationControlError, OSError) as exc:
+        print(f"Evaluation preflight failed: {exc}", file=sys.stderr)
+        return 2
+
+    langfuse_enabled = bool(
+        os.getenv("LANGFUSE_PUBLIC_KEY")
+        and os.getenv("LANGFUSE_SECRET_KEY")
+        and os.getenv("LANGFUSE_ENABLED", "true").lower() not in {"0", "false", "no"}
     )
-
-    cases = filter_cases(
-        suite,
-        case_ids=(
-            set(args.case_ids)
-            if args.case_ids
-            else None
+    execution_metadata = {
+        "run_id": run_id,
+        "started_at": started_at,
+        "dataset": {
+            "path": str(selection.dataset_path),
+            "sha256": selection.dataset_sha256,
+            "case_count": len(selection.cases),
+        },
+        "manifest": (
+            {
+                "path": str(selection.manifest_path),
+                "sha256": selection.manifest_sha256,
+                "name": (selection.manifest or {}).get("name"),
+                "declared_grader_version": (
+                    ((selection.manifest or {}).get("versions") or {}).get("grader")
+                ),
+                "grader_implementation_sha256": provenance["graders"]["sha256"],
+                "grader_compatibility_attested": bool(
+                    authorization_receipt
+                    or getattr(args, "expected_grader_sha256", None)
+                ),
+            }
+            if selection.manifest_path else None
         ),
-        categories=(
-            set(args.categories)
-            if args.categories
-            else None
-        ),
-    )
+        "authorization": authorization_receipt,
+        "execution": {
+            "mode": mode,
+            "dataset_role": dataset_role,
+            "variant": variant.name,
+            "model_ids": [settings.siliconflow_agent_model],
+            "providers": ["siliconflow"],
+            "backend_adapters": ["BailianChatBackend"],
+            "protocols": ["openai_compatible"],
+            "temperatures": [0],
+            "timeout_seconds": settings.siliconflow_timeout_seconds,
+            "max_retries": settings.siliconflow_max_retries,
+            "retry_base_seconds": settings.siliconflow_retry_base_seconds,
+            "case_delay_seconds": args.case_delay_seconds,
+            "langfuse_enabled": langfuse_enabled,
+        },
+        "reproducibility": provenance,
+    }
 
-    if not cases:
-        print("No eval cases selected.")
-        return 1
-
+    cases = selection.cases
     print()
-    print(
-        "Teacher Agent Regression Eval "
-        f"({suite.name})"
-    )
+    print(f"Teacher Agent Evaluation ({mode}, {dataset_role})")
     print("=" * 60)
-
-    results = []
+    results: list[dict[str, Any]] = []
 
     try:
         for index, case in enumerate(cases):
-            result = run_case(case, variant=variant)
+            try:
+                result = run_case(case, variant=variant)
+            except Exception as exc:
+                result = {
+                    "case_id": case.id,
+                    "title": case.title,
+                    "category": case.category,
+                    "variant": variant.name,
+                    "passed": False,
+                    "execution_status": "runner_failed",
+                    "failure_type": "runner_failure",
+                    "graders": [],
+                    "error": {
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                        "classification": "runner_failed",
+                        "traceback": traceback.format_exc(),
+                    },
+                }
 
             results.append(result)
             publish_case_scores(result)
@@ -2184,8 +2348,9 @@ def main() -> int:
                 results,
                 args.report,
                 variant=variant,
-                dataset_path=args.cases_file,
+                dataset_path=selection.dataset_path,
                 case_delay_seconds=args.case_delay_seconds,
+                run_metadata=execution_metadata,
             )
 
             print_result(result)
@@ -2194,36 +2359,17 @@ def main() -> int:
     finally:
         flush_case_scores()
 
+    summary = summarize_results(results, mode=mode)
     print("=" * 60)
+    print(f"Cases:             {summary['cases']}")
+    print(f"Agent denominator: {summary['agent_denominator']}")
+    print(f"Passed:            {summary['passed']}")
+    print(f"Agent failed:       {summary['failed']}")
+    rate = summary["agent_pass_rate"]
+    print(f"Agent pass rate:    {rate * 100:.1f}%" if rate is not None else "Agent pass rate:    N/A")
+    print(f"Report: {args.report}")
 
-    passed = sum(
-        1
-        for result in results
-        if result["passed"]
-    )
-
-    total = len(results)
-    failed = total - passed
-
-    pass_rate = (
-        passed / total * 100
-        if total
-        else 0
-    )
-
-    print(f"Cases:     {total}")
-    print(f"Passed:    {passed}")
-    print(f"Failed:    {failed}")
-    print(
-        f"Pass rate: {pass_rate:.1f}%"
-    )
-
-    print()
-    print(
-        f"Report: {args.report}"
-    )
-
-    return 0 if failed == 0 else 1
+    return 0 if summary["total_not_passed"] == 0 else 1
 
 
 if __name__ == "__main__":
