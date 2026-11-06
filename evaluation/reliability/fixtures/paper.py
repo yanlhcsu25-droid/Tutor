@@ -211,7 +211,7 @@ def seed_success_question_bank(session: Session) -> None:
     chapter, knowledge = _chapter_scope(session, chapter_code="一")
     knowledge_ids = [node.id for node in knowledge]
     for question_type, count in (
-        ("选择题", 4),
+        ("选择题", 5),
         ("填空题", 3),
         ("计算题", 5),
         ("证明题", 2),
